@@ -12,3 +12,6 @@ src/zino/version.py
 .coverage
 *.pyc
 *.egg-info/
+
+# avoid accidental commits of config files
+polldevs.cf
