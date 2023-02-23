@@ -19,6 +19,7 @@ classifiers = [
     "Topic :: System :: Networking :: Monitoring",
 ]
 dependencies = [
+    "pydantic"
 ]
 dynamic = ["version"]
 
