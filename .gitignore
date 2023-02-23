@@ -1,0 +1,14 @@
+# Directories generated/used by development tools
+.idea/
+.ve/
+.venv/
+.tox/
+reports/
+build/
+dist/
+
+# Generated files
+src/zino/version.py
+.coverage
+*.pyc
+*.egg-info/
