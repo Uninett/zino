@@ -3,6 +3,9 @@
 This is the modern Python re-implementation of the battle-proven Zino network
 monitor, first implemented in Tcl/Scotty at Uninett in 1999.
 
+This is still a work in progress, and is not yet a fully functional
+replacement for the Tcl-based Zino.
+
 ## Running tests
 
 [tox](https://tox.wiki/) and [pytest](https://pytest.org/) are used to run the
