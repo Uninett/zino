@@ -19,12 +19,16 @@ classifiers = [
     "Topic :: System :: Networking :: Monitoring",
 ]
 dependencies = [
+    "apscheduler",
     "pydantic"
 ]
 dynamic = ["version"]
 
 [project.urls]
 "Homepage" = "https://gitlab.sikt.no/verktoy/zino2"
+
+[project.scripts]
+zino = "zino.zino:main"
 
 [project.optional-dependencies]
 docs = ["sphinx>=2.2.0"]
