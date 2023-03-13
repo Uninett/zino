@@ -99,7 +99,6 @@ def polldevs_conf(tmp_path):
             address: 10.0.42.1
 
             name: example-gw2
-            address: 10.0.43.1
-            """
+            address: 10.0.43.1"""  # Lack of a new-line here is intentional to test the parser
         )
     yield name
