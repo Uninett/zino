@@ -37,6 +37,8 @@ def _read_conf_sections(filehandle: TextIO) -> Iterator[dict]:
         except ValueError:
             raise InvalidConfiguration(f"{line!r} is not a valid configuration line")
         section[key.strip()] = value.strip()
+    if section:
+        yield section
 
 
 def _contains_defaults(section: dict) -> bool:
