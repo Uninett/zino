@@ -2,56 +2,28 @@
 import argparse
 import asyncio
 import logging
-import operator
-import sys
-import time
-from datetime import datetime, timedelta
-from random import random
+from datetime import datetime
 
-from zino.config.models import PollDevice
-from zino.config.polldevs import read_polldevs
-from zino.scheduler import init_scheduler
-
-DEFAULT_INTERVAL_MINUTES = 5
+from zino.scheduler import get_scheduler, load_and_schedule_polldevs
 
 _log = logging.getLogger("zino")
 
 
 def main():
-    parse_args()
+    args = parse_args()
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s (%(threadName)s) - %(message)s"
+    )
+    init_event_loop(args)
 
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(threadName)s - %(message)s")
 
-    if not init_async():
-        sys.exit(1)
-
-
-def init_async(polldevs_conf="polldevs.cf"):
-    devices = sorted(read_polldevs(polldevs_conf), key=operator.attrgetter("priority"), reverse=True)
-    _log.debug("Loaded %s devices from polldevs.cf", len(devices))
-    if not devices:
-        _log.error("No devices configured for polling")
-        return False
-
-    scheduler = init_scheduler()
+def init_event_loop(args: argparse.Namespace):
+    scheduler = get_scheduler()
     scheduler.start()
 
-    # Spread poll jobs evenly across the entire default interval
-    stagger_factor = (DEFAULT_INTERVAL_MINUTES * 60) / len(devices)
-    for index, device in enumerate(devices):
-        # Staggered job startup
-        next_run_time = datetime.now() + timedelta(seconds=index * stagger_factor)
-
-        scheduler.add_job(
-            faux_poll,
-            "interval",
-            minutes=DEFAULT_INTERVAL_MINUTES,
-            args=(device,),
-            next_run_time=next_run_time,
-            name=f"faux_poll({device.name!r})",
-        )
-
-    scheduler.add_job(blocking_operation, "interval", seconds=5)
+    scheduler.add_job(
+        load_and_schedule_polldevs, "interval", args=(args.polldevs.name,), minutes=1, next_run_time=datetime.now()
+    )
 
     try:
         asyncio.get_event_loop().run_forever()
@@ -63,17 +35,14 @@ def init_async(polldevs_conf="polldevs.cf"):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Zino is not OpenView")
-    return parser.parse_args()
+    parser.add_argument(
+        "--polldevs", type=argparse.FileType("r"), metavar="PATH", default="polldevs.cf", help="Path to polldevs.cf"
+    )
 
-
-async def faux_poll(device: PollDevice):
-    _log.debug("Fake polling %s in thread %s", device.name)
-    await asyncio.sleep(random() * 5.0)
-
-
-def blocking_operation():
-    _log.info("blocking function called")
-    time.sleep(1)
+    args = parser.parse_args()
+    if args.polldevs:
+        args.polldevs.close()  # don't leave this temporary file descriptor open
+    return args
 
 
 if __name__ == "__main__":
