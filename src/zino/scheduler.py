@@ -50,9 +50,9 @@ def load_polldevs(polldevs_conf: str) -> Tuple[Set, Set]:
     if deleted_devices:
         _log.info("deleted devices: %r", deleted_devices)
 
-    state.devices.update(devices)
+    state.polldevs.update(devices)
     for device in deleted_devices:
-        del state.devices[device]
+        del state.polldevs[device]
 
     return new_devices, deleted_devices
 
@@ -64,7 +64,7 @@ async def load_and_schedule_polldevs(polldevs_conf: str):
 
 
 def schedule_new_devices(new_devices: Sequence[str]):
-    devices = sorted((state.devices[name] for name in new_devices), key=operator.attrgetter("priority"), reverse=True)
+    devices = sorted((state.polldevs[name] for name in new_devices), key=operator.attrgetter("priority"), reverse=True)
     if not devices:
         return
 
