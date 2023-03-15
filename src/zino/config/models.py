@@ -4,6 +4,8 @@ from typing import Optional, Union
 
 from pydantic import BaseModel
 
+DEFAULT_INTERVAL_MINUTES = 5
+
 IPAddress = Union[IPv4Address, IPv6Address]
 
 
@@ -16,7 +18,7 @@ class PollDevice(BaseModel):
     address: IPAddress
     community: str = "public"
     dns: str = None
-    interval: int = 15
+    interval: int = DEFAULT_INTERVAL_MINUTES
     ignorepat: Optional[str] = None
     watchpat: Optional[str] = None
     priority: int = 100
