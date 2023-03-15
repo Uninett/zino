@@ -20,7 +20,8 @@ classifiers = [
 ]
 dependencies = [
     "apscheduler",
-    "pydantic"
+    "pydantic",
+    "pysnmp",
 ]
 dynamic = ["version"]
 
