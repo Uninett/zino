@@ -78,7 +78,7 @@ def schedule_new_devices(new_devices: Sequence[str]):
         scheduler.add_job(
             faux_poll,
             "interval",
-            minutes=DEFAULT_INTERVAL_MINUTES,
+            minutes=device.interval,
             args=(device,),
             next_run_time=first_run_time,
             name=device.name,
