@@ -3,7 +3,7 @@ from zino.config.models import PollDevice
 
 class Job(ABC):
 
-    @staticmethod
+    @classmethod
     @abstractmethod
     async def run_job(cls, device: PollDevice):
         """Runs job asynchronously"""
