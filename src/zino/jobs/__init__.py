@@ -1,6 +1,6 @@
-from zino.jobs.fauxpolljob import FauxPollJob
+from zino.jobs.reachablejob import ReachableJob
 
-REGISTERED_JOBS = [FauxPollJob]
+REGISTERED_JOBS = [ReachableJob]
 
 async def run_all_jobs(device):
     for job in REGISTERED_JOBS:
