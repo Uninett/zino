@@ -3,13 +3,13 @@ from datetime import datetime, timedelta
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-from zino.jobs.job import Job
 from zino.config.models import PollDevice
-from zino.snmp import SNMP
+from zino.jobs.job import Job
 from zino.scheduler import get_scheduler
-
+from zino.snmp import SNMP
 
 _logger = logging.getLogger(__name__)
+
 
 class ReachableJob(Job):
     EXTRA_JOBS_PREFIX = "delayed_reachable_job"
@@ -48,7 +48,7 @@ class ReachableJob(Job):
 
     @classmethod
     def deschedule_extra_jobs(cls, scheduler: AsyncIOScheduler):
-         for interval in cls.EXTRA_JOBS_INTERVALS:
+        for interval in cls.EXTRA_JOBS_INTERVALS:
             name = cls.get_job_name_for_interval(interval)
             scheduler.remove_job(name)
 
