@@ -19,7 +19,7 @@ class ReachableJob(Job):
     async def run_job(cls, device: PollDevice):
         """Checks if device is reachable. Schedules extra jobs if not."""
         snmp = SNMP()
-        result = snmp.get("SNMPv2-MIB", "sysUpTime", 0)
+        result = await snmp.get("SNMPv2-MIB", "sysUpTime", 0)
         scheduler = get_scheduler()
         if not result:
             _logger.debug("Device %s is not reachable", device.name)
