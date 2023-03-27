@@ -16,7 +16,7 @@ class ReachableTask(Task):
     def __init__(self):
         self._scheduler = get_scheduler()
 
-    async def run_task(self, device: PollDevice):
+    async def run(self, device: PollDevice):
         """Checks if device is reachable. Schedules extra jobs if not."""
         snmp = SNMP(device)
         result = await snmp.get("SNMPv2-MIB", "sysUpTime", 0)
