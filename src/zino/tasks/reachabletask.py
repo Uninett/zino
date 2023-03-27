@@ -42,17 +42,17 @@ class ReachableTask(Task):
                 id=name,
             )
 
-    def deschedule_extra_jobs(self):
+    def deschedule_extra_jobs(self, device: PollDevice):
         for interval in self.EXTRA_JOBS_INTERVALS:
-            name = self.get_job_name_for_interval(interval)
+            name = self.get_job_name_for_interval(interval, device)
             self._scheduler.remove_job(name)
 
-    def extra_jobs_are_running(self):
+    def extra_jobs_are_running(self, device: PollDevice):
         for interval in self.EXTRA_JOBS_INTERVALS:
-            job_name = self.get_job_name_for_interval(interval)
+            job_name = self.get_job_name_for_interval(interval, device)
             if self._scheduler.get_job(job_name):
                 return True
         return False
 
-    def get_job_name_for_interval(self, interval):
-        return f"{self.EXTRA_JOBS_PREFIX}_{interval}"
+    def get_job_name_for_interval(self, interval, device):
+        return f"{self.EXTRA_JOBS_PREFIX}_{interval}_{device.name}"
