@@ -3,8 +3,8 @@ from abc import ABC, abstractmethod
 from zino.config.models import PollDevice
 
 
-class Job(ABC):
+class Task(ABC):
     @classmethod
     @abstractmethod
-    async def run_job(cls, device: PollDevice):
+    async def run_task(cls, device: PollDevice):
         """Runs job asynchronously"""

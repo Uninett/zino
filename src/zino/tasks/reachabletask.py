@@ -4,19 +4,19 @@ from datetime import datetime, timedelta
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from zino.config.models import PollDevice
-from zino.jobs.job import Job
 from zino.scheduler import get_scheduler
 from zino.snmp import SNMP
+from zino.tasks.task import Task
 
 _logger = logging.getLogger(__name__)
 
 
-class ReachableJob(Job):
+class ReachableTask(Task):
     EXTRA_JOBS_PREFIX = "delayed_reachable_job"
     EXTRA_JOBS_INTERVALS = [60, 120, 240, 480, 960]
 
     @classmethod
-    async def run_job(cls, device: PollDevice):
+    async def run_task(cls, device: PollDevice):
         """Checks if device is reachable. Schedules extra jobs if not."""
         snmp = SNMP()
         result = await snmp.get("SNMPv2-MIB", "sysUpTime", 0)
@@ -37,7 +37,7 @@ class ReachableJob(Job):
             # makes the job only run once
             end_date = datetime.now() + timedelta(seconds=interval)
             scheduler.add_job(
-                cls.run_job,
+                cls.run_task,
                 "interval",
                 seconds=interval,
                 args=(device,),

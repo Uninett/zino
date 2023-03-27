@@ -10,7 +10,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from zino import state
 from zino.config.models import DEFAULT_INTERVAL_MINUTES
 from zino.config.polldevs import read_polldevs
-from zino.jobs import run_all_jobs
+from zino.tasks import run_all_tasks
 
 _log = logging.getLogger(__name__)
 _scheduler = None
@@ -76,7 +76,7 @@ def schedule_new_devices(new_devices: Sequence[str]):
         first_run_time = datetime.now() + timedelta(seconds=index * stagger_factor)
 
         scheduler.add_job(
-            run_all_jobs,
+            run_all_tasks,
             "interval",
             minutes=device.interval,
             args=(device,),
