@@ -11,3 +11,9 @@ polldevs: Dict[str, PollDevice] = {}
 
 # Dictionary of device state
 devices = {}
+
+# Dictionary of ongoing events
+events = {}
+
+# Keeps track of the last assigned event id
+last_event_id = 0
