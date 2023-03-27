@@ -104,7 +104,7 @@ class Event(BaseModel):
     state: EventState
     opened: datetime.datetime
     updated: datetime.datetime
-    priority: int
+    priority: int = 100
 
     log: List[LogEntry]
     history: List[LogEntry]
