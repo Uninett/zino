@@ -41,8 +41,8 @@ def load_polldevs(polldevs_conf: str) -> Tuple[Set, Set]:
     :returns: A tuple of (new_devices, deleted_devices)
     """
     devices = {d.name: d for d in read_polldevs(polldevs_conf)}
-    new_devices = set(devices) - set(state.devices)
-    deleted_devices = set(state.devices) - set(devices)
+    new_devices = set(devices) - set(state.polldevs)
+    deleted_devices = set(state.polldevs) - set(devices)
     if new_devices:
         _log.info("loaded new devices: %r", new_devices)
     if deleted_devices:
