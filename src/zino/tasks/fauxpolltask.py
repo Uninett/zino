@@ -9,7 +9,6 @@ _log = logging.getLogger(__name__)
 
 
 class FauxPollTask(Task):
-    @classmethod
     async def run_task(cls, device: PollDevice):
         _log.debug("Fake polling %s in thread %s", device.name)
         await asyncio.sleep(random() * 5.0)

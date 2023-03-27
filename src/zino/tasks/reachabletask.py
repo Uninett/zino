@@ -1,8 +1,6 @@
 import logging
 from datetime import datetime, timedelta
 
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-
 from zino.config.models import PollDevice
 from zino.scheduler import get_scheduler
 from zino.snmp import SNMP
@@ -15,29 +13,29 @@ class ReachableTask(Task):
     EXTRA_JOBS_PREFIX = "delayed_reachable_job"
     EXTRA_JOBS_INTERVALS = [60, 120, 240, 480, 960]
 
-    @classmethod
-    async def run_task(cls, device: PollDevice):
+    def __init__(self):
+        self._scheduler = get_scheduler()
+
+    async def run_task(self, device: PollDevice):
         """Checks if device is reachable. Schedules extra jobs if not."""
         snmp = SNMP(device)
         result = await snmp.get("SNMPv2-MIB", "sysUpTime", 0)
-        scheduler = get_scheduler()
         if not result:
             _logger.debug("Device %s is not reachable", device.name)
-            if not cls.extra_jobs_are_running(scheduler):
-                cls.schedule_extra_jobs(scheduler, device)
+            if not self.extra_jobs_are_running():
+                self.schedule_extra_jobs(device)
         else:
             _logger.debug("Device %s is reachable", device.name)
-            if cls.extra_jobs_are_running(scheduler):
-                cls.deschedule_extra_jobs(scheduler)
+            if self.extra_jobs_are_running():
+                self.deschedule_extra_jobs()
 
-    @classmethod
-    def schedule_extra_jobs(cls, scheduler: AsyncIOScheduler, device: PollDevice):
-        for interval in cls.EXTRA_JOBS_INTERVALS:
-            name = cls.get_job_name_for_interval(interval)
+    def schedule_extra_jobs(self, device: PollDevice):
+        for interval in self.EXTRA_JOBS_INTERVALS:
+            name = self.get_job_name_for_interval(interval)
             # makes the job only run once
             end_date = datetime.now() + timedelta(seconds=interval)
-            scheduler.add_job(
-                cls.run_task,
+            self._scheduler.add_job(
+                self.run_task,
                 "interval",
                 seconds=interval,
                 args=(device,),
@@ -46,20 +44,17 @@ class ReachableTask(Task):
                 end_date=end_date,
             )
 
-    @classmethod
-    def deschedule_extra_jobs(cls, scheduler: AsyncIOScheduler):
-        for interval in cls.EXTRA_JOBS_INTERVALS:
-            name = cls.get_job_name_for_interval(interval)
-            scheduler.remove_job(name)
+    def deschedule_extra_jobs(self):
+        for interval in self.EXTRA_JOBS_INTERVALS:
+            name = self.get_job_name_for_interval(interval)
+            self._scheduler.remove_job(name)
 
-    @classmethod
-    def extra_jobs_are_running(cls, scheduler: AsyncIOScheduler):
-        for interval in cls.EXTRA_JOBS_INTERVALS:
-            job_name = cls.get_job_name_for_interval(interval)
-            if scheduler.get_job(job_name):
+    def extra_jobs_are_running(self):
+        for interval in self.EXTRA_JOBS_INTERVALS:
+            job_name = self.get_job_name_for_interval(interval)
+            if self._scheduler.get_job(job_name):
                 return True
         return False
 
-    @classmethod
-    def get_job_name_for_interval(cls, interval):
-        return f"{cls.EXTRA_JOBS_PREFIX}_{interval}"
+    def get_job_name_for_interval(self, interval):
+        return f"{self.EXTRA_JOBS_PREFIX}_{interval}"
