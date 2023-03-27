@@ -1,8 +1,10 @@
-from zino.tasks.reachabletask import ReachableTask
-
-REGISTERED_TASKS = [ReachableTask]
-
-
 async def run_all_tasks(device):
-    for job in REGISTERED_TASKS:
-        await job.run(device)
+    for task_class in get_registered_tasks():
+        task = task_class(device)
+        await task.run()
+
+
+def get_registered_tasks():
+    from zino.tasks.reachabletask import ReachableTask
+
+    return [ReachableTask]
