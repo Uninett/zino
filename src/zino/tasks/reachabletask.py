@@ -31,17 +31,15 @@ class ReachableTask(Task):
 
     def schedule_extra_jobs(self, device: PollDevice):
         for interval in self.EXTRA_JOBS_INTERVALS:
-            name = self.get_job_name_for_interval(interval)
-            # makes the job only run once
-            end_date = datetime.now() + timedelta(seconds=interval)
+            name = self.get_job_name_for_interval(interval, device)
+            run_date = datetime.now() + timedelta(seconds=interval)
             self._scheduler.add_job(
-                self.run_task,
-                "interval",
-                seconds=interval,
+                self.task,
+                "date",
+                run_date=run_date,
                 args=(device,),
                 name=name,
                 id=name,
-                end_date=end_date,
             )
 
     def deschedule_extra_jobs(self):
