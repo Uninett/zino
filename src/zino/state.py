@@ -5,6 +5,7 @@ __all__ = ["polldevs", "devices"]
 from typing import Dict
 
 from zino.config.models import PollDevice
+from zino.events import Events
 
 # Dictionary of configured devices
 polldevs: Dict[str, PollDevice] = {}
@@ -13,7 +14,7 @@ polldevs: Dict[str, PollDevice] = {}
 devices = {}
 
 # Dictionary of ongoing events
-events = {}
+events = Events()
 
 # Keeps track of the last assigned event id
 last_event_id = 0
