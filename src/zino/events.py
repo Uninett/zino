@@ -1,6 +1,6 @@
 import datetime
 from collections import namedtuple
-from typing import Optional
+from typing import Optional, Tuple
 
 from zino.statemodels import Event, EventState, EventType, PortOrIPAddress
 
@@ -19,12 +19,20 @@ class Events:
     def __len__(self):
         return len(self._events)
 
-    def get_or_create_event(self, device_name: str, port: Optional[PortOrIPAddress], event_type: EventType) -> Event:
+    def get_or_create_event(
+        self, device_name: str, port: Optional[PortOrIPAddress], event_type: EventType
+    ) -> Tuple[Event, bool]:
+        """Creates a new event for the given event identifers, or, if one matching this identifier already exists,
+        returns that.
+
+        :returns: (Event, created) where Event is the existing or newly created Event object, while created is a boolean
+                  indicating whether the returned object was just created by this method or if it existed from before.
+
+        """
         try:
-            self.create_event(device_name, port, event_type)
+            return self.create_event(device_name, port, event_type), True
         except EventExistsError:
-            index = EventIndex(device_name, port, event_type)
-            return self._events_by_index[index]
+            return self.get(device_name, port, event_type), False
 
     def create_event(self, device_name: str, port: Optional[PortOrIPAddress], event_type: EventType) -> Event:
         index = EventIndex(device_name, port, event_type)
