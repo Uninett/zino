@@ -124,3 +124,13 @@ class Event(BaseModel):
     bfdix: Optional[int]
     bfddiscr: Optional[int]
     bfdaddr: Optional[IPAddress]
+
+    def add_log(self, message: str) -> LogEntry:
+        entry = LogEntry(timestamp=datetime.datetime.now(), message=message)
+        self.log.append(entry)
+        return entry
+
+    def add_history(self, message: str) -> LogEntry:
+        entry = LogEntry(timestamp=datetime.datetime.now(), message=message)
+        self.history.append(entry)
+        return entry
