@@ -48,6 +48,10 @@ class Events:
         self._events_by_index[index] = event
         return event
 
+    def get(self, device_name: str, port: Optional[PortOrIPAddress], event_type: EventType) -> Event:
+        index = EventIndex(device_name, port, event_type)
+        return self._events.get(index)
+
 
 class EventExistsError(Exception):
     pass
