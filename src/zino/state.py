@@ -15,6 +15,3 @@ devices = {}
 
 # Dictionary of ongoing events
 events = Events()
-
-# Keeps track of the last assigned event id
-last_event_id = 0
