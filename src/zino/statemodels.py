@@ -106,8 +106,8 @@ class Event(BaseModel):
     updated: datetime.datetime
     priority: int = 100
 
-    log: List[LogEntry]
-    history: List[LogEntry]
+    log: List[LogEntry] = []
+    history: List[LogEntry] = []
 
     # More-or-less optional event attrs (as guesstimated from the original Zino code)
     ifindex: Optional[int]
