@@ -28,6 +28,7 @@ class ReachableTask(Task):
             if created:
                 # TODO add attributes
                 event.add_log(f"{self.device.name} no-response")
+                # TODO we need a mechanism to "commit" event changes, to trigger notifications to clients
             if not self.extra_jobs_are_running():
                 self.schedule_extra_jobs()
         else:
@@ -36,6 +37,7 @@ class ReachableTask(Task):
             if event:
                 # TODO update event attributes
                 event.add_log(f"{self.device.name} reachable")
+                # TODO we need a mechanism to "commit" event changes, to trigger notifications to clients
             if self.extra_jobs_are_running():
                 self.deschedule_extra_jobs()
 
