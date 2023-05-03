@@ -35,6 +35,10 @@ class Events:
             return self.get(device_name, port, event_type), False
 
     def create_event(self, device_name: str, port: Optional[PortOrIPAddress], event_type: EventType) -> Event:
+        """Creates a new event for the given event identifiers. If an event already exists for this combination of
+        identifiers, an EventExistsError is raised.
+
+        """
         index = EventIndex(device_name, port, event_type)
         if index in self._events_by_index:
             raise EventExistsError(f"Event for {index} already exists")
