@@ -57,8 +57,9 @@ class Events:
         return event
 
     def get(self, device_name: str, port: Optional[PortOrIPAddress], event_type: EventType) -> Event:
+        """Returns an event based on its identifiers, None if no match was found"""
         index = EventIndex(device_name, port, event_type)
-        return self._events.get(index)
+        return self._events_by_index.get(index)
 
 
 class EventExistsError(Exception):
