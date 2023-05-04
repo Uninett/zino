@@ -1,0 +1,53 @@
+name: Run test suite
+
+########################################################
+# Start the job on all push and pull request to master #
+########################################################
+on:
+  push:
+    # branches-ignore: master
+    # Include the line above to not run when pushing to master
+  pull_request:
+    branches: master
+
+###############
+# Set the Job #
+###############
+jobs:
+  tests:
+    # Name the Job
+    name: "Test on Python ${{ matrix.python-version}}"
+    # Set the agent to run on
+    runs-on: ubuntu-latest
+
+    strategy:
+      max-parallel: 4
+      matrix:
+        python-version: ["3.9", "3.10", "3.11"]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Cache
+        uses: actions/cache@v3
+        id: cache
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+
+      - name: "Set up Python ${{ matrix.python-version }}"
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "tox<4" tox-gh-actions
+
+      - name: Test with tox
+        run: tox
