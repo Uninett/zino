@@ -27,6 +27,7 @@ class ReachableTask(Task):
             if created:
                 # TODO add attributes
                 event.state = EventState.OPEN
+                event.add_history("Change state to Open")
             event.reachability = ReachabilityState.NORESPONSE
             event.add_log(f"{self.device.name} no-response")
             # TODO we need a mechanism to "commit" event changes, to trigger notifications to clients
