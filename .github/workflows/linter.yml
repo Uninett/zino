@@ -60,3 +60,5 @@ jobs:
           # Add validation for other languages here or comment out all to validate all languages
           VALIDATE_PYTHON_BLACK: true
           VALIDATE_PYTHON_FLAKE8: true
+          # Tell the linter the location of the configuration file (pyproject.toml)
+          LINTER_RULES_PATH: /
