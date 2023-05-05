@@ -35,8 +35,8 @@ class ReachableTask(Task):
             _logger.debug("Device %s is reachable", self.device.name)
 
     async def _run_extra_job(self):
-        uptime = await self._get_sysuptime()
-        if uptime:
+        result = await self._get_sysuptime()
+        if result:
             _logger.debug("Device %s is reachable", self.device.name)
             event = state.events.get(self.device.name, None, EventType.REACHABILITY)
             if event:
