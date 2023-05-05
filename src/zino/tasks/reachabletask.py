@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime, timedelta
 
 from zino import state
 from zino.scheduler import get_scheduler
@@ -11,59 +10,61 @@ _logger = logging.getLogger(__name__)
 
 
 class ReachableTask(Task):
-    EXTRA_JOBS_PREFIX = "delayed_reachable_job"
-    EXTRA_JOBS_INTERVALS = [60, 120, 240, 480, 960]
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._scheduler = get_scheduler()
 
     async def run(self):
-        """Checks if device is reachable. Schedules extra jobs if not."""
-        snmp = SNMP(self.device)
-        result = await snmp.get("SNMPv2-MIB", "sysUpTime", 0)
+        """Checks if device is reachable. Schedules extra reachability checks if not."""
+        result = await self._get_sysuptime()
         if not result:
             _logger.debug("Device %s is not reachable", self.device.name)
             event, created = state.events.get_or_create_event(self.device.name, None, EventType.REACHABILITY)
             if created:
                 # TODO add attributes
-                event.add_log(f"{self.device.name} no-response")
-                # TODO we need a mechanism to "commit" event changes, to trigger notifications to clients
-            if not self.extra_jobs_are_running():
-                self.schedule_extra_jobs()
+                pass
+             # TODO we need a mechanism to "commit" event changes, to trigger notifications to clients
+            event.add_log(f"{self.device.name} no-response")
+            self._schedule_extra_job()
         else:
+            _logger.debug("Device %s is reachable", self.device.name)
+
+    async def _run_extra_job(self):
+        uptime = await self._get_sysuptime()
+        if uptime:
             _logger.debug("Device %s is reachable", self.device.name)
             event = state.events.get(self.device.name, None, EventType.REACHABILITY)
             if event:
                 # TODO update event attributes
                 event.add_log(f"{self.device.name} reachable")
                 # TODO we need a mechanism to "commit" event changes, to trigger notifications to clients
-            if self.extra_jobs_are_running():
-                self.deschedule_extra_jobs()
+                self._deschedule_extra_job()
 
-    def schedule_extra_jobs(self):
-        for interval in self.EXTRA_JOBS_INTERVALS:
-            name = self.get_job_name_for_interval(interval)
-            run_date = datetime.now() + timedelta(seconds=interval)
-            self._scheduler.add_job(
-                self.run,
-                "date",
-                run_date=run_date,
-                name=name,
-                id=name,
-            )
+    async def _get_sysuptime(self):
+        snmp = SNMP(self.device)
+        result = await snmp.get("SNMPv2-MIB", "sysUpTime", 0)
+        return result
 
-    def deschedule_extra_jobs(self):
-        for interval in self.EXTRA_JOBS_INTERVALS:
-            name = self.get_job_name_for_interval(interval)
-            self._scheduler.remove_job(name)
+    def _schedule_extra_job(self):
+        name = self._get_extra_job_name()
+        self._scheduler.add_job(
+            self._run_extra_job,
+            "interval",
+            minutes=1,
+            name=name,
+            id=name,
+        )
 
-    def extra_jobs_are_running(self):
-        for interval in self.EXTRA_JOBS_INTERVALS:
-            job_name = self.get_job_name_for_interval(interval)
-            if self._scheduler.get_job(job_name):
-                return True
-        return False
+    def _deschedule_extra_job(self):
+        name = self._get_extra_job_name()
+        self._scheduler.remove_job(name)
 
-    def get_job_name_for_interval(self, interval):
-        return f"{self.EXTRA_JOBS_PREFIX}_{interval}_{self.device.name}"
+    def _extra_job_is_running(self):
+        name = self._get_extra_job_name()
+        if self._scheduler.get_job(name):
+            return True
+        else:
+            return False
+
+    def _get_extra_job_name(self):
+        return f"reachabletask_{self.device.name}"
