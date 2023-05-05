@@ -16,6 +16,8 @@ class ReachableTask(Task):
 
     async def run(self):
         """Checks if device is reachable. Schedules extra reachability checks if not."""
+        if self._extra_job_is_running():
+            return
         result = await self._get_sysuptime()
         if not result:
             _logger.debug("Device %s is not reachable", self.device.name)
