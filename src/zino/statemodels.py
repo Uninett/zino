@@ -93,6 +93,13 @@ class EventType(Enum):
     ALARM = "alarm"
 
 
+class ReachabilityState(Enum):
+    """The set of allowed reachability states"""
+
+    REACHABLE = "reachable"
+    NORESPONSE = "no-response"
+
+
 class Event(BaseModel):
     """Keeps track of event state"""
 
@@ -124,6 +131,8 @@ class Event(BaseModel):
     bfdix: Optional[int]
     bfddiscr: Optional[int]
     bfdaddr: Optional[IPAddress]
+
+    reachability: Optional[ReachabilityState]
 
     def add_log(self, message: str) -> LogEntry:
         entry = LogEntry(timestamp=datetime.datetime.now(), message=message)
