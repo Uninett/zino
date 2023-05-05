@@ -3,7 +3,7 @@ import logging
 from zino import state
 from zino.scheduler import get_scheduler
 from zino.snmp import SNMP
-from zino.statemodels import EventState, EventType
+from zino.statemodels import EventState, EventType, ReachabilityState
 from zino.tasks.task import Task
 
 _logger = logging.getLogger(__name__)
@@ -25,6 +25,7 @@ class ReachableTask(Task):
             if created:
                 # TODO add attributes
                 event.state = EventState.OPEN
+            event.reachability = ReachabilityState.NORESPONSE
             event.add_log(f"{self.device.name} no-response")
             # TODO we need a mechanism to "commit" event changes, to trigger notifications to clients
             self._schedule_extra_job()
@@ -38,6 +39,7 @@ class ReachableTask(Task):
             event = state.events.get(self.device.name, None, EventType.REACHABILITY)
             if event:
                 # TODO update event attributes
+                event.reachability = ReachabilityState.REACHABLE
                 event.add_log(f"{self.device.name} reachable")
                 # TODO we need a mechanism to "commit" event changes, to trigger notifications to clients
                 self._deschedule_extra_job()
