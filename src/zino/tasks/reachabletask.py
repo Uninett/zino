@@ -10,6 +10,8 @@ _logger = logging.getLogger(__name__)
 
 
 class ReachableTask(Task):
+    EXTRA_JOB_INTERVAL = 60
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._scheduler = get_scheduler()
@@ -54,7 +56,7 @@ class ReachableTask(Task):
         self._scheduler.add_job(
             self._run_extra_job,
             "interval",
-            minutes=1,
+            seconds=self.EXTRA_JOB_INTERVAL,
             name=name,
             id=name,
         )
