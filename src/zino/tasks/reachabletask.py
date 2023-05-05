@@ -28,8 +28,9 @@ class ReachableTask(Task):
                 # TODO add attributes
                 event.state = EventState.OPEN
                 event.add_history("Change state to Open")
-            event.reachability = ReachabilityState.NORESPONSE
-            event.add_log(f"{self.device.name} no-response")
+            if event.reachability != ReachabilityState.NORESPONSE:
+                event.reachability = ReachabilityState.NORESPONSE
+                event.add_log(f"{self.device.name} no-response")
             # TODO we need a mechanism to "commit" event changes, to trigger notifications to clients
             self._schedule_extra_job()
         else:
@@ -42,8 +43,9 @@ class ReachableTask(Task):
             event = state.events.get(self.device.name, None, EventType.REACHABILITY)
             if event:
                 # TODO update event attributes
-                event.reachability = ReachabilityState.REACHABLE
-                event.add_log(f"{self.device.name} reachable")
+                if event.reachability != ReachabilityState.REACHABLE:
+                    event.reachability = ReachabilityState.REACHABLE
+                    event.add_log(f"{self.device.name} reachable")
                 # TODO we need a mechanism to "commit" event changes, to trigger notifications to clients
                 self._deschedule_extra_job()
 
