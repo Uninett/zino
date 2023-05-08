@@ -62,4 +62,6 @@ jobs:
           VALIDATE_PYTHON_FLAKE8: true
           VALIDATE_PYTHON_ISORT: true
           # Tell the linter the location of the configuration file (pyproject.toml)
-          LINTER_RULES_PATH: /
+          LINTER_RULES_PATH: .
+          PYTHON_BLACK_CONFIG_FILE: pyproject.toml
+          PYTHON_ISORT_CONFIG_FILE: pyproject.toml
