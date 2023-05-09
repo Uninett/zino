@@ -4,7 +4,9 @@ from enum import Enum, IntEnum
 from ipaddress import IPv4Address, IPv6Address
 from typing import Dict, List, Optional, Union
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+from zino.time import now
 
 IPAddress = Union[IPv4Address, IPv6Address]
 PortOrIPAddress = Union[int, IPAddress]
@@ -67,7 +69,7 @@ class Device(BaseModel):
 class LogEntry(BaseModel):
     """Event log entry attributes. These apply both for 'log' and 'history' lists"""
 
-    timestamp: datetime.datetime
+    timestamp: datetime.datetime = Field(default_factory=now)
     message: str
 
 
@@ -126,11 +128,11 @@ class Event(BaseModel):
     bfdaddr: Optional[IPAddress]
 
     def add_log(self, message: str) -> LogEntry:
-        entry = LogEntry(timestamp=datetime.datetime.now(), message=message)
+        entry = LogEntry(message=message)
         self.log.append(entry)
         return entry
 
     def add_history(self, message: str) -> LogEntry:
-        entry = LogEntry(timestamp=datetime.datetime.now(), message=message)
+        entry = LogEntry(message=message)
         self.history.append(entry)
         return entry
