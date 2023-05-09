@@ -56,3 +56,11 @@ jobs:
         with:
           fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
+
+      - name: Upload test reports (${{ matrix.python-version }})
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: reports
+          path: |
+            reports/**/*
