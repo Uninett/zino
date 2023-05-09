@@ -44,11 +44,16 @@ class SNMP:
         )
 
         if error_indication:
-            _log.error(error_indication)
+            _log.error("%s: %s", self.device.name, error_indication)
             return
 
         if error_status:
-            _log.error("%s at %s", error_status.prettyPrint(), error_index and query[int(error_index) - 1][0] or "?")
+            _log.error(
+                "%s: %s at %s",
+                self.device.name,
+                error_status.prettyPrint(),
+                error_index and query[int(error_index) - 1][0] or "?",
+            )
             return
 
         for var_bind in var_binds:
