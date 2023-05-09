@@ -1,8 +1,8 @@
-import datetime
 from collections import namedtuple
 from typing import Optional, Tuple
 
 from zino.statemodels import Event, EventState, EventType, PortOrIPAddress
+from zino.time import now
 
 EventIndex = namedtuple("EventIndex", "router port event_type")
 
@@ -46,15 +46,15 @@ class Events:
         event_id = self._last_event_id + 1
         self._last_event_id = event_id
 
-        now = datetime.datetime.now()
+        timestamp = now()
         event = Event(
             id=event_id,
             router=device_name,
             port=port,
             event_type=event_type,
             state=EventState.EMBRYONIC,
-            opened=now,
-            updated=now,
+            opened=timestamp,
+            updated=timestamp,
         )
         self._events[event_id] = event
         self._events_by_index[index] = event
