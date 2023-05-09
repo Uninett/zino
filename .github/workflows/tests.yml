@@ -1,14 +1,12 @@
 name: Run test suite
 
-########################################################
-# Start the job on all push and pull request to master #
-########################################################
+###########################################################
+# Start the job on pushes to master and all pull requests #
+###########################################################
 on:
   push:
-    # branches-ignore: master
-    # Include the line above to not run when pushing to master
-  pull_request:
     branches: master
+  pull_request:
 
 ###############
 # Set the Job #
