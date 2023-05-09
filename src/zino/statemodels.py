@@ -104,8 +104,8 @@ class Event(BaseModel):
     port: Optional[PortOrIPAddress]
     event_type: EventType
     state: EventState
-    opened: datetime.datetime
-    updated: datetime.datetime
+    opened: datetime.datetime = Field(default_factory=now)
+    updated: datetime.datetime = Field(default_factory=now)
     priority: int = 100
 
     log: List[LogEntry] = []
