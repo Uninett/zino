@@ -22,7 +22,7 @@ class Events:
     def get_or_create_event(
         self, device_name: str, port: Optional[PortOrIPAddress], event_type: EventType
     ) -> Tuple[Event, bool]:
-        """Creates a new event for the given event identifers, or, if one matching this identifier already exists,
+        """Creates a new event for the given event identifiers, or, if one matching this identifier already exists,
         returns that.
 
         :returns: (Event, created) where Event is the existing or newly created Event object, while created is a boolean
