@@ -1,3 +1,4 @@
+import logging
 from collections import namedtuple
 from typing import Optional, Tuple
 
@@ -5,6 +6,8 @@ from zino.statemodels import Event, EventState, EventType, PortOrIPAddress
 from zino.time import now
 
 EventIndex = namedtuple("EventIndex", "router port event_type")
+
+_log = logging.getLogger(__name__)
 
 
 class Events:
@@ -58,6 +61,7 @@ class Events:
         )
         self._events[event_id] = event
         self._events_by_index[index] = event
+        _log.debug("created %r", event)
         return event
 
     def get(self, device_name: str, port: Optional[PortOrIPAddress], event_type: EventType) -> Event:
