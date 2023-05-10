@@ -53,15 +53,13 @@ class Events(BaseModel):
         event_id = self.last_event_id + 1
         self.last_event_id = event_id
 
-        timestamp = now()
         event = Event(
             id=event_id,
             router=device_name,
             port=port,
             event_type=event_type,
             state=EventState.EMBRYONIC,
-            opened=timestamp,
-            updated=timestamp,
+            opened=now(),
         )
         self.events[event_id] = event
         self._events_by_index[index] = event

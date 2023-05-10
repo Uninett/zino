@@ -112,7 +112,7 @@ class Event(BaseModel):
     event_type: EventType
     state: EventState
     opened: datetime.datetime = Field(default_factory=now)
-    updated: datetime.datetime = Field(default_factory=now)
+    updated: Optional[datetime.datetime]
     priority: int = 100
 
     log: List[LogEntry] = []
@@ -139,6 +139,7 @@ class Event(BaseModel):
     def add_log(self, message: str) -> LogEntry:
         entry = LogEntry(message=message)
         self.log.append(entry)
+        self.updated = entry.timestamp
         return entry
 
     def add_history(self, message: str) -> LogEntry:
