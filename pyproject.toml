@@ -22,7 +22,7 @@ classifiers = [
 dependencies = [
     "apscheduler",
     "pydantic",
-    "pysnmp",
+    "pysnmplib",
 ]
 dynamic = ["version"]
 
@@ -41,7 +41,10 @@ dev = [
     "isort",
     "pre-commit",
     "pytest",
+    "pytest-asyncio",
+    "retry",
     "ruff",
+    "snmpsim",
     "tox<4",
 ]
 
