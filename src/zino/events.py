@@ -1,10 +1,19 @@
 import logging
 from collections import namedtuple
-from typing import Optional, Tuple, Type
+from typing import Dict, Optional, Tuple, Type, Union
 
 from pydantic.main import BaseModel
 
-from zino.statemodels import Event, EventState, PortOrIPAddress
+from zino.statemodels import (
+    AlarmEvent,
+    BFDEvent,
+    BGPEvent,
+    Event,
+    EventState,
+    PortOrIPAddress,
+    PortStateEvent,
+    ReachabilityEvent,
+)
 from zino.time import now
 
 EventIndex = namedtuple("EventIndex", "router port type")
@@ -13,9 +22,9 @@ _log = logging.getLogger(__name__)
 
 
 class Events(BaseModel):
-    events: dict = {}
+    events: Dict[int, Union[PortStateEvent, BGPEvent, BFDEvent, ReachabilityEvent, AlarmEvent, Event]] = {}
     last_event_id: int = 0
-    _events_by_index: dict = {}
+    _events_by_index: Dict[EventIndex, Event] = {}
 
     class Config:
         underscore_attrs_are_private = True
