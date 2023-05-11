@@ -1,13 +1,13 @@
 import logging
 from collections import namedtuple
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Type
 
 from pydantic.main import BaseModel
 
-from zino.statemodels import Event, EventState, EventType, PortOrIPAddress
+from zino.statemodels import Event, EventState, PortOrIPAddress
 from zino.time import now
 
-EventIndex = namedtuple("EventIndex", "router port event_type")
+EventIndex = namedtuple("EventIndex", "router port type")
 
 _log = logging.getLogger(__name__)
 
@@ -27,7 +27,10 @@ class Events(BaseModel):
         return len(self.events)
 
     def get_or_create_event(
-        self, device_name: str, port: Optional[PortOrIPAddress], event_type: EventType
+        self,
+        device_name: str,
+        port: Optional[PortOrIPAddress],
+        event_class: Type[Event],
     ) -> Tuple[Event, bool]:
         """Creates a new event for the given event identifiers, or, if one matching this identifier already exists,
         returns that.
@@ -37,38 +40,39 @@ class Events(BaseModel):
 
         """
         try:
-            return self.create_event(device_name, port, event_type), True
+            return self.create_event(device_name, port, event_class), True
         except EventExistsError:
-            return self.get(device_name, port, event_type), False
+            return self.get(device_name, port, event_class), False
 
-    def create_event(self, device_name: str, port: Optional[PortOrIPAddress], event_type: EventType) -> Event:
+    def create_event(self, device_name: str, port: Optional[PortOrIPAddress], event_class: Type[Event]) -> Event:
         """Creates a new event for the given event identifiers. If an event already exists for this combination of
         identifiers, an EventExistsError is raised.
 
         """
-        index = EventIndex(device_name, port, event_type)
+        index = EventIndex(device_name, port, event_class)
         if index in self._events_by_index:
             raise EventExistsError(f"Event for {index} already exists")
 
         event_id = self.last_event_id + 1
         self.last_event_id = event_id
 
-        event = Event(
+        event = event_class(
             id=event_id,
             router=device_name,
             port=port,
-            event_type=event_type,
             state=EventState.EMBRYONIC,
             opened=now(),
         )
+        _log.debug("created event %r", event)
+
         self.events[event_id] = event
         self._events_by_index[index] = event
         _log.debug("created %r", event)
         return event
 
-    def get(self, device_name: str, port: Optional[PortOrIPAddress], event_type: EventType) -> Event:
+    def get(self, device_name: str, port: Optional[PortOrIPAddress], event_class: Type[Event]) -> Event:
         """Returns an event based on its identifiers, None if no match was found"""
-        index = EventIndex(device_name, port, event_type)
+        index = EventIndex(device_name, port, event_class)
         return self._events_by_index.get(index)
 
 
