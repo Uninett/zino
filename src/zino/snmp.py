@@ -68,12 +68,12 @@ class SNMP:
         return False
 
     async def getnext(self, *oid):
-        """Returns ObjectType representing the next OID"""
+        """SNMP-GETNEXTs the given `oid` and returns the resulting ObjectType"""
         query = ObjectType(ObjectIdentity(*oid))
         return await self._getnext(query)
 
     async def _getnext(self, oid_object: ObjectType):
-        """Returns ObjectType representing the next OID"""
+        """SNMP-GETNEXTs the given ObjectType and returns the resulting ObjectType"""
         error_indication, error_status, error_index, var_binds = await nextCmd(
             _get_engine(),
             self.community_data,
@@ -88,6 +88,7 @@ class SNMP:
             return var_binds[0][0]
 
     async def walk(self, *oid):
+        """Uses SNMP-GETNEXT calls to get all ObjectTypes in the subtree with `oid` as root"""
         current_object = ObjectType(ObjectIdentity(*oid))
         self._resolve_object(current_object)
         original_oid = current_object[0]
@@ -100,10 +101,12 @@ class SNMP:
         return results
 
     async def getbulk(self, *oid, non_repeaters=0, max_repetitions=1):
+        """SNMP-BULKs the given `oid` and returns the resulting ObjectTypes"""
         oid_object = ObjectType(ObjectIdentity(*oid))
         return await self._bulk(non_repeaters, max_repetitions, oid_object)
 
     async def _getbulk(self, non_repeaters, max_repetitions, *oid_objects):
+        """SNMP-BULKs the given `oid_objects` and returns the resulting ObjectTypes"""
         error_indication, error_status, error_index, var_binds = await bulkCmd(
             _get_engine(),
             self.community_data,
@@ -118,6 +121,7 @@ class SNMP:
         return var_binds
 
     async def bulkwalk(self, *oid, max_repetitions=10):
+        """Uses SNMP-BULK calls to get all ObjectTypes in the subtree with `oid` as root"""
         query_object = ObjectType(ObjectIdentity(*oid))
         self._resolve_object(query_object)
         start_oid = query_object[0]
