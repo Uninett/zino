@@ -86,6 +86,18 @@ class SNMP:
         if var_binds and var_binds[0]:
             return var_binds[0][0]
 
+    async def walk(self, *oid):
+        current_object = ObjectType(ObjectIdentity(*oid))
+        self._resolve_object(current_object)
+        original_oid = current_object[0]
+        results = []
+        while True:
+            current_object = await self._getnext(current_object)
+            if not current_object or not self._is_prefix_of_oid(original_oid, current_object[0]):
+                break
+            results.append(current_object)
+        return results
+
     def _is_prefix_of_oid(self, prefix, oid):
         """Returns True if `prefix` is a prefix of `oid` and not equal to it"""
         return len(oid) > len(prefix) and oid[: len(prefix)] == prefix
