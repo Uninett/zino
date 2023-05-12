@@ -37,8 +37,8 @@ class SNMP:
         query = [ObjectType(ObjectIdentity(*object))]
         error_indication, error_status, error_index, var_binds = await getCmd(
             _get_engine(),
-            CommunityData(self.device.community, mpModel=self.mp_model),
-            UdpTransportTarget((str(self.device.address), self.device.port)),
+            self.community_data,
+            self.udp_transport_target,
             ContextData(),
             *query,
         )
@@ -69,3 +69,11 @@ class SNMP:
     def mp_model(self):
         """Returns the preferred SNMP version of this device as a PySNMP mpModel value"""
         return 1 if self.device.hcounters else 0
+
+    @property
+    def community_data(self):
+        return CommunityData(self.device.community, mpModel=self.mp_model)
+
+    @property
+    def udp_transport_target(self):
+        return UdpTransportTarget((str(self.device.address), self.device.port))
