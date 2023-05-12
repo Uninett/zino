@@ -32,9 +32,9 @@ class SNMP:
     def __init__(self, device: PollDevice):
         self.device = device
 
-    async def get(self, *object):
+    async def get(self, *oid):
         """SNMP-GETs a single value"""
-        query = [ObjectType(ObjectIdentity(*object))]
+        query = [ObjectType(ObjectIdentity(*oid))]
         error_indication, error_status, error_index, var_binds = await getCmd(
             _get_engine(),
             self.community_data,
@@ -46,7 +46,7 @@ class SNMP:
             return
 
         for var_bind in var_binds:
-            object, value = var_bind
+            _, value = var_bind
             return value
 
     def _handle_errors(self, error_indication, error_status, error_index, *query):
