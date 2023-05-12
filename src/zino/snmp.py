@@ -103,7 +103,7 @@ class SNMP:
     async def getbulk(self, *oid, non_repeaters=0, max_repetitions=1):
         """SNMP-BULKs the given `oid` and returns the resulting ObjectTypes"""
         oid_object = ObjectType(ObjectIdentity(*oid))
-        return await self._bulk(non_repeaters, max_repetitions, oid_object)
+        return await self._getbulk(non_repeaters, max_repetitions, oid_object)
 
     async def _getbulk(self, non_repeaters, max_repetitions, *oid_objects):
         """SNMP-BULKs the given `oid_objects` and returns the resulting ObjectTypes"""
