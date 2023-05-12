@@ -86,6 +86,14 @@ class SNMP:
         if var_binds and var_binds[0]:
             return var_binds[0][0]
 
+    def _is_prefix_of_oid(self, prefix, oid):
+        """Returns True if `prefix` is a prefix of `oid` and not equal to it"""
+        return len(oid) > len(prefix) and oid[: len(prefix)] == prefix
+
+    def _resolve_object(self, object: ObjectType):
+        controller = _get_engine().getUserContext("mibViewController")
+        object.resolveWithMib(controller)
+
     @property
     def mp_model(self):
         """Returns the preferred SNMP version of this device as a PySNMP mpModel value"""
