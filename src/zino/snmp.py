@@ -42,10 +42,18 @@ class SNMP:
             ContextData(),
             *query,
         )
+        if self._handle_errors(error_indication, error_status, error_index, query):
+            return
 
+        for var_bind in var_binds:
+            object, value = var_bind
+            return value
+
+    def _handle_errors(self, error_indication, error_status, error_index, *query):
+        """Returns True if error occurred"""
         if error_indication:
             _log.error("%s: %s", self.device.name, error_indication)
-            return
+            return True
 
         if error_status:
             _log.error(
@@ -54,11 +62,8 @@ class SNMP:
                 error_status.prettyPrint(),
                 error_index and query[int(error_index) - 1][0] or "?",
             )
-            return
-
-        for var_bind in var_binds:
-            object, value = var_bind
-            return value
+            return True
+        return False
 
     @property
     def mp_model(self):
