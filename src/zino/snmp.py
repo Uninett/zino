@@ -10,6 +10,7 @@ from pysnmp.hlapi.asyncio import (
     SnmpEngine,
     UdpTransportTarget,
     getCmd,
+    nextCmd,
 )
 
 from zino.config.models import PollDevice
@@ -64,6 +65,26 @@ class SNMP:
             )
             return True
         return False
+
+    async def getnext(self, *oid):
+        """Returns ObjectType representing the next OID"""
+        query = ObjectType(ObjectIdentity(*oid))
+        return await self._getnext(query)
+
+    async def _getnext(self, oid_object: ObjectType):
+        """Returns ObjectType representing the next OID"""
+        error_indication, error_status, error_index, var_binds = await nextCmd(
+            _get_engine(),
+            self.community_data,
+            self.udp_transport_target,
+            ContextData(),
+            oid_object,
+        )
+        if self._handle_errors(error_indication, error_status, error_index, oid_object):
+            return
+        # var_binds should be a sequence of sequences with one inner sequence that contains the result.
+        if var_binds and var_binds[0]:
+            return var_binds[0][0]
 
     @property
     def mp_model(self):
