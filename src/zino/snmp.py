@@ -117,6 +117,22 @@ class SNMP:
             return
         return var_binds
 
+    async def bulkwalk(self, *oid, max_repetitions=10):
+        query_object = ObjectType(ObjectIdentity(*oid))
+        self._resolve_object(query_object)
+        start_oid = query_object[0]
+        results = []
+        while True:
+            response = await self._getbulk(0, max_repetitions, query_object)
+            if not response or not response[0]:
+                break
+            for result in response[0]:
+                if not self._is_prefix_of_oid(start_oid, result[0]):
+                    return results
+                results.append(result)
+                query_object = result
+        return results
+
     def _is_prefix_of_oid(self, prefix, oid):
         """Returns True if `prefix` is a prefix of `oid` and not equal to it"""
         return len(oid) > len(prefix) and oid[: len(prefix)] == prefix
