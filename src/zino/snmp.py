@@ -9,6 +9,7 @@ from pysnmp.hlapi.asyncio import (
     ObjectType,
     SnmpEngine,
     UdpTransportTarget,
+    bulkCmd,
     getCmd,
     nextCmd,
 )
@@ -97,6 +98,24 @@ class SNMP:
                 break
             results.append(current_object)
         return results
+
+    async def getbulk(self, *oid, non_repeaters=0, max_repetitions=1):
+        oid_object = ObjectType(ObjectIdentity(*oid))
+        return await self._getbulk(non_repeaters, max_repetitions, oid_object)
+
+    async def _getbulk(self, non_repeaters, max_repetitions, *oid_objects):
+        error_indication, error_status, error_index, var_binds = await bulkCmd(
+            _get_engine(),
+            self.community_data,
+            self.udp_transport_target,
+            ContextData(),
+            non_repeaters,
+            max_repetitions,
+            *oid_objects,
+        )
+        if self._handle_errors(error_indication, error_status, error_index, *oid_objects):
+            return
+        return var_binds
 
     def _is_prefix_of_oid(self, prefix, oid):
         """Returns True if `prefix` is a prefix of `oid` and not equal to it"""
