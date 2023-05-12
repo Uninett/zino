@@ -127,7 +127,7 @@ class SNMP:
         start_oid = query_object[0]
         results = []
         while True:
-            response = await self._bulk(0, max_repetitions, query_object)
+            response = await self._getbulk(0, max_repetitions, query_object)
             if not response or not response[0]:
                 break
             for result in response[0]:
