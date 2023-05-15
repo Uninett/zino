@@ -37,7 +37,7 @@ class SNMP:
 
     async def get(self, *oid):
         """SNMP-GETs a single value"""
-        query = [ObjectType(ObjectIdentity(*oid))]
+        query = [self._oid_to_objecttype(*oid)]
         error_indication, error_status, error_index, var_binds = await getCmd(
             _get_engine(),
             self.community_data,
@@ -70,7 +70,7 @@ class SNMP:
 
     async def getnext(self, *oid):
         """SNMP-GETNEXTs the given `oid` and returns the resulting ObjectType"""
-        query = ObjectType(ObjectIdentity(*oid))
+        query = self._oid_to_objecttype(*oid)
         return await self._getnext(query)
 
     async def _getnext(self, oid_object: ObjectType):
@@ -90,7 +90,7 @@ class SNMP:
 
     async def walk(self, *oid):
         """Uses SNMP-GETNEXT calls to get all ObjectTypes in the subtree with `oid` as root"""
-        current_object = ObjectType(ObjectIdentity(*oid))
+        current_object = self._oid_to_objecttype(*oid)
         self._resolve_object(current_object)
         original_oid = current_object[0]
         results = []
@@ -103,7 +103,7 @@ class SNMP:
 
     async def getbulk(self, *oid, non_repeaters=0, max_repetitions=1):
         """SNMP-BULKs the given `oid` and returns the resulting ObjectTypes"""
-        oid_object = ObjectType(ObjectIdentity(*oid))
+        oid_object = self._oid_to_objecttype(*oid)
         return await self._getbulk(non_repeaters, max_repetitions, oid_object)
 
     async def _getbulk(self, non_repeaters, max_repetitions, *oid_objects):
@@ -123,7 +123,7 @@ class SNMP:
 
     async def bulkwalk(self, *oid, max_repetitions=10):
         """Uses SNMP-BULK calls to get all ObjectTypes in the subtree with `oid` as root"""
-        query_object = ObjectType(ObjectIdentity(*oid))
+        query_object = self._oid_to_objecttype(*oid)
         self._resolve_object(query_object)
         start_oid = query_object[0]
         results = []
@@ -148,6 +148,9 @@ class SNMP:
         if not controller:
             controller = view.MibViewController(engine.getMibBuilder())
         object.resolveWithMib(controller)
+
+    def _oid_to_objecttype(self, *oid):
+        return ObjectType(ObjectIdentity(*oid))
 
     @property
     def mp_model(self):
