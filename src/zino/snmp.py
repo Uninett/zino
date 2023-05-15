@@ -13,6 +13,7 @@ from pysnmp.hlapi.asyncio import (
     getCmd,
     nextCmd,
 )
+from pysnmp.smi import view
 
 from zino.config.models import PollDevice
 
@@ -142,7 +143,10 @@ class SNMP:
         return len(oid) > len(prefix) and oid[: len(prefix)] == prefix
 
     def _resolve_object(self, object: ObjectType):
-        controller = _get_engine().getUserContext("mibViewController")
+        engine = _get_engine()
+        controller = engine.getUserContext("mibViewController")
+        if not controller:
+            controller = view.MibViewController(engine.getMibBuilder())
         object.resolveWithMib(controller)
 
     @property
