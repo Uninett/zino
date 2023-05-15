@@ -138,18 +138,21 @@ class SNMP:
                 query_object = result
         return results
 
-    def _is_prefix_of_oid(self, prefix, oid):
+    @classmethod
+    def _is_prefix_of_oid(cls, prefix, oid):
         """Returns True if `prefix` is a prefix of `oid` and not equal to it"""
         return len(oid) > len(prefix) and oid[: len(prefix)] == prefix
 
-    def _resolve_object(self, object: ObjectType):
+    @classmethod
+    def _resolve_object(cls, object: ObjectType):
         engine = _get_engine()
         controller = engine.getUserContext("mibViewController")
         if not controller:
             controller = view.MibViewController(engine.getMibBuilder())
         object.resolveWithMib(controller)
 
-    def _oid_to_objecttype(self, *oid):
+    @classmethod
+    def _oid_to_objecttype(cls, *oid):
         return ObjectType(ObjectIdentity(*oid))
 
     @property
