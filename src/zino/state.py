@@ -10,6 +10,8 @@ from zino.config.models import PollDevice
 from zino.events import Events
 
 _log = logging.getLogger(__name__)
+STATE_FILENAME = "zino-state.json"
+
 # Dictionary of configured devices
 polldevs: Dict[str, PollDevice] = {}
 
@@ -24,7 +26,7 @@ async def dump_state_to_log():
     _log.debug("Dumping state to log:\n%s", pprint.pformat(events.dict(exclude_none=True)))
 
 
-async def dump_state_to_file(filename: str = "zino-state.json"):
+async def dump_state_to_file(filename: str = STATE_FILENAME):
     """Dumps the event state to a file as JSON.
 
     Does not dump all state (yet).
