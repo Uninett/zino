@@ -22,3 +22,18 @@ events = Events()
 
 async def dump_state_to_log():
     _log.debug("Dumping state to log:\n%s", pprint.pformat(events.dict(exclude_none=True)))
+
+
+async def dump_state_to_file(filename: str = "zino-state.json"):
+    """Dumps the event state to a file as JSON.
+
+    Does not dump all state (yet).
+
+    Once the event structure gets large, this could noticeably block the main event loop while writing to disk.  It
+    might therefore be better defined as a synchronous function, so that the scheduler will run it in a worker
+    thread. However, that may introduce issues with thread-safety, since the data structures that are being dumped
+    may be concurrently updated by another thread.
+    """
+    _log.debug("dumping state to %s", filename)
+    with open(filename, "w") as statefile:
+        statefile.write(events.json(exclude_none=True, indent=2))
