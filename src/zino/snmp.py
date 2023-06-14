@@ -43,7 +43,7 @@ class SNMP:
     def __init__(self, device: PollDevice):
         self.device = device
 
-    async def get(self, *oid) -> Union[MibObject, None]:
+    async def get(self, *oid: str) -> Union[MibObject, None]:
         """SNMP-GETs the given `oid`"""
         query = [self._oid_to_objecttype(*oid)]
         error_indication, error_status, error_index, var_binds = await getCmd(
@@ -75,7 +75,7 @@ class SNMP:
             return True
         return False
 
-    async def getnext(self, *oid) -> Union[MibObject, None]:
+    async def getnext(self, *oid: str) -> Union[MibObject, None]:
         """SNMP-GETNEXTs the given `oid`"""
         query = self._oid_to_objecttype(*oid)
         objecttype = await self._getnext(query)
@@ -96,7 +96,7 @@ class SNMP:
         if var_binds and var_binds[0]:
             return var_binds[0][0]
 
-    async def walk(self, *oid) -> list[MibObject]:
+    async def walk(self, *oid: str) -> list[MibObject]:
         """Uses SNMP-GETNEXT calls to get all objects in the subtree with `oid` as root"""
         current_object = self._oid_to_objecttype(*oid)
         self._resolve_object(current_object)
@@ -110,7 +110,7 @@ class SNMP:
             results.append(mibobject)
         return results
 
-    async def getbulk(self, *oid, non_repeaters=0, max_repetitions=1) -> list[MibObject]:
+    async def getbulk(self, *oid: str, non_repeaters: int = 0, max_repetitions: int = 1) -> list[MibObject]:
         """SNMP-BULKs the given `oid`"""
         oid_object = self._oid_to_objecttype(*oid)
         objecttypes = await self._getbulk(non_repeaters, max_repetitions, oid_object)
@@ -120,7 +120,7 @@ class SNMP:
             results.append(mibobject)
         return results
 
-    async def _getbulk(self, non_repeaters, max_repetitions, *oid_objects) -> list[ObjectType]:
+    async def _getbulk(self, non_repeaters: int, max_repetitions: int, *oid_objects: str) -> list[ObjectType]:
         """SNMP-BULKs the given `oid_objects`"""
         error_indication, error_status, error_index, var_binds = await bulkCmd(
             _get_engine(),
@@ -135,7 +135,7 @@ class SNMP:
             return
         return var_binds
 
-    async def bulkwalk(self, *oid, max_repetitions=10) -> list[MibObject]:
+    async def bulkwalk(self, *oid: str, max_repetitions: int = 10) -> list[MibObject]:
         """Uses SNMP-BULK calls to get all objects in the subtree with `oid` as root"""
         query_object = self._oid_to_objecttype(*oid)
         self._resolve_object(query_object)
@@ -154,7 +154,7 @@ class SNMP:
         return results
 
     @classmethod
-    def _is_prefix_of_oid(cls, prefix, oid) -> bool:
+    def _is_prefix_of_oid(cls, prefix: str, oid: str) -> bool:
         """Returns True if `prefix` is a prefix of `oid` and not equal to it"""
         return len(oid) > len(prefix) and oid[: len(prefix)] == prefix
 
@@ -167,7 +167,7 @@ class SNMP:
         object.resolveWithMib(controller)
 
     @classmethod
-    def _oid_to_objecttype(cls, *oid) -> ObjectType:
+    def _oid_to_objecttype(cls, *oid: str) -> ObjectType:
         return ObjectType(ObjectIdentity(*oid))
 
     @property
