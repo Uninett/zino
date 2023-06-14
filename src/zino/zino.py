@@ -13,7 +13,8 @@ _log = logging.getLogger("zino")
 def main():
     args = parse_args()
     logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s (%(threadName)s) - %(message)s"
+        level=logging.INFO if not args.debug else logging.DEBUG,
+        format="%(asctime)s - %(levelname)s - %(name)s (%(threadName)s) - %(message)s",
     )
     init_event_loop(args)
 
@@ -44,7 +45,9 @@ def parse_args(arguments=None):
     parser.add_argument(
         "--polldevs", type=argparse.FileType("r"), metavar="PATH", default="polldevs.cf", help="Path to polldevs.cf"
     )
-
+    parser.add_argument(
+        "--debug", action="store_true", default=False, help="Set global log level to DEBUG. Very chatty!"
+    )
     args = parser.parse_args(args=arguments)
     if args.polldevs:
         args.polldevs.close()  # don't leave this temporary file descriptor open
