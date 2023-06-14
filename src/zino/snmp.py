@@ -59,7 +59,7 @@ class SNMP:
         for var_bind in var_binds:
             return MibObject(oid=var_bind[0], value=var_bind[1])
 
-    def _handle_errors(self, error_indication, error_status, error_index, *query) -> bool:
+    def _handle_errors(self, error_indication: str, error_status: str, error_index: int, *query) -> bool:
         """Returns True if error occurred"""
         if error_indication:
             _log.error("%s: %s", self.device.name, error_indication)
