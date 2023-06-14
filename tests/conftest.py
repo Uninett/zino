@@ -1,32 +1,40 @@
+import asyncio
 import os
-import subprocess
 from shutil import which
 
 import pytest
+import pytest_asyncio
 from retry import retry
 
 
 @pytest.fixture(scope="session")
-def snmpsim(snmpsimd_path, snmp_fixture_directory, snmp_test_port):
+def event_loop():
+    """Redefine pytest-asyncio's event_loop fixture to have a session scope"""
+    policy = asyncio.get_event_loop_policy()
+    loop = policy.new_event_loop()
+    yield loop
+    loop.close()
+
+
+@pytest_asyncio.fixture(scope="session")
+async def snmpsim(snmpsimd_path, snmp_fixture_directory, snmp_test_port):
     """Sets up an external snmpsimd process so that SNMP communication can be simulated
     by the test that declares a dependency to this fixture. Data fixtures are loaded
     from the snmp_fixtures subdirectory.
     """
-    command = [
-        snmpsimd_path,
+    arguments = [
         f"--data-dir={snmp_fixture_directory}",
         "--log-level=error",
         f"--agent-udpv4-endpoint=127.0.0.1:{snmp_test_port}",
     ]
-    print(f"Running {command!r}")
-    proc = subprocess.Popen(command)
+    print(f"Running {snmpsimd_path} with args: {arguments!r}")
+    proc = await asyncio.create_subprocess_exec(snmpsimd_path, *arguments)
 
     @retry(Exception, tries=3, delay=0.5, backoff=2)
     def _wait_for_snmpsimd():
         if _verify_localhost_snmp_response(snmp_test_port):
             return True
         else:
-            proc.poll()
             raise TimeoutError("Still waiting for snmpsimd to listen for queries")
 
     _wait_for_snmpsimd()
