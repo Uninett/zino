@@ -39,3 +39,16 @@ async def dump_state_to_file(filename: str = STATE_FILENAME):
     _log.debug("dumping state to %s", filename)
     with open(filename, "w") as statefile:
         statefile.write(events.json(exclude_none=True, indent=2))
+
+
+def load_state_from_file(filename: str = STATE_FILENAME):
+    """Loads and replaces Zino state from a JSON file dump"""
+    _log.info("Loading saved state from %s", filename)
+    try:
+        loaded_state = Events.parse_file(filename)
+    except FileNotFoundError:
+        _log.error("No state file found (%s), starting from scratch ", filename)
+        return
+    else:
+        global events
+        events = loaded_state
