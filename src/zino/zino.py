@@ -4,6 +4,7 @@ import asyncio
 import logging
 from datetime import datetime
 
+from zino import state
 from zino.scheduler import get_scheduler, load_and_schedule_polldevs
 
 _log = logging.getLogger("zino")
@@ -28,6 +29,7 @@ def init_event_loop(args: argparse.Namespace):
         minutes=1,
         next_run_time=datetime.now(),
     )
+    scheduler.add_job(func=state.dump_state_to_log, trigger="interval", seconds=30)
 
     try:
         asyncio.get_event_loop().run_forever()
