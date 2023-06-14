@@ -6,6 +6,7 @@ from datetime import datetime
 
 from zino import state
 from zino.scheduler import get_scheduler, load_and_schedule_polldevs
+from zino.state import load_state_from_file
 
 _log = logging.getLogger("zino")
 
@@ -16,6 +17,7 @@ def main():
         level=logging.INFO if not args.debug else logging.DEBUG,
         format="%(asctime)s - %(levelname)s - %(name)s (%(threadName)s) - %(message)s",
     )
+    load_state_from_file()
     init_event_loop(args)
 
 
