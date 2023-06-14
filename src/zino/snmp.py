@@ -79,6 +79,8 @@ class SNMP:
         """SNMP-GETNEXTs the given `oid`"""
         query = self._oid_to_objecttype(*oid)
         objecttype = await self._getnext(query)
+        if not objecttype:
+            return None
         return MibObject(oid=objecttype[0], value=objecttype[1])
 
     async def _getnext(self, oid_object: ObjectType) -> Union[ObjectType, None]:
