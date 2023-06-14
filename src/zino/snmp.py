@@ -137,10 +137,9 @@ class SNMP:
         )
         if self._handle_errors(error_indication, error_status, error_index, *oid_objects):
             return []
-        if not var_binds or not var_binds[0]:
+        if not var_binds:
             return []
-        objecttypes = var_binds[0]
-        return objecttypes
+        return var_binds[0]
 
     async def bulkwalk(self, *oid: str, max_repetitions: int = 10) -> list[MibObject]:
         """Uses SNMP-BULK calls to get all objects in the subtree with `oid` as root"""
