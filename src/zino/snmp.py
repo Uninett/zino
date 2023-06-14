@@ -1,6 +1,8 @@
 """Even-higher-level APIs over PySNMP's high-level APIs"""
 import logging
 import threading
+from dataclasses import dataclass
+from typing import Union
 
 from pysnmp.hlapi.asyncio import (
     CommunityData,
@@ -29,6 +31,12 @@ def _get_engine():
     return _local.snmp_engine
 
 
+@dataclass
+class MibObject:
+    oid: str
+    value: Union[str, int]
+
+
 class SNMP:
     """Represents an SNMP management session for a single device"""
 
@@ -49,8 +57,7 @@ class SNMP:
             return
 
         for var_bind in var_binds:
-            _, value = var_bind
-            return value
+            return MibObject(oid=var_bind[0], value=var_bind[1])
 
     def _handle_errors(self, error_indication, error_status, error_index, *query):
         """Returns True if error occurred"""
@@ -71,7 +78,8 @@ class SNMP:
     async def getnext(self, *oid):
         """SNMP-GETNEXTs the given `oid` and returns the resulting ObjectType"""
         query = self._oid_to_objecttype(*oid)
-        return await self._getnext(query)
+        objecttype = await self._getnext(query)
+        return MibObject(oid=objecttype[0], value=objecttype[1])
 
     async def _getnext(self, oid_object: ObjectType):
         """SNMP-GETNEXTs the given ObjectType and returns the resulting ObjectType"""
@@ -98,13 +106,19 @@ class SNMP:
             current_object = await self._getnext(current_object)
             if not current_object or not self._is_prefix_of_oid(original_oid, current_object[0]):
                 break
-            results.append(current_object)
+            mibobject = MibObject(oid=current_object[0], value=current_object[1])
+            results.append(mibobject)
         return results
 
     async def getbulk(self, *oid, non_repeaters=0, max_repetitions=1):
         """SNMP-BULKs the given `oid` and returns the resulting ObjectTypes"""
         oid_object = self._oid_to_objecttype(*oid)
-        return await self._getbulk(non_repeaters, max_repetitions, oid_object)
+        objecttypes = await self._getbulk(non_repeaters, max_repetitions, oid_object)
+        results = []
+        for objecttype in objecttypes:
+            mibobject = MibObject(oid=objecttype[0], value=objecttype[1])
+            results.append(mibobject)
+        return results
 
     async def _getbulk(self, non_repeaters, max_repetitions, *oid_objects):
         """SNMP-BULKs the given `oid_objects` and returns the resulting ObjectTypes"""
@@ -134,8 +148,9 @@ class SNMP:
             for result in response[0]:
                 if not self._is_prefix_of_oid(start_oid, result[0]):
                     return results
-                results.append(result)
                 query_object = result
+                mibobject = MibObject(oid=result[0], value=result[1])
+                results.append(mibobject)
         return results
 
     @classmethod
