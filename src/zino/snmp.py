@@ -47,13 +47,13 @@ class SNMP:
 
     async def get(self, *oid: str) -> Union[MibObject, None]:
         """SNMP-GETs the given `oid`"""
-        query = [self._oid_to_objecttype(*oid)]
+        query = self._oid_to_objecttype(*oid)
         error_indication, error_status, error_index, var_binds = await getCmd(
             _get_engine(),
             self.community_data,
             self.udp_transport_target,
             ContextData(),
-            *query,
+            query,
         )
         if self._handle_errors(error_indication, error_status, error_index, query):
             return
