@@ -124,7 +124,7 @@ class SNMP:
             results.append(mibobject)
         return results
 
-    async def _getbulk(self, max_repetitions: int, *oid_objects: str) -> list[ObjectType]:
+    async def _getbulk(self, max_repetitions: int, *oid_objects: ObjectType) -> list[ObjectType]:
         """SNMP-BULKs the given `oid_objects`"""
         error_indication, error_status, error_index, var_binds = await bulkCmd(
             _get_engine(),
