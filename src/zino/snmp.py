@@ -40,6 +40,8 @@ class MibObject:
 class SNMP:
     """Represents an SNMP management session for a single device"""
 
+    NON_REPEATERS = 0
+
     def __init__(self, device: PollDevice):
         self.device = device
 
@@ -112,24 +114,24 @@ class SNMP:
             results.append(mibobject)
         return results
 
-    async def getbulk(self, *oid: str, non_repeaters: int = 0, max_repetitions: int = 1) -> list[MibObject]:
+    async def getbulk(self, *oid: str, max_repetitions: int = 1) -> list[MibObject]:
         """SNMP-BULKs the given `oid`"""
         oid_object = self._oid_to_objecttype(*oid)
-        objecttypes = await self._getbulk(non_repeaters, max_repetitions, oid_object)
+        objecttypes = await self._getbulk(max_repetitions, oid_object)
         results = []
         for objecttype in objecttypes:
             mibobject = MibObject(oid=objecttype[0], value=objecttype[1])
             results.append(mibobject)
         return results
 
-    async def _getbulk(self, non_repeaters: int, max_repetitions: int, *oid_objects: str) -> list[ObjectType]:
+    async def _getbulk(self, max_repetitions: int, *oid_objects: str) -> list[ObjectType]:
         """SNMP-BULKs the given `oid_objects`"""
         error_indication, error_status, error_index, var_binds = await bulkCmd(
             _get_engine(),
             self.community_data,
             self.udp_transport_target,
             ContextData(),
-            non_repeaters,
+            self.NON_REPEATERS,
             max_repetitions,
             *oid_objects,
         )
@@ -144,7 +146,7 @@ class SNMP:
         start_oid = query_object[0]
         results = []
         while True:
-            response = await self._getbulk(0, max_repetitions, query_object)
+            response = await self._getbulk(max_repetitions, query_object)
             if not response or not response[0]:
                 break
             for result in response[0]:
