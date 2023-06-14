@@ -7,38 +7,37 @@ from zino.snmp import SNMP
 class TestSNMPRequests:
     @pytest.mark.asyncio
     async def test_get(self, snmpsim, snmp_test_port):
-        device = PollDevice(name="buick.lab.example.org", address="127.0.0.1", port=snmp_test_port)
-        snmp = SNMP(device)
+        snmp = self.get_client(snmp_test_port)
         response = await snmp.get("SNMPv2-MIB", "sysUpTime", 0)
         assert response
 
     @pytest.mark.asyncio
     async def test_getnext(self, snmpsim, snmp_test_port):
-        device = PollDevice(name="buick.lab.example.org", address="127.0.0.1", port=snmp_test_port)
-        snmp = SNMP(device)
+        snmp = self.get_client(snmp_test_port)
         response = await snmp.getnext("SNMPv2-MIB", "sysUpTime")
         assert response
 
     @pytest.mark.asyncio
     async def test_walk(self, snmpsim, snmp_test_port):
-        device = PollDevice(name="buick.lab.example.org", address="127.0.0.1", port=snmp_test_port)
-        snmp = SNMP(device)
+        snmp = self.get_client(snmp_test_port)
         response = await snmp.walk("SNMPv2-MIB", "sysUpTime")
         assert response
 
     @pytest.mark.asyncio
     async def test_getbulk(self, snmpsim, snmp_test_port):
-        device = PollDevice(name="buick.lab.example.org", address="127.0.0.1", port=snmp_test_port)
-        snmp = SNMP(device)
+        snmp = self.get_client(snmp_test_port)
         response = await snmp.getbulk("SNMPv2-MIB", "sysUpTime")
         assert response
 
     @pytest.mark.asyncio
     async def test_bulkwalk(self, snmpsim, snmp_test_port):
-        device = PollDevice(name="buick.lab.example.org", address="127.0.0.1", port=snmp_test_port)
-        snmp = SNMP(device)
+        snmp = self.get_client(snmp_test_port)
         response = await snmp.bulkwalk("SNMPv2-MIB", "sysUpTime")
         assert response
+
+    def get_client(self, port):
+        device = PollDevice(name="buick.lab.example.org", address="127.0.0.1", port=port)
+        return SNMP(device)
 
 
 class TestPrefix:
