@@ -132,7 +132,7 @@ class SNMP:
             *oid_objects,
         )
         if self._handle_errors(error_indication, error_status, error_index, *oid_objects):
-            return
+            return []
         return var_binds
 
     async def bulkwalk(self, *oid: str, max_repetitions: int = 10) -> list[MibObject]:
