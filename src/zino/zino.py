@@ -33,13 +33,13 @@ def init_event_loop(args: argparse.Namespace):
     return True
 
 
-def parse_args():
+def parse_args(arguments=None):
     parser = argparse.ArgumentParser(description="Zino is not OpenView")
     parser.add_argument(
         "--polldevs", type=argparse.FileType("r"), metavar="PATH", default="polldevs.cf", help="Path to polldevs.cf"
     )
 
-    args = parser.parse_args()
+    args = parser.parse_args(args=arguments)
     if args.polldevs:
         args.polldevs.close()  # don't leave this temporary file descriptor open
     return args

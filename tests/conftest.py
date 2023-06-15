@@ -7,6 +7,27 @@ import pytest_asyncio
 from retry import retry
 
 
+@pytest.fixture
+def polldevs_conf(tmp_path):
+    name = tmp_path.joinpath("polldevs.cf")
+    with open(name, "w") as conf:
+        conf.write(
+            """# polldevs test config
+            default interval: 5
+            default community: foobar
+            default domain: uninett.no
+            default statistics: yes
+            default hcounters: yes
+
+            name: example-gw
+            address: 10.0.42.1
+
+            name: example-gw2
+            address: 10.0.43.1"""  # Lack of a new-line here is intentional to test the parser
+        )
+    yield name
+
+
 @pytest.fixture(scope="session")
 def event_loop():
     """Redefine pytest-asyncio's event_loop fixture to have a session scope"""
