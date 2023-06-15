@@ -30,7 +30,9 @@ def get_scheduler() -> AsyncIOScheduler:
             "max_instances": 1,  # Never allow same job to run simultaneously
         }
         _scheduler = AsyncIOScheduler(
-            event_loop=asyncio.get_event_loop(), executors=executors, job_defaults=job_defaults
+            event_loop=asyncio.get_event_loop(),
+            executors=executors,
+            job_defaults=job_defaults,
         )
     return _scheduler
 
@@ -76,8 +78,8 @@ def schedule_new_devices(new_devices: Sequence[str]):
         first_run_time = datetime.now() + timedelta(seconds=index * stagger_factor)
 
         scheduler.add_job(
-            run_all_tasks,
-            "interval",
+            func=run_all_tasks,
+            trigger="interval",
             minutes=device.interval,
             args=(device,),
             next_run_time=first_run_time,
@@ -90,4 +92,4 @@ def deschedule_deleted_devices(deleted_devices: Sequence[str]):
     """De-schedules recurring jobs for the deleted devices"""
     scheduler = get_scheduler()
     for name in deleted_devices:
-        scheduler.remove_job(name)
+        scheduler.remove_job(job_id=name)
