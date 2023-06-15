@@ -81,24 +81,3 @@ class TestParseDefaults:
         section = {"default value1": "foobar", "default value2": "cromulent", "value3": "zaphod"}
         expected = {"value1": "foobar", "value2": "cromulent"}
         assert _parse_defaults(section) == expected
-
-
-@pytest.fixture
-def polldevs_conf(tmp_path):
-    name = tmp_path.joinpath("polldevs.cf")
-    with open(name, "w") as conf:
-        conf.write(
-            """# polldevs test config
-            default interval: 5
-            default community: foobar
-            default domain: uninett.no
-            default statistics: yes
-            default hcounters: yes
-
-            name: example-gw
-            address: 10.0.42.1
-
-            name: example-gw2
-            address: 10.0.43.1"""  # Lack of a new-line here is intentional to test the parser
-        )
-    yield name
