@@ -1,0 +1,8 @@
+---
+coverage:
+  range: 57..100
+  round: nearest
+  precision: 2
+
+ignore:
+  - "tests/**/*.py"
