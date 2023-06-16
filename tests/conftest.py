@@ -28,6 +28,25 @@ def polldevs_conf(tmp_path):
     yield name
 
 
+@pytest.fixture
+def polldevs_conf_with_single_router(tmp_path):
+    name = tmp_path / "polldevs-single.cf"
+    with open(name, "w") as conf:
+        conf.write(
+            """# polldevs test config
+            default interval: 5
+            default community: foobar
+            default domain: uninett.no
+            default statistics: yes
+            default hcounters: yes
+
+            name: example-gw
+            address: 10.0.42.1
+            """
+        )
+    yield name
+
+
 @pytest.fixture(scope="session")
 def event_loop():
     """Redefine pytest-asyncio's event_loop fixture to have a session scope"""
