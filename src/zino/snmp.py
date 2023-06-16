@@ -198,13 +198,13 @@ class SNMP:
         return len(oid) > len(prefix) and oid[: len(prefix)] == prefix
 
     @classmethod
-    def _resolve_object(cls, object: ObjectType):
+    def _resolve_object(cls, objecttype: ObjectType):
         """Raises MibNotFoundError if oid in `object` can not be found"""
         engine = _get_engine()
         controller = engine.getUserContext("mibViewController")
         if not controller:
             controller = view.MibViewController(engine.getMibBuilder())
-        object.resolveWithMib(controller)
+        objecttype.resolveWithMib(controller)
 
     @classmethod
     def _oid_to_objecttype(cls, *oid: str) -> ObjectType:
