@@ -118,10 +118,10 @@ class SNMP:
         except MibNotFoundError as error:
             _log.error("%s: %s", self.device.name, error)
             return results
-        original_oid = current_object[0]
+        original_oid = str(current_object[0])
         while True:
             current_object = await self._getnext(current_object)
-            if not current_object or not self._is_prefix_of_oid(original_oid, current_object[0]):
+            if not current_object or not self._is_prefix_of_oid(original_oid, str(current_object[0])):
                 break
             mibobject = self._objecttype_to_mibobject(current_object)
             results.append(mibobject)
@@ -167,13 +167,13 @@ class SNMP:
         except MibNotFoundError as error:
             _log.error("%s: %s", self.device.name, error)
             return results
-        start_oid = query_object[0]
+        start_oid = str(query_object[0])
         while True:
             response = await self._getbulk(max_repetitions, query_object)
             if not response:
                 break
             for result in response:
-                if not self._is_prefix_of_oid(start_oid, result[0]):
+                if not self._is_prefix_of_oid(start_oid, str(result[0])):
                     return results
                 query_object = result
                 mibobject = self._objecttype_to_mibobject(result)
