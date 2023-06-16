@@ -60,7 +60,7 @@ class SNMP:
             return
 
         for var_bind in var_binds:
-            return MibObject(oid=var_bind[0], value=var_bind[1])
+            return self._objecttype_to_mibobject(var_bind)
 
     def _handle_errors(self, error_indication: str, error_status: str, error_index: int, *query: ObjectType) -> bool:
         """Returns True if error occurred"""
@@ -84,7 +84,7 @@ class SNMP:
         objecttype = await self._getnext(query)
         if not objecttype:
             return None
-        return MibObject(oid=objecttype[0], value=objecttype[1])
+        return self._objecttype_to_mibobject(objecttype)
 
     async def _getnext(self, oid_object: ObjectType) -> Union[ObjectType, None]:
         """SNMP-GETNEXTs the given ObjectType and returns the resulting ObjectType"""
@@ -111,7 +111,7 @@ class SNMP:
             current_object = await self._getnext(current_object)
             if not current_object or not self._is_prefix_of_oid(original_oid, current_object[0]):
                 break
-            mibobject = MibObject(oid=current_object[0], value=current_object[1])
+            mibobject = self._objecttype_to_mibobject(current_object)
             results.append(mibobject)
         return results
 
@@ -121,7 +121,7 @@ class SNMP:
         objecttypes = await self._getbulk(max_repetitions, oid_object)
         results = []
         for objecttype in objecttypes:
-            mibobject = MibObject(oid=objecttype[0], value=objecttype[1])
+            mibobject = self._objecttype_to_mibobject(objecttype)
             results.append(mibobject)
         return results
 
@@ -156,7 +156,7 @@ class SNMP:
                 if not self._is_prefix_of_oid(start_oid, result[0]):
                     return results
                 query_object = result
-                mibobject = MibObject(oid=result[0], value=result[1])
+                mibobject = self._objecttype_to_mibobject(result)
                 results.append(mibobject)
         return results
 
