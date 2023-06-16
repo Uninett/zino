@@ -22,7 +22,11 @@ def init_event_loop(args: argparse.Namespace):
     scheduler.start()
 
     scheduler.add_job(
-        load_and_schedule_polldevs, "interval", args=(args.polldevs.name,), minutes=1, next_run_time=datetime.now()
+        func=load_and_schedule_polldevs,
+        trigger="interval",
+        args=(args.polldevs.name,),
+        minutes=1,
+        next_run_time=datetime.now(),
     )
 
     try:
