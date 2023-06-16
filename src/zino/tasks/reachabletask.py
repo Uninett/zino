@@ -57,8 +57,8 @@ class ReachableTask(Task):
     def _schedule_extra_job(self):
         name = self._get_extra_job_name()
         self._scheduler.add_job(
-            self._run_extra_job,
-            "interval",
+            func=self._run_extra_job,
+            trigger="interval",
             seconds=self.EXTRA_JOB_INTERVAL,
             name=name,
             id=name,
@@ -66,11 +66,11 @@ class ReachableTask(Task):
 
     def _deschedule_extra_job(self):
         name = self._get_extra_job_name()
-        self._scheduler.remove_job(name)
+        self._scheduler.remove_job(job_id=name)
 
     def _extra_job_is_running(self):
         name = self._get_extra_job_name()
-        if self._scheduler.get_job(name):
+        if self._scheduler.get_job(job_id=name):
             return True
         else:
             return False
