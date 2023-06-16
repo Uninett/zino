@@ -3,7 +3,7 @@ import logging
 from zino import state
 from zino.scheduler import get_scheduler
 from zino.snmp import SNMP
-from zino.statemodels import EventState, EventType, ReachabilityState
+from zino.statemodels import EventState, ReachabilityEvent, ReachabilityState
 from zino.tasks.task import Task
 
 _logger = logging.getLogger(__name__)
@@ -23,7 +23,7 @@ class ReachableTask(Task):
         result = await self._get_sysuptime()
         if not result:
             _logger.debug("Device %s is not reachable", self.device.name)
-            event, created = state.events.get_or_create_event(self.device.name, None, EventType.REACHABILITY)
+            event, created = state.events.get_or_create_event(self.device.name, None, ReachabilityEvent)
             if created:
                 # TODO add attributes
                 event.state = EventState.OPEN
@@ -40,7 +40,7 @@ class ReachableTask(Task):
         result = await self._get_sysuptime()
         if result:
             _logger.debug("Device %s is reachable", self.device.name)
-            event = state.events.get(self.device.name, None, EventType.REACHABILITY)
+            event = state.events.get(self.device.name, None, ReachabilityEvent)
             if event:
                 # TODO update event attributes
                 if event.reachability != ReachabilityState.REACHABLE:

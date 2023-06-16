@@ -2,7 +2,7 @@
 import datetime
 from enum import Enum, IntEnum
 from ipaddress import IPv4Address, IPv6Address
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, Field
 
@@ -85,16 +85,6 @@ class EventState(Enum):
     CLOSED = "closed"
 
 
-class EventType(Enum):
-    """The set of allowable event types"""
-
-    PORTSTATE = "portstate"
-    BGP = "bgp"
-    BFD = "bfd"
-    REACHABILITY = "reachability"
-    ALARM = "alarm"
-
-
 class ReachabilityState(Enum):
     """The set of allowed reachability states"""
 
@@ -109,39 +99,58 @@ class Event(BaseModel):
 
     router: str
     port: Optional[PortOrIPAddress]
-    event_type: EventType
+    type: Literal["Event"] = "Event"
     state: EventState
     opened: datetime.datetime = Field(default_factory=now)
-    updated: datetime.datetime = Field(default_factory=now)
+    updated: Optional[datetime.datetime]
     priority: int = 100
 
     log: List[LogEntry] = []
     history: List[LogEntry] = []
 
     # More-or-less optional event attrs (as guesstimated from the original Zino code)
-    ifindex: Optional[int]
     lasttrans: Optional[datetime.datetime]
     flaps: Optional[int]
     ac_down: Optional[datetime.timedelta]
 
     polladdr: Optional[IPAddress]
-    remote_addr: Optional[IPAddress]
-    remote_as: Optional[int]
-    peer_uptime: Optional[int]
-    alarm_count: Optional[int]
-
-    bfdix: Optional[int]
-    bfddiscr: Optional[int]
-    bfdaddr: Optional[IPAddress]
-
-    reachability: Optional[ReachabilityState]
 
     def add_log(self, message: str) -> LogEntry:
         entry = LogEntry(message=message)
         self.log.append(entry)
+        self.updated = entry.timestamp
         return entry
 
     def add_history(self, message: str) -> LogEntry:
         entry = LogEntry(message=message)
         self.history.append(entry)
         return entry
+
+
+class PortStateEvent(Event):
+    type: Literal["portstate"] = "portstate"
+    ifindex: Optional[int]
+
+
+class BGPEvent(Event):
+    type: Literal["bgp"] = "bgp"
+    remote_addr: Optional[IPAddress]
+    remote_as: Optional[int]
+    peer_uptime: Optional[int]
+
+
+class BFDEvent(Event):
+    type: Literal["bfd"] = "bfd"
+    bfdix: Optional[int]
+    bfddiscr: Optional[int]
+    bfdaddr: Optional[IPAddress]
+
+
+class ReachabilityEvent(Event):
+    type: Literal["reachability"] = "reachability"
+    reachability: Optional[ReachabilityState]
+
+
+class AlarmEvent(Event):
+    type: Literal["alarm"] = "alarm"
+    alarm_count: Optional[int]

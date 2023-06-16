@@ -2,7 +2,7 @@ import datetime
 
 import pytest
 
-from zino.statemodels import Event, EventState, EventType
+from zino.statemodels import Event, EventState, ReachabilityEvent
 
 
 class TestEvent:
@@ -17,4 +17,4 @@ class TestEvent:
 
 @pytest.fixture
 def fake_event():
-    yield Event(id=42, router="example-gw.example.org", event_type=EventType.REACHABILITY, state=EventState.OPEN)
+    yield Event(id=42, router="example-gw.example.org", event_type=ReachabilityEvent, state=EventState.OPEN)
