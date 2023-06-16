@@ -91,7 +91,7 @@ class SNMP:
         return self._objecttype_to_mibobject(objecttype)
 
     async def _getnext(self, oid_object: ObjectType) -> Union[ObjectType, None]:
-        """SNMP-GETNEXTs the given ObjectType and returns the resulting ObjectType"""
+        """SNMP-GETNEXTs the given ObjectType"""
         try:
             error_indication, error_status, error_index, var_binds = await nextCmd(
                 _get_engine(),
@@ -138,7 +138,7 @@ class SNMP:
         return results
 
     async def _getbulk(self, max_repetitions: int, oid_object: ObjectType) -> list[ObjectType]:
-        """SNMP-BULKs the given `oid_objects`"""
+        """SNMP-BULKs the given `oid_object`"""
         try:
             error_indication, error_status, error_index, var_binds = await bulkCmd(
                 _get_engine(),
