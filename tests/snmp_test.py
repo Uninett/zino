@@ -27,25 +27,25 @@ class TestSNMPRequestsResponseTypes:
     async def test_walk(self, snmp_client):
         response = await snmp_client.walk("SNMPv2-MIB", "sysUpTime")
         assert response
-        for mibobject in response:
-            assert isinstance(mibobject.oid, str)
-            assert isinstance(mibobject.value, int)
+        for mib_object in response:
+            assert isinstance(mib_object.oid, str)
+            assert isinstance(mib_object.value, int)
 
     @pytest.mark.asyncio
     async def test_getbulk(self, snmp_client):
         response = await snmp_client.getbulk("SNMPv2-MIB", "sysUpTime")
         assert response
-        for mibobject in response:
-            assert isinstance(mibobject.oid, str)
-            assert isinstance(mibobject.value, int)
+        for mib_object in response:
+            assert isinstance(mib_object.oid, str)
+            assert isinstance(mib_object.value, int)
 
     @pytest.mark.asyncio
     async def test_bulkwalk(self, snmp_client):
         response = await snmp_client.bulkwalk("SNMPv2-MIB", "sysUpTime")
         assert response
-        for mibobject in response:
-            assert isinstance(mibobject.oid, str)
-            assert isinstance(mibobject.value, int)
+        for mib_object in response:
+            assert isinstance(mib_object.oid, str)
+            assert isinstance(mib_object.value, int)
 
 
 class TestSNMPRequestsUnknownMib:
@@ -90,6 +90,6 @@ class TestPrefix:
 
 
 def test_object_is_resolved():
-    objecttype = SNMP._oid_to_objecttype("SNMPv2-MIB", "sysUpTime")
-    SNMP._resolve_object(objecttype)
-    assert objecttype[0]
+    object_type = SNMP._oid_to_object_type("SNMPv2-MIB", "sysUpTime")
+    SNMP._resolve_object(object_type)
+    assert object_type[0]
