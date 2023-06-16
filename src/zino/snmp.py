@@ -4,6 +4,7 @@ import threading
 from dataclasses import dataclass
 from typing import Union
 
+from pyasn1.type import univ
 from pysnmp.hlapi.asyncio import (
     CommunityData,
     ContextData,
@@ -158,6 +159,18 @@ class SNMP:
                 mibobject = MibObject(oid=result[0], value=result[1])
                 results.append(mibobject)
         return results
+
+    @classmethod
+    def _objecttype_to_mibobject(cls, objecttype: ObjectType) -> MibObject:
+        oid_string = str(objecttype[0])
+        value = objecttype[1]
+        if isinstance(value, univ.Integer):
+            value = int(value)
+        elif isinstance(value, univ.OctetString):
+            value = str(value)
+        else:
+            raise ValueError(f"Could not convert unknown type {type(value)}")
+        return MibObject(oid_string, value)
 
     @classmethod
     def _is_prefix_of_oid(cls, prefix: str, oid: str) -> bool:
