@@ -4,84 +4,74 @@ from zino.config.models import PollDevice
 from zino.snmp import SNMP
 
 
-class TestSNMPRequests:
-    def get_client(self, port):
-        device = PollDevice(name="buick.lab.example.org", address="127.0.0.1", port=port)
-        return SNMP(device)
+@pytest.fixture(scope="session")
+def snmp_client(snmpsim, snmp_test_port):
+    device = PollDevice(name="buick.lab.example.org", address="127.0.0.1", port=snmp_test_port)
+    return SNMP(device)
 
 
-class TestSNMPRequestsResponseTypes(TestSNMPRequests):
+class TestSNMPRequestsResponseTypes:
     @pytest.mark.asyncio
-    async def test_get(self, snmpsim, snmp_test_port):
-        snmp = self.get_client(snmp_test_port)
-        response = await snmp.get("SNMPv2-MIB", "sysUpTime", 0)
+    async def test_get(self, snmp_client):
+        response = await snmp_client.get("SNMPv2-MIB", "sysUpTime", 0)
         assert isinstance(response.oid, str)
         assert isinstance(response.value, int)
 
     @pytest.mark.asyncio
-    async def test_getnext(self, snmpsim, snmp_test_port):
-        snmp = self.get_client(snmp_test_port)
-        response = await snmp.getnext("SNMPv2-MIB", "sysUpTime")
+    async def test_getnext(self, snmp_client):
+        response = await snmp_client.getnext("SNMPv2-MIB", "sysUpTime")
         assert isinstance(response.oid, str)
         assert isinstance(response.value, int)
 
     @pytest.mark.asyncio
-    async def test_walk(self, snmpsim, snmp_test_port):
-        snmp = self.get_client(snmp_test_port)
-        response = await snmp.walk("SNMPv2-MIB", "sysUpTime")
+    async def test_walk(self, snmp_client):
+        response = await snmp_client.walk("SNMPv2-MIB", "sysUpTime")
         assert response
         for mibobject in response:
             assert isinstance(mibobject.oid, str)
             assert isinstance(mibobject.value, int)
 
     @pytest.mark.asyncio
-    async def test_getbulk(self, snmpsim, snmp_test_port):
-        snmp = self.get_client(snmp_test_port)
-        response = await snmp.getbulk("SNMPv2-MIB", "sysUpTime")
+    async def test_getbulk(self, snmp_client):
+        response = await snmp_client.getbulk("SNMPv2-MIB", "sysUpTime")
         assert response
         for mibobject in response:
             assert isinstance(mibobject.oid, str)
             assert isinstance(mibobject.value, int)
 
     @pytest.mark.asyncio
-    async def test_bulkwalk(self, snmpsim, snmp_test_port):
-        snmp = self.get_client(snmp_test_port)
-        response = await snmp.bulkwalk("SNMPv2-MIB", "sysUpTime")
+    async def test_bulkwalk(self, snmp_client):
+        response = await snmp_client.bulkwalk("SNMPv2-MIB", "sysUpTime")
         assert response
         for mibobject in response:
             assert isinstance(mibobject.oid, str)
             assert isinstance(mibobject.value, int)
 
 
-class TestSNMPRequestsUnknownMib(TestSNMPRequests):
+class TestSNMPRequestsUnknownMib:
     @pytest.mark.asyncio
-    async def test_get(self, snmpsim, snmp_test_port):
-        snmp = self.get_client(snmp_test_port)
-        response = await snmp.get("fake", "mib")
+    async def test_get(self, snmp_client):
+        response = await snmp_client.get("fake", "mib")
         assert not response
 
     @pytest.mark.asyncio
-    async def test_getnext(self, snmpsim, snmp_test_port):
-        snmp = self.get_client(snmp_test_port)
-        response = await snmp.getnext("fake", "mib")
+    async def test_getnext(self, snmp_client):
+        response = await snmp_client.getnext("fake", "mib")
         assert not response
 
     @pytest.mark.asyncio
-    async def test_walk(self, snmpsim, snmp_test_port):
-        snmp = self.get_client(snmp_test_port)
-        response = await snmp.walk("fake", "mib")
+    async def test_walk(self, snmp_client):
+        response = await snmp_client.walk("fake", "mib")
         assert not response
 
     @pytest.mark.asyncio
-    async def test_getbulk(self, snmpsim, snmp_test_port):
-        snmp = self.get_client(snmp_test_port)
-        response = await snmp.getbulk("fake", "mib")
+    async def test_getbulk(self, snmp_client):
+        response = await snmp_client.getbulk("fake", "mib")
         assert not response
 
     @pytest.mark.asyncio
-    async def test_bulkwalk(self, snmpsim, snmp_test_port):
-        snmp = self.get_client(snmp_test_port)
-        response = await snmp.bulkwalk("fake", "mib")
+    async def test_bulkwalk(self, snmp_client):
+        response = await snmp_client.bulkwalk("fake", "mib")
         assert not response
 
 
