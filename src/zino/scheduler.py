@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from typing import Sequence, Set, Tuple
 
 from apscheduler.executors.asyncio import AsyncIOExecutor
+from apscheduler.jobstores.base import JobLookupError
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from zino import state
@@ -92,4 +93,7 @@ def deschedule_deleted_devices(deleted_devices: Sequence[str]):
     """De-schedules recurring jobs for the deleted devices"""
     scheduler = get_scheduler()
     for name in deleted_devices:
-        scheduler.remove_job(job_id=name)
+        try:
+            scheduler.remove_job(job_id=name)
+        except JobLookupError:
+            _log.debug("Job for device %s could not be found", name)
