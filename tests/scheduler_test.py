@@ -1,6 +1,8 @@
+import logging
 from unittest.mock import Mock, patch
 
 import pytest
+from apscheduler.jobstores.base import JobLookupError
 
 from zino import scheduler
 
@@ -40,6 +42,13 @@ def test_deschedule_deleted_devices_should_deschedule_jobs(mocked_scheduler):
     assert mocked_scheduler.remove_job.called
 
 
+def test_deschedule_deleted_devices_should_not_fail_on_not_found_job(mocked_scheduler_raising_error, caplog):
+    with caplog.at_level(logging.DEBUG):
+        scheduler.deschedule_deleted_devices(["test-gw"])
+    assert mocked_scheduler_raising_error.remove_job.called
+    assert "Job for device test-gw could not be found" in caplog.text
+
+
 def test_scheduler_should_be_initialized_without_error():
     sched = scheduler.get_scheduler()
     assert sched
@@ -49,6 +58,16 @@ def test_scheduler_should_be_initialized_without_error():
 def mocked_scheduler():
     with patch("zino.scheduler.get_scheduler") as get_scheduler:
         mock_scheduler = Mock()
+        get_scheduler.return_value = mock_scheduler
+
+        yield mock_scheduler
+
+
+@pytest.fixture
+def mocked_scheduler_raising_error():
+    with patch("zino.scheduler.get_scheduler") as get_scheduler:
+        mock_scheduler = Mock()
+        mock_scheduler.remove_job.side_effect = Mock(side_effect=JobLookupError(job_id="fake id"))
         get_scheduler.return_value = mock_scheduler
 
         yield mock_scheduler
