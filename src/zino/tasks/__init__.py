@@ -6,5 +6,6 @@ async def run_all_tasks(device):
 
 def get_registered_tasks():
     from zino.tasks.reachabletask import ReachableTask
+    from zino.tasks.vendor import VendorTask
 
-    return [ReachableTask]
+    return [ReachableTask, VendorTask]
