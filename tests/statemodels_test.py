@@ -2,7 +2,7 @@ import datetime
 
 import pytest
 
-from zino.statemodels import DeviceState, EventState, ReachabilityEvent
+from zino.statemodels import DeviceState, DeviceStates, EventState, ReachabilityEvent
 
 
 class TestEvent:
@@ -23,6 +23,22 @@ class TestDeviceState:
     def test_vendor_utility_property_returns_expected_result(self, enterprise_id, property_name, expected):
         dev = DeviceState(name="foo", enterprise_id=enterprise_id)
         assert getattr(dev, property_name) == expected
+
+
+class TestDeviceStates:
+    def test_empty_dict_should_not_contain_devices(self):
+        states = DeviceStates()
+        assert len(states) == 0
+        assert "foo" not in states
+
+    def test_get_should_create_new_device_state(self):
+        states = DeviceStates()
+        router = "new"
+        assert router not in states
+
+        result = states.get(router)
+        assert isinstance(result, DeviceState)
+        assert router in states
 
 
 @pytest.fixture
