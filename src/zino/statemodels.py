@@ -66,6 +66,27 @@ class DeviceState(BaseModel):
     # sawPeer
 
 
+class DeviceStates(BaseModel):
+    """Keeps track of the state of all devices we have polled from"""
+
+    devices: Dict[str, DeviceState] = {}
+
+    def __getitem__(self, item) -> DeviceState:
+        return self.devices[item]
+
+    def __contains__(self, item):
+        return item in self.devices
+
+    def __len__(self):
+        return len(self.devices)
+
+    def get(self, device_name: str) -> DeviceState:
+        """Returns a DeviceState object for device_name, creating a blank state object if none exists"""
+        if device_name not in self:
+            self.devices[device_name] = DeviceState(name=device_name)
+        return self[device_name]
+
+
 class LogEntry(BaseModel):
     """Event log entry attributes. These apply both for 'log' and 'history' lists"""
 
