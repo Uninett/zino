@@ -31,7 +31,7 @@ class VendorTask(Task):
         if sysobjectid[: len(ENTERPRISES)] == ENTERPRISES:
             return sysobjectid[len(ENTERPRISES)]
 
-    async def _get_sysobjectid(self) -> Optional[Tuple[int]]:
+    async def _get_sysobjectid(self) -> Optional[Tuple[int, ...]]:
         snmp = SNMP(self.device)
         result = await snmp.get("SNMPv2-MIB", "sysObjectID", 0)
         if result:
