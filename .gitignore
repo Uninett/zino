@@ -14,5 +14,6 @@ src/zino/version.py
 *.egg-info/
 *.whl
 
-# avoid accidental commits of config files
+# avoid accidental commits of config and state files
 polldevs.cf
+zino-state.json
