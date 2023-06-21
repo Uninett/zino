@@ -29,11 +29,26 @@ class Events(BaseModel):
     class Config:
         underscore_attrs_are_private = True
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._rebuild_indexes()
+
     def __getitem__(self, item):
         return self.events[item]
 
     def __len__(self):
         return len(self.events)
+
+    def _rebuild_indexes(self):
+        """Rebuilds the event index from the current dict of events.
+
+        Mostly useful when this object was constructed from dumped data, of which the index isn't a part.
+        """
+        new_index: Dict[EventIndex, Event] = {}
+        for event in self.events.values():
+            key = EventIndex(event.router, event.port, type(event))
+            new_index[key] = event
+        self._events_by_index = new_index
 
     def get_or_create_event(
         self,
