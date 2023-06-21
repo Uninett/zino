@@ -37,6 +37,7 @@ class DeviceState(BaseModel):
     """Keep device state"""
 
     name: str
+    enterprise_id: Optional[int]
     boot_time: Optional[int]
     ports: Optional[Dict[int, Port]]
 
@@ -64,6 +65,14 @@ class DeviceState(BaseModel):
     # portToIfDescr
     # portToLocIfDescr
     # sawPeer
+
+    @property
+    def is_cisco(self):
+        return self.enterprise_id == 9
+
+    @property
+    def is_juniper(self):
+        return self.enterprise_id == 2626
 
 
 class DeviceStates(BaseModel):
