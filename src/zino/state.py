@@ -8,6 +8,7 @@ from typing import Dict
 
 from zino.config.models import PollDevice
 from zino.events import Events
+from zino.statemodels import DeviceStates
 
 _log = logging.getLogger(__name__)
 STATE_FILENAME = "zino-state.json"
@@ -16,7 +17,7 @@ STATE_FILENAME = "zino-state.json"
 polldevs: Dict[str, PollDevice] = {}
 
 # Dictionary of device state
-devices = {}
+devices = DeviceStates()
 
 # Dictionary of ongoing events
 events = Events()
