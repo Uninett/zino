@@ -1,6 +1,7 @@
 import logging
 from typing import Optional, Tuple
 
+from zino import state
 from zino.snmp import SNMP
 from zino.tasks.task import Task
 
@@ -13,7 +14,14 @@ class VendorTask(Task):
 
     async def run(self):
         vendor = await self._get_enterprise_id()
-        _logger.info("Device enterprise id: %r", vendor)
+        _logger.debug("%s enterprise id: %r", self.device.name, vendor)
+        if not vendor:
+            return
+
+        device = state.devices.get(self.device.name)
+        if device.enterprise_id != vendor:
+            _logger.info("%s changed enterprise id from %s to %s", self.device.name, device.enterprise_id, vendor)
+            device.enterprise_id = vendor
 
     async def _get_enterprise_id(self) -> Optional[int]:
         sysobjectid = await self._get_sysobjectid()
