@@ -109,3 +109,9 @@ def test_object_with_pure_oid_is_resolved():
     objecttype = SNMP._oid_to_objecttype("1.3.6.1.2.1.1.3.0")
     SNMP._resolve_object(objecttype)
     assert objecttype[0]
+
+
+def test_object_with_split_oid_is_resolved():
+    objecttype = SNMP._oid_to_objecttype(1, 3, 6, 1, 2, 1, 1, 3, 0)
+    SNMP._resolve_object(objecttype)
+    assert objecttype[0]
