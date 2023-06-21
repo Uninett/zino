@@ -33,7 +33,7 @@ class Port(BaseModel):
     state: Optional[InterfaceOperState]
 
 
-class Device(BaseModel):
+class DeviceState(BaseModel):
     """Keep device state"""
 
     name: str
