@@ -9,7 +9,8 @@ from pydantic import BaseModel, Field
 from zino.time import now
 
 IPAddress = Union[IPv4Address, IPv6Address]
-PortOrIPAddress = Union[int, IPAddress]
+AlarmType = Literal["yellow", "red"]
+PortOrIPAddress = Union[int, IPAddress, AlarmType]
 
 
 class InterfaceOperState(IntEnum):
@@ -40,6 +41,7 @@ class DeviceState(BaseModel):
     enterprise_id: Optional[int]
     boot_time: Optional[int]
     ports: Optional[Dict[int, Port]]
+    alarms: Optional[Dict[Literal["yellow", "red"], int]]
 
     # This is the remaining set of potential device attributes stored in device state by the original Zino code:
     # BootTime
