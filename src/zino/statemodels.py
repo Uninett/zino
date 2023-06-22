@@ -72,7 +72,7 @@ class DeviceState(BaseModel):
 
     @property
     def is_juniper(self):
-        return self.enterprise_id == 2626
+        return self.enterprise_id == 2636
 
 
 class DeviceStates(BaseModel):
