@@ -36,7 +36,7 @@ def _get_engine():
 @dataclass
 class MibObject:
     oid: str
-    value: Union[str, int]
+    value: Union[str, int, tuple[int, ...]]
 
 
 class SNMP:
@@ -188,6 +188,8 @@ class SNMP:
             value = int(value)
         elif isinstance(value, univ.OctetString):
             value = str(value)
+        elif isinstance(value, ObjectIdentity):
+            value = value.getOid().asTuple()
         else:
             raise ValueError(f"Could not convert unknown type {type(value)}")
         return MibObject(oid_string, value)
