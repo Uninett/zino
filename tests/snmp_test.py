@@ -14,13 +14,13 @@ class TestSNMPRequestsResponseTypes:
     @pytest.mark.asyncio
     async def test_get(self, snmp_client):
         response = await snmp_client.get("SNMPv2-MIB", "sysUpTime", 0)
-        assert isinstance(response.oid, str)
+        assert isinstance(response.oid, tuple)
         assert isinstance(response.value, int)
 
     @pytest.mark.asyncio
     async def test_getnext(self, snmp_client):
         response = await snmp_client.getnext("SNMPv2-MIB", "sysUpTime")
-        assert isinstance(response.oid, str)
+        assert isinstance(response.oid, tuple)
         assert isinstance(response.value, int)
 
     @pytest.mark.asyncio
@@ -28,7 +28,7 @@ class TestSNMPRequestsResponseTypes:
         response = await snmp_client.walk("SNMPv2-MIB", "sysUpTime")
         assert response
         for mib_object in response:
-            assert isinstance(mib_object.oid, str)
+            assert isinstance(mib_object.oid, tuple)
             assert isinstance(mib_object.value, int)
 
     @pytest.mark.asyncio
@@ -36,7 +36,7 @@ class TestSNMPRequestsResponseTypes:
         response = await snmp_client.getbulk("SNMPv2-MIB", "sysUpTime")
         assert response
         for mib_object in response:
-            assert isinstance(mib_object.oid, str)
+            assert isinstance(mib_object.oid, tuple)
             assert isinstance(mib_object.value, int)
 
     @pytest.mark.asyncio
@@ -44,13 +44,13 @@ class TestSNMPRequestsResponseTypes:
         response = await snmp_client.bulkwalk("SNMPv2-MIB", "sysUpTime")
         assert response
         for mib_object in response:
-            assert isinstance(mib_object.oid, str)
+            assert isinstance(mib_object.oid, tuple)
             assert isinstance(mib_object.value, int)
 
     @pytest.mark.asyncio
     async def test_get_sysobjectid_should_be_tuple_of_ints(self, snmp_client):
         response = await snmp_client.get("SNMPv2-MIB", "sysObjectID", 0)
-        assert isinstance(response.oid, str)
+        assert isinstance(response.oid, tuple)
         assert isinstance(response.value, tuple)
         assert all(isinstance(i, int) for i in response.value)
 
