@@ -130,14 +130,14 @@ class SNMP:
     async def getbulk(self, *oid: str, max_repetitions: int = 1) -> list[MibObject]:
         """SNMP-BULKs the given `oid`"""
         oid_object = self._oid_to_object_type(*oid)
-        objecttypes = await self._getbulk(max_repetitions, oid_object)
+        objecttypes = await self._getbulk(oid_object, max_repetitions)
         results = []
         for objecttype in objecttypes:
             mibobject = self._object_type_to_mib_object(objecttype)
             results.append(mibobject)
         return results
 
-    async def _getbulk(self, max_repetitions: int, object_type: ObjectType) -> list[ObjectType]:
+    async def _getbulk(self, object_type: ObjectType, max_repetitions: int) -> list[ObjectType]:
         """SNMP-BULKs the given `oid_object`"""
         try:
             error_indication, error_status, error_index, var_binds = await bulkCmd(
@@ -169,7 +169,7 @@ class SNMP:
             return results
         start_oid = str(query_object[0])
         while True:
-            response = await self._getbulk(max_repetitions, query_object)
+            response = await self._getbulk(query_object, max_repetitions)
             if not response:
                 break
             for result in response:
