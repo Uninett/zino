@@ -35,7 +35,7 @@ def _get_engine():
 
 @dataclass
 class MibObject:
-    oid: str
+    oid: tuple[int, ...]
     value: Union[str, int, tuple[int, ...]]
 
 
@@ -182,7 +182,7 @@ class SNMP:
 
     @classmethod
     def _object_type_to_mib_object(cls, object_type: ObjectType) -> MibObject:
-        oid_string = str(object_type[0])
+        oid_tuple = object_type[0].getOid().asTuple()
         value = object_type[1]
         if isinstance(value, univ.Integer):
             value = int(value)
@@ -192,7 +192,7 @@ class SNMP:
             value = value.getOid().asTuple()
         else:
             raise ValueError(f"Could not convert unknown type {type(value)}")
-        return MibObject(oid_string, value)
+        return MibObject(oid_tuple, value)
 
     @classmethod
     def _is_prefix_of_oid(cls, prefix: str, oid: str) -> bool:
