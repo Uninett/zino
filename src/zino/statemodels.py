@@ -33,10 +33,11 @@ class Port(BaseModel):
     state: Optional[InterfaceOperState]
 
 
-class Device(BaseModel):
+class DeviceState(BaseModel):
     """Keep device state"""
 
     name: str
+    enterprise_id: Optional[int]
     boot_time: Optional[int]
     ports: Optional[Dict[int, Port]]
 
@@ -64,6 +65,35 @@ class Device(BaseModel):
     # portToIfDescr
     # portToLocIfDescr
     # sawPeer
+
+    @property
+    def is_cisco(self):
+        return self.enterprise_id == 9
+
+    @property
+    def is_juniper(self):
+        return self.enterprise_id == 2636
+
+
+class DeviceStates(BaseModel):
+    """Keeps track of the state of all devices we have polled from"""
+
+    devices: Dict[str, DeviceState] = {}
+
+    def __getitem__(self, item) -> DeviceState:
+        return self.devices[item]
+
+    def __contains__(self, item):
+        return item in self.devices
+
+    def __len__(self):
+        return len(self.devices)
+
+    def get(self, device_name: str) -> DeviceState:
+        """Returns a DeviceState object for device_name, creating a blank state object if none exists"""
+        if device_name not in self:
+            self.devices[device_name] = DeviceState(name=device_name)
+        return self[device_name]
 
 
 class LogEntry(BaseModel):
