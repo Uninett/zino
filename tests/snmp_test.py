@@ -47,6 +47,13 @@ class TestSNMPRequestsResponseTypes:
             assert isinstance(mib_object.oid, str)
             assert isinstance(mib_object.value, int)
 
+    @pytest.mark.asyncio
+    async def test_get_sysobjectid_should_be_tuple_of_ints(self, snmp_client):
+        response = await snmp_client.get("SNMPv2-MIB", "sysObjectID", 0)
+        assert isinstance(response.oid, str)
+        assert isinstance(response.value, tuple)
+        assert all(isinstance(i, int) for i in response.value)
+
 
 class TestSNMPRequestsUnknownMib:
     @pytest.mark.asyncio
