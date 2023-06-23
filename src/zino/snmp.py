@@ -36,7 +36,7 @@ def _get_engine():
 @dataclass
 class MibObject:
     oid: str
-    value: Union[str, int]
+    value: Union[str, int, tuple[int, ...]]
 
 
 class SNMP:
