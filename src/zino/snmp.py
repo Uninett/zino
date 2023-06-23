@@ -20,6 +20,7 @@ from pysnmp.smi import view
 from pysnmp.smi.error import MibNotFoundError
 
 from zino.config.models import PollDevice
+from zino.oid import OID
 
 _log = logging.getLogger(__name__)
 
@@ -35,8 +36,8 @@ def _get_engine():
 
 @dataclass
 class MibObject:
-    oid: tuple[int, ...]
-    value: Union[str, int, tuple[int, ...]]
+    oid: OID
+    value: Union[str, int, OID]
 
 
 class SNMP:
@@ -182,17 +183,17 @@ class SNMP:
 
     @classmethod
     def _object_type_to_mib_object(cls, object_type: ObjectType) -> MibObject:
-        oid_tuple = object_type[0].getOid().asTuple()
+        oid = OID(str(object_type[0]))
         value = object_type[1]
         if isinstance(value, univ.Integer):
             value = int(value)
         elif isinstance(value, univ.OctetString):
             value = str(value)
         elif isinstance(value, ObjectIdentity):
-            value = value.getOid().asTuple()
+            value = OID(str(value))
         else:
             raise ValueError(f"Could not convert unknown type {type(value)}")
-        return MibObject(oid_tuple, value)
+        return MibObject(oid, value)
 
     @classmethod
     def _is_prefix_of_oid(cls, prefix: str, oid: str) -> bool:
