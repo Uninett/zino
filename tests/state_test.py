@@ -5,20 +5,20 @@ from json import JSONDecodeError
 
 import pytest
 
-from zino import state
+from zino.state import ZinoState
 
 
-@pytest.mark.asyncio
-async def test_dump_state_to_log_should_dump_to_log(caplog):
+def test_dump_state_to_log_should_dump_to_log(caplog):
     with caplog.at_level(logging.DEBUG):
-        await state.dump_state_to_log()
+        state = ZinoState()
+        state.dump_state_to_log()
     assert "Dumping state" in caplog.text
 
 
-@pytest.mark.asyncio
-async def test_dump_state_to_file_should_dump_valid_json_to_file(tmp_path):
+def test_dump_state_to_file_should_dump_valid_json_to_file(tmp_path):
     dumpfile = tmp_path / "dump.json"
-    await state.dump_state_to_file(dumpfile)
+    state = ZinoState()
+    state.dump_state_to_file(dumpfile)
 
     assert os.path.exists(dumpfile)
     with open(dumpfile, "r") as data:
@@ -28,18 +28,15 @@ async def test_dump_state_to_file_should_dump_valid_json_to_file(tmp_path):
 class TestLoadStateFromFile:
     def test_should_raise_on_invalid_json(self, invalid_state_file):
         with pytest.raises(JSONDecodeError):
-            state.load_state_from_file(str(invalid_state_file))
+            ZinoState.load_state_from_file(str(invalid_state_file))
 
-    def test_should_replace_global_state(self, valid_state_file):
-        assert state.events.last_event_id == 0
-        state.load_state_from_file(str(valid_state_file))
+    def test_should_load_saved_state(self, valid_state_file):
+        state = ZinoState.load_state_from_file(str(valid_state_file))
         assert state.events.last_event_id == 42
 
-    def test_should_do_nothing_when_state_file_is_missing(self, tmp_path):
+    def test_should_return_none_when_state_file_is_missing(self, tmp_path):
         fake_file = tmp_path / "nonexistent.json"
-        original_last_event_id = state.events.last_event_id
-        state.load_state_from_file(str(fake_file))
-        assert state.events.last_event_id == original_last_event_id
+        assert ZinoState.load_state_from_file(str(fake_file)) is None
 
 
 #
@@ -51,7 +48,19 @@ class TestLoadStateFromFile:
 def valid_state_file(tmp_path):
     state_filename = tmp_path / "dump.json"
     with open(state_filename, "w") as statefile:
-        statefile.write("""{ "events": {}, "last_event_id": 42 }""")
+        statefile.write(
+            """
+        {
+          "devices": {
+            "devices": {}
+          },
+          "events": {
+            "events": {},
+            "last_event_id": 42
+          }
+        }
+        """
+        )
     return state_filename
 
 
