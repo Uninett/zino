@@ -158,8 +158,8 @@ class SNMP:
     async def getbulk(self, *oid: str, max_repetitions: int = 1) -> list[MibObject]:
         """SNMP-BULKs the given oid
         Example usage:
-            walk("IF-MIB", "ifName", max_repetitions=5)
-            walk("1.3.6.1.2.1.31.1.1.1.1")
+            getbulk("IF-MIB", "ifName", max_repetitions=5)
+            getbulk("1.3.6.1.2.1.31.1.1.1.1")
 
         :param oid: Values for defining an OID. For detailed use see
             https://github.com/pysnmp/pysnmp/blob/bc1fb3c39764f36c1b7c9551b52ef8246b9aea7c/pysnmp/smi/rfc1902.py#L35-L49
@@ -198,8 +198,8 @@ class SNMP:
     async def bulkwalk(self, *oid: str, max_repetitions: int = 10) -> list[MibObject]:
         """Uses SNMP-BULK calls to get all objects in the subtree with oid as root
         Example usage:
-            walk("IF-MIB", "ifName", max_repetitions=5)
-            walk("1.3.6.1.2.1.31.1.1.1.1")
+            bulkwalk("IF-MIB", "ifName", max_repetitions=5)
+            bulkwalk("1.3.6.1.2.1.31.1.1.1.1")
 
         :param oid: Values for defining an OID. For detailed use see
             https://github.com/pysnmp/pysnmp/blob/bc1fb3c39764f36c1b7c9551b52ef8246b9aea7c/pysnmp/smi/rfc1902.py#L35-L49
