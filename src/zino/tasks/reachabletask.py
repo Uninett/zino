@@ -1,5 +1,7 @@
 import logging
 
+from apscheduler.jobstores.base import JobLookupError
+
 from zino.scheduler import get_scheduler
 from zino.snmp import SNMP
 from zino.state import state
@@ -68,7 +70,10 @@ class ReachableTask(Task):
 
     def _deschedule_extra_job(self):
         name = self._get_extra_job_name()
-        self._scheduler.remove_job(job_id=name)
+        try:
+            self._scheduler.remove_job(job_id=name)
+        except JobLookupError:
+            pass
 
     def _extra_job_is_running(self):
         name = self._get_extra_job_name()
