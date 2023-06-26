@@ -20,6 +20,7 @@ from pysnmp.smi import view
 from pysnmp.smi.error import MibNotFoundError
 
 from zino.config.models import PollDevice
+from zino.oid import OID
 
 _log = logging.getLogger(__name__)
 
@@ -35,8 +36,8 @@ def _get_engine():
 
 @dataclass
 class MibObject:
-    oid: str
-    value: Union[str, int, tuple[int, ...]]
+    oid: OID
+    value: Union[str, int, OID]
 
 
 class SNMP:
@@ -118,10 +119,10 @@ class SNMP:
         except MibNotFoundError as error:
             _log.error("%s: %s", self.device.name, error)
             return results
-        original_oid = str(current_object[0])
+        original_oid = OID(str(current_object[0]))
         while True:
             current_object = await self._getnext(current_object)
-            if not current_object or not self._is_prefix_of_oid(original_oid, str(current_object[0])):
+            if not current_object or not original_oid.is_a_prefix_of(str(current_object[0])):
                 break
             mib_object = self._object_type_to_mib_object(current_object)
             results.append(mib_object)
@@ -167,13 +168,13 @@ class SNMP:
         except MibNotFoundError as error:
             _log.error("%s: %s", self.device.name, error)
             return results
-        start_oid = str(query_object[0])
+        start_oid = OID(str(query_object[0]))
         while True:
             response = await self._getbulk(max_repetitions, query_object)
             if not response:
                 break
             for result in response:
-                if not self._is_prefix_of_oid(start_oid, str(result[0])):
+                if not start_oid.is_a_prefix_of(str(result[0])):
                     return results
                 query_object = result
                 mib_object = self._object_type_to_mib_object(result)
@@ -182,22 +183,17 @@ class SNMP:
 
     @classmethod
     def _object_type_to_mib_object(cls, object_type: ObjectType) -> MibObject:
-        oid_string = str(object_type[0])
+        oid = OID(str(object_type[0]))
         value = object_type[1]
         if isinstance(value, univ.Integer):
             value = int(value)
         elif isinstance(value, univ.OctetString):
             value = str(value)
         elif isinstance(value, ObjectIdentity):
-            value = value.getOid().asTuple()
+            value = OID(str(value))
         else:
             raise ValueError(f"Could not convert unknown type {type(value)}")
-        return MibObject(oid_string, value)
-
-    @classmethod
-    def _is_prefix_of_oid(cls, prefix: str, oid: str) -> bool:
-        """Returns True if `prefix` is a prefix of `oid` and not equal to it"""
-        return len(oid) > len(prefix) and oid[: len(prefix)] == prefix
+        return MibObject(oid, value)
 
     @classmethod
     def _resolve_object(cls, object_type: ObjectType):
