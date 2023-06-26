@@ -83,20 +83,6 @@ class TestSNMPRequestsUnknownMib:
         assert not response
 
 
-class TestPrefix:
-    def test_return_true_if_prefix(self):
-        is_prefix = SNMP._is_prefix_of_oid("1.2.3.4.5", "1.2.3.4.5.6")
-        assert is_prefix
-
-    def test_return_false_if_not_prefix(self):
-        is_prefix = SNMP._is_prefix_of_oid("5.4.3.2.1", "1.2.3.4.5.6")
-        assert not is_prefix
-
-    def test_return_false_if_prefix_equal_to_oid(self):
-        is_prefix = SNMP._is_prefix_of_oid("5.4.3.2.1", "5.4.3.2.1")
-        assert not is_prefix
-
-
 def test_object_is_resolved():
     object_type = SNMP._oid_to_object_type("SNMPv2-MIB", "sysUpTime")
     SNMP._resolve_object(object_type)
