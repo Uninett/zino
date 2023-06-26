@@ -35,24 +35,26 @@ class ReachableTask(Task):
             self._schedule_extra_job()
         else:
             _logger.debug("Device %s is reachable", self.device.name)
+            self._update_reachability_event()
 
     async def _run_extra_job(self):
         result = await self._get_sysuptime()
         if result:
             _logger.debug("Device %s is reachable", self.device.name)
-            event = state.events.get(self.device.name, None, ReachabilityEvent)
-            if event:
-                # TODO update event attributes
-                if event.reachability != ReachabilityState.REACHABLE:
-                    event.reachability = ReachabilityState.REACHABLE
-                    event.add_log(f"{self.device.name} reachable")
-                # TODO we need a mechanism to "commit" event changes, to trigger notifications to clients
-                self._deschedule_extra_job()
+            self._update_reachability_event()
+            self._deschedule_extra_job()
 
     async def _get_sysuptime(self):
         snmp = SNMP(self.device)
         result = await snmp.get("SNMPv2-MIB", "sysUpTime", 0)
         return result
+
+    def _update_reachability_event(self):
+        event = state.events.get(self.device.name, None, ReachabilityEvent)
+        if event and event.reachability != ReachabilityState.REACHABLE:
+            event.reachability = ReachabilityState.REACHABLE
+            event.add_log(f"{self.device.name} reachable")
+        # TODO we need a mechanism to "commit" event changes, to trigger notifications to clients
 
     def _schedule_extra_job(self):
         name = self._get_extra_job_name()
