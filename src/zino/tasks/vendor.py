@@ -18,7 +18,7 @@ class VendorTask(Task):
         if not vendor:
             return
 
-        device = state.devices.get(self.device.name)
+        device = state.state.devices.get(self.device.name)
         if device.enterprise_id != vendor:
             _logger.info("%s changed enterprise id from %s to %s", self.device.name, device.enterprise_id, vendor)
             device.enterprise_id = vendor

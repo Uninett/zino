@@ -1,8 +1,8 @@
 import logging
 
-from zino import state
 from zino.scheduler import get_scheduler
 from zino.snmp import SNMP
+from zino.state import state
 from zino.statemodels import EventState, ReachabilityEvent, ReachabilityState
 from zino.tasks.task import Task
 
