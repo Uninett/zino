@@ -5,7 +5,8 @@ async def run_all_tasks(device, state):
 
 
 def get_registered_tasks():
+    from zino.tasks.juniperalarmtask import JuniperAlarmTask
     from zino.tasks.reachabletask import ReachableTask
     from zino.tasks.vendor import VendorTask
 
-    return [ReachableTask, VendorTask]
+    return [ReachableTask, VendorTask, JuniperAlarmTask]
