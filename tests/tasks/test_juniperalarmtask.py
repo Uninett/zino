@@ -1,0 +1,97 @@
+import pytest
+
+from zino.config.models import PollDevice
+from zino.events import AlarmEvent
+from zino.state import ZinoState
+from zino.tasks.juniperalarmtask import JuniperAlarmTask
+
+
+class TestJuniperalarmTask:
+    @pytest.mark.asyncio
+    async def test_juniper_alarm_runs_without_errors(self, snmpsim, juniper_alarm_task):
+        assert (await juniper_alarm_task.run()) is None
+
+    @pytest.mark.asyncio
+    async def test_juniper_alarm_does_nothing_for_non_juniper_device(self, snmpsim, juniper_alarm_task):
+        task = juniper_alarm_task
+        device_state = task.state.devices.get(device_name=task.device.name)
+        device_state.enterprise_id = 11
+
+        await task.run()
+
+        assert task.state.devices[task.device.name].alarms is None
+
+    @pytest.mark.asyncio
+    async def test_juniper_alarm_saves_alarm_count_in_device_state(self, snmpsim, juniper_alarm_task):
+        task = juniper_alarm_task
+        device_state = task.state.devices.get(device_name=task.device.name)
+        device_state.enterprise_id = 2636
+
+        await task.run()
+
+        assert task.state.devices[task.device.name].alarms
+        assert task.state.devices[task.device.name].alarms["yellow"] == 0
+        assert task.state.devices[task.device.name].alarms["red"] == 2
+
+    @pytest.mark.asyncio
+    async def test_juniper_alarm_overrides_alarm_count_in_device_state(self, snmpsim, juniper_alarm_task):
+        task = juniper_alarm_task
+        device_state = task.state.devices.get(device_name=task.device.name)
+        device_state.enterprise_id = 2636
+        device_state.alarms = {
+            "yellow": "1",
+            "red": "3",
+        }
+
+        await task.run()
+
+        assert task.state.devices[task.device.name].alarms["yellow"] == 0
+        assert task.state.devices[task.device.name].alarms["red"] == 2
+
+    @pytest.mark.asyncio
+    async def test_juniper_alarm_creates_alarm_events(self, snmpsim, juniper_alarm_task):
+        task = juniper_alarm_task
+        device_state = task.state.devices.get(device_name=task.device.name)
+        device_state.enterprise_id = 2636
+
+        await task.run()
+
+        yellow_event = task.state.events.get(device_name=task.device.name, port="yellow", event_class=AlarmEvent)
+        red_event = task.state.events.get(device_name=task.device.name, port="red", event_class=AlarmEvent)
+
+        assert yellow_event
+        assert red_event
+        assert yellow_event.alarm_count == 0
+        assert red_event.alarm_count == 2
+
+    @pytest.mark.asyncio
+    async def test_juniper_alarm_updates_alarm_events(self, snmpsim, juniper_alarm_task):
+        task = juniper_alarm_task
+        device_state = task.state.devices.get(device_name=task.device.name)
+        device_state.enterprise_id = 2636
+        yellow_event, _ = task.state.events.get_or_create_event(
+            device_name=task.device.name, port="yellow", event_class=AlarmEvent
+        )
+        yellow_event.alarm_count = 1
+        red_event, _ = task.state.events.get_or_create_event(
+            device_name=task.device.name, port="red", event_class=AlarmEvent
+        )
+        red_event.alarm_count = 3
+
+        await task.run()
+
+        assert yellow_event.alarm_count == 0
+        assert red_event.alarm_count == 2
+
+
+@pytest.fixture()
+def juniper_alarm_task(snmpsim, snmp_test_port):
+    device = PollDevice(
+        name="buick.lab.example.org",
+        address="127.0.0.1",
+        community="juniper-alarm",
+        port=snmp_test_port,
+    )
+    state = ZinoState()
+    task = JuniperAlarmTask(device, state)
+    yield task
