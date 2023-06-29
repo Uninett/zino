@@ -1,7 +1,6 @@
 import logging
 from typing import Optional, Tuple
 
-from zino import state
 from zino.snmp import SNMP
 from zino.tasks.task import Task
 
@@ -18,7 +17,7 @@ class VendorTask(Task):
         if not vendor:
             return
 
-        device = state.state.devices.get(self.device.name)
+        device = self.state.devices.get(self.device.name)
         if device.enterprise_id != vendor:
             _logger.info("%s changed enterprise id from %s to %s", self.device.name, device.enterprise_id, vendor)
             device.enterprise_id = vendor
