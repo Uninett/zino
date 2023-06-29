@@ -49,7 +49,15 @@ class SNMP:
         self.device = device
 
     async def get(self, *oid: str) -> Union[MibObject, None]:
-        """SNMP-GETs the given `oid`"""
+        """SNMP-GETs the given oid
+        Example usage:
+            get("SNMPv2-MIB", "sysUpTime", 0)
+            get("1.3.6.1.2.1.1.3.0")
+
+        :param oid: Values for defining an OID. For detailed use see
+            https://github.com/pysnmp/pysnmp/blob/bc1fb3c39764f36c1b7c9551b52ef8246b9aea7c/pysnmp/smi/rfc1902.py#L35-L49
+        :return: A MibObject representing the resulting MIB variable or None if nothing could be found
+        """
         query = self._oid_to_object_type(*oid)
         try:
             error_indication, error_status, error_index, var_binds = await getCmd(
@@ -84,7 +92,15 @@ class SNMP:
         return False
 
     async def getnext(self, *oid: str) -> Union[MibObject, None]:
-        """SNMP-GETNEXTs the given `oid`"""
+        """SNMP-GETNEXTs the given oid
+        Example usage:
+            getnext("SNMPv2-MIB", "sysUpTime")
+            getnext("1.3.6.1.2.1.1.3")
+
+        :param oid: Values for defining an OID. For detailed use see
+            https://github.com/pysnmp/pysnmp/blob/bc1fb3c39764f36c1b7c9551b52ef8246b9aea7c/pysnmp/smi/rfc1902.py#L35-L49
+        :return: A MibObject representing the resulting MIB variable or None if nothing could be found
+        """
         query = self._oid_to_object_type(*oid)
         object_type = await self._getnext(query)
         if not object_type:
@@ -92,7 +108,11 @@ class SNMP:
         return self._object_type_to_mib_object(object_type)
 
     async def _getnext(self, object_type: ObjectType) -> Union[ObjectType, None]:
-        """SNMP-GETNEXTs the given `objecttype`"""
+        """SNMP-GETNEXTs the given object_type
+
+        :param object_type: An ObjectType representing the object you want to query
+        :return: An ObjectType representing the resulting MIB variable or None if nothing could be found
+        """
         try:
             error_indication, error_status, error_index, var_binds = await nextCmd(
                 _get_engine(),
@@ -111,7 +131,15 @@ class SNMP:
             return var_binds[0][0]
 
     async def walk(self, *oid: str) -> list[MibObject]:
-        """Uses SNMP-GETNEXT calls to get all objects in the subtree with `oid` as root"""
+        """Uses SNMP-GETNEXT calls to get all objects in the subtree with oid as root
+        Example usage:
+            walk("IF-MIB", "ifName")
+            walk("1.3.6.1.2.1.31.1.1.1.1")
+
+        :param oid: Values for defining an OID. For detailed use see
+            https://github.com/pysnmp/pysnmp/blob/bc1fb3c39764f36c1b7c9551b52ef8246b9aea7c/pysnmp/smi/rfc1902.py#L35-L49
+        :return: A list of MibObjects representing the resulting MIB variables
+        """
         results = []
         current_object = self._oid_to_object_type(*oid)
         try:
@@ -129,16 +157,25 @@ class SNMP:
         return results
 
     async def getbulk(self, *oid: str, max_repetitions: int = 1) -> list[MibObject]:
-        """SNMP-BULKs the given `oid`"""
+        """SNMP-BULKs the given oid
+        Example usage:
+            getbulk("IF-MIB", "ifName", max_repetitions=5)
+            getbulk("1.3.6.1.2.1.31.1.1.1.1")
+
+        :param oid: Values for defining an OID. For detailed use see
+            https://github.com/pysnmp/pysnmp/blob/bc1fb3c39764f36c1b7c9551b52ef8246b9aea7c/pysnmp/smi/rfc1902.py#L35-L49
+        :param max_repetitions: Max amount of MIB objects to retrieve
+        :return: A list of MibObjects representing the resulting MIB variables
+        """
         oid_object = self._oid_to_object_type(*oid)
-        objecttypes = await self._getbulk(max_repetitions, oid_object)
+        objecttypes = await self._getbulk(oid_object, max_repetitions)
         results = []
         for objecttype in objecttypes:
             mibobject = self._object_type_to_mib_object(objecttype)
             results.append(mibobject)
         return results
 
-    async def _getbulk(self, max_repetitions: int, object_type: ObjectType) -> list[ObjectType]:
+    async def _getbulk(self, object_type: ObjectType, max_repetitions: int) -> list[ObjectType]:
         """SNMP-BULKs the given `oid_object`"""
         try:
             error_indication, error_status, error_index, var_binds = await bulkCmd(
@@ -160,7 +197,16 @@ class SNMP:
         return var_binds[0]
 
     async def bulkwalk(self, *oid: str, max_repetitions: int = 10) -> list[MibObject]:
-        """Uses SNMP-BULK calls to get all objects in the subtree with `oid` as root"""
+        """Uses SNMP-BULK calls to get all objects in the subtree with oid as root
+        Example usage:
+            bulkwalk("IF-MIB", "ifName", max_repetitions=5)
+            bulkwalk("1.3.6.1.2.1.31.1.1.1.1")
+
+        :param oid: Values for defining an OID. For detailed use see
+            https://github.com/pysnmp/pysnmp/blob/bc1fb3c39764f36c1b7c9551b52ef8246b9aea7c/pysnmp/smi/rfc1902.py#L35-L49
+        :param max_repetitions: Max amount of MIB objects to retrieve per SNMP-BULK call
+        :return: A list of MibObjects representing the resulting MIB variables
+        """
         results = []
         query_object = self._oid_to_object_type(*oid)
         try:
@@ -170,7 +216,7 @@ class SNMP:
             return results
         start_oid = OID(str(query_object[0]))
         while True:
-            response = await self._getbulk(max_repetitions, query_object)
+            response = await self._getbulk(query_object, max_repetitions)
             if not response:
                 break
             for result in response:
