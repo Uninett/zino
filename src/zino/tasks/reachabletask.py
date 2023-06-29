@@ -27,7 +27,6 @@ class ReachableTask(Task):
             _logger.debug("Device %s is not reachable", self.device.name)
             event, created = state.events.get_or_create_event(self.device.name, None, ReachabilityEvent)
             if created:
-                # TODO add attributes
                 event.state = EventState.OPEN
                 event.add_history("Change state to Open")
             if event.reachability != ReachabilityState.NORESPONSE:
@@ -56,7 +55,6 @@ class ReachableTask(Task):
         if event and event.reachability != ReachabilityState.REACHABLE:
             event.reachability = ReachabilityState.REACHABLE
             event.add_log(f"{self.device.name} reachable")
-        # TODO we need a mechanism to "commit" event changes, to trigger notifications to clients
 
     def _schedule_extra_job(self):
         name = self._get_extra_job_name()
