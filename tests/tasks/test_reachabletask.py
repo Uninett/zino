@@ -49,7 +49,7 @@ class TestReachableTask:
         assert not task._extra_job_is_running()
 
     @pytest.mark.asyncio
-    async def test_run_should_update_event_to_noresponse_when_device_is_reachable(self, task):
+    async def test_run_should_update_event_to_reachable_when_device_is_reachable(self, task):
         event = task.state.events.create_event(task.device.name, None, ReachabilityEvent)
         event.state = EventState.OPEN
         event.reachability = ReachabilityState.NORESPONSE
@@ -57,7 +57,7 @@ class TestReachableTask:
         assert event.reachability == ReachabilityState.REACHABLE
 
     @pytest.mark.asyncio
-    async def test_run_should_update_event_to_reachable_when_device_is_unreachable(self, unreachable_task):
+    async def test_run_should_update_event_to_noresponse_when_device_is_unreachable(self, unreachable_task):
         task = unreachable_task
         event = task.state.events.create_event(task.device.name, None, ReachabilityEvent)
         event.state = EventState.OPEN
