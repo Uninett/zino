@@ -1,5 +1,7 @@
 import logging
 
+from apscheduler.jobstores.base import JobLookupError
+
 from zino.scheduler import get_scheduler
 from zino.snmp import SNMP
 from zino.state import state
@@ -25,7 +27,6 @@ class ReachableTask(Task):
             _logger.debug("Device %s is not reachable", self.device.name)
             event, created = state.events.get_or_create_event(self.device.name, None, ReachabilityEvent)
             if created:
-                # TODO add attributes
                 event.state = EventState.OPEN
                 event.add_history("Change state to Open")
             if event.reachability != ReachabilityState.NORESPONSE:
@@ -35,24 +36,25 @@ class ReachableTask(Task):
             self._schedule_extra_job()
         else:
             _logger.debug("Device %s is reachable", self.device.name)
+            self._update_reachability_event_as_reachable()
 
     async def _run_extra_job(self):
         result = await self._get_sysuptime()
         if result:
             _logger.debug("Device %s is reachable", self.device.name)
-            event = state.events.get(self.device.name, None, ReachabilityEvent)
-            if event:
-                # TODO update event attributes
-                if event.reachability != ReachabilityState.REACHABLE:
-                    event.reachability = ReachabilityState.REACHABLE
-                    event.add_log(f"{self.device.name} reachable")
-                # TODO we need a mechanism to "commit" event changes, to trigger notifications to clients
-                self._deschedule_extra_job()
+            self._update_reachability_event_as_reachable()
+            self._deschedule_extra_job()
 
     async def _get_sysuptime(self):
         snmp = SNMP(self.device)
         result = await snmp.get("SNMPv2-MIB", "sysUpTime", 0)
         return result
+
+    def _update_reachability_event_as_reachable(self):
+        event = state.events.get(self.device.name, None, ReachabilityEvent)
+        if event and event.reachability != ReachabilityState.REACHABLE:
+            event.reachability = ReachabilityState.REACHABLE
+            event.add_log(f"{self.device.name} reachable")
 
     def _schedule_extra_job(self):
         name = self._get_extra_job_name()
@@ -66,7 +68,10 @@ class ReachableTask(Task):
 
     def _deschedule_extra_job(self):
         name = self._get_extra_job_name()
-        self._scheduler.remove_job(job_id=name)
+        try:
+            self._scheduler.remove_job(job_id=name)
+        except JobLookupError:
+            pass
 
     def _extra_job_is_running(self):
         name = self._get_extra_job_name()
