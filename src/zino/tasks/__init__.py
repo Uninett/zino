@@ -1,6 +1,6 @@
-async def run_all_tasks(device):
+async def run_all_tasks(device, state):
     for task_class in get_registered_tasks():
-        task = task_class(device)
+        task = task_class(device, state)
         await task.run()
 
 
