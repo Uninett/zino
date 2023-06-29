@@ -64,3 +64,20 @@ class TestReachableTask:
         event.reachability = ReachabilityState.REACHABLE
         assert (await task.run()) is None
         assert event.reachability == ReachabilityState.NORESPONSE
+
+    @pytest.mark.asyncio
+    async def test_run_extra_job_should_update_event_to_reachable_when_device_is_reachable(self, task):
+        event = task.state.events.create_event(task.device.name, None, ReachabilityEvent)
+        event.state = EventState.OPEN
+        event.reachability = ReachabilityState.NORESPONSE
+        assert (await task._run_extra_job()) is None
+        assert event.reachability == ReachabilityState.REACHABLE
+
+    @pytest.mark.asyncio
+    async def test_run_extra_job_should_not_update_event_when_device_is_unreachable(self, unreachable_task):
+        task = unreachable_task
+        event = task.state.events.create_event(task.device.name, None, ReachabilityEvent)
+        event.state = EventState.OPEN
+        event.reachability = ReachabilityState.NORESPONSE
+        assert (await task._run_extra_job()) is None
+        assert event.reachability == ReachabilityState.NORESPONSE
