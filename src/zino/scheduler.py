@@ -82,7 +82,7 @@ def schedule_new_devices(new_devices: Sequence[str]):
             func=run_all_tasks,
             trigger="interval",
             minutes=device.interval,
-            args=(device,),
+            args=(device, state.state),
             next_run_time=first_run_time,
             name=device.name,
             id=device.name,

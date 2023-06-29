@@ -4,7 +4,6 @@ from apscheduler.jobstores.base import JobLookupError
 
 from zino.scheduler import get_scheduler
 from zino.snmp import SNMP
-from zino.state import state
 from zino.statemodels import EventState, ReachabilityEvent, ReachabilityState
 from zino.tasks.task import Task
 
@@ -25,7 +24,7 @@ class ReachableTask(Task):
         result = await self._get_sysuptime()
         if not result:
             _logger.debug("Device %s is not reachable", self.device.name)
-            event, created = state.events.get_or_create_event(self.device.name, None, ReachabilityEvent)
+            event, created = self.state.events.get_or_create_event(self.device.name, None, ReachabilityEvent)
             if created:
                 event.state = EventState.OPEN
                 event.add_history("Change state to Open")
@@ -51,7 +50,7 @@ class ReachableTask(Task):
         return result
 
     def _update_reachability_event_as_reachable(self):
-        event = state.events.get(self.device.name, None, ReachabilityEvent)
+        event = self.state.events.get(self.device.name, None, ReachabilityEvent)
         if event and event.reachability != ReachabilityState.REACHABLE:
             event.reachability = ReachabilityState.REACHABLE
             event.add_log(f"{self.device.name} reachable")
