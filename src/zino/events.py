@@ -26,9 +26,6 @@ class Events(BaseModel):
     last_event_id: int = 0
     _events_by_index: Dict[EventIndex, Event] = {}
 
-    class Config:
-        underscore_attrs_are_private = True
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._rebuild_indexes()
