@@ -1,7 +1,7 @@
 from zino.oid import OID
 
 
-class TestOIDPrefix:
+class TestOIDIsPrefix:
     def test_return_true_if_prefix(self):
         oid = OID(".1.2.3.4.5")
         assert oid.is_a_prefix_of(".1.2.3.4.5.6")
