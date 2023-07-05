@@ -49,7 +49,7 @@ class ZinoState(BaseModel):
         try:
             with open(filename, "r") as statefile:
                 json_state = json.load(statefile)
-            loaded_state = cls.model_validate_json(json_state)
+            loaded_state = cls.model_validate(json_state)
         except FileNotFoundError:
             _log.error("No state file found (%s), starting from scratch ", filename)
             return
