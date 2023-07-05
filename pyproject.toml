@@ -21,7 +21,7 @@ classifiers = [
 ]
 dependencies = [
     "apscheduler",
-    "pydantic<2",
+    "pydantic>=2",
     "pysnmplib",
     "pyasn1<0.5.0",
 ]
