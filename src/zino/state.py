@@ -2,6 +2,7 @@
 
 __all__ = ["polldevs", "ZinoState"]
 
+import json
 import logging
 import pprint
 from typing import Dict, Optional
@@ -46,7 +47,9 @@ class ZinoState(BaseModel):
         """
         _log.info("Loading saved state from %s", filename)
         try:
-            loaded_state = cls.parse_file(filename)
+            with open(filename, "r") as statefile:
+                json_state = json.load(statefile)
+            loaded_state = cls.model_validate_json(json_state)
         except FileNotFoundError:
             _log.error("No state file found (%s), starting from scratch ", filename)
             return
