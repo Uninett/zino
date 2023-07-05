@@ -27,3 +27,14 @@ class TestOIDStripPrefix:
         prefix = ".5.4"
         stripped_oid = OID(oid).strip_prefix(prefix)
         assert str(stripped_oid) == oid
+
+
+def test_can_add_nodes_to_oid():
+    added_oid = OID(".1.2.3.4.5") + "6.7.8"
+    assert str(added_oid) == ".1.2.3.4.5.6.7.8"
+
+
+def test_can_create_oid_from_bytestring():
+    oid_bytestring = b".1.2.3.4"
+    oid = OID(oid_bytestring)
+    assert str(oid) == ".1.2.3.4"
