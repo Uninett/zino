@@ -30,13 +30,13 @@ class ZinoState(BaseModel):
     events: Events = Field(default_factory=Events)
 
     def dump_state_to_log(self):
-        _log.debug("Dumping state to log:\n%s", pprint.pformat(self.dict(exclude_none=True)))
+        _log.debug("Dumping state to log:\n%s", pprint.pformat(self.model_dump(exclude_none=True)))
 
     def dump_state_to_file(self, filename: str = STATE_FILENAME):
         """Dumps the full state to a file in JSON format"""
         _log.debug("dumping state to %s", filename)
         with open(filename, "w") as statefile:
-            statefile.write(self.json(exclude_none=True, indent=2))
+            statefile.write(self.model_dump_json(exclude_none=True, indent=2))
 
     @classmethod
     def load_state_from_file(cls, filename: str = STATE_FILENAME) -> Optional["ZinoState"]:
