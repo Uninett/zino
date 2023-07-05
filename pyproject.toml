@@ -24,6 +24,7 @@ dependencies = [
     "pydantic<2",
     "pysnmplib",
     "pyasn1<0.5.0",
+    "pysnmp-mibs",
 ]
 dynamic = ["version"]
 
