@@ -1,5 +1,6 @@
 """Even-higher-level APIs over PySNMP's high-level APIs"""
 import logging
+import os
 import threading
 from dataclasses import dataclass
 from typing import Union
@@ -16,7 +17,7 @@ from pysnmp.hlapi.asyncio import (
     getCmd,
     nextCmd,
 )
-from pysnmp.smi import view
+from pysnmp.smi import builder, view
 from pysnmp.smi.error import MibNotFoundError
 
 from zino.config.models import PollDevice
@@ -27,10 +28,14 @@ _log = logging.getLogger(__name__)
 # keep track of variables that need to be local to the current thread
 _local = threading.local()
 
+MIB_SOURCE_DIR = os.path.join(os.path.dirname(__file__), "mibdumps")
+
 
 def _get_engine():
     if not getattr(_local, "snmp_engine", None):
         _local.snmp_engine = SnmpEngine()
+        mib_builder = _local.snmp_engine.getMibBuilder()
+        mib_builder.addMibSources(builder.DirMibSource(MIB_SOURCE_DIR))
     return _local.snmp_engine
 
 
