@@ -63,3 +63,5 @@ jobs:
           LINTER_RULES_PATH: .
           PYTHON_BLACK_CONFIG_FILE: pyproject.toml
           PYTHON_ISORT_CONFIG_FILE: pyproject.toml
+          # Exclude mibdumps files
+          FILTER_REGEX_EXCLUDE: .*src/zino/mibdumps/.*
