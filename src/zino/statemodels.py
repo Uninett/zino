@@ -29,19 +29,19 @@ class Port(BaseModel):
     """Keeps port state"""
 
     ifindex: int
-    ifdescr: Optional[str]
-    ifalias: Optional[str]
-    state: Optional[InterfaceOperState]
+    ifdescr: Optional[str] = None
+    ifalias: Optional[str] = None
+    state: Optional[InterfaceOperState] = None
 
 
 class DeviceState(BaseModel):
     """Keep device state"""
 
     name: str
-    enterprise_id: Optional[int]
-    boot_time: Optional[int]
-    ports: Optional[Dict[int, Port]]
-    alarms: Optional[Dict[AlarmType, int]]
+    enterprise_id: Optional[int] = None
+    boot_time: Optional[int] = None
+    ports: Optional[Dict[int, Port]] = None
+    alarms: Optional[Dict[AlarmType, int]] = None
 
     # This is the remaining set of potential device attributes stored in device state by the original Zino code:
     # BootTime
@@ -130,22 +130,22 @@ class Event(BaseModel):
     id: int
 
     router: str
-    port: Optional[PortOrIPAddress]
+    port: Optional[PortOrIPAddress] = None
     type: Literal["Event"] = "Event"
     state: EventState
     opened: datetime.datetime = Field(default_factory=now)
-    updated: Optional[datetime.datetime]
+    updated: Optional[datetime.datetime] = None
     priority: int = 100
 
     log: List[LogEntry] = []
     history: List[LogEntry] = []
 
     # More-or-less optional event attrs (as guesstimated from the original Zino code)
-    lasttrans: Optional[datetime.datetime]
-    flaps: Optional[int]
-    ac_down: Optional[datetime.timedelta]
+    lasttrans: Optional[datetime.datetime] = None
+    flaps: Optional[int] = None
+    ac_down: Optional[datetime.timedelta] = None
 
-    polladdr: Optional[IPAddress]
+    polladdr: Optional[IPAddress] = None
 
     def add_log(self, message: str) -> LogEntry:
         entry = LogEntry(message=message)
@@ -161,28 +161,28 @@ class Event(BaseModel):
 
 class PortStateEvent(Event):
     type: Literal["portstate"] = "portstate"
-    ifindex: Optional[int]
+    ifindex: Optional[int] = None
 
 
 class BGPEvent(Event):
     type: Literal["bgp"] = "bgp"
-    remote_addr: Optional[IPAddress]
-    remote_as: Optional[int]
-    peer_uptime: Optional[int]
+    remote_addr: Optional[IPAddress] = None
+    remote_as: Optional[int] = None
+    peer_uptime: Optional[int] = None
 
 
 class BFDEvent(Event):
     type: Literal["bfd"] = "bfd"
-    bfdix: Optional[int]
-    bfddiscr: Optional[int]
-    bfdaddr: Optional[IPAddress]
+    bfdix: Optional[int] = None
+    bfddiscr: Optional[int] = None
+    bfdaddr: Optional[IPAddress] = None
 
 
 class ReachabilityEvent(Event):
     type: Literal["reachability"] = "reachability"
-    reachability: Optional[ReachabilityState]
+    reachability: Optional[ReachabilityState] = None
 
 
 class AlarmEvent(Event):
     type: Literal["alarm"] = "alarm"
-    alarm_count: Optional[int]
+    alarm_count: Optional[int] = None
