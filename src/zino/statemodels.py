@@ -40,7 +40,7 @@ class DeviceState(BaseModel):
     name: str
     enterprise_id: Optional[int] = None
     boot_time: Optional[int] = None
-    ports: Optional[Dict[int, Port]] = None
+    ports: Dict[int, Port] = {}
     alarms: Optional[Dict[AlarmType, int]] = None
 
     # This is the remaining set of potential device attributes stored in device state by the original Zino code:
