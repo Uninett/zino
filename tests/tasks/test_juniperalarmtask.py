@@ -46,7 +46,7 @@ class TestJuniperalarmTask:
         await task.run()
 
         assert device_state.alarms
-        assert device_state.alarms["yellow"] == 0
+        assert device_state.alarms["yellow"] == 1
         assert device_state.alarms["red"] == 2
 
     @pytest.mark.asyncio
@@ -55,13 +55,13 @@ class TestJuniperalarmTask:
         device_state = task.state.devices.get(device_name=task.device.name)
         device_state.enterprise_id = 2636
         device_state.alarms = {
-            "yellow": 1,
+            "yellow": 2,
             "red": 3,
         }
 
         await task.run()
 
-        assert device_state.alarms["yellow"] == 0
+        assert device_state.alarms["yellow"] == 1
         assert device_state.alarms["red"] == 2
 
     @pytest.mark.asyncio
@@ -77,7 +77,7 @@ class TestJuniperalarmTask:
 
         assert yellow_event
         assert red_event
-        assert yellow_event.alarm_count == 0
+        assert yellow_event.alarm_count == 1
         assert red_event.alarm_count == 2
 
     @pytest.mark.asyncio
@@ -88,7 +88,7 @@ class TestJuniperalarmTask:
         yellow_event, _ = task.state.events.get_or_create_event(
             device_name=task.device.name, port="yellow", event_class=AlarmEvent
         )
-        yellow_event.alarm_count = 1
+        yellow_event.alarm_count = 2
         red_event, _ = task.state.events.get_or_create_event(
             device_name=task.device.name, port="red", event_class=AlarmEvent
         )
@@ -96,7 +96,7 @@ class TestJuniperalarmTask:
 
         await task.run()
 
-        assert yellow_event.alarm_count == 0
+        assert yellow_event.alarm_count == 1
         assert red_event.alarm_count == 2
 
 
