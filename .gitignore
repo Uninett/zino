@@ -3,6 +3,7 @@
 .ve/
 .venv/
 .tox/
+.pytest_cache/
 reports/
 build/
 dist/
