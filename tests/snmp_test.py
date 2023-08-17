@@ -55,6 +55,11 @@ class TestSNMPRequestsResponseTypes:
         assert isinstance(response.value, OID)
         assert all(isinstance(i, int) for i in response.value)
 
+    @pytest.mark.asyncio
+    async def test_get_named_value_should_return_symbolic_name(self, snmp_client):
+        response = await snmp_client.getnext("SNMPv2-MIB", "snmpEnableAuthenTraps")
+        assert response.value == "disabled"
+
 
 class TestSNMPRequestsUnknownMib:
     @pytest.mark.asyncio
