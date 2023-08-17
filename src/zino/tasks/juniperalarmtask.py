@@ -27,13 +27,13 @@ class JuniperAlarmTask(Task):
                 "red": 0,
             }
 
-        device_state.alarms = {
-            "yellow": yellow_alarm_count,
-            "red": red_alarm_count,
-        }
+        if device_state.alarms["yellow"] != yellow_alarm_count:
+            device_state.alarms["yellow"] = yellow_alarm_count
+            self.create_alarm_event(color="yellow", alarm_count=yellow_alarm_count)
 
-        self.create_alarm_event(color="yellow", alarm_count=yellow_alarm_count)
-        self.create_alarm_event(color="red", alarm_count=red_alarm_count)
+        if device_state.alarms["red"] != red_alarm_count:
+            device_state.alarms["red"] = red_alarm_count
+            self.create_alarm_event(color="red", alarm_count=red_alarm_count)
 
     async def _get_juniper_alarms(self):
         snmp = SNMP(self.device)
@@ -68,7 +68,7 @@ class JuniperAlarmTask(Task):
         if created:
             alarm_event.state = EventState.OPEN
             alarm_event.add_history("Change state to Open")
-        if alarm_event.alarm_count != alarm_count:
-            old_alarm_count = alarm_event.alarm_count
-            alarm_event.alarm_count = alarm_count
-            alarm_event.add_log(f"{self.device.name} {color} alarms went from {old_alarm_count} to {alarm_count}")
+
+        old_alarm_count = alarm_event.alarm_count
+        alarm_event.alarm_count = alarm_count
+        alarm_event.add_log(f"{self.device.name} {color} alarms went from {old_alarm_count} to {alarm_count}")
