@@ -65,7 +65,7 @@ class TestJuniperalarmTask:
         assert device_state.alarms["red"] == 2
 
     @pytest.mark.asyncio
-    async def test_task_creates_alarm_events(self, snmpsim, juniper_alarm_task):
+    async def test_task_creates_both_alarm_events_on_both_counts_changed(self, snmpsim, juniper_alarm_task):
         task = juniper_alarm_task
         device_state = task.state.devices.get(device_name=task.device.name)
         device_state.enterprise_id = 2636
@@ -78,6 +78,25 @@ class TestJuniperalarmTask:
         assert yellow_event
         assert red_event
         assert yellow_event.alarm_count == 1
+        assert red_event.alarm_count == 2
+
+    @pytest.mark.asyncio
+    async def test_task_creates_one_alarm_event_on_one_count_changed(self, snmpsim, juniper_alarm_task):
+        task = juniper_alarm_task
+        device_state = task.state.devices.get(device_name=task.device.name)
+        device_state.enterprise_id = 2636
+        device_state.alarms = {
+            "yellow": 0,
+            "red": 0,
+        }
+
+        await task.run()
+
+        yellow_event = task.state.events.get(device_name=task.device.name, port="yellow", event_class=AlarmEvent)
+        red_event = task.state.events.get(device_name=task.device.name, port="red", event_class=AlarmEvent)
+
+        assert not yellow_event
+        assert red_event
         assert red_event.alarm_count == 2
 
     @pytest.mark.asyncio
@@ -98,6 +117,44 @@ class TestJuniperalarmTask:
 
         assert yellow_event.alarm_count == 1
         assert red_event.alarm_count == 2
+
+    @pytest.mark.asyncio
+    async def test_task_does_not_create_alarm_events_on_unchanged_alarm_count(self, snmpsim, juniper_alarm_task):
+        task = juniper_alarm_task
+        device_state = task.state.devices.get(device_name=task.device.name)
+        device_state.enterprise_id = 2636
+        device_state.alarms = {
+            "yellow": 1,
+            "red": 2,
+        }
+
+        await task.run()
+
+        yellow_event = task.state.events.get(device_name=task.device.name, port="yellow", event_class=AlarmEvent)
+        red_event = task.state.events.get(device_name=task.device.name, port="red", event_class=AlarmEvent)
+
+        assert not yellow_event
+        assert not red_event
+
+    @pytest.mark.asyncio
+    async def test_task_does_not_create_alarm_events_on_alarm_count_zero_on_first_run(self, snmpsim, snmp_test_port):
+        device = PollDevice(
+            name="buick.lab.example.org",
+            address="127.0.0.1",
+            community="juniper-alarm-zero",
+            port=snmp_test_port,
+        )
+        state = ZinoState()
+        task = JuniperAlarmTask(device, state)
+        device_state = task.state.devices.get(device_name=task.device.name)
+        device_state.enterprise_id = 2636
+        await task.run()
+
+        yellow_event = task.state.events.get(device_name=task.device.name, port="yellow", event_class=AlarmEvent)
+        red_event = task.state.events.get(device_name=task.device.name, port="red", event_class=AlarmEvent)
+
+        assert not yellow_event
+        assert not red_event
 
 
 @pytest.fixture()
