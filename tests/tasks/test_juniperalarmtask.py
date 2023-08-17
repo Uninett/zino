@@ -55,8 +55,8 @@ class TestJuniperalarmTask:
         device_state = task.state.devices.get(device_name=task.device.name)
         device_state.enterprise_id = 2636
         device_state.alarms = {
-            "yellow": "1",
-            "red": "3",
+            "yellow": 1,
+            "red": 3,
         }
 
         await task.run()
