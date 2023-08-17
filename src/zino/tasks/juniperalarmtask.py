@@ -21,6 +21,12 @@ class JuniperAlarmTask(Task):
         except TypeError:
             return
 
+        if not device_state.alarms:
+            device_state.alarms = {
+                "yellow": 0,
+                "red": 0,
+            }
+
         device_state.alarms = {
             "yellow": yellow_alarm_count,
             "red": red_alarm_count,
