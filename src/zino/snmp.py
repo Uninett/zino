@@ -237,7 +237,7 @@ class SNMP:
         oid = OID(str(object_type[0]))
         value = object_type[1]
         if isinstance(value, univ.Integer):
-            value = int(value)
+            value = int(value) if not value.namedValues else value.prettyPrint()
         elif isinstance(value, univ.OctetString):
             value = str(value)
         elif isinstance(value, ObjectIdentity):
