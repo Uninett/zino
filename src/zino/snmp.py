@@ -2,6 +2,7 @@
 import logging
 import os
 import threading
+from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any, NamedTuple, Sequence, Union
 
@@ -286,6 +287,48 @@ class SNMP:
                 mib_object = self._object_type_to_mib_object(result)
                 results.append(mib_object)
         return results
+
+    async def sparsewalk(self, *variables: Sequence[str], max_repetitions: int = 10) -> dict[OID, dict[str, Any]]:
+        """Bulkwalks and returns a "sparse" table.
+
+        A sparse walk is just a walk operation that returns selected columns of table (or, from multiple tables that
+        augment each other).
+
+        Example usage:
+            >>> snmp = SNMP(...)
+            >>> snmp.sparsewalk(("IF-MIB", "ifName"), ("IF-MIB", "ifAlias"))
+            {OID('.1'): {"ifname": "1", "ifAlias": "uplink"},
+             OID('.2'): {"ifName": "2", "ifAlias": "next-sw.example.org"}}
+        """
+        query_objects = [self._oid_to_object_type(*var) for var in variables]
+        try:
+            [self._resolve_object(obj) for obj in query_objects]
+        except MibNotFoundError as error:
+            _log.error("%s: %s", self.device.name, error)
+            return {}
+
+        roots = [OID(o[0]) for o in query_objects]  # used to determine which responses are in scope
+        results: dict[OID, dict[str, Any]] = defaultdict(dict)
+
+        def _var_bind_is_in_scope(var: PySNMPVarBind) -> bool:
+            oid = OID(var[0])
+            return any(root.is_a_prefix_of(oid) for root in roots)
+
+        while True:
+            var_bind_table = await self._getbulk2(*query_objects, max_repetitions=max_repetitions)
+            if not var_bind_table:
+                break
+
+            # Integrate response values into result dict
+            for var_binds in var_bind_table:
+                for var_bind in var_binds:
+                    if _var_bind_is_in_scope(var_bind):
+                        ident, value = _convert_varbind(*var_bind)
+                        results[ident.index][ident.object] = value
+
+            # Build next set of query objects from last result row
+            query_objects = [v for v in var_binds if _var_bind_is_in_scope(v)]
+        return dict(results)
 
     @staticmethod
     def _object_type_to_mib_object(object_type: ObjectType) -> MibObject:
