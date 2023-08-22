@@ -45,6 +45,9 @@ class MibObject:
     value: Union[str, int, OID]
 
 
+SupportedTypes = Union[univ.Integer, univ.OctetString, ObjectIdentity, ObjectType]
+
+
 class SNMP:
     """Represents an SNMP management session for a single device"""
 
@@ -232,18 +235,10 @@ class SNMP:
                 results.append(mib_object)
         return results
 
-    @classmethod
-    def _object_type_to_mib_object(cls, object_type: ObjectType) -> MibObject:
+    @staticmethod
+    def _object_type_to_mib_object(object_type: ObjectType) -> MibObject:
         oid = OID(str(object_type[0]))
-        value = object_type[1]
-        if isinstance(value, univ.Integer):
-            value = int(value) if not value.namedValues else value.prettyPrint()
-        elif isinstance(value, univ.OctetString):
-            value = str(value)
-        elif isinstance(value, ObjectIdentity):
-            value = OID(str(value))
-        else:
-            raise ValueError(f"Could not convert unknown type {type(value)}")
+        value = _mib_value_to_python(object_type[1])
         return MibObject(oid, value)
 
     @classmethod
@@ -271,3 +266,16 @@ class SNMP:
     @property
     def udp_transport_target(self) -> UdpTransportTarget:
         return UdpTransportTarget((str(self.device.address), self.device.port))
+
+
+def _mib_value_to_python(value: SupportedTypes) -> Union[str, int, OID]:
+    """Translates various PySNMP mib value objects to plainer Python objects, such as strings, integers or OIDs"""
+    if isinstance(value, univ.Integer):
+        value = int(value) if not value.namedValues else value.prettyPrint()
+    elif isinstance(value, univ.OctetString):
+        value = str(value)
+    elif isinstance(value, ObjectIdentity):
+        value = OID(str(value))
+    else:
+        raise ValueError(f"Could not convert unknown type {type(value)}")
+    return value
