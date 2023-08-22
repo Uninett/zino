@@ -41,12 +41,45 @@ class TestSNMPRequestsResponseTypes:
             assert isinstance(mib_object.value, int)
 
     @pytest.mark.asyncio
+    async def test_getbulk2_should_have_expected_response(self, snmp_client):
+        variables = ("ifIndex", "ifDescr", "ifAlias")
+        response = await snmp_client.getbulk2(*(("IF-MIB", var) for var in variables))
+        assert response
+        for var_binds in response:
+            assert len(var_binds) == len(variables)
+            for ident, value in var_binds:
+                assert ident.object in variables
+
+    @pytest.mark.asyncio
+    async def test_getbulk2_should_return_empty_list_on_unknown_mibs(self, snmp_client):
+        response = await snmp_client.getbulk2(("NON-EXISTENT-MIB", "foo"))
+        assert not response
+        assert isinstance(response, list)
+
+    @pytest.mark.asyncio
     async def test_bulkwalk(self, snmp_client):
         response = await snmp_client.bulkwalk("SNMPv2-MIB", "sysUpTime")
         assert response
         for mib_object in response:
             assert isinstance(mib_object.oid, OID)
             assert isinstance(mib_object.value, int)
+
+    @pytest.mark.asyncio
+    async def test_sparsewalk_should_have_expected_response(self, snmp_client):
+        variables = ("ifIndex", "ifDescr", "ifAlias")
+        response = await snmp_client.sparsewalk(*(("IF-MIB", var) for var in variables))
+        assert response
+        for index, row in response.items():
+            assert isinstance(index, OID)
+            assert isinstance(row, dict)
+            for var, val in row.items():
+                assert var in variables
+
+    @pytest.mark.asyncio
+    async def test_sparsewalk_should_return_empty_dict_on_unknown_mibs(self, snmp_client):
+        response = await snmp_client.sparsewalk(("NON-EXISTENT-MIB", "foo"))
+        assert not response
+        assert isinstance(response, dict)
 
     @pytest.mark.asyncio
     async def test_get_sysobjectid_should_be_tuple_of_ints(self, snmp_client):
