@@ -3,7 +3,7 @@ import logging
 import os
 import threading
 from dataclasses import dataclass
-from typing import Union
+from typing import Sequence, Union
 
 from pyasn1.type import univ
 from pysnmp.hlapi.asyncio import (
@@ -45,6 +45,7 @@ class MibObject:
     value: Union[str, int, OID]
 
 
+PySNMPVarBind = tuple[ObjectIdentity, ObjectType]
 SupportedTypes = Union[univ.Integer, univ.OctetString, ObjectIdentity, ObjectType]
 
 
@@ -203,6 +204,27 @@ class SNMP:
         if not var_binds:
             return []
         return var_binds[0]
+
+    async def _getbulk2(
+        self, *variables: Sequence[ObjectType], max_repetitions: int
+    ) -> Sequence[Sequence[PySNMPVarBind]]:
+        """Issues a GET-BULK request for one or more variables, returning the raw var bind table from PySNMP"""
+        try:
+            error_indication, error_status, error_index, var_bind_table = await bulkCmd(
+                _get_engine(),
+                self.community_data,
+                self.udp_transport_target,
+                ContextData(),
+                self.NON_REPEATERS,
+                max_repetitions,
+                *variables,
+            )
+        except MibNotFoundError as error:
+            _log.error("%s: %s", self.device.name, error)
+            return []
+        if self._handle_errors(error_indication, error_status, error_index, *variables):
+            return []
+        return var_bind_table or []
 
     async def bulkwalk(self, *oid: str, max_repetitions: int = 10) -> list[MibObject]:
         """Uses SNMP-BULK calls to get all objects in the subtree with oid as root
