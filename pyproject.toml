@@ -93,6 +93,9 @@ exclude = '''
 [tool.ruff]
 line-length = 120
 target-version = "py39"
+exclude = [
+    "mibdumps"
+]
 
 [tool.isort]
 profile = "black"
