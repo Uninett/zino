@@ -3,7 +3,7 @@ import logging
 import os
 import threading
 from dataclasses import dataclass
-from typing import Sequence, Union
+from typing import Any, NamedTuple, Sequence, Union
 
 from pyasn1.type import univ
 from pysnmp.hlapi.asyncio import (
@@ -45,7 +45,16 @@ class MibObject:
     value: Union[str, int, OID]
 
 
+class Identifier(NamedTuple):
+    """Identifies a MIB object by MIB, object name and row index"""
+
+    mib: str
+    object: str
+    index: OID
+
+
 PySNMPVarBind = tuple[ObjectIdentity, ObjectType]
+SNMPVarBind = tuple[Identifier, Any]
 SupportedTypes = Union[univ.Integer, univ.OctetString, ObjectIdentity, ObjectType]
 
 
@@ -205,6 +214,27 @@ class SNMP:
             return []
         return var_binds[0]
 
+    async def getbulk2(self, *variables: Sequence[str], max_repetitions: int = 10) -> Sequence[Sequence[SNMPVarBind]]:
+        """Issues a GET-BULK request for a set of multiple variables, returning the response in a slightly different
+         format than getbulk.
+
+        Example usage:
+            >>> snmp = SNMP(...)
+            >>> snmp.getbulk2(("IF-MIB", "ifName"), ("IF-MIB", "ifAlias"), max_repetitions=5)
+            [[(Identifier(mib='IF-MIB', object='ifAlias', index=OID('.1')), 'Uplink'),
+              (Identifier(mib='IF-MIB', object='ifDescr', index=OID('.1')), 'GigabitEthernet0/1')],
+             [(Identifier(mib='IF-MIB', object='ifAlias', index=OID('.2')), 'example-sw.example.org'),
+              (Identifier(mib='IF-MIB', object='ifDescr', index=OID('.2')), 'GigabitEthernet0/2')]]
+
+        :param variables: Variables to fetch, either as OIDs or symbolic names
+        :param max_repetitions: Max amount of MIB objects to retrieve
+        :return: A sequence of two-tuples that represent the response varbinds
+        """
+        oid_objects = [self._oid_to_object_type(*var) for var in variables]
+        var_bind_table = await self._getbulk2(*oid_objects, max_repetitions=max_repetitions)
+
+        return [[_convert_varbind(i, v) for i, v in var_binds] for var_binds in var_bind_table]
+
     async def _getbulk2(
         self, *variables: Sequence[ObjectType], max_repetitions: int
     ) -> Sequence[Sequence[PySNMPVarBind]]:
@@ -288,6 +318,13 @@ class SNMP:
     @property
     def udp_transport_target(self) -> UdpTransportTarget:
         return UdpTransportTarget((str(self.device.address), self.device.port))
+
+
+def _convert_varbind(ident: ObjectIdentity, value: ObjectType) -> SNMPVarBind:
+    """Converts a PySNMP varbind pair to an Identifier/value pair"""
+    mib, obj, row_index = ident.getMibSymbol()
+    value = _mib_value_to_python(value)
+    return Identifier(mib, obj, OID(row_index)), value
 
 
 def _mib_value_to_python(value: SupportedTypes) -> Union[str, int, OID]:
