@@ -121,7 +121,15 @@ class TestSNMPRequestsUnknownMib:
         assert not response
 
 
-def test_object_is_resolved():
-    object_type = SNMP._oid_to_object_type("SNMPv2-MIB", "sysUpTime")
-    SNMP._resolve_object(object_type)
-    assert object_type[0]
+class TestMibResolver:
+    """Tests to ensure that various required MIBs can be resolved"""
+
+    def test_sysuptime_should_be_resolved(self):
+        object_type = SNMP._oid_to_object_type("SNMPv2-MIB", "sysUpTime")
+        SNMP._resolve_object(object_type)
+        assert object_type[0]
+
+    def test_ifalias_should_be_resolved(self):
+        object_type = SNMP._oid_to_object_type("IF-MIB", "ifAlias", "1")
+        SNMP._resolve_object(object_type)
+        assert object_type[0]
