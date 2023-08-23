@@ -166,6 +166,21 @@ class TestMibResolver:
         SNMP._resolve_object(object_type)
         assert object_type[0]
 
+    def test_jnx_bgp_m2_peer_state_should_be_resolved(self):
+        object_type = SNMP._oid_to_object_type("BGP4-V2-MIB-JUNIPER", "jnxBgpM2PeerState")
+        SNMP._resolve_object(object_type)
+        assert object_type[0]
+
+    def test_c_bgp_peer2_state_should_be_resolved(self):
+        object_type = SNMP._oid_to_object_type("CISCO-BGP4-MIB", "cbgpPeer2State")
+        SNMP._resolve_object(object_type)
+        assert object_type[0]
+
+    def test_bgp_peer_state_should_be_resolved(self):
+        object_type = SNMP._oid_to_object_type("BGP4-MIB", "bgpPeerState")
+        SNMP._resolve_object(object_type)
+        assert object_type[0]
+
 
 class TestUnreachableDeviceShouldRaiseException:
     @pytest.mark.asyncio
