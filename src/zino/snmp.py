@@ -57,6 +57,7 @@ class Identifier(NamedTuple):
 PySNMPVarBind = tuple[ObjectIdentity, ObjectType]
 SNMPVarBind = tuple[Identifier, Any]
 SupportedTypes = Union[univ.Integer, univ.OctetString, ObjectIdentity, ObjectType]
+SparseWalkResponse = dict[OID, dict[str, Any]]
 
 
 class SNMP:
@@ -288,7 +289,7 @@ class SNMP:
                 results.append(mib_object)
         return results
 
-    async def sparsewalk(self, *variables: Sequence[str], max_repetitions: int = 10) -> dict[OID, dict[str, Any]]:
+    async def sparsewalk(self, *variables: Sequence[str], max_repetitions: int = 10) -> SparseWalkResponse:
         """Bulkwalks and returns a "sparse" table.
 
         A sparse walk is just a walk operation that returns selected columns of table (or, from multiple tables that
