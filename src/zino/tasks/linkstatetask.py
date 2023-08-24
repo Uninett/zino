@@ -61,6 +61,7 @@ class LinkStateTask(Task):
 
         port = self._get_or_create_port(data.index)
         port.ifdescr = data.descr
+        self._update_ifalias(port, data)
 
         for attr in ("ifAdminStatus", "ifOperStatus"):
             if not row.get(attr):
@@ -108,6 +109,19 @@ class LinkStateTask(Task):
                 return False
 
         return True
+
+    def _update_ifalias(self, port: Port, data: BaseInterfaceRow):
+        new = port.ifalias is None
+        change = data.alias != port.ifalias
+
+        if change:
+            if not new:
+                _logger.info(
+                    "%s: changing desc for %s from %r to %r", self.device.name, data.index, port.ifalias, data.alias
+                )
+            else:
+                _logger.info("%s: setting desc for %s to %s", self.device.name, data.index, data.alias)
+            port.ifalias = data.alias
 
 
 class MissingInterfaceTableData(Exception):
