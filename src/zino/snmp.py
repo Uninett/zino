@@ -328,6 +328,8 @@ class SNMP:
 
             # Build next set of query objects from last result row
             query_objects = [v for v in var_binds if _var_bind_is_in_scope(v)]
+            if not query_objects:
+                break  # Nothing left to query
         return dict(results)
 
     @staticmethod
