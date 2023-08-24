@@ -56,14 +56,10 @@ class LinkStateTask(Task):
         if not data.is_sane():
             return
 
-        # Now ensure we have a state object to record information in
-        ports = self.state.devices.get(self.device.name).ports
-        if data.index not in ports:
-            ports[data.index] = Port(ifindex=data.index)
-        port = ports[data.index]
         if not self._is_interface_watched(data):
             return
 
+        port = self._get_or_create_port(data.index)
         port.ifdescr = data.descr
 
         for attr in ("ifAdminStatus", "ifOperStatus"):
@@ -91,6 +87,12 @@ class LinkStateTask(Task):
             )
 
         port.state = state
+
+    def _get_or_create_port(self, ifindex: int):
+        ports = self.state.devices.get(self.device.name).ports
+        if ifindex not in ports:
+            ports[ifindex] = Port(ifindex=ifindex)
+        return ports[ifindex]
 
     def _is_interface_watched(self, data: BaseInterfaceRow):
         # If watch pattern exists, only watch matching interfaces
