@@ -21,6 +21,9 @@ class BaseInterfaceRow:
     oper_status: str
     last_change: int
 
+    def is_sane(self) -> bool:
+        return bool(self.index and self.descr)
+
 
 class LinkStateTask(Task):
     """Fetches and stores state information about router ports/links.
@@ -50,30 +53,16 @@ class LinkStateTask(Task):
 
     def _update_single_interface(self, row: dict[str, Any]):
         data = BaseInterfaceRow(*(row.get(attr) for attr in BASE_POLL_LIST))
-
-        # First a few sanity checks
-        if not data.descr:
+        if not data.is_sane():
             return
-        if not data.index:
-            return
-
-        # If watch pattern exists, only watch matching interfaces
-        if self.device.watchpat:
-            if not re.match(self.device.watchpat, data.descr):
-                _logger.debug("%s intf %s not watched", self.device.name, data.descr)
-                return
-
-        # If ignore pattern exists, ignore matching interfaces
-        if self.device.ignorepat:
-            if re.match(self.device.ignorepat, data.descr):
-                _logger.debug("%s intf %s ignored", self.device.name, data.descr)
-                return
 
         # Now ensure we have a state object to record information in
         ports = self.state.devices.get(self.device.name).ports
         if data.index not in ports:
             ports[data.index] = Port(ifindex=data.index)
         port = ports[data.index]
+        if not self._is_interface_watched(data):
+            return
 
         port.ifdescr = data.descr
 
@@ -102,6 +91,21 @@ class LinkStateTask(Task):
             )
 
         port.state = state
+
+    def _is_interface_watched(self, data: BaseInterfaceRow):
+        # If watch pattern exists, only watch matching interfaces
+        if self.device.watchpat:
+            if not re.match(self.device.watchpat, data.descr):
+                _logger.debug("%s intf %s not watched", self.device.name, data.descr)
+                return False
+
+        # If ignore pattern exists, ignore matching interfaces
+        if self.device.ignorepat:
+            if re.match(self.device.ignorepat, data.descr):
+                _logger.debug("%s intf %s ignored", self.device.name, data.descr)
+                return False
+
+        return True
 
 
 class MissingInterfaceTableData(Exception):
