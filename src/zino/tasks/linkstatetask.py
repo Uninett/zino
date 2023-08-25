@@ -56,12 +56,12 @@ class LinkStateTask(Task):
         if not data.is_sane():
             return
 
-        if not self._is_interface_watched(data):
-            return
-
         port = self._get_or_create_port(data.index)
         port.ifdescr = data.descr
         self._update_ifalias(port, data)
+
+        if not self._is_interface_watched(data):
+            return
 
         for attr in ("ifAdminStatus", "ifOperStatus"):
             if not row.get(attr):
