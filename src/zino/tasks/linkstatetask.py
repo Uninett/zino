@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from zino.snmp import SNMP, SparseWalkResponse
-from zino.statemodels import InterfaceState, Port
+from zino.statemodels import EventState, InterfaceState, Port, PortStateEvent
 from zino.tasks.task import Task
 
 _logger = logging.getLogger(__name__)
@@ -63,6 +63,9 @@ class LinkStateTask(Task):
         if not self._is_interface_watched(data):
             return
 
+        self._update_state(data, port, row)
+
+    def _update_state(self, data: BaseInterfaceRow, port: Port, row: dict[str, Any]):
         for attr in ("ifAdminStatus", "ifOperStatus"):
             if not row.get(attr):
                 raise MissingInterfaceTableData(self.device.name, data.index, attr)
@@ -73,21 +76,32 @@ class LinkStateTask(Task):
             port.state = InterfaceState.UNKNOWN
         if state == "adminUp":
             state = data.oper_status
-
         state = InterfaceState(state)
         if port.state and port.state != state:
-            # TODO make or update event
-            # TODO Re-verify state change after 2 minutes
-            _logger.info(
-                "%s port %s ix %s port changed state from %s to %s",
-                self.device.name,
-                data.descr,
-                data.index,
-                port.state,
-                state,
-            )
-
+            self._make_or_update_state_event(port, state)
         port.state = state
+
+    def _make_or_update_state_event(self, port: Port, new_state: InterfaceState):
+        event, created = self.state.events.get_or_create_event(self.device.name, port.ifindex, PortStateEvent)
+        if created:
+            event.state = EventState.OPEN
+            event.add_history("Change state to Open")
+
+        event.portstate = new_state
+        event.ifindex = port.ifindex
+        event.polladdr = self.device.address
+        event.priority = self.device.priority
+        event.descr = port.ifdescr
+
+        # this is where we need to use sysUpTime and ifLastChange to calculate a timestamp for the change
+        log = (
+            f'{event.router}: port "{port.ifdescr}" ix {port.ifindex} ({port.ifalias}) '
+            f"changed state from {port.state} to {new_state} on TIMESTAMP"
+        )
+        _logger.info(log)
+        event.add_log(log)
+
+        # at this point we should re-schedule a new job in 2 minutes to verify the state change
 
     def _get_or_create_port(self, ifindex: int):
         ports = self.state.devices.get(self.device.name).ports
