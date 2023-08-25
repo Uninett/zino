@@ -166,6 +166,8 @@ class Event(BaseModel):
 class PortStateEvent(Event):
     type: Literal["portstate"] = "portstate"
     ifindex: Optional[int] = None
+    portstate: Optional[InterfaceState] = None
+    descr: Optional[str] = None
 
 
 class BGPEvent(Event):
