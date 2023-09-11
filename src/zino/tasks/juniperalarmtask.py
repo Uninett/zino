@@ -21,13 +21,19 @@ class JuniperAlarmTask(Task):
         except TypeError:
             return
 
-        device_state.alarms = {
-            "yellow": yellow_alarm_count,
-            "red": red_alarm_count,
-        }
+        if not device_state.alarms:
+            device_state.alarms = {
+                "yellow": 0,
+                "red": 0,
+            }
 
-        self.create_alarm_event(color="yellow", alarm_count=yellow_alarm_count)
-        self.create_alarm_event(color="red", alarm_count=red_alarm_count)
+        if device_state.alarms["yellow"] != yellow_alarm_count:
+            device_state.alarms["yellow"] = yellow_alarm_count
+            self.create_alarm_event(color="yellow", alarm_count=yellow_alarm_count)
+
+        if device_state.alarms["red"] != red_alarm_count:
+            device_state.alarms["red"] = red_alarm_count
+            self.create_alarm_event(color="red", alarm_count=red_alarm_count)
 
     async def _get_juniper_alarms(self):
         snmp = SNMP(self.device)
@@ -38,12 +44,18 @@ class JuniperAlarmTask(Task):
         if red_alarm_count:
             red_alarm_count = red_alarm_count.value
 
-        if type(yellow_alarm_count) is not int or type(red_alarm_count) is not int:
+        if not isinstance(yellow_alarm_count, int) or not isinstance(red_alarm_count, int):
             _logger.error(
-                "Device %s returns alarm count not of type int, type yellow alarm count: %s, type red alarm count: %s",
+                "Device %s returns alarm count not of type int. "
+                "Yellow alarm count: type %s. Red alarm count: type %s.",
                 self.device.name,
                 type(yellow_alarm_count),
                 type(red_alarm_count),
+            )
+            _logger.debug(
+                "Yellow alarm count: value %r. Red alarm count: value %r.",
+                yellow_alarm_count,
+                red_alarm_count,
             )
             raise TypeError
 
@@ -58,7 +70,7 @@ class JuniperAlarmTask(Task):
         if created:
             alarm_event.state = EventState.OPEN
             alarm_event.add_history("Change state to Open")
-        if alarm_event.alarm_count != alarm_count:
-            old_alarm_count = alarm_event.alarm_count
-            alarm_event.alarm_count = alarm_count
-            alarm_event.add_log(f"{self.device.name} {color} alarms went from {old_alarm_count} to {alarm_count}")
+
+        old_alarm_count = alarm_event.alarm_count
+        alarm_event.alarm_count = alarm_count
+        alarm_event.add_log(f"{self.device.name} {color} alarms went from {old_alarm_count} to {alarm_count}")
