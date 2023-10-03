@@ -19,6 +19,7 @@ from pysnmp.hlapi.asyncio import (
     nextCmd,
 )
 from pysnmp.proto.errind import RequestTimedOut
+from pysnmp.proto.rfc1905 import errorStatus
 from pysnmp.smi import builder, view
 from pysnmp.smi.error import MibNotFoundError as PysnmpMibNotFoundError
 
@@ -72,6 +73,12 @@ class MibNotFoundError(SnmpError):
     pass
 
 
+class ObjectNotFoundError(SnmpError):
+    """Raised if an object could not be found at an OID"""
+
+    pass
+
+
 class SNMP:
     """Represents an SNMP management session for a single device"""
 
@@ -113,10 +120,11 @@ class SNMP:
                 raise TimeoutError(str(error_indication))
 
         # Remote errors from SNMP entity.
-        # if nonzero error_status, error_index point will point to the
-        # variable-binding in query that caused the error.
+        # if nonzero error_status, error_index point will point to the ariable-binding in query that caused the error.
         if error_status:
-            pass
+            if int(error_status) == errorStatus.getNamedValues()["noSuchName"]:
+                error_object = self._object_type_to_mib_object(query[error_index - 1])
+                raise ObjectNotFoundError(f"Could not find object at {error_object.oid}")
 
     async def getnext(self, *oid: str) -> Union[MibObject, None]:
         """SNMP-GETNEXTs the given oid
