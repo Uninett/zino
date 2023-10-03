@@ -62,7 +62,7 @@ SupportedTypes = Union[univ.Integer, univ.OctetString, ObjectIdentity, ObjectTyp
 
 
 class SnmpError(Exception):
-    """Parent class for SNMP related exceptions"""
+    """Base class for SNMP specifc errors"""
 
     pass
 
@@ -118,13 +118,18 @@ class SNMP:
         if error_indication:
             if isinstance(error_indication, RequestTimedOut):
                 raise TimeoutError(str(error_indication))
+            else:
+                raise SnmpError(str(error_indication))
 
         # Remote errors from SNMP entity.
         # if nonzero error_status, error_index point will point to the ariable-binding in query that caused the error.
         if error_status:
-            if int(error_status) == errorStatus.getNamedValues()["noSuchName"]:
-                error_object = self._object_type_to_mib_object(query[error_index - 1])
+            error_object = self._object_type_to_mib_object(query[error_index - 1])
+            error_name = errorStatus.getNamedValues()[int(error_status)]
+            if error_name == "noSuchName":
                 raise ObjectNotFoundError(f"Could not find object at {error_object.oid}")
+            else:
+                raise SnmpError(f"SNMP failed with error {error_name} for {error_object.oid}")
 
     async def getnext(self, *oid: str) -> Union[MibObject, None]:
         """SNMP-GETNEXTs the given oid
