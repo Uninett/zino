@@ -19,7 +19,7 @@ from pysnmp.hlapi.asyncio import (
     nextCmd,
 )
 from pysnmp.smi import builder, view
-from pysnmp.smi.error import MibNotFoundError
+from pysnmp.smi.error import MibNotFoundError as PysnmpMibNotFoundError
 
 from zino.config.models import PollDevice
 from zino.oid import OID
@@ -59,6 +59,18 @@ SNMPVarBind = tuple[Identifier, Any]
 SupportedTypes = Union[univ.Integer, univ.OctetString, ObjectIdentity, ObjectType]
 
 
+class SnmpError(Exception):
+    """Parent class for SNMP related exceptions"""
+
+    pass
+
+
+class MibNotFoundError(SnmpError):
+    """Raised if a required MIB file could not be found"""
+
+    pass
+
+
 class SNMP:
     """Represents an SNMP management session for a single device"""
 
@@ -86,9 +98,8 @@ class SNMP:
                 ContextData(),
                 query,
             )
-        except MibNotFoundError as error:
-            _log.error("%s: %s", self.device.name, error)
-            return
+        except PysnmpMibNotFoundError as error:
+            raise MibNotFoundError(error)
         if self._handle_errors(error_indication, error_status, error_index, query):
             return
         for var_bind in var_binds:
@@ -140,9 +151,8 @@ class SNMP:
                 ContextData(),
                 object_type,
             )
-        except MibNotFoundError as error:
-            _log.error("%s: %s", self.device.name, error)
-            return
+        except PysnmpMibNotFoundError as error:
+            raise MibNotFoundError(error)
         if self._handle_errors(error_indication, error_status, error_index, object_type):
             return
         # var_binds should be a sequence of sequences with one inner sequence that contains the result.
@@ -161,11 +171,7 @@ class SNMP:
         """
         results = []
         current_object = self._oid_to_object_type(*oid)
-        try:
-            self._resolve_object(current_object)
-        except MibNotFoundError as error:
-            _log.error("%s: %s", self.device.name, error)
-            return results
+        self._resolve_object(current_object)
         original_oid = OID(str(current_object[0]))
         while True:
             current_object = await self._getnext(current_object)
@@ -206,9 +212,8 @@ class SNMP:
                 max_repetitions,
                 object_type,
             )
-        except MibNotFoundError as error:
-            _log.error("%s: %s", self.device.name, error)
-            return []
+        except PysnmpMibNotFoundError as error:
+            raise MibNotFoundError(error)
         if self._handle_errors(error_indication, error_status, error_index, object_type):
             return []
         if not var_binds:
@@ -250,9 +255,8 @@ class SNMP:
                 max_repetitions,
                 *variables,
             )
-        except MibNotFoundError as error:
-            _log.error("%s: %s", self.device.name, error)
-            return []
+        except PysnmpMibNotFoundError as error:
+            raise MibNotFoundError(error)
         if self._handle_errors(error_indication, error_status, error_index, *variables):
             return []
         return var_bind_table or []
@@ -270,11 +274,7 @@ class SNMP:
         """
         results = []
         query_object = self._oid_to_object_type(*oid)
-        try:
-            self._resolve_object(query_object)
-        except MibNotFoundError as error:
-            _log.error("%s: %s", self.device.name, error)
-            return results
+        self._resolve_object(query_object)
         start_oid = OID(str(query_object[0]))
         while True:
             response = await self._getbulk(query_object, max_repetitions)
@@ -301,11 +301,7 @@ class SNMP:
              OID('.2'): {"ifName": "2", "ifAlias": "next-sw.example.org"}}
         """
         query_objects = [self._oid_to_object_type(*var) for var in variables]
-        try:
-            [self._resolve_object(obj) for obj in query_objects]
-        except MibNotFoundError as error:
-            _log.error("%s: %s", self.device.name, error)
-            return {}
+        [self._resolve_object(obj) for obj in query_objects]
 
         roots = [OID(o[0]) for o in query_objects]  # used to determine which responses are in scope
         results: dict[OID, dict[str, Any]] = defaultdict(dict)
@@ -341,11 +337,14 @@ class SNMP:
     @classmethod
     def _resolve_object(cls, object_type: ObjectType):
         """Raises MibNotFoundError if oid in `object` can not be found"""
-        engine = _get_engine()
-        controller = engine.getUserContext("mibViewController")
-        if not controller:
-            controller = view.MibViewController(engine.getMibBuilder())
-        object_type.resolveWithMib(controller)
+        try:
+            engine = _get_engine()
+            controller = engine.getUserContext("mibViewController")
+            if not controller:
+                controller = view.MibViewController(engine.getMibBuilder())
+            object_type.resolveWithMib(controller)
+        except PysnmpMibNotFoundError as error:
+            raise MibNotFoundError(error)
 
     @classmethod
     def _oid_to_object_type(cls, *oid: str) -> ObjectType:
