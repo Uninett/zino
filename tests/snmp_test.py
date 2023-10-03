@@ -2,7 +2,7 @@ import pytest
 
 from zino.config.models import PollDevice
 from zino.oid import OID
-from zino.snmp import SNMP, MibNotFoundError
+from zino.snmp import SNMP, MibNotFoundError, ObjectNotFoundError
 
 
 @pytest.fixture(scope="session")
@@ -174,3 +174,9 @@ class TestUnreachableDeviceShouldRaiseException:
     async def test_sparsewalk(self, unreachable_snmp_client):
         with pytest.raises(TimeoutError):
             await unreachable_snmp_client.sparsewalk(("SNMPv2-MIB", "sysUpTime"))
+
+
+@pytest.mark.asyncio
+async def test_get_object_that_does_not_exist_should_raise_exception(snmp_client):
+    with pytest.raises(ObjectNotFoundError):
+        await snmp_client.get("SNMPv2-MIB", "sysUpTime", 1)
