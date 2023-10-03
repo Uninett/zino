@@ -11,6 +11,12 @@ def snmp_client(snmpsim, snmp_test_port):
     return SNMP(device)
 
 
+@pytest.fixture(scope="session")
+def unreachable_snmp_client():
+    device = PollDevice(name="nonexist", address="127.0.0.1", community="invalid", port=666)
+    return SNMP(device)
+
+
 class TestSNMPRequestsResponseTypes:
     @pytest.mark.asyncio
     async def test_get(self, snmp_client):
@@ -131,3 +137,40 @@ class TestMibResolver:
         object_type = SNMP._oid_to_object_type("IF-MIB", "ifAlias", "1")
         SNMP._resolve_object(object_type)
         assert object_type[0]
+
+
+class TestUnreachableDeviceShouldRaiseException:
+    @pytest.mark.asyncio
+    async def test_get(self, unreachable_snmp_client):
+        with pytest.raises(TimeoutError):
+            await unreachable_snmp_client.get("SNMPv2-MIB", "sysUpTime", 0)
+
+    @pytest.mark.asyncio
+    async def test_getnext(self, unreachable_snmp_client):
+        with pytest.raises(TimeoutError):
+            await unreachable_snmp_client.getnext("SNMPv2-MIB", "sysUpTime")
+
+    @pytest.mark.asyncio
+    async def test_walk(self, unreachable_snmp_client):
+        with pytest.raises(TimeoutError):
+            await unreachable_snmp_client.walk("SNMPv2-MIB", "sysUpTime")
+
+    @pytest.mark.asyncio
+    async def test_getbulk(self, unreachable_snmp_client):
+        with pytest.raises(TimeoutError):
+            await unreachable_snmp_client.getbulk("SNMPv2-MIB", "sysUpTime")
+
+    @pytest.mark.asyncio
+    async def test_bulkwalk(self, unreachable_snmp_client):
+        with pytest.raises(TimeoutError):
+            await unreachable_snmp_client.bulkwalk("SNMPv2-MIB", "sysUpTime")
+
+    @pytest.mark.asyncio
+    async def test_getbulk2(self, unreachable_snmp_client):
+        with pytest.raises(TimeoutError):
+            await unreachable_snmp_client.getbulk2(("SNMPv2-MIB", "sysUpTime"))
+
+    @pytest.mark.asyncio
+    async def test_sparsewalk(self, unreachable_snmp_client):
+        with pytest.raises(TimeoutError):
+            await unreachable_snmp_client.sparsewalk(("SNMPv2-MIB", "sysUpTime"))
