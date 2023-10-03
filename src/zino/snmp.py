@@ -62,19 +62,34 @@ SupportedTypes = Union[univ.Integer, univ.OctetString, ObjectIdentity, ObjectTyp
 
 
 class SnmpError(Exception):
-    """Base class for SNMP specifc errors"""
+    """Base class for SNMP, MIB and OID specific errors"""
 
     pass
 
 
-class MibNotFoundError(SnmpError):
+class ErrorIndication(Exception):
+    """Class for SNMP errors that occur locally,
+    as opposed to being reported from a different SNMP entitiy.
+    """
+
+
+class MibNotFoundError(ErrorIndication):
     """Raised if a required MIB file could not be found"""
 
     pass
 
 
-class ObjectNotFoundError(SnmpError):
-    """Raised if an object could not be found at an OID"""
+class ErrorStatus(SnmpError):
+    """Raised if a SNMP entity includes a non-zero error status in its response PDU.
+    RFC 1905 defines the possible errors that can be specified in the error status field.
+    This can either be used directly or subclassed for one of these specific errors.
+    """
+
+    pass
+
+
+class NoSuchNameError(ErrorStatus):
+    """Represents the "noSuchName" error. Raised if an object could not be found at an OID."""
 
     pass
 
@@ -119,7 +134,7 @@ class SNMP:
             if isinstance(error_indication, RequestTimedOut):
                 raise TimeoutError(str(error_indication))
             else:
-                raise SnmpError(str(error_indication))
+                raise ErrorIndication(str(error_indication))
 
         # Remote errors from SNMP entity.
         # if nonzero error_status, error_index point will point to the ariable-binding in query that caused the error.
@@ -127,9 +142,9 @@ class SNMP:
             error_object = self._object_type_to_mib_object(query[error_index - 1])
             error_name = errorStatus.getNamedValues()[int(error_status)]
             if error_name == "noSuchName":
-                raise ObjectNotFoundError(f"Could not find object at {error_object.oid}")
+                raise NoSuchNameError(f"Could not find object at {error_object.oid}")
             else:
-                raise SnmpError(f"SNMP failed with error {error_name} for {error_object.oid}")
+                raise ErrorStatus(f"SNMP operation failed with error {error_name} for {error_object.oid}")
 
     async def getnext(self, *oid: str) -> Union[MibObject, None]:
         """SNMP-GETNEXTs the given oid
