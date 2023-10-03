@@ -18,6 +18,7 @@ from pysnmp.hlapi.asyncio import (
     getCmd,
     nextCmd,
 )
+from pysnmp.proto.errind import RequestTimedOut
 from pysnmp.smi import builder, view
 from pysnmp.smi.error import MibNotFoundError as PysnmpMibNotFoundError
 
@@ -100,26 +101,22 @@ class SNMP:
             )
         except PysnmpMibNotFoundError as error:
             raise MibNotFoundError(error)
-        if self._handle_errors(error_indication, error_status, error_index, query):
-            return
+        self._raise_errors(error_indication, error_status, error_index, query)
         for var_bind in var_binds:
             return self._object_type_to_mib_object(var_bind)
 
-    def _handle_errors(self, error_indication: str, error_status: str, error_index: int, *query: ObjectType) -> bool:
-        """Returns True if error occurred"""
+    def _raise_errors(self, error_indication: str, error_status: str, error_index: int, *query: ObjectType) -> bool:
+        """Raises a relevant exception if an error has occurred"""
+        # Local errors (timeout, config errors etc)
         if error_indication:
-            _log.error("%s: %s", self.device.name, error_indication)
-            return True
+            if isinstance(error_indication, RequestTimedOut):
+                raise TimeoutError(str(error_indication))
 
+        # Remote errors from SNMP entity.
+        # if nonzero error_status, error_index point will point to the
+        # variable-binding in query that caused the error.
         if error_status:
-            _log.error(
-                "%s: %s at %s",
-                self.device.name,
-                error_status.prettyPrint(),
-                error_index and query[int(error_index) - 1][0] or "?",
-            )
-            return True
-        return False
+            pass
 
     async def getnext(self, *oid: str) -> Union[MibObject, None]:
         """SNMP-GETNEXTs the given oid
@@ -153,8 +150,7 @@ class SNMP:
             )
         except PysnmpMibNotFoundError as error:
             raise MibNotFoundError(error)
-        if self._handle_errors(error_indication, error_status, error_index, object_type):
-            return
+        self._raise_errors(error_indication, error_status, error_index, object_type)
         # var_binds should be a sequence of sequences with one inner sequence that contains the result.
         if var_binds and var_binds[0]:
             return var_binds[0][0]
@@ -214,8 +210,7 @@ class SNMP:
             )
         except PysnmpMibNotFoundError as error:
             raise MibNotFoundError(error)
-        if self._handle_errors(error_indication, error_status, error_index, object_type):
-            return []
+        self._raise_errors(error_indication, error_status, error_index, object_type)
         if not var_binds:
             return []
         return var_binds[0]
@@ -257,8 +252,7 @@ class SNMP:
             )
         except PysnmpMibNotFoundError as error:
             raise MibNotFoundError(error)
-        if self._handle_errors(error_indication, error_status, error_index, *variables):
-            return []
+        self._raise_errors(error_indication, error_status, error_index, *variables)
         return var_bind_table or []
 
     async def bulkwalk(self, *oid: str, max_repetitions: int = 10) -> list[MibObject]:
