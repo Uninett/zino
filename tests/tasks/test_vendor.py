@@ -19,11 +19,12 @@ class TestVendorTask:
         assert state.devices[device.name].enterprise_id == 11
 
     @pytest.mark.asyncio
-    async def test_run_should_do_nothing_when_there_is_no_response(self):
+    async def test_run_should_raise_exception_when_there_is_no_response(self):
         device = PollDevice(name="localhost", address="127.0.0.1", community="invalid", port=666)
         state = ZinoState()
         task = VendorTask(device, state)
         with patch("zino.tasks.reachabletask.SNMP.get") as get_mock:
             get_mock.side_effect = TimeoutError
-            assert (await task.run()) is None
+            with pytest.raises(TimeoutError):
+                await task.run()
         assert len(state.devices) == 0
