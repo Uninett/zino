@@ -46,9 +46,9 @@ class DeviceState(BaseModel):
     boot_time: Optional[int] = None
     ports: Dict[int, Port] = {}
     alarms: Optional[Dict[AlarmType, int]] = None
+    boot_time: Optional[datetime.datetime] = None
 
     # This is the remaining set of potential device attributes stored in device state by the original Zino code:
-    # BootTime
     # EventId
     # JNXalarms
     # RunsOn
@@ -79,6 +79,13 @@ class DeviceState(BaseModel):
     @property
     def is_juniper(self):
         return self.enterprise_id == 2636
+
+    def set_boot_time_from_uptime(self, uptime: int):
+        """Calculates and sets the device boot time from a current uptime value.
+
+        :param uptime: An uptime value in 100ths of a second
+        """
+        self.boot_time = datetime.datetime.now() - datetime.timedelta(seconds=uptime / 100)
 
 
 class DeviceStates(BaseModel):
