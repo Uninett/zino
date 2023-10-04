@@ -99,8 +99,9 @@ class SNMP:
 
     NON_REPEATERS = 0
 
-    def __init__(self, device: PollDevice):
+    def __init__(self, device: PollDevice, retries=5):
         self.device = device
+        self.retries = retries
 
     async def get(self, *oid: str) -> Union[MibObject, None]:
         """SNMP-GETs the given oid
@@ -383,7 +384,9 @@ class SNMP:
 
     @property
     def udp_transport_target(self) -> UdpTransportTarget:
-        return UdpTransportTarget((str(self.device.address), self.device.port), timeout=self.device.timeout)
+        return UdpTransportTarget(
+            (str(self.device.address), self.device.port), timeout=self.device.timeout, retries=self.retries
+        )
 
 
 def _convert_varbind(ident: ObjectIdentity, value: ObjectType) -> SNMPVarBind:
