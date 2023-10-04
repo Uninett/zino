@@ -383,7 +383,7 @@ class SNMP:
 
     @property
     def udp_transport_target(self) -> UdpTransportTarget:
-        return UdpTransportTarget((str(self.device.address), self.device.port))
+        return UdpTransportTarget((str(self.device.address), self.device.port), timeout=self.device.timeout)
 
 
 def _convert_varbind(ident: ObjectIdentity, value: ObjectType) -> SNMPVarBind:
