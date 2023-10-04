@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 
 from zino.config.models import PollDevice
@@ -20,7 +22,9 @@ def unreachable_task():
     device = PollDevice(name="nonexist", address="127.0.0.1", community="invalid", port=666, timeout=1)
     state = ZinoState()
     task = ReachableTask(device, state)
-    yield task
+    with patch("zino.tasks.reachabletask.SNMP.get") as get_mock:
+        get_mock.side_effect = TimeoutError
+        yield task
     task._deschedule_extra_job()
 
 
