@@ -7,14 +7,14 @@ from zino.snmp import SNMP, MibNotFoundError, NoSuchNameError
 
 @pytest.fixture(scope="session")
 def snmp_client(snmpsim, snmp_test_port):
-    device = PollDevice(name="buick.lab.example.org", address="127.0.0.1", port=snmp_test_port)
-    return SNMP(device)
+    device = PollDevice(name="buick.lab.example.org", address="127.0.0.1", port=snmp_test_port, timeout=1)
+    return SNMP(device, retries=0)
 
 
 @pytest.fixture(scope="session")
 def unreachable_snmp_client():
-    device = PollDevice(name="nonexist", address="127.0.0.1", community="invalid", port=666)
-    return SNMP(device)
+    device = PollDevice(name="nonexist", address="127.0.0.1", community="invalid", port=666, timeout=1)
+    return SNMP(device, retries=0)
 
 
 class TestSNMPRequestsResponseTypes:
