@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 
 from zino.config.models import PollDevice
@@ -21,5 +23,7 @@ class TestVendorTask:
         device = PollDevice(name="localhost", address="127.0.0.1", community="invalid", port=666)
         state = ZinoState()
         task = VendorTask(device, state)
-        assert (await task.run()) is None
+        with patch("zino.tasks.reachabletask.SNMP.get") as get_mock:
+            get_mock.side_effect = TimeoutError
+            assert (await task.run()) is None
         assert len(state.devices) == 0
