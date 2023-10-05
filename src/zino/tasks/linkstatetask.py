@@ -1,3 +1,4 @@
+import datetime
 import logging
 import re
 from dataclasses import dataclass
@@ -84,10 +85,10 @@ class LinkStateTask(Task):
             state = data.oper_status
         state = InterfaceState(state)
         if port.state and port.state != state:
-            self._make_or_update_state_event(port, state)
+            self._make_or_update_state_event(port, state, data.last_change)
         port.state = state
 
-    def _make_or_update_state_event(self, port: Port, new_state: InterfaceState):
+    def _make_or_update_state_event(self, port: Port, new_state: InterfaceState, last_change: int):
         event, created = self.state.events.get_or_create_event(self.device.name, port.ifindex, PortStateEvent)
         if created:
             event.state = EventState.OPEN
@@ -99,10 +100,12 @@ class LinkStateTask(Task):
         event.priority = self.device.priority
         event.descr = port.ifdescr
 
-        # this is where we need to use sysUpTime and ifLastChange to calculate a timestamp for the change
+        uptime = self.sysuptime or last_change
+        event_time = datetime.datetime.now() - datetime.timedelta(seconds=(uptime - last_change) / 100)
+
         log = (
             f'{event.router}: port "{port.ifdescr}" ix {port.ifindex} ({port.ifalias}) '
-            f"changed state from {port.state} to {new_state} on TIMESTAMP"
+            f"changed state from {port.state} to {new_state} on {event_time}"
         )
         _logger.info(log)
         event.add_log(log)
