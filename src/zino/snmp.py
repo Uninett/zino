@@ -185,6 +185,45 @@ class SNMP:
         # var_binds should be a sequence of sequences with one inner sequence that contains the result.
         return var_binds[0][0]
 
+    async def getnext2(self, *variables: Sequence[str]) -> Sequence[SNMPVarBind]:
+        """Dispatches a GET-NEXT query for the given variables and returns a result where the fetched variables are
+        identified symbolically.
+
+        Example usage:
+        >>> await s.getnext2(("IF-MIB", "ifName", "1"), ("IF-MIB", "ifAlias", "1"])
+        [(Identifier("IF-MIB", "ifName", OID('.2')), "Gi2/3"),
+         (Identifier("IF-MIB", "ifName", OID('.2')), "Uplink to somewhere")]
+        >>>
+
+        :param variables: Values for defining OIDs. For detailed use see
+        https://github.com/pysnmp/pysnmp/blob/bc1fb3c39764f36c1b7c9551b52ef8246b9aea7c/pysnmp/smi/rfc1902.py#L35-L49
+        :return: A sequence of MibObject instances representing the resulting MIB variables, or None if nothing could
+                 be found
+        """
+        query = [self._oid_to_object_type(*var) for var in variables]
+        response = await self._getnext2(*query)
+        return [_convert_varbind(*r) for r in response]
+
+    async def _getnext2(self, *variables: ObjectType) -> Sequence[ObjectType]:
+        """SNMP-GETNEXTs the given variables
+
+        :param variables: An sequence of ObjectTypes representing the objects you want to query
+        :return: A sequence of ObjectTypes representing the resulting MIB variables, or None if nothing could be found
+        """
+        try:
+            error_indication, error_status, error_index, var_bind_table = await nextCmd(
+                _get_engine(),
+                self.community_data,
+                self.udp_transport_target,
+                ContextData(),
+                *variables,
+            )
+        except PysnmpMibNotFoundError as error:
+            raise MibNotFoundError(error)
+        self._raise_errors(error_indication, error_status, error_index, *variables)
+        # The table should contain only one set of results for our query
+        return var_bind_table[0]
+
     async def walk(self, *oid: str) -> list[MibObject]:
         """Uses SNMP-GETNEXT calls to get all objects in the subtree with oid as root
         Example usage:
