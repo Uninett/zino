@@ -1,7 +1,7 @@
 import logging
 import re
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Optional
 
 from zino.snmp import SNMP, SparseWalkResponse
 from zino.statemodels import EventState, InterfaceState, Port, PortStateEvent
@@ -39,10 +39,13 @@ class LinkStateTask(Task):
     case: Descriptions are mandated for both physical ports and their sub-units.
     """
 
+    sysuptime: Optional[int] = 0
+
     async def run(self):
         snmp = SNMP(self.device)
         poll_list = [("IF-MIB", column) for column in BASE_POLL_LIST]
         attrs = await snmp.sparsewalk(*poll_list)
+        self.sysuptime = await self._get_uptime(snmp)
         _logger.debug("%s ifattrs: %r", self.device.name, attrs)
 
         self._update_interfaces(attrs)
