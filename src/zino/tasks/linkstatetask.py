@@ -138,6 +138,14 @@ class LinkStateTask(Task):
                 _logger.info("%s: setting desc for %s to %s", self.device.name, data.index, data.alias)
             port.ifalias = data.alias
 
+    async def _get_uptime(self, snmp: SNMP) -> int:
+        """Polls and returns the device sysuptime value, while also recording the device boot time"""
+        device_state = self.state.devices.get(self.device.name)
+        response = await snmp.get("SNMPv2-MIB", "sysUpTime", 0)
+        uptime = response.value
+        device_state.set_boot_time_from_uptime(uptime)
+        return uptime
+
 
 class MissingInterfaceTableData(Exception):
     def __init__(self, router, port, variable):
