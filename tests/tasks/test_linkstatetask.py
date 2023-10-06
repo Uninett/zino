@@ -2,7 +2,12 @@ import pytest
 
 from zino.config.models import PollDevice
 from zino.state import ZinoState
-from zino.tasks.linkstatetask import BaseInterfaceRow, LinkStateTask
+from zino.statemodels import Port
+from zino.tasks.linkstatetask import (
+    BaseInterfaceRow,
+    LinkStateTask,
+    MissingInterfaceTableData,
+)
 
 
 class TestLinkStateTask:
@@ -44,6 +49,14 @@ class TestLinkStateTask:
         )
         task_with_dummy_device.device.ignorepat = ".*Ethernet"
         assert not task_with_dummy_device._is_interface_watched(data)
+
+    def test_when_interface_state_is_missing_update_state_should_raise_exception(self, task_with_dummy_device):
+        row = BaseInterfaceRow(index=42, descr="x", alias="x", admin_status="x", oper_status="x", last_change=0)
+        port = Port(ifindex=42)
+        empty_state_row = {}
+
+        with pytest.raises(MissingInterfaceTableData):
+            task_with_dummy_device._update_state(data=row, port=port, row=empty_state_row)
 
 
 class TestBaseInterfaceRow:
