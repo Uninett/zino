@@ -54,6 +54,7 @@ class LinkStateTask(Task):
     def _update_single_interface(self, row: dict[str, Any]):
         data = BaseInterfaceRow(*(row.get(attr) for attr in BASE_POLL_LIST))
         if not data.is_sane():
+            _logger.info("%s: skipping unknown interface for lack of complete data set: %r", self.device.name, data)
             return
 
         port = self._get_or_create_port(data.index)
