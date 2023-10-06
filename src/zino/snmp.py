@@ -201,7 +201,7 @@ class SNMP:
             results.append(mib_object)
         return results
 
-    async def getbulk(self, *oid: str, max_repetitions: int = 10) -> list[MibObject]:
+    async def getbulk(self, *oid: str, max_repetitions: int = 1) -> list[MibObject]:
         """SNMP-BULKs the given oid
         Example usage:
             getbulk("IF-MIB", "ifName", max_repetitions=5)
