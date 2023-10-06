@@ -14,8 +14,6 @@ class VendorTask(Task):
     async def run(self):
         vendor = await self._get_enterprise_id()
         _logger.debug("%s enterprise id: %r", self.device.name, vendor)
-        if not vendor:
-            return
 
         device = self.state.devices.get(self.device.name)
         if device.enterprise_id != vendor:
@@ -24,8 +22,6 @@ class VendorTask(Task):
 
     async def _get_enterprise_id(self) -> Optional[int]:
         sysobjectid = await self._get_sysobjectid()
-        if not sysobjectid:
-            return
         # This part can probably be a whole lot prettier if we learned how to utilize PySNMP properly:
         if sysobjectid[: len(ENTERPRISES)] == ENTERPRISES:
             return sysobjectid[len(ENTERPRISES)]
@@ -33,5 +29,4 @@ class VendorTask(Task):
     async def _get_sysobjectid(self) -> Optional[Tuple[int, ...]]:
         snmp = SNMP(self.device)
         result = await snmp.get("SNMPv2-MIB", "sysObjectID", 0)
-        if result:
-            return result.value
+        return result.value

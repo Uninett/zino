@@ -18,8 +18,10 @@ from pysnmp.hlapi.asyncio import (
     getCmd,
     nextCmd,
 )
+from pysnmp.proto import errind
+from pysnmp.proto.rfc1905 import errorStatus
 from pysnmp.smi import builder, view
-from pysnmp.smi.error import MibNotFoundError
+from pysnmp.smi.error import MibNotFoundError as PysnmpMibNotFoundError
 
 from zino.config.models import PollDevice
 from zino.oid import OID
@@ -59,6 +61,39 @@ SNMPVarBind = tuple[Identifier, Any]
 SupportedTypes = Union[univ.Integer, univ.OctetString, ObjectIdentity, ObjectType]
 
 
+class SnmpError(Exception):
+    """Base class for SNMP, MIB and OID specific errors"""
+
+    pass
+
+
+class ErrorIndication(Exception):
+    """Class for SNMP errors that occur locally,
+    as opposed to being reported from a different SNMP entity.
+    """
+
+
+class MibNotFoundError(ErrorIndication):
+    """Raised if a required MIB file could not be found"""
+
+    pass
+
+
+class ErrorStatus(SnmpError):
+    """Raised if an SNMP entity includes a non-zero error status in its response PDU.
+    RFC 1905 defines the possible errors that can be specified in the error status field.
+    This can either be used directly or subclassed for one of these specific errors.
+    """
+
+    pass
+
+
+class NoSuchNameError(ErrorStatus):
+    """Represents the "noSuchName" error. Raised if an object could not be found at an OID."""
+
+    pass
+
+
 class SNMP:
     """Represents an SNMP management session for a single device"""
 
@@ -67,7 +102,7 @@ class SNMP:
     def __init__(self, device: PollDevice):
         self.device = device
 
-    async def get(self, *oid: str) -> Union[MibObject, None]:
+    async def get(self, *oid: str) -> MibObject:
         """SNMP-GETs the given oid
         Example usage:
             get("SNMPv2-MIB", "sysUpTime", 0)
@@ -75,7 +110,7 @@ class SNMP:
 
         :param oid: Values for defining an OID. For detailed use see
             https://github.com/pysnmp/pysnmp/blob/bc1fb3c39764f36c1b7c9551b52ef8246b9aea7c/pysnmp/smi/rfc1902.py#L35-L49
-        :return: A MibObject representing the resulting MIB variable or None if nothing could be found
+        :return: A MibObject representing the resulting MIB variable
         """
         query = self._oid_to_object_type(*oid)
         try:
@@ -86,31 +121,37 @@ class SNMP:
                 ContextData(),
                 query,
             )
-        except MibNotFoundError as error:
-            _log.error("%s: %s", self.device.name, error)
-            return
-        if self._handle_errors(error_indication, error_status, error_index, query):
-            return
-        for var_bind in var_binds:
-            return self._object_type_to_mib_object(var_bind)
+        except PysnmpMibNotFoundError as error:
+            raise MibNotFoundError(error)
+        self._raise_errors(error_indication, error_status, error_index, query)
+        return self._object_type_to_mib_object(var_binds[0])
 
-    def _handle_errors(self, error_indication: str, error_status: str, error_index: int, *query: ObjectType) -> bool:
-        """Returns True if error occurred"""
+    def _raise_errors(
+        self,
+        error_indication: Union[str, errind.ErrorIndication],
+        error_status: str,
+        error_index: int,
+        *query: ObjectType,
+    ):
+        """Raises a relevant exception if an error has occurred"""
+        # Local errors (timeout, config errors etc)
         if error_indication:
-            _log.error("%s: %s", self.device.name, error_indication)
-            return True
+            if isinstance(error_indication, errind.RequestTimedOut):
+                raise TimeoutError(str(error_indication))
+            else:
+                raise ErrorIndication(str(error_indication))
 
+        # Remote errors from SNMP entity.
+        # if nonzero error_status, error_index point will point to the ariable-binding in query that caused the error.
         if error_status:
-            _log.error(
-                "%s: %s at %s",
-                self.device.name,
-                error_status.prettyPrint(),
-                error_index and query[int(error_index) - 1][0] or "?",
-            )
-            return True
-        return False
+            error_object = self._object_type_to_mib_object(query[error_index - 1])
+            error_name = errorStatus.getNamedValues()[int(error_status)]
+            if error_name == "noSuchName":
+                raise NoSuchNameError(f"Could not find object at {error_object.oid}")
+            else:
+                raise ErrorStatus(f"SNMP operation failed with error {error_name} for {error_object.oid}")
 
-    async def getnext(self, *oid: str) -> Union[MibObject, None]:
+    async def getnext(self, *oid: str) -> MibObject:
         """SNMP-GETNEXTs the given oid
         Example usage:
             getnext("SNMPv2-MIB", "sysUpTime")
@@ -118,19 +159,17 @@ class SNMP:
 
         :param oid: Values for defining an OID. For detailed use see
             https://github.com/pysnmp/pysnmp/blob/bc1fb3c39764f36c1b7c9551b52ef8246b9aea7c/pysnmp/smi/rfc1902.py#L35-L49
-        :return: A MibObject representing the resulting MIB variable or None if nothing could be found
+        :return: A MibObject representing the resulting MIB variable
         """
         query = self._oid_to_object_type(*oid)
         object_type = await self._getnext(query)
-        if not object_type:
-            return None
         return self._object_type_to_mib_object(object_type)
 
-    async def _getnext(self, object_type: ObjectType) -> Union[ObjectType, None]:
+    async def _getnext(self, object_type: ObjectType) -> ObjectType:
         """SNMP-GETNEXTs the given object_type
 
         :param object_type: An ObjectType representing the object you want to query
-        :return: An ObjectType representing the resulting MIB variable or None if nothing could be found
+        :return: An ObjectType representing the resulting MIB variable
         """
         try:
             error_indication, error_status, error_index, var_binds = await nextCmd(
@@ -140,14 +179,11 @@ class SNMP:
                 ContextData(),
                 object_type,
             )
-        except MibNotFoundError as error:
-            _log.error("%s: %s", self.device.name, error)
-            return
-        if self._handle_errors(error_indication, error_status, error_index, object_type):
-            return
+        except PysnmpMibNotFoundError as error:
+            raise MibNotFoundError(error)
+        self._raise_errors(error_indication, error_status, error_index, object_type)
         # var_binds should be a sequence of sequences with one inner sequence that contains the result.
-        if var_binds and var_binds[0]:
-            return var_binds[0][0]
+        return var_binds[0][0]
 
     async def walk(self, *oid: str) -> list[MibObject]:
         """Uses SNMP-GETNEXT calls to get all objects in the subtree with oid as root
@@ -161,15 +197,11 @@ class SNMP:
         """
         results = []
         current_object = self._oid_to_object_type(*oid)
-        try:
-            self._resolve_object(current_object)
-        except MibNotFoundError as error:
-            _log.error("%s: %s", self.device.name, error)
-            return results
+        self._resolve_object(current_object)
         original_oid = OID(str(current_object[0]))
         while True:
             current_object = await self._getnext(current_object)
-            if not current_object or not original_oid.is_a_prefix_of(str(current_object[0])):
+            if not original_oid.is_a_prefix_of(str(current_object[0])):
                 break
             mib_object = self._object_type_to_mib_object(current_object)
             results.append(mib_object)
@@ -206,13 +238,9 @@ class SNMP:
                 max_repetitions,
                 object_type,
             )
-        except MibNotFoundError as error:
-            _log.error("%s: %s", self.device.name, error)
-            return []
-        if self._handle_errors(error_indication, error_status, error_index, object_type):
-            return []
-        if not var_binds:
-            return []
+        except PysnmpMibNotFoundError as error:
+            raise MibNotFoundError(error)
+        self._raise_errors(error_indication, error_status, error_index, object_type)
         return var_binds[0]
 
     async def getbulk2(self, *variables: Sequence[str], max_repetitions: int = 10) -> Sequence[Sequence[SNMPVarBind]]:
@@ -250,12 +278,10 @@ class SNMP:
                 max_repetitions,
                 *variables,
             )
-        except MibNotFoundError as error:
-            _log.error("%s: %s", self.device.name, error)
-            return []
-        if self._handle_errors(error_indication, error_status, error_index, *variables):
-            return []
-        return var_bind_table or []
+        except PysnmpMibNotFoundError as error:
+            raise MibNotFoundError(error)
+        self._raise_errors(error_indication, error_status, error_index, *variables)
+        return var_bind_table
 
     async def bulkwalk(self, *oid: str, max_repetitions: int = 10) -> list[MibObject]:
         """Uses SNMP-BULK calls to get all objects in the subtree with oid as root
@@ -270,11 +296,7 @@ class SNMP:
         """
         results = []
         query_object = self._oid_to_object_type(*oid)
-        try:
-            self._resolve_object(query_object)
-        except MibNotFoundError as error:
-            _log.error("%s: %s", self.device.name, error)
-            return results
+        self._resolve_object(query_object)
         start_oid = OID(str(query_object[0]))
         while True:
             response = await self._getbulk(query_object, max_repetitions)
@@ -301,11 +323,7 @@ class SNMP:
              OID('.2'): {"ifName": "2", "ifAlias": "next-sw.example.org"}}
         """
         query_objects = [self._oid_to_object_type(*var) for var in variables]
-        try:
-            [self._resolve_object(obj) for obj in query_objects]
-        except MibNotFoundError as error:
-            _log.error("%s: %s", self.device.name, error)
-            return {}
+        [self._resolve_object(obj) for obj in query_objects]
 
         roots = [OID(o[0]) for o in query_objects]  # used to determine which responses are in scope
         results: dict[OID, dict[str, Any]] = defaultdict(dict)
@@ -341,11 +359,14 @@ class SNMP:
     @classmethod
     def _resolve_object(cls, object_type: ObjectType):
         """Raises MibNotFoundError if oid in `object` can not be found"""
-        engine = _get_engine()
-        controller = engine.getUserContext("mibViewController")
-        if not controller:
-            controller = view.MibViewController(engine.getMibBuilder())
-        object_type.resolveWithMib(controller)
+        try:
+            engine = _get_engine()
+            controller = engine.getUserContext("mibViewController")
+            if not controller:
+                controller = view.MibViewController(engine.getMibBuilder())
+            object_type.resolveWithMib(controller)
+        except PysnmpMibNotFoundError as error:
+            raise MibNotFoundError(error)
 
     @classmethod
     def _oid_to_object_type(cls, *oid: str) -> ObjectType:
@@ -362,7 +383,9 @@ class SNMP:
 
     @property
     def udp_transport_target(self) -> UdpTransportTarget:
-        return UdpTransportTarget((str(self.device.address), self.device.port))
+        return UdpTransportTarget(
+            (str(self.device.address), self.device.port), timeout=self.device.timeout, retries=self.device.retries
+        )
 
 
 def _convert_varbind(ident: ObjectIdentity, value: ObjectType) -> SNMPVarBind:

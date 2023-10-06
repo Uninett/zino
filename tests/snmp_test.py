@@ -2,12 +2,18 @@ import pytest
 
 from zino.config.models import PollDevice
 from zino.oid import OID
-from zino.snmp import SNMP
+from zino.snmp import SNMP, MibNotFoundError, NoSuchNameError
 
 
 @pytest.fixture(scope="session")
 def snmp_client(snmpsim, snmp_test_port):
     device = PollDevice(name="buick.lab.example.org", address="127.0.0.1", port=snmp_test_port)
+    return SNMP(device)
+
+
+@pytest.fixture(scope="session")
+def unreachable_snmp_client():
+    device = PollDevice(name="nonexist", address="127.0.0.1", community="invalid", port=666, timeout=1, retries=0)
     return SNMP(device)
 
 
@@ -51,12 +57,6 @@ class TestSNMPRequestsResponseTypes:
                 assert ident.object in variables
 
     @pytest.mark.asyncio
-    async def test_getbulk2_should_return_empty_list_on_unknown_mibs(self, snmp_client):
-        response = await snmp_client.getbulk2(("NON-EXISTENT-MIB", "foo"))
-        assert not response
-        assert isinstance(response, list)
-
-    @pytest.mark.asyncio
     async def test_bulkwalk(self, snmp_client):
         response = await snmp_client.bulkwalk("SNMPv2-MIB", "sysUpTime")
         assert response
@@ -76,12 +76,6 @@ class TestSNMPRequestsResponseTypes:
                 assert var in variables
 
     @pytest.mark.asyncio
-    async def test_sparsewalk_should_return_empty_dict_on_unknown_mibs(self, snmp_client):
-        response = await snmp_client.sparsewalk(("NON-EXISTENT-MIB", "foo"))
-        assert not response
-        assert isinstance(response, dict)
-
-    @pytest.mark.asyncio
     async def test_get_sysobjectid_should_be_tuple_of_ints(self, snmp_client):
         response = await snmp_client.get("SNMPv2-MIB", "sysObjectID", 0)
         assert isinstance(response.oid, OID)
@@ -94,31 +88,41 @@ class TestSNMPRequestsResponseTypes:
         assert response.value == "disabled"
 
 
-class TestSNMPRequestsUnknownMib:
+class TestUnknownMibShouldRaiseException:
     @pytest.mark.asyncio
     async def test_get(self, snmp_client):
-        response = await snmp_client.get("fake", "mib")
-        assert not response
+        with pytest.raises(MibNotFoundError):
+            await snmp_client.get("NON-EXISTENT-MIB", "foo", 0)
 
     @pytest.mark.asyncio
     async def test_getnext(self, snmp_client):
-        response = await snmp_client.getnext("fake", "mib")
-        assert not response
+        with pytest.raises(MibNotFoundError):
+            await snmp_client.getnext("NON-EXISTENT-MIB", "foo")
 
     @pytest.mark.asyncio
     async def test_walk(self, snmp_client):
-        response = await snmp_client.walk("fake", "mib")
-        assert not response
+        with pytest.raises(MibNotFoundError):
+            await snmp_client.walk("NON-EXISTENT-MIB", "foo")
 
     @pytest.mark.asyncio
     async def test_getbulk(self, snmp_client):
-        response = await snmp_client.getbulk("fake", "mib")
-        assert not response
+        with pytest.raises(MibNotFoundError):
+            await snmp_client.getbulk("NON-EXISTENT-MIB", "foo")
 
     @pytest.mark.asyncio
     async def test_bulkwalk(self, snmp_client):
-        response = await snmp_client.bulkwalk("fake", "mib")
-        assert not response
+        with pytest.raises(MibNotFoundError):
+            await snmp_client.bulkwalk("NON-EXISTENT-MIB", "foo")
+
+    @pytest.mark.asyncio
+    async def test_getbulk2(self, snmp_client):
+        with pytest.raises(MibNotFoundError):
+            await snmp_client.getbulk2(("NON-EXISTENT-MIB", "foo"))
+
+    @pytest.mark.asyncio
+    async def test_sparsewalk(self, snmp_client):
+        with pytest.raises(MibNotFoundError):
+            await snmp_client.sparsewalk(("NON-EXISTENT-MIB", "foo"))
 
 
 class TestMibResolver:
@@ -133,3 +137,46 @@ class TestMibResolver:
         object_type = SNMP._oid_to_object_type("IF-MIB", "ifAlias", "1")
         SNMP._resolve_object(object_type)
         assert object_type[0]
+
+
+class TestUnreachableDeviceShouldRaiseException:
+    @pytest.mark.asyncio
+    async def test_get(self, unreachable_snmp_client):
+        with pytest.raises(TimeoutError):
+            await unreachable_snmp_client.get("SNMPv2-MIB", "sysUpTime", 0)
+
+    @pytest.mark.asyncio
+    async def test_getnext(self, unreachable_snmp_client):
+        with pytest.raises(TimeoutError):
+            await unreachable_snmp_client.getnext("SNMPv2-MIB", "sysUpTime")
+
+    @pytest.mark.asyncio
+    async def test_walk(self, unreachable_snmp_client):
+        with pytest.raises(TimeoutError):
+            await unreachable_snmp_client.walk("SNMPv2-MIB", "sysUpTime")
+
+    @pytest.mark.asyncio
+    async def test_getbulk(self, unreachable_snmp_client):
+        with pytest.raises(TimeoutError):
+            await unreachable_snmp_client.getbulk("SNMPv2-MIB", "sysUpTime")
+
+    @pytest.mark.asyncio
+    async def test_bulkwalk(self, unreachable_snmp_client):
+        with pytest.raises(TimeoutError):
+            await unreachable_snmp_client.bulkwalk("SNMPv2-MIB", "sysUpTime")
+
+    @pytest.mark.asyncio
+    async def test_getbulk2(self, unreachable_snmp_client):
+        with pytest.raises(TimeoutError):
+            await unreachable_snmp_client.getbulk2(("SNMPv2-MIB", "sysUpTime"))
+
+    @pytest.mark.asyncio
+    async def test_sparsewalk(self, unreachable_snmp_client):
+        with pytest.raises(TimeoutError):
+            await unreachable_snmp_client.sparsewalk(("SNMPv2-MIB", "sysUpTime"))
+
+
+@pytest.mark.asyncio
+async def test_get_object_that_does_not_exist_should_raise_exception(snmp_client):
+    with pytest.raises(NoSuchNameError):
+        await snmp_client.get("SNMPv2-MIB", "sysUpTime", 1)
