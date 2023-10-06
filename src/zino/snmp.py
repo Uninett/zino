@@ -18,7 +18,7 @@ from pysnmp.hlapi.asyncio import (
     getCmd,
     nextCmd,
 )
-from pysnmp.proto.errind import RequestTimedOut
+from pysnmp.proto import errind
 from pysnmp.proto.rfc1905 import errorStatus
 from pysnmp.smi import builder, view
 from pysnmp.smi.error import MibNotFoundError as PysnmpMibNotFoundError
@@ -126,11 +126,17 @@ class SNMP:
         self._raise_errors(error_indication, error_status, error_index, query)
         return self._object_type_to_mib_object(var_binds[0])
 
-    def _raise_errors(self, error_indication: str, error_status: str, error_index: int, *query: ObjectType):
+    def _raise_errors(
+        self,
+        error_indication: Union[str, errind.ErrorIndication],
+        error_status: str,
+        error_index: int,
+        *query: ObjectType,
+    ):
         """Raises a relevant exception if an error has occurred"""
         # Local errors (timeout, config errors etc)
         if error_indication:
-            if isinstance(error_indication, RequestTimedOut):
+            if isinstance(error_indication, errind.RequestTimedOut):
                 raise TimeoutError(str(error_indication))
             else:
                 raise ErrorIndication(str(error_indication))
