@@ -4,6 +4,7 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
+from zino.oid import OID
 from zino.snmp import SNMP, SparseWalkResponse
 from zino.statemodels import EventState, InterfaceState, Port, PortStateEvent
 from zino.tasks.task import Task
@@ -50,6 +51,20 @@ class LinkStateTask(Task):
         _logger.debug("%s ifattrs: %r", self.device.name, attrs)
 
         self._update_interfaces(attrs)
+
+    async def poll_single_interface(self, ifindex: int):
+        """Polls and updates a single interface"""
+        snmp = SNMP(self.device)
+        poll_list = [("IF-MIB", column, str(ifindex - 1)) for column in BASE_POLL_LIST]
+        result = await snmp.getnext2(*poll_list)
+        self.sysuptime = await self._get_uptime(snmp)
+        _logger.debug("poll_single_interface %s result: %r", self.device.name, result)
+
+        assert all(ident.index == OID(f".{ifindex}") for ident, value in result)
+        row = {ident.object: value for ident, value in result}
+
+        self._update_single_interface(row)
+        return row
 
     def _update_interfaces(self, new_attrs: SparseWalkResponse):
         for index, row in new_attrs.items():
