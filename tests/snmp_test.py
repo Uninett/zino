@@ -107,6 +107,11 @@ class TestUnknownMibShouldRaiseException:
             await snmp_client.getnext("NON-EXISTENT-MIB", "foo")
 
     @pytest.mark.asyncio
+    async def test_getnext2(self, snmp_client):
+        with pytest.raises(MibNotFoundError):
+            await snmp_client.getnext2(("NON-EXISTENT-MIB", "foo"))
+
+    @pytest.mark.asyncio
     async def test_walk(self, snmp_client):
         with pytest.raises(MibNotFoundError):
             await snmp_client.walk("NON-EXISTENT-MIB", "foo")
@@ -156,6 +161,11 @@ class TestUnreachableDeviceShouldRaiseException:
     async def test_getnext(self, unreachable_snmp_client):
         with pytest.raises(TimeoutError):
             await unreachable_snmp_client.getnext("SNMPv2-MIB", "sysUpTime")
+
+    @pytest.mark.asyncio
+    async def test_getnext2(self, unreachable_snmp_client):
+        with pytest.raises(TimeoutError):
+            await unreachable_snmp_client.getnext2(("SNMPv2-MIB", "sysUpTime"))
 
     @pytest.mark.asyncio
     async def test_walk(self, unreachable_snmp_client):
