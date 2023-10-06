@@ -46,6 +46,20 @@ class TestLinkStateTask:
         assert not task_with_dummy_device._is_interface_watched(data)
 
 
+class TestBaseInterfaceRow:
+    def test_when_index_is_missing_is_sane_should_return_false(self):
+        row = BaseInterfaceRow(index=None, descr="x", alias="x", admin_status="x", oper_status="x", last_change=0)
+        assert not row.is_sane()
+
+    def test_when_descr_is_missing_is_sane_should_return_false(self):
+        row = BaseInterfaceRow(index=42, descr=None, alias="x", admin_status="x", oper_status="x", last_change=0)
+        assert not row.is_sane()
+
+    def test_when_descr_and_index_are_present_is_sane_should_return_true(self):
+        row = BaseInterfaceRow(index=42, descr="x", alias="x", admin_status="x", oper_status="x", last_change=0)
+        assert row.is_sane()
+
+
 @pytest.fixture
 def linkstatetask_with_links_up(snmpsim, snmp_test_port):
     device = PollDevice(name="buick.lab.example.org", address="127.0.0.1", port=snmp_test_port, community="linksup")
