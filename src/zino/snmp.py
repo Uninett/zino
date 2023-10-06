@@ -13,6 +13,7 @@ from pysnmp.hlapi.asyncio import (
     ObjectIdentity,
     ObjectType,
     SnmpEngine,
+    Udp6TransportTarget,
     UdpTransportTarget,
     bulkCmd,
     getCmd,
@@ -382,8 +383,10 @@ class SNMP:
         return CommunityData(self.device.community, mpModel=self.mp_model)
 
     @property
-    def udp_transport_target(self) -> UdpTransportTarget:
-        return UdpTransportTarget(
+    def udp_transport_target(self) -> Union[UdpTransportTarget, Udp6TransportTarget]:
+        assert self.device.address.version in (4, 6)
+        target = UdpTransportTarget if self.device.address.version == 4 else Udp6TransportTarget
+        return target(
             (str(self.device.address), self.device.port), timeout=self.device.timeout, retries=self.device.retries
         )
 
