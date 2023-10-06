@@ -19,7 +19,7 @@ def reachable_task(snmpsim, snmp_test_port):
 
 @pytest.fixture()
 def unreachable_task():
-    device = PollDevice(name="nonexist", address="127.0.0.1", community="invalid", port=666, timeout=1)
+    device = PollDevice(name="nonexist", address="127.0.0.1", community="invalid", port=666)
     state = ZinoState()
     task = ReachableTask(device, state)
     with patch("zino.tasks.reachabletask.SNMP.get") as get_mock:
