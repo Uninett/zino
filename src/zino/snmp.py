@@ -69,7 +69,7 @@ class SnmpError(Exception):
 
 class ErrorIndication(Exception):
     """Class for SNMP errors that occur locally,
-    as opposed to being reported from a different SNMP entitiy.
+    as opposed to being reported from a different SNMP entity.
     """
 
 
@@ -80,7 +80,7 @@ class MibNotFoundError(ErrorIndication):
 
 
 class ErrorStatus(SnmpError):
-    """Raised if a SNMP entity includes a non-zero error status in its response PDU.
+    """Raised if an SNMP entity includes a non-zero error status in its response PDU.
     RFC 1905 defines the possible errors that can be specified in the error status field.
     This can either be used directly or subclassed for one of these specific errors.
     """
