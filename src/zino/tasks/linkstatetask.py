@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from zino.oid import OID
+from zino.scheduler import get_scheduler
 from zino.snmp import SNMP, SparseWalkResponse
 from zino.statemodels import EventState, InterfaceState, Port, PortStateEvent
 from zino.tasks.task import Task
@@ -42,6 +43,10 @@ class LinkStateTask(Task):
     """
 
     sysuptime: int = 0
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._scheduler = get_scheduler()
 
     async def run(self):
         snmp = SNMP(self.device)
@@ -125,7 +130,19 @@ class LinkStateTask(Task):
         _logger.info(log)
         event.add_log(log)
 
-        # at this point we should re-schedule a new job in 2 minutes to verify the state change
+        self._schedule_verification_of_single_port(port.ifindex)
+
+    def _schedule_verification_of_single_port(self, ifindex: int):
+        in_two_minutes = datetime.datetime.now() + datetime.timedelta(minutes=2)
+        job_name = f"{self.device.name}-verify-{ifindex}-state"
+        self._scheduler.add_job(
+            func=self.poll_single_interface,
+            args=(ifindex,),
+            trigger="date",
+            run_date=in_two_minutes,
+            name=job_name,
+            id=job_name,
+        )
 
     def _get_or_create_port(self, ifindex: int):
         ports = self.state.devices.get(self.device.name).ports
