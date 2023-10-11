@@ -49,13 +49,15 @@ class LinkStateTask(Task):
 
     def _update_interfaces(self, new_attrs: SparseWalkResponse):
         for index, row in new_attrs.items():
-            self._update_single_interface(row)
+            try:
+                self._update_single_interface(row)
+            except CollectedInterfaceDataIsNotSaneError as error:
+                _logger.error(error)
 
     def _update_single_interface(self, row: dict[str, Any]):
         data = BaseInterfaceRow(*(row.get(attr) for attr in BASE_POLL_LIST))
         if not data.is_sane():
-            _logger.info("%s: skipping unknown interface for lack of complete data set: %r", self.device.name, data)
-            return
+            raise CollectedInterfaceDataIsNotSaneError(self.device.name, data)
 
         port = self._get_or_create_port(data.index)
         port.ifdescr = data.descr
@@ -140,3 +142,10 @@ class LinkStateTask(Task):
 class MissingInterfaceTableData(Exception):
     def __init__(self, router, port, variable):
         super().__init__(f"No {variable} from {router} for port {port}")
+
+
+class CollectedInterfaceDataIsNotSaneError(Exception):
+    def __init__(self, device: str, interface: BaseInterfaceRow):
+        self.device = device
+        self.interface = interface
+        super().__init__(f"Collected interface data from {device} is not sane enough to process: {interface!r}")

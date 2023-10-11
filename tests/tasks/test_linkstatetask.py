@@ -1,10 +1,12 @@
 import pytest
 
 from zino.config.models import PollDevice
+from zino.oid import OID
 from zino.state import ZinoState
 from zino.statemodels import Port
 from zino.tasks.linkstatetask import (
     BaseInterfaceRow,
+    CollectedInterfaceDataIsNotSaneError,
     LinkStateTask,
     MissingInterfaceTableData,
 )
@@ -57,6 +59,22 @@ class TestLinkStateTask:
 
         with pytest.raises(MissingInterfaceTableData):
             task_with_dummy_device._update_state(data=row, port=port, row=empty_state_row)
+
+    def test_when_interface_data_is_empty_update_single_interface_should_raise_exception(self, task_with_dummy_device):
+        with pytest.raises(CollectedInterfaceDataIsNotSaneError):
+            task_with_dummy_device._update_single_interface({})
+
+    def test_when_interface_data_is_empty_update_interfaces_should_keep_processing(self, task_with_dummy_device):
+        assert (
+            task_with_dummy_device._update_interfaces(
+                {
+                    OID(".1"): {},
+                    OID(".2"): {},
+                    OID(".3"): {},
+                }
+            )
+            is None
+        )
 
 
 class TestBaseInterfaceRow:
