@@ -29,6 +29,23 @@ class InterfaceState(StrEnum):
     LOWER_LAYER_DOWN = "lowerLayerDown"
 
 
+class BFDSessState(Enum):
+    """The set of allowable BFD session states"""
+
+    ADMINDOWN = "adminDown"
+    DOWN = "down"
+    INIT = "init"
+    UP = "up"
+    NOSESSION = "noSession"
+
+
+class BFDState(BaseModel):
+    """Keeps BFD state for an interface"""
+
+    session_state: BFDSessState
+    session_index: Optional[int] = None
+
+
 class Port(BaseModel):
     """Keeps port state"""
 
@@ -36,6 +53,7 @@ class Port(BaseModel):
     ifdescr: Optional[str] = None
     ifalias: Optional[str] = None
     state: Optional[InterfaceState] = None
+    bfd_state: Optional[BFDState] = None
 
 
 class DeviceState(BaseModel):
