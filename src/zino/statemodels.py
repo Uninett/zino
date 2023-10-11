@@ -179,9 +179,9 @@ class BGPEvent(Event):
 
 class BFDEvent(Event):
     type: Literal["bfd"] = "bfd"
-    bfdix: Optional[int] = None
-    bfddiscr: Optional[int] = None
-    bfdaddr: Optional[IPAddress] = None
+    ifindex: Optional[int] = None
+    session_index: Optional[int] = None
+    session_state: Optional[BFDSessState] = None
 
 
 class ReachabilityEvent(Event):
