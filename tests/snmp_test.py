@@ -1,4 +1,5 @@
 import pytest
+from pysnmp.hlapi.asyncio import Udp6TransportTarget, UdpTransportTarget
 
 from zino.config.models import PollDevice
 from zino.oid import OID
@@ -8,6 +9,12 @@ from zino.snmp import SNMP, Identifier, MibNotFoundError, NoSuchNameError
 @pytest.fixture(scope="session")
 def snmp_client(snmpsim, snmp_test_port):
     device = PollDevice(name="buick.lab.example.org", address="127.0.0.1", port=snmp_test_port)
+    return SNMP(device)
+
+
+@pytest.fixture(scope="session")
+def ipv6_snmp_client(snmpsim, snmp_test_port) -> SNMP:
+    device = PollDevice(name="buick.lab.example.org", address="::1", port=snmp_test_port)
     return SNMP(device)
 
 
@@ -197,3 +204,11 @@ class TestUnreachableDeviceShouldRaiseException:
 async def test_get_object_that_does_not_exist_should_raise_exception(snmp_client):
     with pytest.raises(NoSuchNameError):
         await snmp_client.get("SNMPv2-MIB", "sysUpTime", 1)
+
+
+class TestUdpTransportTarget:
+    def test_when_device_address_is_ipv6_then_udp6_transport_should_be_returned(self, ipv6_snmp_client):
+        assert isinstance(ipv6_snmp_client.udp_transport_target, Udp6TransportTarget)
+
+    def test_when_device_address_is_ipv4_then_udp_transport_should_be_returned(self, snmp_client):
+        assert isinstance(snmp_client.udp_transport_target, UdpTransportTarget)
