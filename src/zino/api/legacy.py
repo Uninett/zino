@@ -6,6 +6,8 @@ implements this protocol using asyncio semantics.
 import asyncio
 import inspect
 import logging
+import re
+import textwrap
 from asyncio import Transport
 from typing import Callable, Optional
 
@@ -82,11 +84,23 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         if callable(func):
             return func
 
+    def _get_all_responders(self) -> dict[str, Callable]:
+        eligible = {
+            name: getattr(self, name) for name in dir(self) if name.startswith("do_") and callable(getattr(self, name))
+        }
+        commands = {name: re.sub(r"^do_", "", name).upper() for name in eligible}
+        return {commands[name]: responder for name, responder in eligible.items()}
+
     def _respond_ok(self, message: Optional[str] = "ok"):
         self._respond(200, message)
 
     def _respond_error(self, message: str):
         self._respond(500, message)
+
+    def _respond_multiline(self, code: int, messages: list[str]):
+        for index, message in enumerate(messages):
+            out = f"{code}- {message}" if index < len(messages) - 1 else f"{code}  {message}"
+            self._respond_raw(out)
 
     def _respond(self, code: int, message: str):
         self._respond_raw(f"{code} {message}")
@@ -109,6 +123,16 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         """Implements the QUIT command"""
         self._respond(205, "Bye")
         self.transport.close()
+
+    def do_help(self):
+        responders = self._get_all_responders()
+        if not self.is_authenticated:
+            responders = {
+                name: func for name, func in responders.items() if not getattr(func, "requires_authentication", False)
+            }
+
+        commands = " ".join(sorted(responders))
+        self._respond_multiline(200, ["commands are:"] + textwrap.wrap(commands, width=56))
 
     @requires_authentication
     def do_authtest(self):
