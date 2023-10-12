@@ -2,7 +2,7 @@ import pytest
 
 from zino.config.models import PollDevice
 from zino.oid import OID
-from zino.snmp import SNMP, MibNotFoundError, NoSuchNameError
+from zino.snmp import SNMP, Identifier, MibNotFoundError, NoSuchNameError
 
 
 @pytest.fixture(scope="session")
@@ -29,6 +29,13 @@ class TestSNMPRequestsResponseTypes:
         response = await snmp_client.getnext("SNMPv2-MIB", "sysUpTime")
         assert isinstance(response.oid, OID)
         assert isinstance(response.value, int)
+
+    @pytest.mark.asyncio
+    async def test_getnext2_should_return_symbolic_identifiers(self, snmp_client):
+        response = await snmp_client.getnext2(("IF-MIB", "ifName", "1"), ("IF-MIB", "ifAlias", "1"))
+        assert len(list(response)) == 2
+        assert any(identifier == Identifier("IF-MIB", "ifName", OID(".2")) for identifier, _ in response)
+        assert any(identifier == Identifier("IF-MIB", "ifAlias", OID(".2")) for identifier, _ in response)
 
     @pytest.mark.asyncio
     async def test_walk(self, snmp_client):
@@ -100,6 +107,11 @@ class TestUnknownMibShouldRaiseException:
             await snmp_client.getnext("NON-EXISTENT-MIB", "foo")
 
     @pytest.mark.asyncio
+    async def test_getnext2(self, snmp_client):
+        with pytest.raises(MibNotFoundError):
+            await snmp_client.getnext2(("NON-EXISTENT-MIB", "foo"))
+
+    @pytest.mark.asyncio
     async def test_walk(self, snmp_client):
         with pytest.raises(MibNotFoundError):
             await snmp_client.walk("NON-EXISTENT-MIB", "foo")
@@ -149,6 +161,11 @@ class TestUnreachableDeviceShouldRaiseException:
     async def test_getnext(self, unreachable_snmp_client):
         with pytest.raises(TimeoutError):
             await unreachable_snmp_client.getnext("SNMPv2-MIB", "sysUpTime")
+
+    @pytest.mark.asyncio
+    async def test_getnext2(self, unreachable_snmp_client):
+        with pytest.raises(TimeoutError):
+            await unreachable_snmp_client.getnext2(("SNMPv2-MIB", "sysUpTime"))
 
     @pytest.mark.asyncio
     async def test_walk(self, unreachable_snmp_client):
