@@ -28,7 +28,12 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         self._respond_ok("PLACEHOLDER-CHALLENGE Hello, there")
 
     def data_received(self, data):
-        message = data.decode().rstrip("\r\n")
+        try:
+            message = data.decode().rstrip("\r\n")
+        except UnicodeDecodeError:
+            _logger.error("Received garbage server input from %s: %r", self.peer_name, data)
+            self.transport.close()
+            return
         if not message:
             return
         _logger.debug("Data received from %s: %r", self.peer_name, message)
