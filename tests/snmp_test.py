@@ -34,8 +34,8 @@ class TestSNMPRequestsResponseTypes:
     async def test_getnext2_should_return_symbolic_identifiers(self, snmp_client):
         response = await snmp_client.getnext2(("IF-MIB", "ifName", "1"), ("IF-MIB", "ifAlias", "1"))
         assert len(list(response)) == 2
-        assert any(k == Identifier("IF-MIB", "ifName", OID(".2")) for k, v in response)
-        assert any(k == Identifier("IF-MIB", "ifAlias", OID(".2")) for k, v in response)
+        assert any(identifier == Identifier("IF-MIB", "ifName", OID(".2")) for identifier, _ in response)
+        assert any(identifier == Identifier("IF-MIB", "ifAlias", OID(".2")) for identifier, _ in response)
 
     @pytest.mark.asyncio
     async def test_walk(self, snmp_client):

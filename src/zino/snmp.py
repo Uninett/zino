@@ -197,8 +197,7 @@ class SNMP:
 
         :param variables: Values for defining OIDs. For detailed use see
         https://github.com/pysnmp/pysnmp/blob/bc1fb3c39764f36c1b7c9551b52ef8246b9aea7c/pysnmp/smi/rfc1902.py#L35-L49
-        :return: A sequence of MibObject instances representing the resulting MIB variables, or None if nothing could
-                 be found
+        :return: A sequence of MibObject instances representing the resulting MIB variables
         """
         query = [self._oid_to_object_type(*var) for var in variables]
         response = await self._getnext2(*query)
@@ -208,7 +207,7 @@ class SNMP:
         """SNMP-GETNEXTs the given variables
 
         :param variables: An sequence of ObjectTypes representing the objects you want to query
-        :return: A sequence of ObjectTypes representing the resulting MIB variables, or None if nothing could be found
+        :return: A sequence of ObjectTypes representing the resulting MIB variables
         """
         try:
             error_indication, error_status, error_index, var_bind_table = await nextCmd(
