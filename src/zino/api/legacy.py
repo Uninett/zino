@@ -7,9 +7,15 @@ import asyncio
 import inspect
 import logging
 from asyncio import Transport
-from typing import Optional
+from typing import Callable, Optional
 
 _logger = logging.getLogger(__name__)
+
+
+def requires_authentication(func: Callable) -> Callable:
+    """Decorates command responder methods to signal that they require the user to be authenticated"""
+    func.requires_authentication = True
+    return func
 
 
 class Zino1BaseServerProtocol(asyncio.Protocol):
@@ -44,6 +50,9 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         responder = self._get_responder(command)
         if not responder:
             return self._respond_error(f'unknown command: "{command}"')
+
+        if getattr(responder, "requires_authentication", False) and not self.is_authenticated:
+            return self._respond_error("Not authenticated")
 
         signature = inspect.signature(responder)
         required_args = len(signature.parameters)
@@ -100,3 +109,10 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         """Implements the QUIT command"""
         self._respond(205, "Bye")
         self.transport.close()
+
+    @requires_authentication
+    def do_authtest(self):
+        """Implements an AUTHTEST command that did not exist in the Zino 1 protocol. This is just used for verification
+        of connection authentication status during development and can be removed later.
+        """
+        return self._respond_ok()
