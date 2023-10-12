@@ -1,11 +1,12 @@
 """Basic data models for keeping/serializing/deserializing Zino state"""
 import datetime
-from enum import Enum, IntEnum
+from enum import Enum
 from ipaddress import IPv4Address, IPv6Address
 from typing import Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, Field
 
+from zino.compat import StrEnum
 from zino.time import now
 
 IPAddress = Union[IPv4Address, IPv6Address]
@@ -13,16 +14,19 @@ AlarmType = Literal["yellow", "red"]
 PortOrIPAddress = Union[int, IPAddress, AlarmType]
 
 
-class InterfaceOperState(IntEnum):
-    """Enumerates ifOperState from RFC 2863 (IF-MIB)"""
+class InterfaceState(StrEnum):
+    """Enumerates allowable interface states.  Most of these values come from ifOperState from RFC 2863 (IF-MIB), but
+    also adds internal Zino states that don't exist in the MIB.
+    """
 
-    up = 1
-    down = 2
-    testing = 3
-    unknown = 4
-    dormant = 5
-    notPresent = 6
-    lowerLayerDown = 7
+    ADMIN_DOWN = "adminDown"
+    UP = "up"
+    DOWN = "down"
+    TESTING = "testing"
+    UNKNOWN = "unknown"
+    DORMANT = "dormant"
+    NOT_PRESENT = "notPresent"
+    LOWER_LAYER_DOWN = "lowerLayerDown"
 
 
 class Port(BaseModel):
@@ -31,7 +35,7 @@ class Port(BaseModel):
     ifindex: int
     ifdescr: Optional[str] = None
     ifalias: Optional[str] = None
-    state: Optional[InterfaceOperState] = None
+    state: Optional[InterfaceState] = None
 
 
 class DeviceState(BaseModel):
@@ -40,7 +44,7 @@ class DeviceState(BaseModel):
     name: str
     enterprise_id: Optional[int] = None
     boot_time: Optional[int] = None
-    ports: Optional[Dict[int, Port]] = None
+    ports: Dict[int, Port] = {}
     alarms: Optional[Dict[AlarmType, int]] = None
 
     # This is the remaining set of potential device attributes stored in device state by the original Zino code:
@@ -162,6 +166,8 @@ class Event(BaseModel):
 class PortStateEvent(Event):
     type: Literal["portstate"] = "portstate"
     ifindex: Optional[int] = None
+    portstate: Optional[InterfaceState] = None
+    descr: Optional[str] = None
 
 
 class BGPEvent(Event):
