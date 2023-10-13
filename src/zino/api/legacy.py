@@ -20,10 +20,7 @@ def requires_authentication(func: Callable) -> Callable:
 
 
 class Zino1BaseServerProtocol(asyncio.Protocol):
-    """Base implementation of the Zino 1 protocol, with a basic command dispatcher for subclasses to utilize.
-
-    This base class implements the basic USER and QUIT commands.
-    """
+    """Base implementation of the Zino 1 protocol, with a basic command dispatcher for subclasses to utilize."""
 
     def __init__(self):
         self.transport: Optional[asyncio.Transport] = None
@@ -138,6 +135,10 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         """Encodes and sends a response line to the connected client"""
         self.transport.write(f"{message}\r\n".encode("utf-8"))
 
+
+class Zino1ServerProtocol(Zino1BaseServerProtocol):
+    """Implements the actual working subcommands of the Zino 1 legacy server protocol"""
+
     async def do_user(self, user: str, response: str):
         """Implements the USER command"""
         if self.is_authenticated:
@@ -163,9 +164,13 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         commands = " ".join(sorted(responders))
         self._respond_multiline(200, ["commands are:"] + textwrap.wrap(commands, width=56))
 
+
+class ZinoTestProtocol(Zino1ServerProtocol):
+    """Extended Zino 1 server protocol with test commands added in"""
+
     @requires_authentication
     async def do_authtest(self):
         """Implements an AUTHTEST command that did not exist in the Zino 1 protocol. This is just used for verification
-        of connection authentication status during development and can be removed later.
+        of connection authentication status during development.
         """
         return self._respond_ok()
