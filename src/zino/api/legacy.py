@@ -174,3 +174,12 @@ class ZinoTestProtocol(Zino1ServerProtocol):
         of connection authentication status during development.
         """
         return self._respond_ok()
+
+    async def do_multitest(self):
+        """Implements an MULTITEST command that did not exist in the Zino 1 protocol. This is just used for testing
+        that multiline input mode works as expected during development.
+        """
+        self._respond(302, "please provide test input, terminate with '.'")
+        data = await self._read_multiline()
+        _logger.debug("Received MULTITEST multiline data from %s: %r", self.peer_name, data)
+        self._respond_ok()
