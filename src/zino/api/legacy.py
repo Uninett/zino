@@ -62,7 +62,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         if not message:
             return
         args = message.split(" ")
-        self._dispatch_command(*args)
+        return self._dispatch_command(*args)
 
     def _dispatch_command(self, command, *args):
         responder = self._get_responder(command)
@@ -81,6 +81,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         try:
             self._current_task = asyncio.ensure_future(responder(*args))
             self._current_task.add_done_callback(self._clear_current_task)
+            return self._current_task
         except Exception:  # noqa
             _logger.exception("Unhandled exception when responding to %r with %r", command, responder)
             return self._respond_error("internal error")
