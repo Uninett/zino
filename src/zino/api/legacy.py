@@ -32,6 +32,14 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         self._multiline_future: asyncio.Future = None
         self._multiline_buffer: List[str] = []
 
+    @property
+    def peer_name(self):
+        return self.transport.get_extra_info("peername") if self.transport else None
+
+    @property
+    def is_authenticated(self):
+        return self._authenticated
+
     def connection_made(self, transport: asyncio.Transport):
         self.transport = transport
         _logger.debug("New server connection from %s", self.peer_name)
@@ -83,14 +91,6 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
     def _clear_current_task(self, task: asyncio.Task):
         if task is self._current_task:
             self._current_task = None
-
-    @property
-    def peer_name(self):
-        return self.transport.get_extra_info("peername") if self.transport else None
-
-    @property
-    def is_authenticated(self):
-        return self._authenticated
 
     def _get_responder(self, command: str):
         if not command.isalpha():
