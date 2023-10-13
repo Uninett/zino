@@ -8,7 +8,7 @@ import inspect
 import logging
 import re
 import textwrap
-from typing import Callable, Optional
+from typing import Callable, List, Optional
 
 _logger = logging.getLogger(__name__)
 
@@ -29,6 +29,8 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         self.transport: Optional[asyncio.Transport] = None
         self._authenticated: bool = False
         self._current_task: asyncio.Task = None
+        self._multiline_future: asyncio.Future = None
+        self._multiline_buffer: List[str] = []
 
     def connection_made(self, transport: asyncio.Transport):
         self.transport = transport
@@ -42,9 +44,18 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
             _logger.error("Received garbage server input from %s: %r", self.peer_name, data)
             self.transport.close()
             return
+        _logger.debug("Data received from %s: %r", self.peer_name, message)
+
+        if self._multiline_future:
+            if message == ".":
+                self._multiline_future.set_result(self._multiline_buffer.copy())
+                self._multiline_buffer = []
+            else:
+                self._multiline_buffer.append(message)
+            return
+
         if not message:
             return
-        _logger.debug("Data received from %s: %r", self.peer_name, message)
         args = message.split(" ")
         self._dispatch_command(*args)
 
@@ -95,6 +106,19 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         }
         commands = {name: re.sub(r"^do_", "", name).upper() for name in eligible}
         return {commands[name]: responder for name, responder in eligible.items()}
+
+    def _read_multiline(self) -> asyncio.Future:
+        """Sets the protocol in multline input mode and returns a Future that will trigger once multi-line input is
+        complete.
+        """
+        loop = asyncio.get_running_loop()
+        self._multiline_future = loop.create_future()
+        self._multiline_future.add_done_callback(self._end_multiline_input_mode)
+        return self._multiline_future
+
+    def _end_multiline_input_mode(self, future: asyncio.Future):
+        if future is self._multiline_future:
+            self._multiline_future = None
 
     def _respond_ok(self, message: Optional[str] = "ok"):
         self._respond(200, message)
