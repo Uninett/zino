@@ -8,7 +8,6 @@ import inspect
 import logging
 import re
 import textwrap
-from asyncio import Transport
 from typing import Callable, Optional
 
 _logger = logging.getLogger(__name__)
@@ -27,10 +26,11 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
     """
 
     def __init__(self):
-        self.transport: Optional[Transport] = None
-        self._authenticated = False
+        self.transport: Optional[asyncio.Transport] = None
+        self._authenticated: bool = False
+        self._current_task: asyncio.Task = None
 
-    def connection_made(self, transport: Transport):
+    def connection_made(self, transport: asyncio.Transport):
         self.transport = transport
         _logger.debug("New server connection from %s", self.peer_name)
         self._respond_ok("PLACEHOLDER-CHALLENGE Hello, there")
@@ -63,10 +63,15 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
             return self._respond_error(f"{command} needs {required_args} parameters{arg_summary}")
 
         try:
-            return responder(*args)
+            self._current_task = asyncio.ensure_future(responder(*args))
+            self._current_task.add_done_callback(self._clear_current_task)
         except Exception:  # noqa
             _logger.exception("Unhandled exception when responding to %r with %r", command, responder)
             return self._respond_error("internal error")
+
+    def _clear_current_task(self, task: asyncio.Task):
+        if task is self._current_task:
+            self._current_task = None
 
     @property
     def peer_name(self):
@@ -109,7 +114,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         """Encodes and sends a response line to the connected client"""
         self.transport.write(f"{message}\r\n".encode("utf-8"))
 
-    def do_user(self, user: str, response: str):
+    async def do_user(self, user: str, response: str):
         """Implements the USER command"""
         if self.is_authenticated:
             return self._respond_error("already authenticated")
@@ -119,12 +124,12 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         else:
             return self._respond_error("bad auth")
 
-    def do_quit(self):
+    async def do_quit(self):
         """Implements the QUIT command"""
         self._respond(205, "Bye")
         self.transport.close()
 
-    def do_help(self):
+    async def do_help(self):
         responders = self._get_all_responders()
         if not self.is_authenticated:
             responders = {
@@ -135,7 +140,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         self._respond_multiline(200, ["commands are:"] + textwrap.wrap(commands, width=56))
 
     @requires_authentication
-    def do_authtest(self):
+    async def do_authtest(self):
         """Implements an AUTHTEST command that did not exist in the Zino 1 protocol. This is just used for verification
         of connection authentication status during development and can be removed later.
         """
