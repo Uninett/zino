@@ -1,8 +1,13 @@
+from io import BytesIO
 from unittest.mock import Mock, patch
 
 import pytest
 
-from zino.api.legacy import Zino1BaseServerProtocol, requires_authentication
+from zino.api.legacy import (
+    Zino1BaseServerProtocol,
+    Zino1ServerProtocol,
+    requires_authentication,
+)
 
 
 class TestZino1BaseServerProtocol:
@@ -129,6 +134,109 @@ class TestZino1BaseServerProtocol:
         assert "FOO" in result
         assert callable(result["FOO"])
 
+    def test_when_command_has_incorrect_number_of_args_then_an_error_response_should_be_sent(self):
+        class TestProtocol(Zino1BaseServerProtocol):
+            async def do_foo(self, arg1, arg2):
+                pass
+
+        protocol = TestProtocol()
+        fake_transport = Mock()
+        protocol.connection_made(fake_transport)
+        protocol.data_received(b"FOO bar\r\n")
+        assert fake_transport.write.called
+        response = fake_transport.write.call_args[0][0]
+        assert response.startswith(b"500 ")
+        assert b"arg1" in response, "arguments are not mentioned in response"
+        assert b"arg2" in response, "arguments are not mentioned in response"
+
+
+class TestZino1ServerProtocolUserCommand:
+    @pytest.mark.asyncio
+    async def test_when_correct_authentication_is_given_then_response_should_be_ok(self):
+        protocol = Zino1ServerProtocol()
+        fake_transport = Mock()
+        protocol.connection_made(fake_transport)
+        fake_transport.write = Mock()  # reset output after welcome banner
+        await protocol.data_received(b"USER foo bar\r\n")
+
+        assert fake_transport.write.called
+        response = fake_transport.write.call_args[0][0]
+        assert response.startswith(b"200 ")
+        assert protocol.is_authenticated
+
+    @pytest.mark.asyncio
+    async def test_when_incorrect_authentication_is_given_then_response_should_be_error(self):
+        protocol = Zino1ServerProtocol()
+        fake_transport = Mock()
+        protocol.connection_made(fake_transport)
+        fake_transport.write = Mock()  # reset output after welcome banner
+        await protocol.data_received(b"USER foo fake\r\n")
+
+        assert fake_transport.write.called
+        response = fake_transport.write.call_args[0][0]
+        assert response.startswith(b"500")
+        assert not protocol.is_authenticated
+
+    @pytest.mark.asyncio
+    async def test_when_authentication_is_attempted_more_than_once_then_response_should_be_error(self):
+        protocol = Zino1ServerProtocol()
+        fake_transport = Mock()
+        protocol.connection_made(fake_transport)
+
+        await protocol.data_received(b"USER foo bar\r\n")
+        assert protocol.is_authenticated
+
+        fake_transport.write = Mock()  # reset output after welcome banner
+        await protocol.data_received(b"USER another bar\r\n")
+        assert fake_transport.write.called
+        response = fake_transport.write.call_args[0][0]
+        assert response.startswith(b"500")
+
+
+class TestZino1ServerProtocolQuitCommand:
+    @pytest.mark.asyncio
+    async def test_when_quit_is_issued_then_transport_should_be_closed(self):
+        protocol = Zino1ServerProtocol()
+        fake_transport = Mock()
+        protocol.connection_made(fake_transport)
+        await protocol.data_received(b"QUIT\r\n")
+        assert fake_transport.close.called
+
+
+class TestZino1ServerProtocolHelpCommand:
+    @pytest.mark.asyncio
+    async def test_when_unauthenticated_help_is_issued_then_unauthenticated_commands_should_be_listed(
+        self, buffered_fake_transport
+    ):
+        protocol = Zino1ServerProtocol()
+        protocol.connection_made(buffered_fake_transport)
+
+        await protocol.data_received(b"HELP\r\n")
+
+        all_unauthenticated_command_names = set(
+            name
+            for name, func in protocol._get_all_responders().items()
+            if not getattr(func, "requires_authentication", False)
+        )
+        for command_name in all_unauthenticated_command_names:
+            assert (
+                command_name.encode() in buffered_fake_transport.data_buffer.getvalue()
+            ), f"{command_name} is not listed in HELP"
+
+    @pytest.mark.asyncio
+    async def test_when_authenticated_help_is_issued_then_all_commands_should_be_listed(self, buffered_fake_transport):
+        protocol = Zino1ServerProtocol()
+        protocol.connection_made(buffered_fake_transport)
+        protocol._authenticated = True  # fake authentication
+
+        await protocol.data_received(b"HELP\r\n")
+
+        all_command_names = set(protocol._get_all_responders())
+        for command_name in all_command_names:
+            assert (
+                command_name.encode() in buffered_fake_transport.data_buffer.getvalue()
+            ), f"{command_name} is not listed in HELP"
+
 
 def test_requires_authentication_should_set_function_attribute():
     @requires_authentication
@@ -136,3 +244,16 @@ def test_requires_authentication_should_set_function_attribute():
         pass
 
     assert throwaway.requires_authentication
+
+
+@pytest.fixture
+def buffered_fake_transport():
+    """Returns a mocked Transport object in which all written output is stored in a data_buffer attribute"""
+    fake_transport = Mock()
+    fake_transport.data_buffer = BytesIO()
+
+    def write_data(x: bytes):
+        fake_transport.data_buffer.write(x)
+
+    fake_transport.write = write_data
+    yield fake_transport
