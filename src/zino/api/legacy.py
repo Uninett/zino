@@ -149,11 +149,13 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         """Implements the USER command"""
         if self.is_authenticated:
             return self._respond_error("already authenticated")
-        if user == "foo" and response == "bar":
-            self._authenticated = True
-            return self._respond_ok("welcome")
+        try:
+            auth.authenticate(user=user, response=response, challenge=self._authentication_challenge)
+        except auth.AuthenticationFailure as error:
+            return self._respond_error(error)
         else:
-            return self._respond_error("bad auth")
+            self._authenticated = True
+            return self._respond_ok()
 
     async def do_quit(self):
         """Implements the QUIT command"""
