@@ -8,7 +8,8 @@ import inspect
 import logging
 import re
 import textwrap
-from typing import Callable, List, Optional
+from pathlib import Path
+from typing import Callable, List, Optional, Union
 
 from zino.api import auth
 
@@ -24,13 +25,15 @@ def requires_authentication(func: Callable) -> Callable:
 class Zino1BaseServerProtocol(asyncio.Protocol):
     """Base implementation of the Zino 1 protocol, with a basic command dispatcher for subclasses to utilize."""
 
-    def __init__(self):
+    def __init__(self, secrets_file: Optional[Union[Path, str]] = "secrets"):
         self.transport: Optional[asyncio.Transport] = None
         self._authenticated: bool = False
         self._current_task: asyncio.Task = None
         self._multiline_future: asyncio.Future = None
         self._multiline_buffer: List[str] = []
         self._authentication_challenge: Optional[str] = None
+
+        self._secrets_file = secrets_file
 
     @property
     def peer_name(self):
@@ -150,7 +153,9 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         if self.is_authenticated:
             return self._respond_error("already authenticated")
         try:
-            auth.authenticate(user=user, response=response, challenge=self._authentication_challenge)
+            auth.authenticate(
+                user=user, response=response, challenge=self._authentication_challenge, secrets_file=self._secrets_file
+            )
         except auth.AuthenticationFailure as error:
             return self._respond_error(error)
         else:
