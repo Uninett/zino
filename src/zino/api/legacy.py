@@ -10,6 +10,8 @@ import re
 import textwrap
 from typing import Callable, List, Optional
 
+from zino.api import auth
+
 _logger = logging.getLogger(__name__)
 
 
@@ -28,6 +30,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         self._current_task: asyncio.Task = None
         self._multiline_future: asyncio.Future = None
         self._multiline_buffer: List[str] = []
+        self._authentication_challenge: Optional[str] = None
 
     @property
     def peer_name(self):
@@ -40,7 +43,8 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
     def connection_made(self, transport: asyncio.Transport):
         self.transport = transport
         _logger.debug("New server connection from %s", self.peer_name)
-        self._respond_ok("PLACEHOLDER-CHALLENGE Hello, there")
+        self._authentication_challenge = auth.get_challenge()
+        self._respond_ok(f"{self._authentication_challenge} Hello, there")
 
     def data_received(self, data):
         try:
