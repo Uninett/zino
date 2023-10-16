@@ -6,6 +6,7 @@ import pytest
 from zino.api.legacy import (
     Zino1BaseServerProtocol,
     Zino1ServerProtocol,
+    ZinoTestProtocol,
     requires_authentication,
 )
 
@@ -149,6 +150,10 @@ class TestZino1BaseServerProtocol:
         assert b"arg1" in response, "arguments are not mentioned in response"
         assert b"arg2" in response, "arguments are not mentioned in response"
 
+    def test_when_command_is_not_alphanumeric_then_get_responder_should_ignore_it(self):
+        protocol = Zino1BaseServerProtocol()
+        assert protocol._get_responder("-340-405??#$") is None
+
 
 class TestZino1ServerProtocolUserCommand:
     @pytest.mark.asyncio
@@ -236,6 +241,35 @@ class TestZino1ServerProtocolHelpCommand:
             assert (
                 command_name.encode() in buffered_fake_transport.data_buffer.getvalue()
             ), f"{command_name} is not listed in HELP"
+
+
+class TestZino1TestProtocol:
+    @pytest.mark.asyncio
+    async def test_when_authenticated_then_authtest_should_respond_with_ok(self):
+        protocol = ZinoTestProtocol()
+        fake_transport = Mock()
+        protocol.connection_made(fake_transport)
+        protocol._authenticated = True  # Fake authentication
+        fake_transport.write = Mock()
+        await protocol.data_received(b"AUTHTEST\r\n")
+
+        assert fake_transport.write.called
+        assert fake_transport.write.call_args[0][0].startswith(b"200 ")
+
+    @pytest.mark.asyncio
+    async def test_multitest_should_accept_multiline_input(self, buffered_fake_transport, event_loop):
+        class MockProtocol(ZinoTestProtocol):
+            def _read_multiline(self):
+                future = event_loop.create_future()
+                future.set_result(["one", "two"])
+                return future
+
+        protocol = MockProtocol()
+        protocol.connection_made(buffered_fake_transport)
+
+        await protocol.do_multitest()
+        assert b"302 " in buffered_fake_transport.data_buffer.getvalue()
+        assert b"200 ok" in buffered_fake_transport.data_buffer.getvalue()
 
 
 def test_requires_authentication_should_set_function_attribute():
