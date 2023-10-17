@@ -9,6 +9,8 @@ from zino.api.legacy import (
     ZinoTestProtocol,
     requires_authentication,
 )
+from zino.state import ZinoState
+from zino.statemodels import ReachabilityEvent
 
 
 class TestZino1BaseServerProtocol:
@@ -264,6 +266,24 @@ class TestZino1ServerProtocolHelpCommand:
             assert (
                 command_name.encode() in buffered_fake_transport.data_buffer.getvalue()
             ), f"{command_name} is not listed in HELP"
+
+
+class TestZino1ServerProtocolCaseidsCommand:
+    @pytest.mark.asyncio
+    async def test_should_output_a_list_of_known_event_ids(self, buffered_fake_transport):
+        state = ZinoState()
+        event1 = state.events.create_event("foo", None, ReachabilityEvent)
+        event2 = state.events.create_event("bar", None, ReachabilityEvent)
+
+        protocol = Zino1ServerProtocol(state=state)
+        protocol.connection_made(buffered_fake_transport)
+        protocol._authenticated = True  # fake authentication
+
+        await protocol.data_received(b"CASEIDS\r\n")
+
+        output = buffered_fake_transport.data_buffer.getvalue()
+        assert f"{event1.id}\r\n".encode() in output
+        assert f"{event2.id}\r\n".encode() in output
 
 
 class TestZino1TestProtocol:
