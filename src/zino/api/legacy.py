@@ -78,16 +78,17 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
             arg_summary = " (" + ", ".join(signature.parameters.keys()) + ")" if signature.parameters else ""
             return self._respond_error(f"{command} needs {required_args} parameters{arg_summary}")
 
-        try:
-            self._current_task = asyncio.ensure_future(responder(*args))
-            self._current_task.add_done_callback(self._clear_current_task)
-            return self._current_task
-        except Exception:  # noqa
-            _logger.exception("Unhandled exception when responding to %r with %r", command, responder)
-            return self._respond_error("internal error")
+        self._current_task = asyncio.create_task(self._run_async_responder(command, responder, *args))
+        return self._current_task
 
-    def _clear_current_task(self, task: asyncio.Task):
-        if task is self._current_task:
+    async def _run_async_responder(self, command: str, responder: Callable, *args):
+        """Runs a command responder function asynchronously, ensuring that unhandled exceptions are dealt with"""
+        try:
+            await asyncio.ensure_future(responder(*args))
+        except Exception as error:  # noqa
+            _logger.exception("unhandled exception raised during processing of %s command: %r", command, error)
+            self._respond(500, "internal error")
+        finally:
             self._current_task = None
 
     def _get_responder(self, command: str):
@@ -184,3 +185,9 @@ class ZinoTestProtocol(Zino1ServerProtocol):
         data = await self._read_multiline()
         _logger.debug("Received MULTITEST multiline data from %s: %r", self.peer_name, data)
         self._respond_ok()
+
+    async def do_raiseerror(self):
+        """Implements a RAISEERROR command that did not exist in the Zino 1 protocol. This is just used for testing
+        that exceptions that go unhandled by a command responder is handled by the protocol engine.
+        """
+        1 / 0  # noqa

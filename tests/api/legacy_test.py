@@ -39,17 +39,18 @@ class TestZino1BaseServerProtocol:
         assert fake_transport.write.called
         assert fake_transport.write.call_args[0][0].startswith(b"200 ")
 
-    def test_when_simple_data_line_is_received_then_command_should_be_dispatched(self):
+    @pytest.mark.asyncio
+    async def test_when_simple_data_line_is_received_then_command_should_be_dispatched(self):
         args = []
 
         class TestProtocol(Zino1BaseServerProtocol):
-            def do_foo(self, one, two):
+            async def do_foo(self, one, two):
                 args.extend((one, two))
 
         protocol = TestProtocol()
         fake_transport = Mock()
         protocol.connection_made(fake_transport)
-        protocol.data_received(b"FOO bar eggs\r\n")
+        await protocol.data_received(b"FOO bar eggs\r\n")
 
         assert args == ["bar", "eggs"], "do_foo() was apparently not called"
 
@@ -153,6 +154,26 @@ class TestZino1BaseServerProtocol:
     def test_when_command_is_not_alphanumeric_then_get_responder_should_ignore_it(self):
         protocol = Zino1BaseServerProtocol()
         assert protocol._get_responder("-340-405??#$") is None
+
+    @pytest.mark.asyncio
+    async def test_when_command_raises_unhandled_exception_then_error_response_should_be_sent(
+        self, buffered_fake_transport
+    ):
+        protocol = ZinoTestProtocol()
+        protocol.connection_made(buffered_fake_transport)
+
+        await protocol.data_received(b"RAISEERROR\r\n")
+        assert b"500 internal error" in buffered_fake_transport.data_buffer.getvalue()
+
+    @pytest.mark.asyncio
+    async def test_when_command_raises_unhandled_exception_then_exception_should_be_logged(
+        self, buffered_fake_transport, caplog
+    ):
+        protocol = ZinoTestProtocol()
+        protocol.connection_made(buffered_fake_transport)
+
+        await protocol.data_received(b"RAISEERROR\r\n")
+        assert "ZeroDivisionError" in caplog.text
 
 
 class TestZino1ServerProtocolUserCommand:
