@@ -184,6 +184,13 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         commands = " ".join(sorted(responders))
         self._respond_multiline(200, ["commands are:"] + textwrap.wrap(commands, width=56))
 
+    @requires_authentication
+    async def do_caseids(self):
+        self._respond(304, "list of active cases follows, terminated with '.'")
+        for event_id in sorted(self._state.events.events):
+            self._respond_raw(str(event_id))
+        self._respond_raw(".")
+
 
 class ZinoTestProtocol(Zino1ServerProtocol):
     """Extended Zino 1 server protocol with test commands added in"""
