@@ -195,6 +195,21 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
             self._respond_raw(str(event_id))
         self._respond_raw(".")
 
+    @requires_authentication
+    async def do_getattrs(self, case_id: Union[str, int]):
+        try:
+            case_id = int(case_id)
+            event = self._state.events[case_id]
+        except (ValueError, KeyError):
+            return self._respond_error(f'event "{case_id}" does not exist')
+
+        self._respond(303, "simple attributes follow, terminated with '.'")
+        attrs = event.model_dump_simple_attrs()
+        for attr, value in attrs.items():
+            self._respond_raw(f"{attr}: {value}")
+
+        self._respond_raw(".")
+
 
 class ZinoTestProtocol(Zino1ServerProtocol):
     """Extended Zino 1 server protocol with test commands added in"""
