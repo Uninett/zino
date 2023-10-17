@@ -1,5 +1,6 @@
+import ipaddress
 import logging
-from typing import Dict
+from typing import Dict, Literal
 
 from zino.scheduler import get_scheduler
 from zino.snmp import SNMP, SparseWalkResponse
@@ -9,6 +10,7 @@ from zino.statemodels import (
     BFDState,
     DeviceState,
     EventState,
+    IPAddress,
     Port,
 )
 from zino.tasks.task import Task
@@ -22,6 +24,9 @@ class BFDTask(Task):
     JUNIPER_BFD_COLUMNS = [
         ("BFD-STD-MIB", "bfdSessState"),
         ("JUNIPER-BFD-MIB", "jnxBfdSessIntfName"),  # This should match IfDescr from the IF-MIB
+        ("BFD-STD-MIB", "bfdSessDiscriminator"),
+        ("BFD-STD-MIB", "bfdSessAddr"),
+        ("BFD-STD-MIB", "bfdSessAddrType"),
     ]
 
     def __init__(self, *args, **kwargs):
@@ -53,9 +58,10 @@ class BFDTask(Task):
             event.state = EventState.OPEN
             event.add_history("Change state to Open")
 
-        event.session_index = new_state.session_index
-        event.session_state = new_state.session_state
-        event.ifindex = port.ifindex
+        event.bfdstate = new_state.session_state
+        event.bfdix = new_state.session_index
+        event.bfddiscr = new_state.session_discr
+        event.bfdaddr = new_state.session_addr
 
         log = f"Port {port.ifdescr} changed BFD state from {port.bfd_state.session_state} to {new_state.session_state}"
         event.add_log(log)
@@ -71,13 +77,37 @@ class BFDTask(Task):
         for index, row in bfd_rows.items():
             interface_name = row["jnxBfdSessIntfName"]
             session_state = row["bfdSessState"]
+            session_discr = row["bfdSessDiscriminator"]
+            session_addr = row["bfdSessAddr"]  # This is a string containing bytes (ex. '\x7f\x00\00x\01')
+            session_addr_type = row["bfdSessAddrType"]
+
+            try:
+                encoded_bytes = str.encode(session_addr, "utf-8")
+                ipaddr = self._convert_address(encoded_bytes, session_addr_type)
+            except ValueError as e:
+                _log.error(f"Error converting bfdSessAddr object to an IP address: {e}")
+                ipaddr = None
+
             # convert from OID object to int
             session_index = int(index[0])
-            bfd_states[interface_name] = BFDState(
+            bfd_state = BFDState(
                 session_state=BFDSessState(session_state),
                 session_index=session_index,
+                session_discr=session_discr,
+                session_addr=ipaddr,
             )
+            bfd_states[interface_name] = bfd_state
         return bfd_states
+
+    @classmethod
+    def _convert_address(cls, address: bytes, address_type: Literal["ipv4", "ipv6"]) -> IPAddress:
+        """Converts bytes to either an ipv4 or ipv6 address"""
+        if address_type == "ipv4":
+            return ipaddress.IPv4Address(address)
+        elif address_type == "ipv6":
+            return ipaddress.IPv6Address(address)
+        else:
+            raise ValueError("address_type must be either ipv4 or ipv6")
 
     @property
     def _device_state(self) -> DeviceState:

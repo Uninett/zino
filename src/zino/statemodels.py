@@ -44,6 +44,8 @@ class BFDState(BaseModel):
 
     session_state: BFDSessState
     session_index: Optional[int] = None
+    session_discr: Optional[int] = None
+    session_addr: Optional[IPAddress] = None
 
 
 class Port(BaseModel):
@@ -197,9 +199,10 @@ class BGPEvent(Event):
 
 class BFDEvent(Event):
     type: Literal["bfd"] = "bfd"
-    ifindex: Optional[int] = None
-    session_index: Optional[int] = None
-    session_state: Optional[BFDSessState] = None
+    bfdstate: Optional[BFDSessState] = None
+    bfdix: Optional[int] = None
+    bfddiscr: Optional[int] = None
+    bfdaddr: Optional[IPAddress] = None
 
 
 class ReachabilityEvent(Event):
