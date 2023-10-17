@@ -2,7 +2,7 @@
 import datetime
 from enum import Enum
 from ipaddress import IPv4Address, IPv6Address
-from typing import Dict, List, Literal, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, Field
 
@@ -188,6 +188,27 @@ class Event(BaseModel):
         entry = LogEntry(message=message)
         self.history.append(entry)
         return entry
+
+    def model_dump_simple_attrs(self) -> dict[str, str]:
+        """Serializes the "simple" attributes of this event to the text format used by the legacy Zino protocol.
+
+        "Simple" attributes are typically "single line" public attributes, i.e. anything but `log` or `history`.
+
+        It would be nice to be able to attach custom serializers to fields, but we need to support multiple
+        serialization formats (one for JSON state dumps, one for the legacy Zino protocol), and it's not clear how
+        Pydantic can support that.
+        """
+        attrs = self.model_dump(mode="python", exclude={"log", "history"}, exclude_none=True)
+        return {attr: self.zinoify_value(value) for attr, value in attrs.items()}
+
+    @staticmethod
+    def zinoify_value(value: Any) -> str:
+        """Serializes an Event value into a plain string in the format expected by the legacy Zino protocol"""
+        if isinstance(value, Enum):
+            return str(value.value)
+        if isinstance(value, datetime.datetime):
+            return str(int(value.timestamp()))
+        return str(value)
 
 
 class PortStateEvent(Event):
