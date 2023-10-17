@@ -29,14 +29,14 @@ class InterfaceState(StrEnum):
     LOWER_LAYER_DOWN = "lowerLayerDown"
 
 
-class BFDSessState(Enum):
+class BFDSessState(StrEnum):
     """The set of allowable BFD session states"""
 
-    ADMINDOWN = "adminDown"
+    ADMIN_DOWN = "adminDown"
     DOWN = "down"
     INIT = "init"
     UP = "up"
-    NOSESSION = "noSession"
+    NO_SESSION = "noSession"
 
 
 class BFDState(BaseModel):

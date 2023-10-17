@@ -36,7 +36,7 @@ class BFDTask(Task):
 
     def _update_state_for_all_ports(self, polled_state: BFDStates):
         for port in self._device_state.ports.values():
-            new_state = polled_state.get(port.ifdescr, BFDState(session_state=BFDSessState.NOSESSION))
+            new_state = polled_state.get(port.ifdescr, BFDState(session_state=BFDSessState.NO_SESSION))
             self._update_state(port, new_state)
 
     def _update_state(self, port: Port, new_state: BFDState):
