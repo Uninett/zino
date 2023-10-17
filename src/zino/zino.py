@@ -36,7 +36,7 @@ def init_event_loop(args: argparse.Namespace):
     scheduler.add_job(func=state.state.dump_state_to_log, trigger="interval", seconds=30)
 
     loop = asyncio.get_event_loop()
-    echo = loop.create_server(lambda: ZinoTestProtocol(), "127.0.0.1", 8001)
+    echo = loop.create_server(lambda: ZinoTestProtocol(state=state.state), "127.0.0.1", 8001)
     server = loop.run_until_complete(echo)
     _log.info("Serving on %r", server.sockets[0].getsockname())
     try:
