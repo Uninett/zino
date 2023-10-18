@@ -329,6 +329,74 @@ class TestZino1ServerProtocolGetattrsCommand:
         assert "\r\n500 " in output
 
 
+class TestZino1ServerProtocolGethistCommand:
+    @pytest.mark.asyncio
+    async def test_should_output_all_lines(self, buffered_fake_transport):
+        state = ZinoState()
+        event = state.events.create_event("foo", None, ReachabilityEvent)
+        event.add_history("line one\nline two\nline three")
+        event.add_history("another line one\nanother line two\nanother line")
+
+        protocol = Zino1ServerProtocol(state=state)
+        protocol.connection_made(buffered_fake_transport)
+        protocol._authenticated = True  # fake authentication
+
+        await protocol.data_received(f"GETHIST {event.id}\r\n".encode())
+
+        output: str = buffered_fake_transport.data_buffer.getvalue().decode()
+
+        output = output[output.find("301 history follows") :]
+        lines = output.splitlines()
+        assert len(lines) == 8
+        assert lines[-1] == "."
+        assert all(line[0].isdigit() or line.startswith(" ") for line in lines[:-1])
+
+    @pytest.mark.asyncio
+    async def test_when_caseid_is_invalid_it_should_output_error(self, buffered_fake_transport):
+        protocol = Zino1ServerProtocol()
+        protocol.connection_made(buffered_fake_transport)
+        protocol._authenticated = True  # fake authentication
+
+        await protocol.data_received(b"GETHIST 999\r\n")
+
+        output = buffered_fake_transport.data_buffer.getvalue().decode()
+        assert "\r\n500 " in output
+
+
+class TestZino1ServerProtocolGetlogCommand:
+    @pytest.mark.asyncio
+    async def test_should_output_all_lines(self, buffered_fake_transport):
+        state = ZinoState()
+        event = state.events.create_event("foo", None, ReachabilityEvent)
+        event.add_log("line one\nline two\nline three")
+        event.add_log("another line one\nanother line two\nanother line")
+
+        protocol = Zino1ServerProtocol(state=state)
+        protocol.connection_made(buffered_fake_transport)
+        protocol._authenticated = True  # fake authentication
+
+        await protocol.data_received(f"GETLOG {event.id}\r\n".encode())
+
+        output: str = buffered_fake_transport.data_buffer.getvalue().decode()
+
+        output = output[output.find("300 log follows") :]
+        lines = output.splitlines()
+        assert len(lines) == 8
+        assert lines[-1] == "."
+        assert all(line[0].isdigit() or line.startswith(" ") for line in lines[:-1])
+
+    @pytest.mark.asyncio
+    async def test_when_caseid_is_invalid_it_should_output_error(self, buffered_fake_transport):
+        protocol = Zino1ServerProtocol()
+        protocol.connection_made(buffered_fake_transport)
+        protocol._authenticated = True  # fake authentication
+
+        await protocol.data_received(b"GETLOG 999\r\n")
+
+        output = buffered_fake_transport.data_buffer.getvalue().decode()
+        assert "\r\n500 " in output
+
+
 class TestZino1TestProtocol:
     @pytest.mark.asyncio
     async def test_when_authenticated_then_authtest_should_respond_with_ok(self):
