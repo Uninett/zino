@@ -72,11 +72,10 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         if getattr(responder, "requires_authentication", False) and not self.is_authenticated:
             return self._respond_error("Not authenticated")
 
-        signature = inspect.signature(responder)
-        required_args = len(signature.parameters)
-        if len(args) != required_args:
-            arg_summary = " (" + ", ".join(signature.parameters.keys()) + ")" if signature.parameters else ""
-            return self._respond_error(f"{command} needs {required_args} parameters{arg_summary}")
+        required_args = inspect.signature(responder).parameters
+        if len(args) != len(required_args):
+            arg_summary = " (" + ", ".join(required_args.keys()) + ")" if required_args else ""
+            return self._respond_error(f"{command} needs {len(required_args)} parameters{arg_summary}")
 
         self._current_task = asyncio.create_task(self._run_async_responder(command, responder, *args))
         return self._current_task
