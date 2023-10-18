@@ -135,6 +135,13 @@ class LogEntry(BaseModel):
     timestamp: datetime.datetime = Field(default_factory=now)
     message: str
 
+    def model_dump_legacy(self) -> List[str]:
+        """Returns the contents of this log entry in the text format expected on the Zino legacy server protocol"""
+        unix_timestamp = int(self.timestamp.timestamp())
+        lines = [f" {line}" for line in self.message.splitlines()]
+        lines[0] = f"{unix_timestamp}{lines[0]}"
+        return lines
+
 
 class EventState(Enum):
     """The set of allowable event states"""
