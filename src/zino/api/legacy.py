@@ -210,6 +210,21 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
 
         self._respond_raw(".")
 
+    @requires_authentication
+    async def do_gethist(self, case_id: Union[str, int]):
+        try:
+            case_id = int(case_id)
+            event = self._state.events[case_id]
+        except (ValueError, KeyError):
+            return self._respond_error(f'event "{case_id}" does not exist')
+
+        self._respond(301, "history follows, terminated with '.'")
+        for history in event.history:
+            for line in history.model_dump_legacy():
+                self._respond_raw(line)
+
+        self._respond_raw(".")
+
 
 class ZinoTestProtocol(Zino1ServerProtocol):
     """Extended Zino 1 server protocol with test commands added in"""
