@@ -2,7 +2,7 @@ import datetime
 import logging
 import re
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 from zino.snmp import SNMP, SparseWalkResponse
 from zino.statemodels import EventState, InterfaceState, Port, PortStateEvent
@@ -40,7 +40,7 @@ class LinkStateTask(Task):
     case: Descriptions are mandated for both physical ports and their sub-units.
     """
 
-    sysuptime: Optional[int] = 0
+    sysuptime: int = 0
 
     async def run(self):
         snmp = SNMP(self.device)
