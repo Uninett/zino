@@ -300,6 +300,35 @@ class TestZino1ServerProtocolVersionCommand:
         assert expected in buffered_fake_transport.data_buffer.getvalue()
 
 
+class TestZino1ServerProtocolGetattrsCommand:
+    @pytest.mark.asyncio
+    async def test_should_output_correct_attrs(self, buffered_fake_transport):
+        state = ZinoState()
+        event1 = state.events.create_event("foo", None, ReachabilityEvent)
+
+        protocol = Zino1ServerProtocol(state=state)
+        protocol.connection_made(buffered_fake_transport)
+        protocol._authenticated = True  # fake authentication
+
+        await protocol.data_received(f"GETATTRS {event1.id}\r\n".encode())
+
+        output = buffered_fake_transport.data_buffer.getvalue().decode()
+        assert f"id: {event1.id}\r\n" in output
+        assert f"router: {event1.router}\r\n" in output
+        assert f"state: {event1.state.value}\r\n" in output
+
+    @pytest.mark.asyncio
+    async def test_when_caseid_is_invalid_it_should_output_error(self, buffered_fake_transport):
+        protocol = Zino1ServerProtocol()
+        protocol.connection_made(buffered_fake_transport)
+        protocol._authenticated = True  # fake authentication
+
+        await protocol.data_received(b"GETATTRS 42\r\n")
+
+        output = buffered_fake_transport.data_buffer.getvalue().decode()
+        assert "\r\n500 " in output
+
+
 class TestZino1TestProtocol:
     @pytest.mark.asyncio
     async def test_when_authenticated_then_authtest_should_respond_with_ok(self):
