@@ -7,6 +7,7 @@ from zino.statemodels import (
     DeviceStates,
     Event,
     EventState,
+    LogEntry,
     ReachabilityEvent,
 )
 
@@ -47,6 +48,34 @@ class TestEvent:
                 return "foo"
 
         assert Event.zinoify_value(Throwaway()) == "foo"
+
+
+class TestLogEntryModelDumpLegacy:
+    def test_should_be_prefixed_by_timestamp(self):
+        entry = LogEntry(message="foobar")
+        lines = entry.model_dump_legacy()
+        timestamp, message = lines[0].split(" ")
+
+        assert timestamp.isdigit()
+        assert message == "foobar"
+
+    def test_when_message_is_single_line_it_should_return_a_single_line(self):
+        entry = LogEntry(message="foobar")
+        lines = entry.model_dump_legacy()
+
+        assert len(lines) == 1
+
+    def test_when_message_is_multi_line_it_should_return_the_correct_number_of_lines(self):
+        entry = LogEntry(message="one\ntwo\nthree")
+        lines = entry.model_dump_legacy()
+
+        assert len(lines) == 3
+
+    def test_when_message_is_multi_line_continuation_lines_should_be_prefixed_by_space(self):
+        entry = LogEntry(message="one\ntwo\nthree")
+        lines = entry.model_dump_legacy()
+
+        assert all(line.startswith(" ") for line in lines[1:])
 
 
 class TestDeviceState:
