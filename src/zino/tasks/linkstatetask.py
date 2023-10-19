@@ -1,3 +1,4 @@
+import datetime
 import logging
 import re
 from dataclasses import dataclass
@@ -39,10 +40,13 @@ class LinkStateTask(Task):
     case: Descriptions are mandated for both physical ports and their sub-units.
     """
 
+    sysuptime: int = 0
+
     async def run(self):
         snmp = SNMP(self.device)
         poll_list = [("IF-MIB", column) for column in BASE_POLL_LIST]
         attrs = await snmp.sparsewalk(*poll_list)
+        self.sysuptime = await self._get_uptime(snmp)
         _logger.debug("%s ifattrs: %r", self.device.name, attrs)
 
         self._update_interfaces(attrs)
@@ -81,10 +85,10 @@ class LinkStateTask(Task):
             state = data.oper_status
         state = InterfaceState(state)
         if port.state and port.state != state:
-            self._make_or_update_state_event(port, state)
+            self._make_or_update_state_event(port, state, data.last_change)
         port.state = state
 
-    def _make_or_update_state_event(self, port: Port, new_state: InterfaceState):
+    def _make_or_update_state_event(self, port: Port, new_state: InterfaceState, last_change: int):
         event, created = self.state.events.get_or_create_event(self.device.name, port.ifindex, PortStateEvent)
         if created:
             event.state = EventState.OPEN
@@ -96,10 +100,12 @@ class LinkStateTask(Task):
         event.priority = self.device.priority
         event.descr = port.ifdescr
 
-        # this is where we need to use sysUpTime and ifLastChange to calculate a timestamp for the change
+        uptime = self.sysuptime or last_change
+        event_time = datetime.datetime.now() - datetime.timedelta(seconds=(uptime - last_change) / 100)
+
         log = (
             f'{event.router}: port "{port.ifdescr}" ix {port.ifindex} ({port.ifalias}) '
-            f"changed state from {port.state} to {new_state} on TIMESTAMP"
+            f"changed state from {port.state} to {new_state} on {event_time}"
         )
         _logger.info(log)
         event.add_log(log)
@@ -137,6 +143,14 @@ class LinkStateTask(Task):
             else:
                 _logger.info("%s: setting desc for %s to %s", self.device.name, data.index, data.alias)
             port.ifalias = data.alias
+
+    async def _get_uptime(self, snmp: SNMP) -> int:
+        """Polls and returns the device sysuptime value, while also recording the device boot time"""
+        device_state = self.state.devices.get(self.device.name)
+        response = await snmp.get("SNMPv2-MIB", "sysUpTime", 0)
+        uptime = response.value
+        device_state.set_boot_time_from_uptime(uptime)
+        return uptime
 
 
 class MissingInterfaceTableData(Exception):
