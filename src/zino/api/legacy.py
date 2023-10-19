@@ -14,6 +14,7 @@ from typing import Callable, List, Optional, Union
 from zino import version
 from zino.api import auth
 from zino.state import ZinoState
+from zino.statemodels import Event
 
 _logger = logging.getLogger(__name__)
 
@@ -204,14 +205,24 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
             self._respond_raw(str(event_id))
         self._respond_raw(".")
 
-    @requires_authentication
-    async def do_getattrs(self, case_id: Union[str, int]):
-        try:
-            case_id = int(case_id)
-            event = self._state.events[case_id]
-        except (ValueError, KeyError):
-            return self._respond_error(f'event "{case_id}" does not exist')
+    def _translate_case_id_to_event(responder: callable):  # noqa
+        """Decorates any command that works with events/cases, adding verification of the incoming case_id argument
+        and translation to an actual Event object.
+        """
 
+        def _verify(self, case_id: Union[str, int]):
+            try:
+                case_id = int(case_id)
+                event = self._state.events[case_id]
+            except (ValueError, KeyError):
+                return self._respond_error(f'event "{case_id}" does not exist')
+            return responder(self, event)
+
+        return _verify
+
+    @requires_authentication
+    @_translate_case_id_to_event
+    async def do_getattrs(self, event: Event):
         self._respond(303, "simple attributes follow, terminated with '.'")
         attrs = event.model_dump_simple_attrs()
         for attr, value in attrs.items():
@@ -220,13 +231,8 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         self._respond_raw(".")
 
     @requires_authentication
-    async def do_gethist(self, case_id: Union[str, int]):
-        try:
-            case_id = int(case_id)
-            event = self._state.events[case_id]
-        except (ValueError, KeyError):
-            return self._respond_error(f'event "{case_id}" does not exist')
-
+    @_translate_case_id_to_event
+    async def do_gethist(self, event: Event):
         self._respond(301, "history follows, terminated with '.'")
         for history in event.history:
             for line in history.model_dump_legacy():
@@ -235,13 +241,8 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         self._respond_raw(".")
 
     @requires_authentication
-    async def do_getlog(self, case_id: Union[str, int]):
-        try:
-            case_id = int(case_id)
-            event = self._state.events[case_id]
-        except (ValueError, KeyError):
-            return self._respond_error(f'event "{case_id}" does not exist')
-
+    @_translate_case_id_to_event
+    async def do_getlog(self, event: Event):
         self._respond(300, "log follows, terminated with '.'")
         for log in event.log:
             for line in log.model_dump_legacy():
@@ -250,13 +251,8 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         self._respond_raw(".")
 
     @requires_authentication
-    async def do_addhist(self, case_id: Union[str, int]):
-        try:
-            case_id = int(case_id)
-            event = self._state.events[case_id]
-        except (ValueError, KeyError):
-            return self._respond_error(f'event "{case_id}" does not exist')
-
+    @_translate_case_id_to_event
+    async def do_addhist(self, event: Event):
         self._respond(302, "please provide new history entry, terminate with '.'")
         data = await self._read_multiline()
         message = f"{self.user}\n" + "\n".join(line.strip() for line in data)
