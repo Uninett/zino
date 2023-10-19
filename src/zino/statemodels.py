@@ -85,7 +85,7 @@ class DeviceState(BaseModel):
 
         :param uptime: An uptime value in 100ths of a second
         """
-        self.boot_time = datetime.datetime.now() - datetime.timedelta(seconds=uptime / 100)
+        self.boot_time = now() - datetime.timedelta(seconds=uptime / 100)
 
 
 class DeviceStates(BaseModel):
