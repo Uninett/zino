@@ -249,6 +249,22 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
 
         self._respond_raw(".")
 
+    @requires_authentication
+    async def do_addhist(self, case_id: Union[str, int]):
+        try:
+            case_id = int(case_id)
+            event = self._state.events[case_id]
+        except (ValueError, KeyError):
+            return self._respond_error(f'event "{case_id}" does not exist')
+
+        self._respond(302, "please provide new history entry, terminate with '.'")
+        data = await self._read_multiline()
+        message = f"{self.user}\n" + "\n".join(line.strip() for line in data)
+        event.add_history(message)
+        _logger.debug("id %s history added: %r", event.id, message)
+
+        self._respond_ok()
+
 
 class ZinoTestProtocol(Zino1ServerProtocol):
     """Extended Zino 1 server protocol with test commands added in"""
