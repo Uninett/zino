@@ -361,6 +361,45 @@ class TestZino1ServerProtocolGetlogCommand:
         assert "\r\n500 " in output
 
 
+class TestZino1ServerProtocolAddhistCommand:
+    @pytest.mark.asyncio
+    async def test_should_add_history_entry_to_event(self, authenticated_protocol, event_loop):
+        state = authenticated_protocol._state
+        event = state.events.create_event("foo", None, ReachabilityEvent)
+
+        def mock_multiline():
+            future = event_loop.create_future()
+            future.set_result(["one", "two"])
+            return future
+
+        with patch.object(authenticated_protocol, "_read_multiline", mock_multiline):
+            pre_count = len(event.history)
+            await authenticated_protocol.do_addhist(event.id)
+            assert len(event.history) > pre_count
+
+    @pytest.mark.asyncio
+    async def test_should_prefix_history_message_with_username(self, authenticated_protocol, event_loop):
+        state = authenticated_protocol._state
+        event = state.events.create_event("foo", None, ReachabilityEvent)
+
+        def mock_multiline():
+            future = event_loop.create_future()
+            future.set_result(["sapient foobar", "cromulent dingbat"])
+            return future
+
+        with patch.object(authenticated_protocol, "_read_multiline", mock_multiline):
+            await authenticated_protocol.do_addhist(event.id)
+            entry = event.history[-1]
+            assert entry.message.startswith(authenticated_protocol.user)
+
+    @pytest.mark.asyncio
+    async def test_when_caseid_is_invalid_it_should_output_error(self, authenticated_protocol):
+        await authenticated_protocol.data_received(b"ADDHIST 999\r\n")
+
+        output = authenticated_protocol.transport.data_buffer.getvalue().decode()
+        assert "\r\n500 " in output
+
+
 class TestZino1TestProtocol:
     @pytest.mark.asyncio
     async def test_when_authenticated_then_authtest_should_respond_with_ok(self):
