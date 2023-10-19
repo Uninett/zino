@@ -35,7 +35,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         :param secrets_file: An optional alternative path to the file containing users and their secrets.
         """
         self.transport: Optional[asyncio.Transport] = None
-        self._authenticated: bool = False
+        self._authenticated_as: Optional[str] = None
         self._current_task: asyncio.Task = None
         self._multiline_future: asyncio.Future = None
         self._multiline_buffer: List[str] = []
@@ -45,12 +45,21 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         self._secrets_file = secrets_file
 
     @property
-    def peer_name(self):
+    def peer_name(self) -> str:
         return self.transport.get_extra_info("peername") if self.transport else None
 
     @property
-    def is_authenticated(self):
-        return self._authenticated
+    def is_authenticated(self) -> bool:
+        return bool(self._authenticated_as)
+
+    @property
+    def user(self) -> Optional[str]:
+        """Returns the username of the authenticated user"""
+        return self._authenticated_as
+
+    @user.setter
+    def user(self, user_name: str):
+        self._authenticated_as = user_name
 
     def connection_made(self, transport: asyncio.Transport):
         self.transport = transport
@@ -167,7 +176,7 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         except auth.AuthenticationFailure as error:
             return self._respond_error(error)
         else:
-            self._authenticated = True
+            self.user = user
             return self._respond_ok()
 
     async def do_quit(self):

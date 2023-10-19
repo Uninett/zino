@@ -120,7 +120,7 @@ class TestZino1BaseServerProtocol:
         protocol = TestProtocol()
         fake_transport = Mock()
         protocol.connection_made(fake_transport)
-        protocol._authenticated = True  # Fake authentication
+        protocol.user = "fake"
         fake_transport.write = Mock()
         await protocol.data_received(b"FOO\r\n")
 
@@ -367,7 +367,7 @@ class TestZino1TestProtocol:
         protocol = ZinoTestProtocol()
         fake_transport = Mock()
         protocol.connection_made(fake_transport)
-        protocol._authenticated = True  # Fake authentication
+        protocol.user = "foo"
         fake_transport.write = Mock()
         await protocol.data_received(b"AUTHTEST\r\n")
 
@@ -416,5 +416,5 @@ def authenticated_protocol(buffered_fake_transport) -> Zino1ServerProtocol:
     """Returns a pre-authenticated Zino1ServerProtocol instance with a `buffered_fake_transport`"""
     protocol = Zino1ServerProtocol()
     protocol.connection_made(buffered_fake_transport)
-    protocol._authenticated = True
-    return protocol
+    protocol.user = "fake"
+    yield protocol
