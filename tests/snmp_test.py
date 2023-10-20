@@ -22,7 +22,7 @@ def ipv6_snmp_client(snmpsim, snmp_test_port) -> SNMP:
     return SNMP(device)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def unreachable_snmp_client():
     mock_results = errind.RequestTimedOut(), None, None, []
     future = asyncio.Future()
