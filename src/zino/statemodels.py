@@ -29,6 +29,25 @@ class InterfaceState(StrEnum):
     LOWER_LAYER_DOWN = "lowerLayerDown"
 
 
+class BFDSessState(StrEnum):
+    """The set of allowable BFD session states"""
+
+    ADMIN_DOWN = "adminDown"
+    DOWN = "down"
+    INIT = "init"
+    UP = "up"
+    NO_SESSION = "noSession"
+
+
+class BFDState(BaseModel):
+    """Keeps BFD state for an interface"""
+
+    session_state: BFDSessState
+    session_index: Optional[int] = None
+    session_discr: Optional[int] = None
+    session_addr: Optional[IPAddress] = None
+
+
 class Port(BaseModel):
     """Keeps port state"""
 
@@ -36,6 +55,7 @@ class Port(BaseModel):
     ifdescr: Optional[str] = None
     ifalias: Optional[str] = None
     state: Optional[InterfaceState] = None
+    bfd_state: Optional[BFDState] = None
 
 
 class DeviceState(BaseModel):
@@ -186,6 +206,7 @@ class BGPEvent(Event):
 
 class BFDEvent(Event):
     type: Literal["bfd"] = "bfd"
+    bfdstate: Optional[BFDSessState] = None
     bfdix: Optional[int] = None
     bfddiscr: Optional[int] = None
     bfdaddr: Optional[IPAddress] = None
