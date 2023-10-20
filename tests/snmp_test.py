@@ -29,7 +29,7 @@ def unreachable_snmp_client():
     future.set_result(mock_results)
     timeout_mock = Mock(return_value=future)
     with patch.multiple("zino.snmp", getCmd=timeout_mock, nextCmd=timeout_mock, bulkCmd=timeout_mock):
-        device = PollDevice(name="nonexist", address="127.0.0.1", community="invalid", port=666, timeout=1, retries=0)
+        device = PollDevice(name="nonexist", address="127.0.0.1", community="invalid", port=666)
         yield SNMP(device)
 
 
