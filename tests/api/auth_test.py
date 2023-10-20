@@ -5,18 +5,20 @@ from zino.api.auth import AuthenticationFailure, authenticate, get_challenge, re
 
 class TestAuthenticate:
     def test_when_challenge_response_is_ok_should_return_true(self, secrets_file):
+        good_response = "b3e9ba156949152c5c6f3334cf86333b1daabfe9"
         assert authenticate(
             "user1",
-            response="b3e9ba156949152c5c6f3334cf86333b1daabfe9",
+            response=good_response,
             challenge="a97fbebb3eef2dfcf167645229c0c5fa9e92e3da",
             secrets_file=secrets_file,
         )
 
     def test_when_challenge_response_is_bad_should_raise_error(self, secrets_file):
+        bad_response = "aaa9ba156949152c5c6f3334cf86333b1daabbbb"
         with pytest.raises(AuthenticationFailure):
             assert authenticate(
                 "user1",
-                response="b3e9ba156949152c5a6f3334df86333b1daabfe9",
+                response=bad_response,
                 challenge="a97fbebb3eef2dfcf167645229c0c5fa9e92e3da",
                 secrets_file=secrets_file,
             )
