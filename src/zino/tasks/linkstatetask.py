@@ -69,7 +69,6 @@ class LinkStateTask(Task):
         row = {ident.object: value for ident, value in result}
 
         self._update_single_interface(row)
-        return row
 
     def _update_interfaces(self, new_attrs: SparseWalkResponse):
         for index, row in new_attrs.items():
