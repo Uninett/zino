@@ -4,6 +4,8 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
+from zino.oid import OID
+from zino.scheduler import get_scheduler
 from zino.snmp import SNMP, SparseWalkResponse
 from zino.statemodels import EventState, InterfaceState, Port, PortStateEvent
 from zino.tasks.task import Task
@@ -42,6 +44,10 @@ class LinkStateTask(Task):
 
     sysuptime: int = 0
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._scheduler = get_scheduler()
+
     async def run(self):
         snmp = SNMP(self.device)
         poll_list = [("IF-MIB", column) for column in BASE_POLL_LIST]
@@ -50,6 +56,19 @@ class LinkStateTask(Task):
         _logger.debug("%s ifattrs: %r", self.device.name, attrs)
 
         self._update_interfaces(attrs)
+
+    async def poll_single_interface(self, ifindex: int):
+        """Polls and updates a single interface"""
+        snmp = SNMP(self.device)
+        poll_list = [("IF-MIB", column, str(ifindex - 1)) for column in BASE_POLL_LIST]
+        result = await snmp.getnext2(*poll_list)
+        self.sysuptime = await self._get_uptime(snmp)
+        _logger.debug("poll_single_interface %s result: %r", self.device.name, result)
+
+        assert all(ident.index == OID(f".{ifindex}") for ident, value in result)
+        row = {ident.object: value for ident, value in result}
+
+        self._update_single_interface(row)
 
     def _update_interfaces(self, new_attrs: SparseWalkResponse):
         for index, row in new_attrs.items():
@@ -110,7 +129,19 @@ class LinkStateTask(Task):
         _logger.info(log)
         event.add_log(log)
 
-        # at this point we should re-schedule a new job in 2 minutes to verify the state change
+        self._schedule_verification_of_single_port(port.ifindex)
+
+    def _schedule_verification_of_single_port(self, ifindex: int):
+        in_two_minutes = datetime.datetime.now() + datetime.timedelta(minutes=2)
+        job_name = f"{self.device.name}-verify-{ifindex}-state"
+        self._scheduler.add_job(
+            func=self.poll_single_interface,
+            args=(ifindex,),
+            trigger="date",
+            run_date=in_two_minutes,
+            name=job_name,
+            id=job_name,
+        )
 
     def _get_or_create_port(self, ifindex: int):
         ports = self.state.devices.get(self.device.name).ports

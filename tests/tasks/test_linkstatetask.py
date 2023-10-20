@@ -3,7 +3,7 @@ import pytest
 from zino.config.models import PollDevice
 from zino.oid import OID
 from zino.state import ZinoState
-from zino.statemodels import Port
+from zino.statemodels import InterfaceState, Port
 from zino.tasks.linkstatetask import (
     BaseInterfaceRow,
     CollectedInterfaceDataIsNotSaneError,
@@ -89,6 +89,18 @@ class TestBaseInterfaceRow:
     def test_when_descr_and_index_are_present_is_sane_should_return_true(self):
         row = BaseInterfaceRow(index=42, descr="x", alias="x", admin_status="x", oper_status="x", last_change=0)
         assert row.is_sane()
+
+    @pytest.mark.asyncio
+    async def test_poll_single_interface_should_update_state(self, linkstatetask_with_one_link_down):
+        target_index = 2
+        await linkstatetask_with_one_link_down.poll_single_interface(target_index)
+        device_state = linkstatetask_with_one_link_down.state.devices.get(linkstatetask_with_one_link_down.device.name)
+
+        assert target_index in device_state.ports, f"no state for port {target_index} was stored"
+        port = device_state.ports[target_index]
+        assert port.state == InterfaceState.DOWN
+        assert port.ifdescr == "2"
+        assert port.ifalias == "from a famous"
 
 
 @pytest.fixture
