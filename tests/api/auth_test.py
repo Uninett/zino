@@ -52,8 +52,15 @@ class TestGetChallenge:
         assert len(get_challenge()) >= 40
 
 
-def test_read_users_when_given_a_valid_file_then_a_proper_dict_should_be_returned(secrets_file):
-    users = read_users(secrets_file)
-    for user in ("user1", "user2", "user3"):
-        assert user in users
-        assert len(users[user]) == 40
+class TestReadUsers:
+    def test_result_should_match_input_file(self, secrets_file):
+        expected = {
+            "user1": "3c55d3cdc19876dfc8c0bb49da8c927a0ddff26d",
+            "user2": "eb6fb35f5fbba6a6e43d3c893ad7a77dc793ceba",
+            "user3": "c8a0b250edb2eabd9616b7b05a46e0ad28226fc2",
+        }
+        users = read_users(secrets_file)
+        assert users == expected
+
+    def test_should_not_crash_on_empty_lines_in_input(self, secrets_file_littered_with_empty_lines):
+        assert read_users(secrets_file_littered_with_empty_lines)
