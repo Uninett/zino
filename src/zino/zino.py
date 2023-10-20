@@ -48,6 +48,11 @@ def init_event_loop(args: argparse.Namespace):
     server = loop.create_server(lambda: ZinoTestProtocol(state=state.state), "127.0.0.1", 8001)
     server_setup_result = loop.run_until_complete(server)
     _log.info("Serving on %r", server_setup_result.sockets[0].getsockname())
+
+    if args.stop_in:
+        _log.info("Instructed to stop in %s seconds", args.stop_in)
+        scheduler.add_job(func=loop.stop, trigger="date", run_date=datetime.now() + timedelta(seconds=args.stop_in))
+
     try:
         loop.run_forever()
     except (KeyboardInterrupt, SystemExit):
@@ -76,6 +81,7 @@ def parse_args(arguments=None):
     parser.add_argument(
         "--debug", action="store_true", default=False, help="Set global log level to DEBUG. Very chatty!"
     )
+    parser.add_argument("--stop-in", type=int, default=None, help="Stop zino after N seconds.", metavar="N")
     args = parser.parse_args(args=arguments)
     if args.polldevs:
         args.polldevs.close()  # don't leave this temporary file descriptor open
