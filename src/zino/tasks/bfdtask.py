@@ -85,7 +85,7 @@ class BFDTask(Task):
                 encoded_bytes = str.encode(session_addr, "utf-8")
                 ipaddr = self._convert_address(encoded_bytes, session_addr_type)
             except ValueError as e:
-                _log.error(f"Error converting bfdSessAddr object to an IP address: {e}")
+                _log.error(f"Error converting bfdSessAddr object to an IP address on device {self.device.name}: {e}")
                 ipaddr = None
 
             # convert from OID object to int
