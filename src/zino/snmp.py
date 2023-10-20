@@ -187,7 +187,7 @@ class SNMP:
         # var_binds should be a sequence of sequences with one inner sequence that contains the result.
         return var_binds[0][0]
 
-    async def getnext2(self, *variables: Sequence[str]) -> Sequence[SNMPVarBind]:
+    async def getnext2(self, *variables: Sequence[str]) -> list[SNMPVarBind]:
         """Dispatches a GET-NEXT query for the given variables and returns a result where the fetched variables are
         identified symbolically.
 
@@ -205,7 +205,7 @@ class SNMP:
         response = await self._getnext2(*query)
         return [_convert_varbind(*r) for r in response]
 
-    async def _getnext2(self, *variables: ObjectType) -> Sequence[ObjectType]:
+    async def _getnext2(self, *variables: ObjectType) -> list[ObjectType]:
         """SNMP-GETNEXTs the given variables
 
         :param variables: An sequence of ObjectTypes representing the objects you want to query
@@ -283,7 +283,7 @@ class SNMP:
         self._raise_errors(error_indication, error_status, error_index, object_type)
         return var_binds[0]
 
-    async def getbulk2(self, *variables: Sequence[str], max_repetitions: int = 10) -> Sequence[Sequence[SNMPVarBind]]:
+    async def getbulk2(self, *variables: Sequence[str], max_repetitions: int = 10) -> list[list[SNMPVarBind]]:
         """Issues a GET-BULK request for a set of multiple variables, returning the response in a slightly different
          format than getbulk.
 
@@ -304,9 +304,7 @@ class SNMP:
 
         return [[_convert_varbind(i, v) for i, v in var_binds] for var_binds in var_bind_table]
 
-    async def _getbulk2(
-        self, *variables: Sequence[ObjectType], max_repetitions: int
-    ) -> Sequence[Sequence[PySNMPVarBind]]:
+    async def _getbulk2(self, *variables: Sequence[ObjectType], max_repetitions: int) -> list[list[PySNMPVarBind]]:
         """Issues a GET-BULK request for one or more variables, returning the raw var bind table from PySNMP"""
         try:
             error_indication, error_status, error_index, var_bind_table = await bulkCmd(
