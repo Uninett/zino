@@ -43,7 +43,11 @@ class TestAuthenticate:
 
 
 class TestGetChallenge:
-    def test_should_never_return_same_challenge(self):
+    def test_should_return_unique_challenges(self):
+        """Challenge strings are expected to be random.  Once in a million years this could fail because of the
+        nature of randomness, but it should also protect against the implementation being changed into something that
+        returns a constant value.
+        """
         count = 10
         challenges = set(get_challenge() for _ in range(count))
         assert len(challenges) == 10, "same challenge was produced more than once"
