@@ -78,12 +78,13 @@ class BFDTask(Task):
             interface_name = row["jnxBfdSessIntfName"]
             session_state = row["bfdSessState"]
             session_discr = row["bfdSessDiscriminator"]
-            session_addr = row["bfdSessAddr"]  # This is a string containing bytes (ex. '\x7f\x00\00x\01')
+            session_addr = row["bfdSessAddr"]  # This is a string representing hexadecimals (ex 0x7f000001)
             session_addr_type = row["bfdSessAddrType"]
 
             try:
-                encoded_bytes = str.encode(session_addr, "utf-8")
-                ipaddr = self._convert_address(encoded_bytes, session_addr_type)
+                stripped_hexstring = session_addr.replace("0x", "")
+                addr_bytes = bytes.fromhex(stripped_hexstring)
+                ipaddr = self._convert_address(addr_bytes, session_addr_type)
             except ValueError as e:
                 _log.error(f"Error converting bfdSessAddr object to an IP address on device {self.device.name}: {e}")
                 ipaddr = None

@@ -45,7 +45,7 @@ class TestJuniper:
                 "jnxBfdSessIntfName": device_port.ifdescr,
                 "bfdSessState": "up",
                 "bfdSessDiscriminator": bfd_state.session_index,
-                "bfdSessAddr": "\x7f\x00\x00\x01",
+                "bfdSessAddr": "0x7f000001",
                 "bfdSessAddrType": "ipv4",
             },
         }

@@ -442,7 +442,10 @@ def _mib_value_to_python(value: SupportedTypes) -> Union[str, int, OID]:
     if isinstance(value, univ.Integer):
         value = int(value) if not value.namedValues else value.prettyPrint()
     elif isinstance(value, univ.OctetString):
-        value = str(value)
+        if type(value).__name__ == "InetAddress":
+            value = value.prettyPrint()
+        else:
+            value = str(value)
     elif isinstance(value, ObjectIdentity):
         value = OID(str(value))
     else:
