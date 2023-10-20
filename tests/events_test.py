@@ -43,7 +43,7 @@ class TestEvents:
 
     def test_get_or_create_event_should_return_existing_event_on_same_index(self):
         events = Events()
-        event1, created1 = events.get_or_create_event("foobar", None, ReachabilityEvent)
-        event2, created2 = events.get_or_create_event("foobar", None, ReachabilityEvent)
+        event1, _ = events.get_or_create_event("foobar", None, ReachabilityEvent)
+        event2, _ = events.get_or_create_event("foobar", None, ReachabilityEvent)
 
         assert event2 is event1
