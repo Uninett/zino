@@ -8,7 +8,10 @@ import inspect
 import logging
 import re
 import textwrap
-from typing import Callable, List, Optional
+from pathlib import Path
+from typing import Callable, List, Optional, Union
+
+from zino.api import auth
 
 _logger = logging.getLogger(__name__)
 
@@ -22,12 +25,15 @@ def requires_authentication(func: Callable) -> Callable:
 class Zino1BaseServerProtocol(asyncio.Protocol):
     """Base implementation of the Zino 1 protocol, with a basic command dispatcher for subclasses to utilize."""
 
-    def __init__(self):
+    def __init__(self, secrets_file: Optional[Union[Path, str]] = "secrets"):
         self.transport: Optional[asyncio.Transport] = None
         self._authenticated: bool = False
         self._current_task: asyncio.Task = None
         self._multiline_future: asyncio.Future = None
         self._multiline_buffer: List[str] = []
+        self._authentication_challenge: Optional[str] = None
+
+        self._secrets_file = secrets_file
 
     @property
     def peer_name(self):
@@ -40,7 +46,8 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
     def connection_made(self, transport: asyncio.Transport):
         self.transport = transport
         _logger.debug("New server connection from %s", self.peer_name)
-        self._respond_ok("PLACEHOLDER-CHALLENGE Hello, there")
+        self._authentication_challenge = auth.get_challenge()
+        self._respond_ok(f"{self._authentication_challenge} Hello, there")
 
     def data_received(self, data):
         try:
@@ -144,11 +151,15 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         """Implements the USER command"""
         if self.is_authenticated:
             return self._respond_error("already authenticated")
-        if user == "foo" and response == "bar":
-            self._authenticated = True
-            return self._respond_ok("welcome")
+        try:
+            auth.authenticate(
+                user=user, response=response, challenge=self._authentication_challenge, secrets_file=self._secrets_file
+            )
+        except auth.AuthenticationFailure as error:
+            return self._respond_error(error)
         else:
-            return self._respond_error("bad auth")
+            self._authenticated = True
+            return self._respond_ok()
 
     async def do_quit(self):
         """Implements the QUIT command"""

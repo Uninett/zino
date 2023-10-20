@@ -178,12 +178,13 @@ class TestZino1BaseServerProtocol:
 
 class TestZino1ServerProtocolUserCommand:
     @pytest.mark.asyncio
-    async def test_when_correct_authentication_is_given_then_response_should_be_ok(self):
-        protocol = Zino1ServerProtocol()
+    async def test_when_correct_authentication_is_given_then_response_should_be_ok(self, secrets_file):
+        protocol = Zino1ServerProtocol(secrets_file=secrets_file)
         fake_transport = Mock()
         protocol.connection_made(fake_transport)
         fake_transport.write = Mock()  # reset output after welcome banner
-        await protocol.data_received(b"USER foo bar\r\n")
+        protocol._authentication_challenge = "foo"  # fake a known challenge string
+        await protocol.data_received(b"USER user1 7982ef54a5495225c5d6395c42308c074491407c\r\n")
 
         assert fake_transport.write.called
         response = fake_transport.write.call_args[0][0]
@@ -191,12 +192,12 @@ class TestZino1ServerProtocolUserCommand:
         assert protocol.is_authenticated
 
     @pytest.mark.asyncio
-    async def test_when_incorrect_authentication_is_given_then_response_should_be_error(self):
-        protocol = Zino1ServerProtocol()
+    async def test_when_incorrect_authentication_is_given_then_response_should_be_error(self, secrets_file):
+        protocol = Zino1ServerProtocol(secrets_file=secrets_file)
         fake_transport = Mock()
         protocol.connection_made(fake_transport)
         fake_transport.write = Mock()  # reset output after welcome banner
-        await protocol.data_received(b"USER foo fake\r\n")
+        await protocol.data_received(b"USER user1 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\r\n")
 
         assert fake_transport.write.called
         response = fake_transport.write.call_args[0][0]
@@ -204,12 +205,13 @@ class TestZino1ServerProtocolUserCommand:
         assert not protocol.is_authenticated
 
     @pytest.mark.asyncio
-    async def test_when_authentication_is_attempted_more_than_once_then_response_should_be_error(self):
-        protocol = Zino1ServerProtocol()
+    async def test_when_authentication_is_attempted_more_than_once_then_response_should_be_error(self, secrets_file):
+        protocol = Zino1ServerProtocol(secrets_file=secrets_file)
         fake_transport = Mock()
         protocol.connection_made(fake_transport)
+        protocol._authentication_challenge = "foo"  # fake a known challenge string
 
-        await protocol.data_received(b"USER foo bar\r\n")
+        await protocol.data_received(b"USER user1 7982ef54a5495225c5d6395c42308c074491407c\r\n")
         assert protocol.is_authenticated
 
         fake_transport.write = Mock()  # reset output after welcome banner
