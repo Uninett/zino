@@ -29,6 +29,14 @@ class BFDTask(Task):
         ("BFD-STD-MIB", "bfdSessAddrType"),
     ]
 
+    CISCO_BFD_COLUMNS = [
+        ("CISCO-IETF-BFD-MIB", "ciscoBfdSessState"),
+        ("CISCO-IETF-BFD-MIB", "ciscoBfdSessInterface"),  # This should match IfIndex from the IF-MIB
+        ("CISCO-IETF-BFD-MIB", "ciscoBfdSessDiscriminator"),
+        ("CISCO-IETF-BFD-MIB", "ciscoBfdSessAddr"),
+        ("CISCO-IETF-BFD-MIB", "ciscoBfdSessAddrType"),
+    ]
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._scheduler = get_scheduler()
