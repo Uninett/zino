@@ -17,7 +17,8 @@ from zino.tasks.task import Task
 
 _log = logging.getLogger(__name__)
 
-BFDStates = Dict[str, BFDState]
+JuniperBFDStates = Dict[str, BFDState]
+CiscoBFDStates = Dict[int, BFDState]
 
 
 class BFDTask(Task):
@@ -45,11 +46,19 @@ class BFDTask(Task):
     async def run(self):
         if self.device_state.is_juniper:
             polled_state = await self._poll_juniper()
-            self._update_state_for_all_ports(polled_state)
+            self._update_state_for_all_ports_juniper(polled_state)
+        elif self.device_state.is_cisco:
+            polled_state = await self._poll_cisco()
+            self._update_state_for_all_ports_cisco(polled_state)
 
-    def _update_state_for_all_ports(self, polled_state: BFDStates):
+    def _update_state_for_all_ports_juniper(self, polled_state: JuniperBFDStates):
         for port in self.device_state.ports.values():
             new_state = polled_state.get(port.ifdescr, BFDState(session_state=BFDSessState.NO_SESSION))
+            self._update_state(port, new_state)
+
+    def _update_state_for_all_ports_cisco(self, polled_state: CiscoBFDStates):
+        for port in self.device_state.ports.values():
+            new_state = polled_state.get(port.ifindex, BFDState(session_state=BFDSessState.NO_SESSION))
             self._update_state(port, new_state)
 
     def _update_state(self, port: Port, new_state: BFDState):
@@ -74,12 +83,12 @@ class BFDTask(Task):
         log = f"Port {port.ifdescr} changed BFD state from {port.bfd_state.session_state} to {new_state.session_state}"
         event.add_log(log)
 
-    async def _poll_juniper(self) -> BFDStates:
+    async def _poll_juniper(self) -> JuniperBFDStates:
         bfd_rows = await self._snmp.sparsewalk(*self.JUNIPER_BFD_COLUMNS)
         bfd_states = self._parse_juniper_rows(bfd_rows)
         return bfd_states
 
-    def _parse_juniper_rows(self, bfd_rows: SparseWalkResponse) -> BFDStates:
+    def _parse_juniper_rows(self, bfd_rows: SparseWalkResponse) -> JuniperBFDStates:
         """The keys for the return dict should match the respective interface's IfDescr value"""
         bfd_states = {}
         for index, row in bfd_rows.items():
@@ -92,6 +101,26 @@ class BFDTask(Task):
                 row["bfdSessAddrType"],
             )
             bfd_states[interface_name] = bfd_state
+        return bfd_states
+
+    async def _poll_cisco(self) -> CiscoBFDStates:
+        bfd_rows = await self._snmp.sparsewalk(*self.CISCO_BFD_COLUMNS)
+        bfd_states = self._parse_cisco_rows(bfd_rows)
+        return bfd_states
+
+    def _parse_cisco_rows(self, bfd_rows: SparseWalkResponse) -> CiscoBFDStates:
+        """The keys for the return dict should match the respective interface's IfIndex value"""
+        bfd_states = {}
+        for index, row in bfd_rows.items():
+            ifindex = row["ciscoBfdSessInterface"]
+            bfd_state = self._parse_row(
+                index,
+                row["ciscoBfdSessState"],
+                row["ciscoBfdSessDiscriminator"],
+                row["ciscoBfdSessAddr"],  # This is a string representing hexadecimals (ex 0x7f000001)
+                row["ciscoBfdSessAddrType"],
+            )
+            bfd_states[ifindex] = bfd_state
         return bfd_states
 
     def _parse_row(self, index: OID, state: str, discr: int, addr: str, addr_type: str) -> BFDState:
