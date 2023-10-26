@@ -2,6 +2,7 @@ import ipaddress
 import logging
 from typing import Dict, Literal
 
+from zino.oid import OID
 from zino.scheduler import get_scheduler
 from zino.snmp import SNMP, SparseWalkResponse
 from zino.statemodels import (
@@ -75,29 +76,34 @@ class BFDTask(Task):
         bfd_states = {}
         for index, row in bfd_rows.items():
             interface_name = row["jnxBfdSessIntfName"]
-            session_state = row["bfdSessState"]
-            session_discr = row["bfdSessDiscriminator"]
-            session_addr = row["bfdSessAddr"]  # This is a string representing hexadecimals (ex 0x7f000001)
-            session_addr_type = row["bfdSessAddrType"]
-
-            try:
-                stripped_hexstring = session_addr.replace("0x", "")
-                addr_bytes = bytes.fromhex(stripped_hexstring)
-                ipaddr = self._convert_address(addr_bytes, session_addr_type)
-            except ValueError as e:
-                _log.error(f"Error converting bfdSessAddr object to an IP address on device {self.device.name}: {e}")
-                ipaddr = None
-
-            # convert from OID object to int
-            session_index = int(index[0])
-            bfd_state = BFDState(
-                session_state=BFDSessState(session_state),
-                session_index=session_index,
-                session_discr=session_discr,
-                session_addr=ipaddr,
+            bfd_state = self._parse_row(
+                index,
+                row["bfdSessState"],
+                row["bfdSessDiscriminator"],
+                row["bfdSessAddr"],  # This is a string representing hexadecimals (ex 0x7f000001)
+                row["bfdSessAddrType"],
             )
             bfd_states[interface_name] = bfd_state
         return bfd_states
+
+    def _parse_row(self, index: OID, state: str, discr: int, addr: str, addr_type: str) -> BFDState:
+        try:
+            stripped_hexstring = addr.replace("0x", "")
+            addr_bytes = bytes.fromhex(stripped_hexstring)
+            ipaddr = self._convert_address(addr_bytes, addr_type)
+        except ValueError as e:
+            _log.error(f"Error converting addr {addr} to an IP address on device {self.device.name}: {e}")
+            ipaddr = None
+
+        # convert from OID object to int
+        session_index = int(index[0])
+        bfd_state = BFDState(
+            session_state=BFDSessState(state),
+            session_index=session_index,
+            session_discr=discr,
+            session_addr=ipaddr,
+        )
+        return bfd_state
 
     @classmethod
     def _convert_address(cls, address: bytes, address_type: Literal["ipv4", "ipv6"]) -> IPAddress:
