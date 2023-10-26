@@ -97,7 +97,7 @@ class BFDTask(Task):
                 index,
                 row["bfdSessState"],
                 row["bfdSessDiscriminator"],
-                row["bfdSessAddr"],  # This is a string representing hexadecimals (ex 0x7f000001)
+                row["bfdSessAddr"],  # This is a string representing hexadecimals (ex "0x7f000001")
                 row["bfdSessAddrType"],
             )
             bfd_states[interface_name] = bfd_state
@@ -117,7 +117,7 @@ class BFDTask(Task):
                 index,
                 row["ciscoBfdSessState"],
                 row["ciscoBfdSessDiscriminator"],
-                row["ciscoBfdSessAddr"],  # This is a string representing hexadecimals (ex 0x7f000001)
+                row["ciscoBfdSessAddr"],  # This is a string representing hexadecimals (ex "0x7f000001")
                 row["ciscoBfdSessAddrType"],
             )
             bfd_states[ifindex] = bfd_state
