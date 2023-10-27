@@ -10,7 +10,7 @@ from zino.statemodels import BFDEvent, BFDSessState, BFDState, Port
 from zino.tasks.bfdtask import BFDTask
 
 
-class TestParseAddress:
+class TestConvertAddress:
     def test_converts_bytes_to_correct_ipv6_address(self):
         parsed_address = BFDTask._convert_address(
             b"\x00\x00\x00\x00\x00\x00\x00\x00\00\x00\x00\x00\x00\x00\x00\x01",
