@@ -38,21 +38,19 @@ class TestConvertAddress:
             BFDTask._convert_address("\x7f\x00\x00\x01", "invalid")
 
 
-class TestJuniper:
-    def test_parse_juniper_rows_creates_correct_bfd_state(self, bfd_task_juniper, bfd_state, device_port):
-        fake_sparsewalk_response = {
-            OID(f".{bfd_state.session_index}"): {
-                "jnxBfdSessIntfName": device_port.ifdescr,
-                "bfdSessState": "up",
-                "bfdSessDiscriminator": bfd_state.session_index,
-                "bfdSessAddr": "0x7f000001",
-                "bfdSessAddrType": "ipv4",
-            },
-        }
-        parsed_rows = bfd_task_juniper._parse_juniper_rows(fake_sparsewalk_response)
-        state = parsed_rows.get(device_port.ifdescr)
+class TestParseRow:
+    def test_parse_row_creates_correct_bfd_state(self, bfd_task_juniper, bfd_state):
+        state = bfd_task_juniper._parse_row(
+            OID(f".{bfd_state.session_index}"),
+            "up",
+            bfd_state.session_discr,
+            "0x7f000001",
+            "ipv4",
+        )
         assert state == bfd_state
 
+
+class TestJuniper:
     @pytest.mark.asyncio
     async def test_poll_juniper_returns_correct_ifdescr_to_state_mapping(
         self, bfd_task_juniper, bfd_state, device_port
