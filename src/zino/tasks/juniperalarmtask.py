@@ -12,8 +12,7 @@ class JuniperAlarmTask(Task):
     """Checks yellow and red alarm count for juniper device."""
 
     async def run(self):
-        device_state = self.state.devices.get(self.device.name)
-        if not device_state.is_juniper:
+        if not self.device_state.is_juniper:
             return
 
         try:
@@ -21,18 +20,18 @@ class JuniperAlarmTask(Task):
         except TypeError:
             return
 
-        if not device_state.alarms:
-            device_state.alarms = {
+        if not self.device_state.alarms:
+            self.device_state.alarms = {
                 "yellow": 0,
                 "red": 0,
             }
 
-        if device_state.alarms["yellow"] != yellow_alarm_count:
-            device_state.alarms["yellow"] = yellow_alarm_count
+        if self.device_state.alarms["yellow"] != yellow_alarm_count:
+            self.device_state.alarms["yellow"] = yellow_alarm_count
             self.create_alarm_event(color="yellow", alarm_count=yellow_alarm_count)
 
-        if device_state.alarms["red"] != red_alarm_count:
-            device_state.alarms["red"] = red_alarm_count
+        if self.device_state.alarms["red"] != red_alarm_count:
+            self.device_state.alarms["red"] = red_alarm_count
             self.create_alarm_event(color="red", alarm_count=red_alarm_count)
 
     async def _get_juniper_alarms(self):

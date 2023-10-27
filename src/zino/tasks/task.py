@@ -15,5 +15,5 @@ class Task(ABC):
         """Runs job asynchronously"""
 
     @property
-    def _device_state(self) -> DeviceState:
+    def device_state(self) -> DeviceState:
         return self.state.devices.get(self.device.name)
