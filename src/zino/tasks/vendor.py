@@ -15,10 +15,11 @@ class VendorTask(Task):
         vendor = await self._get_enterprise_id()
         _logger.debug("%s enterprise id: %r", self.device.name, vendor)
 
-        device = self.state.devices.get(self.device.name)
-        if device.enterprise_id != vendor:
-            _logger.info("%s changed enterprise id from %s to %s", self.device.name, device.enterprise_id, vendor)
-            device.enterprise_id = vendor
+        if self.device_state.enterprise_id != vendor:
+            _logger.info(
+                "%s changed enterprise id from %s to %s", self.device.name, self.device_state.enterprise_id, vendor
+            )
+            self.device_state.enterprise_id = vendor
 
     async def _get_enterprise_id(self) -> Optional[int]:
         sysobjectid = await self._get_sysobjectid()

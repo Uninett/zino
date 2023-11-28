@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 
 from zino.config.models import PollDevice
 from zino.state import ZinoState
+from zino.statemodels import DeviceState
 
 
 class Task(ABC):
@@ -12,3 +13,7 @@ class Task(ABC):
     @abstractmethod
     async def run(self):
         """Runs job asynchronously"""
+
+    @property
+    def device_state(self) -> DeviceState:
+        return self.state.devices.get(self.device.name)

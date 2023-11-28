@@ -8,7 +8,6 @@ from zino.statemodels import (
     BFDEvent,
     BFDSessState,
     BFDState,
-    DeviceState,
     EventState,
     IPAddress,
     Port,
@@ -35,12 +34,12 @@ class BFDTask(Task):
         self._snmp = SNMP(self.device)
 
     async def run(self):
-        if self._device_state.is_juniper:
+        if self.device_state.is_juniper:
             polled_state = await self._poll_juniper()
             self._update_state_for_all_ports(polled_state)
 
     def _update_state_for_all_ports(self, polled_state: BFDStates):
-        for port in self._device_state.ports.values():
+        for port in self.device_state.ports.values():
             new_state = polled_state.get(port.ifdescr, BFDState(session_state=BFDSessState.NO_SESSION))
             self._update_state(port, new_state)
 
@@ -109,7 +108,3 @@ class BFDTask(Task):
             return ipaddress.IPv6Address(address)
         else:
             raise ValueError("address_type must be either ipv4 or ipv6")
-
-    @property
-    def _device_state(self) -> DeviceState:
-        return self.state.devices.get(self.device.name)
