@@ -125,7 +125,7 @@ class SNMP:
             )
         except PysnmpMibNotFoundError as error:
             raise MibNotFoundError(error)
-        self._raise_errors(error_indication, error_status, error_index, var_binds)
+        self._raise_errors(error_indication, error_status, error_index, query)
         return self._object_type_to_mib_object(var_binds[0])
 
     def _raise_errors(
@@ -133,7 +133,7 @@ class SNMP:
         error_indication: Union[str, errind.ErrorIndication],
         error_status: str,
         error_index: int,
-        var_binds: Sequence[ObjectType],
+        *query: ObjectType,
     ):
         """Raises a relevant exception if an error has occurred"""
         # Local errors (timeout, config errors etc)
@@ -146,7 +146,7 @@ class SNMP:
         # Remote errors from SNMP entity.
         # if nonzero error_status, error_index point will point to the ariable-binding in query that caused the error.
         if error_status:
-            error_object = self._object_type_to_mib_object(var_binds[error_index - 1])
+            error_object = self._object_type_to_mib_object(query[error_index - 1])
             error_name = errorStatus.getNamedValues()[int(error_status)]
             if error_name == "noSuchName":
                 raise NoSuchNameError(f"Could not find object at {error_object.oid}")
@@ -183,7 +183,7 @@ class SNMP:
             )
         except PysnmpMibNotFoundError as error:
             raise MibNotFoundError(error)
-        self._raise_errors(error_indication, error_status, error_index, var_binds)
+        self._raise_errors(error_indication, error_status, error_index, object_type)
         # var_binds should be a sequence of sequences with one inner sequence that contains the result.
         return var_binds[0][0]
 
@@ -221,7 +221,7 @@ class SNMP:
             )
         except PysnmpMibNotFoundError as error:
             raise MibNotFoundError(error)
-        self._raise_errors(error_indication, error_status, error_index, var_bind_table)
+        self._raise_errors(error_indication, error_status, error_index, *variables)
         # The table should contain only one set of results for our query
         return var_bind_table[0]
 
@@ -280,7 +280,7 @@ class SNMP:
             )
         except PysnmpMibNotFoundError as error:
             raise MibNotFoundError(error)
-        self._raise_errors(error_indication, error_status, error_index, var_binds)
+        self._raise_errors(error_indication, error_status, error_index, object_type)
         return var_binds[0]
 
     async def getbulk2(self, *variables: Sequence[str], max_repetitions: int = 10) -> list[list[SNMPVarBind]]:
@@ -318,7 +318,7 @@ class SNMP:
             )
         except PysnmpMibNotFoundError as error:
             raise MibNotFoundError(error)
-        self._raise_errors(error_indication, error_status, error_index, var_bind_table)
+        self._raise_errors(error_indication, error_status, error_index, *variables)
         return var_bind_table
 
     async def bulkwalk(self, *oid: str, max_repetitions: int = 10) -> list[MibObject]:
