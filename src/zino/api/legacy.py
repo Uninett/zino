@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Callable, List, Optional, Union
 
 from zino.api import auth
+from zino.state import ZinoState
 
 _logger = logging.getLogger(__name__)
 
@@ -25,7 +26,13 @@ def requires_authentication(func: Callable) -> Callable:
 class Zino1BaseServerProtocol(asyncio.Protocol):
     """Base implementation of the Zino 1 protocol, with a basic command dispatcher for subclasses to utilize."""
 
-    def __init__(self, secrets_file: Optional[Union[Path, str]] = "secrets"):
+    def __init__(self, state: Optional[ZinoState] = None, secrets_file: Optional[Union[Path, str]] = "secrets"):
+        """Initializes a protocol instance.
+
+        :param state: An optional reference to a running Zino state that this server should be based on.  If omitted,
+                      this protocol will create and work on an empty state object.
+        :param secrets_file: An optional alternative path to the file containing users and their secrets.
+        """
         self.transport: Optional[asyncio.Transport] = None
         self._authenticated: bool = False
         self._current_task: asyncio.Task = None
@@ -33,6 +40,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         self._multiline_buffer: List[str] = []
         self._authentication_challenge: Optional[str] = None
 
+        self._state = state if state is not None else ZinoState()
         self._secrets_file = secrets_file
 
     @property
@@ -175,6 +183,13 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
 
         commands = " ".join(sorted(responders))
         self._respond_multiline(200, ["commands are:"] + textwrap.wrap(commands, width=56))
+
+    @requires_authentication
+    async def do_caseids(self):
+        self._respond(304, "list of active cases follows, terminated with '.'")
+        for event_id in sorted(self._state.events.events):
+            self._respond_raw(str(event_id))
+        self._respond_raw(".")
 
 
 class ZinoTestProtocol(Zino1ServerProtocol):
