@@ -1,5 +1,9 @@
+import asyncio
+from unittest.mock import Mock, patch
+
 import pytest
 from pysnmp.hlapi.asyncio import Udp6TransportTarget, UdpTransportTarget
+from pysnmp.proto import errind
 
 from zino.config.models import PollDevice
 from zino.oid import OID
@@ -18,10 +22,15 @@ def ipv6_snmp_client(snmpsim, snmp_test_port) -> SNMP:
     return SNMP(device)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def unreachable_snmp_client():
-    device = PollDevice(name="nonexist", address="127.0.0.1", community="invalid", port=666, timeout=1, retries=0)
-    return SNMP(device)
+    mock_results = errind.RequestTimedOut(), None, None, []
+    future = asyncio.Future()
+    future.set_result(mock_results)
+    timeout_mock = Mock(return_value=future)
+    with patch.multiple("zino.snmp", getCmd=timeout_mock, nextCmd=timeout_mock, bulkCmd=timeout_mock):
+        device = PollDevice(name="nonexist", address="127.0.0.1", community="invalid", port=666)
+        yield SNMP(device)
 
 
 class TestSNMPRequestsResponseTypes:
