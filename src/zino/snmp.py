@@ -133,7 +133,7 @@ class SNMP:
         error_indication: Union[str, errind.ErrorIndication],
         error_status: str,
         error_index: int,
-        var_binds: Sequence[ObjectType],
+        query: Sequence[ObjectType],
     ):
         """Raises a relevant exception if an error has occurred"""
         # Local errors (timeout, config errors etc)
@@ -146,7 +146,7 @@ class SNMP:
         # Remote errors from SNMP entity.
         # if nonzero error_status, error_index point will point to the ariable-binding in query that caused the error.
         if error_status:
-            error_object = self._object_type_to_mib_object(var_binds[error_index - 1])
+            error_object = self._object_type_to_mib_object(query[error_index - 1])
             error_name = errorStatus.getNamedValues()[int(error_status)]
             if error_name == "noSuchName":
                 raise NoSuchNameError(f"Could not find object at {error_object.oid}")
