@@ -11,6 +11,7 @@ import textwrap
 from pathlib import Path
 from typing import Callable, List, Optional, Union
 
+from zino import version
 from zino.api import auth
 from zino.state import ZinoState
 
@@ -183,6 +184,9 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
 
         commands = " ".join(sorted(responders))
         self._respond_multiline(200, ["commands are:"] + textwrap.wrap(commands, width=56))
+
+    async def do_version(self):
+        self._respond(200, f"zino version is {version.__version__}")
 
     @requires_authentication
     async def do_caseids(self):

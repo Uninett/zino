@@ -3,6 +3,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
+from zino import version
 from zino.api.legacy import (
     Zino1BaseServerProtocol,
     Zino1ServerProtocol,
@@ -284,6 +285,19 @@ class TestZino1ServerProtocolCaseidsCommand:
         output = buffered_fake_transport.data_buffer.getvalue()
         assert f"{event1.id}\r\n".encode() in output
         assert f"{event2.id}\r\n".encode() in output
+
+
+class TestZino1ServerProtocolVersionCommand:
+    @pytest.mark.asyncio
+    async def test_should_output_current_version(self, buffered_fake_transport):
+        protocol = Zino1ServerProtocol()
+        protocol.connection_made(buffered_fake_transport)
+        protocol._authenticated = True  # fake authentication
+
+        await protocol.data_received(b"VERSION\r\n")
+
+        expected = str(version.__version__).encode()
+        assert expected in buffered_fake_transport.data_buffer.getvalue()
 
 
 class TestZino1TestProtocol:
