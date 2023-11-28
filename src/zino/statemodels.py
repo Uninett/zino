@@ -135,6 +135,26 @@ class LogEntry(BaseModel):
     timestamp: datetime.datetime = Field(default_factory=now)
     message: str
 
+    def model_dump_legacy(self) -> List[str]:
+        """Returns the contents of this log entry as a sequence of text lines.
+
+        This sequence of text lines are formatted as expected in a multi-line response in the Zino legacy server
+        protocol:
+
+        The first line starts with a UNIX integer timestamp, followed by a space and then the first line of the entry
+        text.  Each subsequent line of the entry text is prefixed by a space, which in the protocol signifies a
+        continuation line.
+
+        Example:
+        >>> LogEntry(message="This is a\\nmulti-line entry").model_dump_legacy()
+        ['1701171730 This is a', ' multiline entry']
+        >>>
+        """
+        unix_timestamp = int(self.timestamp.timestamp())
+        lines = [f" {line}" for line in self.message.splitlines()]
+        lines[0] = f"{unix_timestamp}{lines[0]}"
+        return lines
+
 
 class EventState(Enum):
     """The set of allowable event states"""
