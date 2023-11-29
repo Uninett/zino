@@ -17,7 +17,9 @@ from zino.tasks.task import Task
 
 _log = logging.getLogger(__name__)
 
+# IfDescr as key
 DescrBFDStates = Dict[str, BFDState]
+# IfIndex as key
 IndexBFDStates = Dict[int, BFDState]
 
 
