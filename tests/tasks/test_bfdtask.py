@@ -100,6 +100,47 @@ class TestJuniper:
         assert not event
 
 
+class TestCisco:
+    @pytest.mark.asyncio
+    async def test_task_updates_state_correctly(self, bfd_task_cisco, device_port, bfd_state):
+        assert not device_port.bfd_state
+        await bfd_task_cisco.run()
+        assert device_port.bfd_state == bfd_state
+
+    @pytest.mark.asyncio
+    async def test_event_should_not_be_made_the_first_time_a_port_is_polled(self, bfd_task_cisco, device_port):
+        assert not device_port.bfd_state
+        await bfd_task_cisco.run()
+        assert device_port.bfd_state
+        event = bfd_task_cisco.state.events.get(
+            device_name=bfd_task_cisco.device.name,
+            port=device_port.ifindex,
+            event_class=BFDEvent,
+        )
+        assert not event
+
+    @pytest.mark.asyncio
+    async def test_state_changing_should_create_event(self, bfd_task_cisco, device_port, bfd_state):
+        down_state = BFDState(session_state=BFDSessState.DOWN, session_index=bfd_state.session_index)
+        device_port.bfd_state = down_state
+        await bfd_task_cisco.run()
+        assert device_port.bfd_state != down_state
+        event = bfd_task_cisco.state.events.get(
+            device_name=bfd_task_cisco.device.name, port=device_port.ifindex, event_class=BFDEvent
+        )
+        assert event
+
+    @pytest.mark.asyncio
+    async def test_state_not_changing_should_not_create_event(self, bfd_task_cisco, device_port, bfd_state):
+        device_port.bfd_state = bfd_state
+        await bfd_task_cisco.run()
+        assert device_port.bfd_state == bfd_state
+        event = bfd_task_cisco.state.events.get(
+            device_name=bfd_task_cisco.device.name, port=device_port.ifindex, event_class=BFDEvent
+        )
+        assert not event
+
+
 @pytest.fixture()
 def device_port():
     """Port related to the BFD state at the simulated device"""
@@ -128,6 +169,25 @@ def bfd_task_juniper(snmpsim, snmp_test_port, device_port):
     state = ZinoState()
     device_state = state.devices.get(device_name=device.name)
     device_state.enterprise_id = 2636
+
+    # this effectively makes the device_port fixture a shortcut for accessing
+    # the port that will change bfd_state when the task is run
+    device_state.ports[device_port.ifindex] = device_port
+    task = BFDTask(device, state)
+    yield task
+
+
+@pytest.fixture()
+def bfd_task_cisco(snmpsim, snmp_test_port, device_port):
+    device = PollDevice(
+        name="buick.lab.example.org",
+        address="127.0.0.1",
+        port=snmp_test_port,
+        community="cisco-bfd-up",
+    )
+    state = ZinoState()
+    device_state = state.devices.get(device_name=device.name)
+    device_state.enterprise_id = 9
 
     # this effectively makes the device_port fixture a shortcut for accessing
     # the port that will change bfd_state when the task is run
