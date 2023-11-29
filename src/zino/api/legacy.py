@@ -253,6 +253,28 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
     @requires_authentication
     @_translate_case_id_to_event
     async def do_addhist(self, event: Event):
+        """Implements the ADDHIST API command.
+
+        ADDHIST lets a user add a multi-line message to the event history.  The stored messaged will be prefixed
+        by the authenticated user's name on a single line.  Example session for the user `ford`:
+
+        ```
+        ADDHIST 160448
+        302 please provide new history entry, terminate with '.'
+        time is an illusion,
+        lunchtime doubly so
+        .
+        200 ok
+        GETHIST 160448
+        301 history follows, terminated with '.'
+        1697635024 state change embryonic -> open (monitor)
+        1697637757 ford
+         time is an illusion,
+         lunchtime doubly so
+
+        .
+        ```
+        """
         self._respond(302, "please provide new history entry, terminate with '.'")
         data = await self._read_multiline()
         message = f"{self.user}\n" + "\n".join(line.strip() for line in data)
