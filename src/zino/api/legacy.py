@@ -8,6 +8,7 @@ import inspect
 import logging
 import re
 import textwrap
+from functools import wraps
 from pathlib import Path
 from typing import Callable, List, Optional, Union
 
@@ -210,13 +211,14 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         and translation to an actual Event object.
         """
 
-        def _verify(self, case_id: Union[str, int]):
+        @wraps(responder)
+        def _verify(self, case_id: Union[str, int], *args, **kwargs):
             try:
                 case_id = int(case_id)
                 event = self._state.events[case_id]
             except (ValueError, KeyError):
                 return self._respond_error(f'event "{case_id}" does not exist')
-            return responder(self, event)
+            return responder(self, event, *args, **kwargs)
 
         return _verify
 
