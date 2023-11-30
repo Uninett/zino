@@ -14,6 +14,7 @@ from typing import Callable, List, Optional, Union
 from zino import version
 from zino.api import auth
 from zino.state import ZinoState
+from zino.statemodels import Event
 
 _logger = logging.getLogger(__name__)
 
@@ -35,7 +36,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         :param secrets_file: An optional alternative path to the file containing users and their secrets.
         """
         self.transport: Optional[asyncio.Transport] = None
-        self._authenticated: bool = False
+        self._authenticated_as: Optional[str] = None
         self._current_task: asyncio.Task = None
         self._multiline_future: asyncio.Future = None
         self._multiline_buffer: List[str] = []
@@ -45,12 +46,21 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         self._secrets_file = secrets_file
 
     @property
-    def peer_name(self):
+    def peer_name(self) -> str:
         return self.transport.get_extra_info("peername") if self.transport else None
 
     @property
-    def is_authenticated(self):
-        return self._authenticated
+    def is_authenticated(self) -> bool:
+        return bool(self._authenticated_as)
+
+    @property
+    def user(self) -> Optional[str]:
+        """Returns the username of the authenticated user"""
+        return self._authenticated_as
+
+    @user.setter
+    def user(self, user_name: str):
+        self._authenticated_as = user_name
 
     def connection_made(self, transport: asyncio.Transport):
         self.transport = transport
@@ -167,7 +177,7 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         except auth.AuthenticationFailure as error:
             return self._respond_error(error)
         else:
-            self._authenticated = True
+            self.user = user
             return self._respond_ok()
 
     async def do_quit(self):
@@ -195,14 +205,24 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
             self._respond_raw(str(event_id))
         self._respond_raw(".")
 
-    @requires_authentication
-    async def do_getattrs(self, case_id: Union[str, int]):
-        try:
-            case_id = int(case_id)
-            event = self._state.events[case_id]
-        except (ValueError, KeyError):
-            return self._respond_error(f'event "{case_id}" does not exist')
+    def _translate_case_id_to_event(responder: callable):  # noqa
+        """Decorates any command that works with events/cases, adding verification of the incoming case_id argument
+        and translation to an actual Event object.
+        """
 
+        def _verify(self, case_id: Union[str, int]):
+            try:
+                case_id = int(case_id)
+                event = self._state.events[case_id]
+            except (ValueError, KeyError):
+                return self._respond_error(f'event "{case_id}" does not exist')
+            return responder(self, event)
+
+        return _verify
+
+    @requires_authentication
+    @_translate_case_id_to_event
+    async def do_getattrs(self, event: Event):
         self._respond(303, "simple attributes follow, terminated with '.'")
         attrs = event.model_dump_simple_attrs()
         for attr, value in attrs.items():
@@ -211,13 +231,8 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         self._respond_raw(".")
 
     @requires_authentication
-    async def do_gethist(self, case_id: Union[str, int]):
-        try:
-            case_id = int(case_id)
-            event = self._state.events[case_id]
-        except (ValueError, KeyError):
-            return self._respond_error(f'event "{case_id}" does not exist')
-
+    @_translate_case_id_to_event
+    async def do_gethist(self, event: Event):
         self._respond(301, "history follows, terminated with '.'")
         for history in event.history:
             for line in history.model_dump_legacy():
@@ -226,19 +241,47 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         self._respond_raw(".")
 
     @requires_authentication
-    async def do_getlog(self, case_id: Union[str, int]):
-        try:
-            case_id = int(case_id)
-            event = self._state.events[case_id]
-        except (ValueError, KeyError):
-            return self._respond_error(f'event "{case_id}" does not exist')
-
+    @_translate_case_id_to_event
+    async def do_getlog(self, event: Event):
         self._respond(300, "log follows, terminated with '.'")
         for log in event.log:
             for line in log.model_dump_legacy():
                 self._respond_raw(line)
 
         self._respond_raw(".")
+
+    @requires_authentication
+    @_translate_case_id_to_event
+    async def do_addhist(self, event: Event):
+        """Implements the ADDHIST API command.
+
+        ADDHIST lets a user add a multi-line message to the event history.  The stored messaged will be prefixed
+        by the authenticated user's name on a single line.  Example session for the user `ford`:
+
+        ```
+        ADDHIST 160448
+        302 please provide new history entry, terminate with '.'
+        time is an illusion,
+        lunchtime doubly so
+        .
+        200 ok
+        GETHIST 160448
+        301 history follows, terminated with '.'
+        1697635024 state change embryonic -> open (monitor)
+        1697637757 ford
+         time is an illusion,
+         lunchtime doubly so
+
+        .
+        ```
+        """
+        self._respond(302, "please provide new history entry, terminate with '.'")
+        data = await self._read_multiline()
+        message = f"{self.user}\n" + "\n".join(line.strip() for line in data)
+        event.add_history(message)
+        _logger.debug("id %s history added: %r", event.id, message)
+
+        self._respond_ok()
 
 
 class ZinoTestProtocol(Zino1ServerProtocol):

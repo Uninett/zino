@@ -120,7 +120,7 @@ class TestZino1BaseServerProtocol:
         protocol = TestProtocol()
         fake_transport = Mock()
         protocol.connection_made(fake_transport)
-        protocol._authenticated = True  # Fake authentication
+        protocol.user = "fake"
         fake_transport.write = Mock()
         await protocol.data_received(b"FOO\r\n")
 
@@ -361,13 +361,52 @@ class TestZino1ServerProtocolGetlogCommand:
         assert "\r\n500 " in output
 
 
+class TestZino1ServerProtocolAddhistCommand:
+    @pytest.mark.asyncio
+    async def test_should_add_history_entry_to_event(self, authenticated_protocol, event_loop):
+        state = authenticated_protocol._state
+        event = state.events.create_event("foo", None, ReachabilityEvent)
+
+        def mock_multiline():
+            future = event_loop.create_future()
+            future.set_result(["one", "two"])
+            return future
+
+        with patch.object(authenticated_protocol, "_read_multiline", mock_multiline):
+            pre_count = len(event.history)
+            await authenticated_protocol.do_addhist(event.id)
+            assert len(event.history) > pre_count
+
+    @pytest.mark.asyncio
+    async def test_should_prefix_history_message_with_username(self, authenticated_protocol, event_loop):
+        state = authenticated_protocol._state
+        event = state.events.create_event("foo", None, ReachabilityEvent)
+
+        def mock_multiline():
+            future = event_loop.create_future()
+            future.set_result(["sapient foobar", "cromulent dingbat"])
+            return future
+
+        with patch.object(authenticated_protocol, "_read_multiline", mock_multiline):
+            await authenticated_protocol.do_addhist(event.id)
+            entry = event.history[-1]
+            assert entry.message.startswith(authenticated_protocol.user)
+
+    @pytest.mark.asyncio
+    async def test_when_caseid_is_invalid_it_should_output_error(self, authenticated_protocol):
+        await authenticated_protocol.data_received(b"ADDHIST 999\r\n")
+
+        output = authenticated_protocol.transport.data_buffer.getvalue().decode()
+        assert "\r\n500 " in output
+
+
 class TestZino1TestProtocol:
     @pytest.mark.asyncio
     async def test_when_authenticated_then_authtest_should_respond_with_ok(self):
         protocol = ZinoTestProtocol()
         fake_transport = Mock()
         protocol.connection_made(fake_transport)
-        protocol._authenticated = True  # Fake authentication
+        protocol.user = "foo"
         fake_transport.write = Mock()
         await protocol.data_received(b"AUTHTEST\r\n")
 
@@ -416,5 +455,5 @@ def authenticated_protocol(buffered_fake_transport) -> Zino1ServerProtocol:
     """Returns a pre-authenticated Zino1ServerProtocol instance with a `buffered_fake_transport`"""
     protocol = Zino1ServerProtocol()
     protocol.connection_made(buffered_fake_transport)
-    protocol._authenticated = True
-    return protocol
+    protocol.user = "fake"
+    yield protocol
