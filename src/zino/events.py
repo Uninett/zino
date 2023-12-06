@@ -1,6 +1,6 @@
 import logging
 from collections import namedtuple
-from typing import Dict, Optional, Tuple, Type, Union
+from typing import Any, Callable, Dict, Optional, Tuple, Type, Union
 
 from pydantic.main import BaseModel
 
@@ -25,6 +25,7 @@ class Events(BaseModel):
     events: Dict[int, Union[PortStateEvent, BGPEvent, BFDEvent, ReachabilityEvent, AlarmEvent, Event]] = {}
     last_event_id: int = 0
     _events_by_index: Dict[EventIndex, Event] = {}
+    _observers: list[Callable[[int], Any]] = []
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -114,6 +115,16 @@ class Events(BaseModel):
         self.events[event.id] = event
         if is_new:
             self._rebuild_indexes()
+
+        self._call_observers_for(event)
+
+    def add_event_observer(self, func: callable):
+        """Adds an observer function that will be called with the ID of any committed event as its argument"""
+        self._observers.append(func)
+
+    def _call_observers_for(self, event: Event):
+        for observer in self._observers:
+            observer(event.id)
 
 
 class EventExistsError(Exception):
