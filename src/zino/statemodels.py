@@ -12,6 +12,9 @@ from zino.time import now
 IPAddress = Union[IPv4Address, IPv6Address]
 AlarmType = Literal["yellow", "red"]
 PortOrIPAddress = Union[int, IPAddress, AlarmType]
+BgpStyle = Literal["juniper", "cisco", "general"]
+BgpAdminStatus = Literal["running", "halted", "start", "stop"]
+BgpOperStatus = Literal["idle", "connect", "active", "opensent", "openconfirm", "established", "down"]
 
 
 class InterfaceState(StrEnum):
@@ -67,6 +70,11 @@ class DeviceState(BaseModel):
     ports: Dict[int, Port] = {}
     alarms: Optional[Dict[AlarmType, int]] = None
     boot_time: Optional[datetime.datetime] = None
+    bgp_style: Optional[BgpStyle] = None
+    bgp_peers: Optional[List[IPAddress]] = []
+    bgp_peer_up_times: Optional[Dict[IPAddress, int]] = dict()
+    bgp_peer_admin_states: Optional[Dict[IPAddress, BgpAdminStatus]] = dict()
+    bgp_peer_oper_states: Optional[Dict[IPAddress, BgpOperStatus]] = dict()
 
     # This is the remaining set of potential device attributes stored in device state by the original Zino code:
     # EventId
@@ -76,10 +84,6 @@ class DeviceState(BaseModel):
     # bfdSessAddrType
     # bfdSessDiscr
     # bfdSessState
-    # bgpPeerAdminState
-    # bgpPeerOperState
-    # bgpPeerUpTime
-    # bgpPeers
     # firstFlap
     # flapping
     # flaps
@@ -240,9 +244,11 @@ class PortStateEvent(Event):
 
 class BGPEvent(Event):
     type: Literal["bgp"] = "bgp"
-    remote_addr: Optional[IPAddress] = None
+    remote_address: Optional[IPAddress] = None
     remote_as: Optional[int] = None
     peer_uptime: Optional[int] = None
+    operational_state: Optional[BgpOperStatus] = None
+    admin_status: Optional[BgpAdminStatus] = None
 
 
 class BFDEvent(Event):
