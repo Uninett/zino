@@ -96,6 +96,25 @@ class Events(BaseModel):
         index = EventIndex(device_name, port, event_class)
         return self._events_by_index.get(index)
 
+    def checkout(self, event_id: int) -> Event:
+        """Checks out a copy of an event that can be freely modified without being persisted"""
+        return self[event_id].model_copy(deep=True)
+
+    def commit(self, event: Event):
+        """Commits an Event object to the state, replacing any existing event by the same id.
+
+        If the event, for some reason, does not replace an existing event, indexes are rebuilt. This entrusts the
+        committer to not change the identifying index attributes of a modified event.
+        """
+        if event.state == EventState.EMBRYONIC:
+            event.state = EventState.OPEN
+            event.opened = now()
+
+        is_new = event.id not in self
+        self.events[event.id] = event
+        if is_new:
+            self._rebuild_indexes()
+
 
 class EventExistsError(Exception):
     pass
