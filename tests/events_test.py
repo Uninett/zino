@@ -1,3 +1,5 @@
+from unittest.mock import Mock
+
 import pytest
 
 from zino.events import EventExistsError, Events
@@ -81,3 +83,12 @@ class TestEvents:
         assert event.state == EventState.EMBRYONIC
         events.commit(event)
         assert event.state == EventState.OPEN
+
+    def test_when_observer_is_added_it_should_be_called_on_commit(self):
+        events = Events()
+        observer = Mock()
+        events.add_event_observer(observer.observe)
+        event, _ = events.get_or_create_event("foobar", None, ReachabilityEvent)
+
+        events.commit(event)
+        assert observer.observe.called
