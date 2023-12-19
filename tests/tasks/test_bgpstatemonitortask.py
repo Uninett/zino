@@ -75,6 +75,31 @@ class TestBgpStateMonitorTask:
         event = task.state.events.get(device_name=task.device.name, port=peer_address, event_class=BGPEvent)
         assert event
 
+    @pytest.mark.asyncio
+    async def test_remote_as_different_from_local_as_changing_oper_state_to_down_should_create_event(
+        self, snmpsim, snmp_test_port
+    ):
+        """Tests that an event should be made if a BGP connection to a device that is in a different AS
+        than the local AS for this device reports that their oper_state has changed from established to
+        something else
+        """
+        device = PollDevice(
+            name=DEVICE_NAME,
+            address=DEVICE_ADDRESS,
+            community="general-bgp-oper-down",
+            port=snmp_test_port,
+        )
+        state = ZinoState()
+        task = BgpStateMonitorTask(device, state)
+        peer_address = IPv4Address("127.0.0.1")
+        # set initial state
+        task.device_state.bgp_peer_oper_states = {peer_address: "established"}
+        await task.run()
+        # check if state has been updated to reflect state defined in .snmprec
+        assert task.device_state.bgp_peer_oper_states[peer_address] != "established"
+        event = task.state.events.get(device_name=task.device.name, port=peer_address, event_class=BGPEvent)
+        assert event
+
 
 class TestGetBgpType:
     @pytest.mark.asyncio
