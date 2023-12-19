@@ -1,9 +1,11 @@
 import logging
+from ipaddress import IPv4Address
 
 import pytest
 
 from zino.config.models import PollDevice
 from zino.state import ZinoState
+from zino.statemodels import BGPEvent
 from zino.tasks.bgpstatemonitortask import BgpStateMonitorTask
 
 DEVICE_NAME = "buick.lab.example.org"
@@ -50,6 +52,28 @@ class TestBgpStateMonitorTask:
             await task.run()
 
         assert f"router {device.name} misses BGP variables" in caplog.text
+
+    @pytest.mark.asyncio
+    async def test_peer_admin_status_changing_to_stop_while_peer_state_is_not_established_should_create_event(
+        self, snmpsim, snmp_test_port
+    ):
+        device = PollDevice(
+            name=DEVICE_NAME,
+            address=DEVICE_ADDRESS,
+            community="general-bgp-admin-down",
+            port=snmp_test_port,
+        )
+        state = ZinoState()
+        task = BgpStateMonitorTask(device, state)
+        peer_address = IPv4Address("127.0.0.1")
+        # set initial state
+        task.device_state.bgp_peer_admin_states = {peer_address: "start"}
+        await task.run()
+        # check if state has been updated to reflect state defined in .snmprec
+        assert task.device_state.bgp_peer_admin_states[peer_address] == "stop"
+        assert task.device_state.bgp_peer_oper_states[peer_address] != "established"
+        event = task.state.events.get(device_name=task.device.name, port=peer_address, event_class=BGPEvent)
+        assert event
 
 
 class TestGetBgpType:
