@@ -318,7 +318,7 @@ class BgpStateMonitorTask(Task):
                     self._bgp_admin_down(data)
                     _logger.debug(
                         f"Router {self.device_state.name} peer {data.peer_remote_address} AS {data.peer_remote_as} "
-                        "admin-down"
+                        f"admin-down"
                     )
             else:
                 if self.device_state.bgp_peer_admin_states[data.peer_remote_address] != data.peer_admin_status:
@@ -333,12 +333,12 @@ class BgpStateMonitorTask(Task):
                         self._bgp_oper_down(data)
                         _logger.debug(
                             f"Router {self.device_state.name} peer {data.peer_remote_address} AS {data.peer_remote_as} "
-                            "is {data.peer_state} (down)",
+                            f"is {data.peer_state} (down)",
                         )
                     else:
                         _logger.debug(
                             f"Router {self.device_state.name} peer {data.peer_remote_address} AS {data.peer_remote_as} "
-                            "is {data.peer_state} (down), but uptime = {uptime}",
+                            f"is {data.peer_state} (down), but uptime = {uptime}",
                         )
 
         self.device_state.bgp_peer_oper_states[data.peer_remote_address] = data.peer_state
@@ -381,7 +381,7 @@ class BgpStateMonitorTask(Task):
 
         log = (
             f"{event.router} peer {data.peer_remote_address} AS {data.peer_remote_as} is turned off "
-            "({data.peer_admin_status})"
+            f"({data.peer_admin_status})"
         )
         _logger.info(log)
         event.add_log(log)
@@ -399,7 +399,7 @@ class BgpStateMonitorTask(Task):
 
         log = (
             f"{event.router} peer {data.peer_remote_address} AS {data.peer_remote_as} is now turned on "
-            "({data.peer_admin_status})"
+            f"({data.peer_admin_status})"
         )
         _logger.info(log)
         event.add_log(log)
@@ -421,7 +421,7 @@ class BgpStateMonitorTask(Task):
 
         log = (
             f"{event.router} peer {data.peer_remote_address} AS {data.peer_remote_as} is down "
-            "({data.peer_admin_status})"
+            f"({data.peer_admin_status})"
         )
         _logger.info(log)
         event.add_log(log)
