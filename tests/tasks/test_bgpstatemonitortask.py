@@ -1,5 +1,5 @@
 import logging
-from ipaddress import IPv4Address
+from ipaddress import IPv4Address, IPv6Address
 
 import pytest
 
@@ -125,6 +125,36 @@ class TestGetBgpType:
         state = ZinoState()
         task = BgpStateMonitorTask(non_bgp_device, state)
         assert (await task._get_bgp_style()) is None
+
+
+class TestFixupIPAddress:
+    def test_can_parse_ipv4_starting_with_0x(self, general_bgp_device):
+        state = ZinoState()
+        task = BgpStateMonitorTask(general_bgp_device, state)
+        encoded_address = "0x7f000001"
+        decoded_address = task._fixup_ip_address(encoded_address)
+        assert decoded_address == IPv4Address("127.0.0.1")
+
+    def test_can_parse_ipv6_starting_with_0x(self, general_bgp_device):
+        state = ZinoState()
+        task = BgpStateMonitorTask(general_bgp_device, state)
+        encoded_address = "0x13c7db1c4430c8266333aed0e6053a3b"
+        decoded_address = task._fixup_ip_address(encoded_address)
+        assert decoded_address == IPv6Address("13c7:db1c:4430:c826:6333:aed0:e605:3a3b")
+
+    def test_can_parse_ipv4_in_string_format(self, general_bgp_device):
+        state = ZinoState()
+        task = BgpStateMonitorTask(general_bgp_device, state)
+        string_address = "127.0.0.1"
+        decoded_address = task._fixup_ip_address(string_address)
+        assert decoded_address == IPv4Address(string_address)
+
+    def test_can_parse_ipv6_in_string_format(self, general_bgp_device):
+        state = ZinoState()
+        task = BgpStateMonitorTask(general_bgp_device, state)
+        string_address = "13c7:db1c:4430:c826:6333:aed0:e605:3a3b"
+        decoded_address = task._fixup_ip_address(string_address)
+        assert decoded_address == IPv6Address(string_address)
 
 
 @pytest.fixture()
