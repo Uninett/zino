@@ -313,7 +313,7 @@ class BgpStateMonitorTask(Task):
             bgp_peer_admin_state = self.device_state.bgp_peer_admin_states.get(data.peer_remote_address, None)
             if not bgp_peer_admin_state:
                 self.device_state.bgp_peer_admin_states[data.peer_remote_address] = "unknown"
-            if data.peer_admin_status == "stop" or data.peer_state == "halted":
+            if data.peer_admin_status == "stop" or data.peer_admin_status == "halted":
                 if self.device_state.bgp_peer_admin_states[data.peer_remote_address] != data.peer_admin_status:
                     self._bgp_admin_down(data)
                     _logger.debug(
