@@ -147,6 +147,7 @@ class TestBgpStateMonitorTask:
         task = BgpStateMonitorTask(device, state)
         peer_address = IPv4Address("10.0.0.1")
         # set initial state
+        task.device_state.bgp_peer_admin_states = {peer_address: "start"}
         task.device_state.bgp_peer_oper_states = {peer_address: "established"}
         await task.run()
         # check if state has been updated to reflect state defined in .snmprec
@@ -176,6 +177,7 @@ class TestBgpStateMonitorTask:
         task = BgpStateMonitorTask(device, state)
         peer_address = IPv4Address("10.0.0.1")
         # set initial state
+        task.device_state.bgp_peer_admin_states = {peer_address: "start"}
         task.device_state.bgp_peer_oper_states = {peer_address: "established"}
         await task.run()
         # check if state has been updated to reflect state defined in .snmprec
@@ -205,6 +207,7 @@ class TestBgpStateMonitorTask:
         task = BgpStateMonitorTask(device, state)
         peer_address = IPv4Address("10.0.0.2")
         # set initial state
+        task.device_state.bgp_peer_admin_states = {peer_address: "running"}
         task.device_state.bgp_peer_oper_states = {peer_address: "established"}
         await task.run()
         # check if state has been updated to reflect state defined in .snmprec
