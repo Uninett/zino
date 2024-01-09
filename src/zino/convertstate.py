@@ -227,10 +227,6 @@ def set_bfd_sess_state(linedata: LineData, state: ZinoState):
     event.bfdstate = bfd_state
 
 
-def bfd_sess_addr_type():
-    pass
-
-
 """
 
 
