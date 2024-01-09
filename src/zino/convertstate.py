@@ -62,6 +62,8 @@ def convert(old_state_file: str):
                 pass
         elif "::bfdSessState" in line:
             set_bfd_sess_state(linedata, new_state)
+        elif "::bfdSessDiscr" in line:
+            set_bfd_sess_discr(linedata, new_state)
         else:
             pass
     for linedata in event_attrs:
@@ -227,8 +229,18 @@ def set_bfd_sess_state(linedata: LineData, state: ZinoState):
     event.bfdstate = bfd_state
 
 
-"""
+def set_bfd_sess_discr(linedata: LineData, state: ZinoState):
+    ip_or_port = linedata.identifiers[1]
+    if ":" in ip_or_port:
+        ip_or_port = ip_address(bytes(int(i, 16) for i in ip_or_port.split(":")))
+    device_name = linedata.identifiers[0]
+    bfd_discr = linedata.value
+    event_index = EventIndex(device_name, ip_or_port, BFDEvent)
+    event, _ = state.events.get_or_create_event(*event_index)
+    event.bfddiscr = bfd_discr
 
+
+"""
 
 def get_line_data(line) -> LineData:
     removed_function = line.split('(')
