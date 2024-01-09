@@ -29,11 +29,6 @@ event_name_to_type = {
 class LineData:
     """Flexible definition of the value and identifiers found in a Zino1 .tcl state dump.
     Each line in the state dump can contain several identifiers but there is always only one value.
-    ex: set ::bfdSessAddr(random-gw1, 3) "AA:BB:CC:DD" means interface with index 3 for device
-    random-gw1 should have a bfd session address value of AA:BB:CC:DD.
-    The identifiers here are random-gw1 and 3, while the value is AA:BB:CC:DD.
-    It is also possible for there to be no identifiers if it is a global value
-    It is up to the user of this dataclass to know what the indentifiers and values represent.
     """
 
     identifiers: Optional[tuple[str, ...]]
