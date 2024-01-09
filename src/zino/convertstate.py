@@ -58,7 +58,8 @@ def convert(old_state_file: str):
             # Parse later, need to parse ::EventId first
             event_attrs.append(linedata)
         elif "::EventIdToIx" in line:
-            set_event_id_to_ix(linedata, event_indices)
+            event_id, event_index = get_event_index(linedata)
+            event_indices[event_id] = event_index
         else:
             pass
     for linedata in event_attrs:
@@ -123,20 +124,16 @@ def set_boot_time(linedata: LineData, state: ZinoState):
     device.boot_time = datetime.fromtimestamp(timestamp)
 
 
-def set_event_id_to_ix(line: LineData, indices: EventIndices):
-    """These lines map ID to an index of boxname, port index and event type, so
-    this should be parsed before EventAttrs is parsed. EventAttrs only has ID, but
-    Zino2 requires the proper indexing to access an Event, which can be done via boxname, port index
-    and event type. so by doing this event_id first, i can create a mapping from ID to the 3-value index
-    which will allow me to update events
-    Problem is, these lines (atleast in the example I have) come after some EventAttrs that already exist. So
-    might have to do something to ensure the EventId stuff is parsed first!"""
+def get_event_index(line: LineData) -> tuple[str, EventIndex]:
+    """Parses a LineData representing an EventIdToIx line and returns a tuple
+    of event_id, event_index
+    """
     event_id = line.identifiers[0]
     device, ip_or_port, event_type = tuple(line.value.split(","))
     if ":" in ip_or_port:
         ip_or_port = ip_address(bytes(int(i, 16) for i in ip_or_port.split(":")))
     event_index = EventIndex(device, ip_or_port, event_name_to_type[event_type])
-    indices[event_id] = event_index
+    return event_id, event_index
 
 
 def set_event_attrs(linedata: LineData, state, indices):
