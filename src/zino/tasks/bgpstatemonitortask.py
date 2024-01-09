@@ -96,7 +96,7 @@ class BgpStateMonitorTask(Task):
 
         return None
 
-    async def _get_local_as(self, bgp_style: BgpStyle) -> Union[str, None]:
+    async def _get_local_as(self, bgp_style: BgpStyle) -> Union[int, None]:
         snmp = SNMP(self.device)
         if bgp_style == "juniper":
             # Juniper has multiple entries for this, so we just take the first
@@ -280,7 +280,7 @@ class BgpStateMonitorTask(Task):
 
         raise TypeError(f"Input {address} could not be converted to IP address.")
 
-    def _update_single_bgp_entry(self, oid, row: dict[str, Any], local_as: str, uptime: int):
+    def _update_single_bgp_entry(self, oid, row: dict[str, Any], local_as: int, uptime: int):
         data = BaseBgpRow(**row)
 
         # Bug in JunOS -- info from IPv6 BGP sessions spill over
