@@ -35,7 +35,7 @@ class LineData:
     value: str
 
 
-def convert(old_state_file: str):
+def create_state(old_state_file: str):
     new_state = ZinoState()
     event_attrs = []
     event_indices: EventIndices = {}
@@ -68,7 +68,7 @@ def convert(old_state_file: str):
             pass
     for linedata in event_attrs:
         set_event_attrs(linedata, new_state, event_indices)
-    print(new_state.events)
+    return new_state
 
 
 def read_file_lines(file: str):
@@ -313,7 +313,8 @@ def get_parser():
 def main():
     parser = get_parser()
     args = parser.parse_args()
-    convert(args.statedump)
+    state = create_state(args.statedump)
+    print(state)
 
 
 if __name__ == "__main__":
