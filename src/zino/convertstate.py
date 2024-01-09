@@ -219,23 +219,19 @@ def set_bfd_sess_addr(linedata: LineData, state: ZinoState):
 
 
 def set_bfd_sess_state(linedata: LineData, state: ZinoState):
-    ip_or_port = linedata.identifiers[1]
-    if ":" in ip_or_port:
-        ip_or_port = ip_address(bytes(int(i, 16) for i in ip_or_port.split(":")))
+    port = linedata.identifiers[1]
     device_name = linedata.identifiers[0]
     bfd_state = linedata.value
-    event_index = EventIndex(device_name, ip_or_port, BFDEvent)
+    event_index = EventIndex(device_name, port, BFDEvent)
     event, _ = state.events.get_or_create_event(*event_index)
     event.bfdstate = bfd_state
 
 
 def set_bfd_sess_discr(linedata: LineData, state: ZinoState):
-    ip_or_port = linedata.identifiers[1]
-    if ":" in ip_or_port:
-        ip_or_port = ip_address(bytes(int(i, 16) for i in ip_or_port.split(":")))
+    port = linedata.identifiers[1]
     device_name = linedata.identifiers[0]
     bfd_discr = linedata.value
-    event_index = EventIndex(device_name, ip_or_port, BFDEvent)
+    event_index = EventIndex(device_name, port, BFDEvent)
     event, _ = state.events.get_or_create_event(*event_index)
     event.bfddiscr = bfd_discr
 
