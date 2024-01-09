@@ -60,6 +60,8 @@ def convert(old_state_file: str):
                 set_bfd_sess_addr(linedata, new_state)
             except ValueError:
                 pass
+        elif "::bfdSessState" in line:
+            set_bfd_sess_state(linedata, new_state)
         else:
             pass
     for linedata in event_attrs:
@@ -212,6 +214,17 @@ def set_bfd_sess_addr(linedata: LineData, state: ZinoState):
     event_index = EventIndex(device_name, port, BFDEvent)
     event, _ = state.events.get_or_create_event(*event_index)
     event.bfdaddr = ip
+
+
+def set_bfd_sess_state(linedata: LineData, state: ZinoState):
+    ip_or_port = linedata.identifiers[1]
+    if ":" in ip_or_port:
+        ip_or_port = ip_address(bytes(int(i, 16) for i in ip_or_port.split(":")))
+    device_name = linedata.identifiers[0]
+    bfd_state = linedata.value
+    event_index = EventIndex(device_name, ip_or_port, BFDEvent)
+    event, _ = state.events.get_or_create_event(*event_index)
+    event.bfdstate = bfd_state
 
 
 def bfd_sess_addr_type():
