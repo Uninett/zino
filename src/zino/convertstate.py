@@ -136,7 +136,7 @@ def get_event_index(line: LineData) -> tuple[str, EventIndex]:
     return event_id, event_index
 
 
-def set_event_attrs(linedata: LineData, state, indices):
+def set_event_attrs(linedata: LineData, state: ZinoState, indices):
     event_field = linedata.identifiers[0]
     event_id = linedata.identifiers[1]
     event_index = indices[event_id]
@@ -181,7 +181,7 @@ def set_event_attrs(linedata: LineData, state, indices):
         pass
 
 
-def set_last_id(linedata: LineData, state):
+def set_last_id(linedata: LineData, state: ZinoState):
     state.events.last_event_id = int(linedata.value)
 
 
