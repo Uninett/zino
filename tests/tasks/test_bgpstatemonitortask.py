@@ -54,9 +54,7 @@ class TestBgpStateMonitorTask:
         assert f"router {device.name} misses BGP variables" in caplog.text
 
     @pytest.mark.asyncio
-    async def test_peer_admin_status_changing_to_stop_while_peer_state_is_not_established_should_create_event_general(
-        self, snmpsim, snmp_test_port
-    ):
+    async def test_admin_down_general_creates_event(self, snmpsim, snmp_test_port):
         device = PollDevice(
             name=DEVICE_NAME,
             address=DEVICE_ADDRESS,
@@ -72,13 +70,17 @@ class TestBgpStateMonitorTask:
         # check if state has been updated to reflect state defined in .snmprec
         assert task.device_state.bgp_peer_admin_states[peer_address] == "stop"
         assert task.device_state.bgp_peer_oper_states[peer_address] != "established"
+        # check that the correct event has been created
         event = task.state.events.get(device_name=task.device.name, port=peer_address, event_class=BGPEvent)
         assert event
+        assert event.admin_status == "stop"
+        assert event.operational_state == "down"
+        assert event.remote_address == peer_address
+        assert event.remote_as == 10
+        assert event.peer_uptime == 0
 
     @pytest.mark.asyncio
-    async def test_peer_admin_status_changing_to_stop_while_peer_state_is_not_established_should_create_event_cisco(
-        self, snmpsim, snmp_test_port
-    ):
+    async def test_admin_down_cisco_creates_event(self, snmpsim, snmp_test_port):
         device = PollDevice(
             name=DEVICE_NAME,
             address=DEVICE_ADDRESS,
@@ -94,13 +96,17 @@ class TestBgpStateMonitorTask:
         # check if state has been updated to reflect state defined in .snmprec
         assert task.device_state.bgp_peer_admin_states[peer_address] == "stop"
         assert task.device_state.bgp_peer_oper_states[peer_address] != "established"
+        # check that the correct event has been created
         event = task.state.events.get(device_name=task.device.name, port=peer_address, event_class=BGPEvent)
         assert event
+        assert event.admin_status == "stop"
+        assert event.operational_state == "down"
+        assert event.remote_address == peer_address
+        assert event.remote_as == 10
+        assert event.peer_uptime == 0
 
     @pytest.mark.asyncio
-    async def test_peer_admin_status_changing_to_stop_while_peer_state_is_not_established_should_create_event_juniper(
-        self, snmpsim, snmp_test_port
-    ):
+    async def test_admin_down_juniper_creates_event(self, snmpsim, snmp_test_port):
         device = PollDevice(
             name=DEVICE_NAME,
             address=DEVICE_ADDRESS,
@@ -116,13 +122,17 @@ class TestBgpStateMonitorTask:
         # check if state has been updated to reflect state defined in .snmprec
         assert task.device_state.bgp_peer_admin_states[peer_address] == "halted"
         assert task.device_state.bgp_peer_oper_states[peer_address] != "established"
+        # check that the correct event has been created
         event = task.state.events.get(device_name=task.device.name, port=peer_address, event_class=BGPEvent)
         assert event
+        assert event.admin_status == "halted"
+        assert event.operational_state == "down"
+        assert event.remote_address == peer_address
+        assert event.remote_as == 10
+        assert event.peer_uptime == 0
 
     @pytest.mark.asyncio
-    async def test_remote_as_different_from_local_as_changing_oper_state_to_down_should_create_event_general(
-        self, snmpsim, snmp_test_port
-    ):
+    async def test_oper_down_general_creates_event(self, snmpsim, snmp_test_port):
         """Tests that an event should be made if a BGP connection to a device that is in a different AS
         than the local AS for this device reports that their oper_state has changed from established to
         something else
@@ -141,13 +151,17 @@ class TestBgpStateMonitorTask:
         await task.run()
         # check if state has been updated to reflect state defined in .snmprec
         assert task.device_state.bgp_peer_oper_states[peer_address] != "established"
+        # check that the correct event has been created
         event = task.state.events.get(device_name=task.device.name, port=peer_address, event_class=BGPEvent)
         assert event
+        assert event.admin_status == "start"
+        assert event.operational_state == "down"
+        assert event.remote_address == peer_address
+        assert event.remote_as == 10
+        assert event.peer_uptime == 100000
 
     @pytest.mark.asyncio
-    async def test_remote_as_different_from_local_as_changing_oper_state_to_down_should_create_event_cisco(
-        self, snmpsim, snmp_test_port
-    ):
+    async def test_oper_down_cisco_creates_event(self, snmpsim, snmp_test_port):
         """Tests that an event should be made if a BGP connection to a device that is in a different AS
         than the local AS for this device reports that their oper_state has changed from established to
         something else
@@ -166,13 +180,17 @@ class TestBgpStateMonitorTask:
         await task.run()
         # check if state has been updated to reflect state defined in .snmprec
         assert task.device_state.bgp_peer_oper_states[peer_address] != "established"
+        # check that the correct event has been created
         event = task.state.events.get(device_name=task.device.name, port=peer_address, event_class=BGPEvent)
         assert event
+        assert event.admin_status == "start"
+        assert event.operational_state == "down"
+        assert event.remote_address == peer_address
+        assert event.remote_as == 10
+        assert event.peer_uptime == 1000000
 
     @pytest.mark.asyncio
-    async def test_remote_as_different_from_local_as_changing_oper_state_to_down_should_create_event_juniper(
-        self, snmpsim, snmp_test_port
-    ):
+    async def test_oper_down_juniper_creates_event(self, snmpsim, snmp_test_port):
         """Tests that an event should be made if a BGP connection to a device that is in a different AS
         than the local AS for this device reports that their oper_state has changed from established to
         something else
@@ -191,8 +209,14 @@ class TestBgpStateMonitorTask:
         await task.run()
         # check if state has been updated to reflect state defined in .snmprec
         assert task.device_state.bgp_peer_oper_states[peer_address] != "established"
+        # check that the correct event has been created
         event = task.state.events.get(device_name=task.device.name, port=peer_address, event_class=BGPEvent)
         assert event
+        assert event.admin_status == "running"
+        assert event.operational_state == "down"
+        assert event.remote_address == peer_address
+        assert event.remote_as == 10
+        assert event.peer_uptime == 100000
 
 
 class TestGetBgpType:
