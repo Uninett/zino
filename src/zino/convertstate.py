@@ -60,6 +60,11 @@ def convert(old_state_file: str):
         elif "::EventIdToIx" in line:
             event_id, event_index = get_event_index(linedata)
             event_indices[event_id] = event_index
+        elif "::bfdSessAddr" in line:
+            try:
+                set_bfd_sess_addr(linedata, new_state)
+            except ValueError:
+                pass
         else:
             pass
     for linedata in event_attrs:
@@ -202,8 +207,16 @@ def jnx_alarms():
     pass
 
 
-def bfd_sess_addr():
-    pass
+def set_bfd_sess_addr(linedata: LineData, state: ZinoState):
+    ip = linedata.value
+    if ":" in ip:
+        ip = bytes(int(i, 16) for i in ip.split(":"))
+    ip = ip_address(ip)
+    device_name = linedata.identifiers[0]
+    port = linedata.identifiers[1]
+    event_index = EventIndex(device_name, port, BFDEvent)
+    event, _ = state.events.get_or_create_event(*event_index)
+    event.bfdaddr = ip
 
 
 def bfd_sess_addr_type():
