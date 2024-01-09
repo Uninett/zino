@@ -207,6 +207,8 @@ class Event(BaseModel):
             return
 
         old_state, self.state = self.state, new_state
+        if (old_state, new_state) == (EventState.EMBRYONIC, EventState.OPEN):
+            self.opened = now()
         self.add_history(f"state change {old_state.value} -> {new_state.value} ({user})")
         _logger.debug("id %s state %s -> %s by %s", self.id, old_state.value, new_state.value, user)
 

@@ -14,7 +14,6 @@ from zino.statemodels import (
     PortStateEvent,
     ReachabilityEvent,
 )
-from zino.time import now
 
 EventIndex = namedtuple("EventIndex", "router port type")
 
@@ -96,7 +95,7 @@ class Events(BaseModel):
         """Checks out a copy of an event that can be freely modified without being persisted"""
         return self[event_id].model_copy(deep=True)
 
-    def commit(self, event: Event):
+    def commit(self, event: Event, user: str = "monitor"):
         """Commits an Event object to the state, replacing any existing event by the same id.
 
         If the event does not have an id, it is considered a new event and is assigned a new id value before it is
@@ -106,8 +105,7 @@ class Events(BaseModel):
         has modified, as that will break the index.
         """
         if event.state == EventState.EMBRYONIC:
-            event.state = EventState.OPEN
-            event.opened = now()
+            event.set_state(EventState.OPEN, user)
 
         is_new = not event.id
         if is_new:
