@@ -387,8 +387,13 @@ class BgpStateMonitorTask(Task):
         event.add_log(log)
 
     def _bgp_admin_up(self, data: BaseBgpRow):
-        event = self.state.events.get(self.device.name, data.peer_remote_address, BGPEvent)
-        if not event or event.admin_status == data.peer_admin_status:
+        event, created = self.state.events.get_or_create_event(self.device.name, data.peer_remote_address, BGPEvent)
+
+        if created:
+            event.state = EventState.OPEN
+            event.add_history("Change state to Open")
+
+        if event.admin_status == data.peer_admin_status:
             return
 
         event.operational_state = data.peer_state
