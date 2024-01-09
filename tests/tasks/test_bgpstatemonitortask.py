@@ -221,6 +221,32 @@ class TestGetBgpType:
         assert (await task._get_bgp_style()) is None
 
 
+class TestGetLocalAs:
+    @pytest.mark.asyncio
+    async def test_get_local_as_returns_correct_value_for_juniper(self, juniper_bgp_device):
+        state = ZinoState()
+        task = BgpStateMonitorTask(juniper_bgp_device, state)
+        assert (await task._get_local_as(bgp_style="juniper")) == 200
+
+    @pytest.mark.asyncio
+    async def test_get_local_as_returns_correct_value_for_cisco(self, cisco_bgp_device):
+        state = ZinoState()
+        task = BgpStateMonitorTask(cisco_bgp_device, state)
+        assert (await task._get_local_as(bgp_style="cisco")) == 10
+
+    @pytest.mark.asyncio
+    async def test_get_local_as_returns_correct_value_for_general(self, general_bgp_device):
+        state = ZinoState()
+        task = BgpStateMonitorTask(general_bgp_device, state)
+        assert (await task._get_local_as(bgp_style="general")) == 10
+
+    @pytest.mark.asyncio
+    async def test_get_local_as_returns_none_for_non_existent_local_as(self, non_bgp_device):
+        state = ZinoState()
+        task = BgpStateMonitorTask(non_bgp_device, state)
+        assert (await task._get_local_as(bgp_style="general")) is None
+
+
 class TestFixupIPAddress:
     def test_can_parse_ipv4_starting_with_0x(self, general_bgp_device):
         state = ZinoState()
