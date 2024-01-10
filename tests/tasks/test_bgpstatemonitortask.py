@@ -54,6 +54,181 @@ class TestBgpStateMonitorTask:
         assert f"router {device.name} misses BGP variables" in caplog.text
 
     @pytest.mark.asyncio
+    async def test_external_reset_general_creates_event(self, snmpsim, snmp_test_port):
+        device = PollDevice(
+            name=DEVICE_NAME,
+            address=DEVICE_ADDRESS,
+            community="general-bgp-external-reset",
+            port=snmp_test_port,
+        )
+        state = ZinoState()
+        task = BgpStateMonitorTask(device, state)
+        peer_address = IPv4Address("10.0.0.2")
+        # set initial state
+        task.device_state.bgp_peer_up_times = {peer_address: 5000}
+        await task.run()
+        # check if state has been updated to reflect state defined in .snmprec
+        assert task.device_state.bgp_peer_admin_states[peer_address] == "start"
+        assert task.device_state.bgp_peer_oper_states[peer_address] == "established"
+        # check that the correct event has been created
+        event = task.state.events.get(device_name=task.device.name, port=peer_address, event_class=BGPEvent)
+        assert event
+        assert event.admin_status == "start"
+        assert event.operational_state == "established"
+        assert event.remote_address == peer_address
+        assert event.remote_as == 20
+        assert event.peer_uptime == 250
+
+    @pytest.mark.asyncio
+    async def test_external_reset_cisco_creates_event(self, snmpsim, snmp_test_port):
+        device = PollDevice(
+            name=DEVICE_NAME,
+            address=DEVICE_ADDRESS,
+            community="cisco-bgp-external-reset",
+            port=snmp_test_port,
+        )
+        state = ZinoState()
+        task = BgpStateMonitorTask(device, state)
+        peer_address = IPv4Address("10.0.0.1")
+        # set initial state
+        task.device_state.bgp_peer_up_times = {peer_address: 5000}
+        await task.run()
+        # check if state has been updated to reflect state defined in .snmprec
+        assert task.device_state.bgp_peer_admin_states[peer_address] == "start"
+        assert task.device_state.bgp_peer_oper_states[peer_address] == "established"
+        # check that the correct event has been created
+        event = task.state.events.get(device_name=task.device.name, port=peer_address, event_class=BGPEvent)
+        assert event
+        assert event.admin_status == "start"
+        assert event.operational_state == "established"
+        assert event.remote_address == peer_address
+        assert event.remote_as == 10
+        assert event.peer_uptime == 250
+
+    @pytest.mark.asyncio
+    async def test_external_reset_juniper_creates_event(self, snmpsim, snmp_test_port):
+        device = PollDevice(
+            name=DEVICE_NAME,
+            address=DEVICE_ADDRESS,
+            community="juniper-bgp-external-reset",
+            port=snmp_test_port,
+        )
+        state = ZinoState()
+        task = BgpStateMonitorTask(device, state)
+        peer_address = IPv4Address("10.0.0.2")
+        # set initial state
+        task.device_state.bgp_peer_up_times = {peer_address: 5000}
+        await task.run()
+        # check if state has been updated to reflect state defined in .snmprec
+        assert task.device_state.bgp_peer_admin_states[peer_address] == "running"
+        assert task.device_state.bgp_peer_oper_states[peer_address] == "established"
+        # check that the correct event has been created
+        event = task.state.events.get(device_name=task.device.name, port=peer_address, event_class=BGPEvent)
+        assert event
+        assert event.admin_status == "running"
+        assert event.operational_state == "established"
+        assert event.remote_address == peer_address
+        assert event.remote_as == 20
+        assert event.peer_uptime == 250
+
+    @pytest.mark.asyncio
+    async def test_session_up_general_creates_event(self, snmpsim, snmp_test_port):
+        device = PollDevice(
+            name=DEVICE_NAME,
+            address=DEVICE_ADDRESS,
+            community="general-bgp-external-reset",
+            port=snmp_test_port,
+        )
+        state = ZinoState()
+        task = BgpStateMonitorTask(device, state)
+        peer_address = IPv4Address("10.0.0.2")
+        # create admin down event
+        event, _ = state.events.get_or_create_event(device.name, peer_address, BGPEvent)
+        event.operational_state = "down"
+        event.admin_status = "stop"
+        event.remote_address = peer_address
+        event.remote_as = 20
+        event.peer_uptime = 0
+
+        await task.run()
+
+        # check if state has been updated to reflect state defined in .snmprec
+        assert task.device_state.bgp_peer_admin_states[peer_address] == "start"
+        assert task.device_state.bgp_peer_oper_states[peer_address] == "established"
+        # check that the correct event has been created
+        event = task.state.events.get(device_name=task.device.name, port=peer_address, event_class=BGPEvent)
+        assert event
+        assert event.admin_status == "start"
+        assert event.operational_state == "established"
+        assert event.remote_address == peer_address
+        assert event.remote_as == 20
+        assert event.peer_uptime == 250
+
+    @pytest.mark.asyncio
+    async def test_session_up_cisco_creates_event(self, snmpsim, snmp_test_port):
+        device = PollDevice(
+            name=DEVICE_NAME,
+            address=DEVICE_ADDRESS,
+            community="cisco-bgp-external-reset",
+            port=snmp_test_port,
+        )
+        state = ZinoState()
+        task = BgpStateMonitorTask(device, state)
+        peer_address = IPv4Address("10.0.0.1")
+        # create admin down event
+        event, _ = state.events.get_or_create_event(device.name, peer_address, BGPEvent)
+        event.operational_state = "down"
+        event.admin_status = "stop"
+        event.remote_address = peer_address
+        event.remote_as = 20
+        event.peer_uptime = 0
+
+        await task.run()
+        # check if state has been updated to reflect state defined in .snmprec
+        assert task.device_state.bgp_peer_admin_states[peer_address] == "start"
+        assert task.device_state.bgp_peer_oper_states[peer_address] == "established"
+        # check that the correct event has been created
+        event = task.state.events.get(device_name=task.device.name, port=peer_address, event_class=BGPEvent)
+        assert event
+        assert event.admin_status == "start"
+        assert event.operational_state == "established"
+        assert event.remote_address == peer_address
+        assert event.remote_as == 10
+        assert event.peer_uptime == 250
+
+    @pytest.mark.asyncio
+    async def test_session_up_juniper_creates_event(self, snmpsim, snmp_test_port):
+        device = PollDevice(
+            name=DEVICE_NAME,
+            address=DEVICE_ADDRESS,
+            community="juniper-bgp-external-reset",
+            port=snmp_test_port,
+        )
+        state = ZinoState()
+        task = BgpStateMonitorTask(device, state)
+        peer_address = IPv4Address("10.0.0.2")
+        # create admin down event
+        event, _ = state.events.get_or_create_event(device.name, peer_address, BGPEvent)
+        event.operational_state = "down"
+        event.admin_status = "halted"
+        event.remote_address = peer_address
+        event.remote_as = 20
+        event.peer_uptime = 0
+
+        await task.run()
+        # check if state has been updated to reflect state defined in .snmprec
+        assert task.device_state.bgp_peer_admin_states[peer_address] == "running"
+        assert task.device_state.bgp_peer_oper_states[peer_address] == "established"
+        # check that the correct event has been created
+        event = task.state.events.get(device_name=task.device.name, port=peer_address, event_class=BGPEvent)
+        assert event
+        assert event.admin_status == "running"
+        assert event.operational_state == "established"
+        assert event.remote_address == peer_address
+        assert event.remote_as == 20
+        assert event.peer_uptime == 250
+
+    @pytest.mark.asyncio
     async def test_admin_down_general_creates_event(self, snmpsim, snmp_test_port):
         device = PollDevice(
             name=DEVICE_NAME,
