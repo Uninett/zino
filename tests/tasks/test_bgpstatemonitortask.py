@@ -319,6 +319,7 @@ class TestBgpStateMonitorTask:
         peer_address = IPv4Address("10.0.0.1")
         # set initial state
         task.device_state.bgp_peer_admin_states = {peer_address: "stop"}
+        task.device_state.bgp_peer_oper_states = {peer_address: "idle"}
         await task.run()
         # check if state has been updated to reflect state defined in .snmprec
         assert task.device_state.bgp_peer_admin_states[peer_address] == "start"
@@ -329,7 +330,7 @@ class TestBgpStateMonitorTask:
         assert event.admin_status == "start"
         assert event.operational_state == "idle"
         assert event.remote_address == peer_address
-        assert event.remote_as == 10
+        assert event.remote_as == 20
         assert event.peer_uptime == 0
 
     @pytest.mark.asyncio
@@ -345,6 +346,7 @@ class TestBgpStateMonitorTask:
         peer_address = IPv4Address("10.0.0.1")
         # set initial state
         task.device_state.bgp_peer_admin_states = {peer_address: "stop"}
+        task.device_state.bgp_peer_oper_states = {peer_address: "idle"}
         await task.run()
         # check if state has been updated to reflect state defined in .snmprec
         assert task.device_state.bgp_peer_admin_states[peer_address] == "start"
@@ -355,7 +357,7 @@ class TestBgpStateMonitorTask:
         assert event.admin_status == "start"
         assert event.operational_state == "idle"
         assert event.remote_address == peer_address
-        assert event.remote_as == 10
+        assert event.remote_as == 20
         assert event.peer_uptime == 0
 
     @pytest.mark.asyncio
@@ -371,6 +373,7 @@ class TestBgpStateMonitorTask:
         peer_address = IPv4Address("10.0.0.2")
         # set initial state
         task.device_state.bgp_peer_admin_states = {peer_address: "halted"}
+        task.device_state.bgp_peer_oper_states = {peer_address: "idle"}
         await task.run()
         # check if state has been updated to reflect state defined in .snmprec
         assert task.device_state.bgp_peer_admin_states[peer_address] == "running"
@@ -381,7 +384,7 @@ class TestBgpStateMonitorTask:
         assert event.admin_status == "running"
         assert event.operational_state == "idle"
         assert event.remote_address == peer_address
-        assert event.remote_as == 10
+        assert event.remote_as == 20
         assert event.peer_uptime == 0
 
     @pytest.mark.asyncio

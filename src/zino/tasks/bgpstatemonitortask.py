@@ -298,11 +298,11 @@ class BgpStateMonitorTask(Task):
                 bgp_peer_up_time
                 and uptime >= bgp_peer_up_time
                 and bgp_peer_up_time > data.peer_fsm_established_time
-                and local_as is not data.peer_remote_as
+                and local_as != data.peer_remote_as
             ):
                 self._bgp_external_reset(data)
                 _logger.debug(f"Noted external reset for {self.device_state.name}: {index}")
-            elif local_as is not data.peer_remote_as:
+            elif local_as != data.peer_remote_as:
                 event = self.state.events.get(self.device.name, data.peer_remote_address, BGPEvent)
                 if event and event.operational_state != "established":
                     self._bgp_external_reset(data)
@@ -322,10 +322,11 @@ class BgpStateMonitorTask(Task):
             else:
                 if (
                     self.device_state.bgp_peer_admin_states[data.peer_remote_address] != data.peer_admin_status
-                    and local_as is not data.peer_remote_as
+                    and local_as != data.peer_remote_as
                 ):
                     self._bgp_admin_up(data)
                 bgp_peer_oper_state = self.device_state.bgp_peer_oper_states.get(data.peer_remote_address, None)
+                # breakpoint()
                 if not bgp_peer_oper_state:
                     self.device_state.bgp_peer_oper_states[data.peer_remote_address] = "established"
                     bgp_peer_oper_state = "established"
