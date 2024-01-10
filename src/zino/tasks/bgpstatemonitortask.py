@@ -320,7 +320,10 @@ class BgpStateMonitorTask(Task):
                     )
             # peer_admin_status is start or running
             else:
-                if self.device_state.bgp_peer_admin_states[data.peer_remote_address] != data.peer_admin_status:
+                if (
+                    self.device_state.bgp_peer_admin_states[data.peer_remote_address] != data.peer_admin_status
+                    and local_as is not data.peer_remote_as
+                ):
                     self._bgp_admin_up(data)
                 bgp_peer_oper_state = self.device_state.bgp_peer_oper_states.get(data.peer_remote_address, None)
                 if not bgp_peer_oper_state:
