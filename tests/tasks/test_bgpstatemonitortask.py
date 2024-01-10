@@ -412,7 +412,7 @@ class TestBgpStateMonitorTask:
         assert event.operational_state == "down"
         assert event.remote_address == peer_address
         assert event.remote_as == 10
-        assert event.peer_uptime == 100000
+        assert event.peer_uptime == 1000000
 
     @pytest.mark.asyncio
     async def test_oper_down_cisco_creates_event(self, snmpsim, snmp_test_port):
@@ -472,7 +472,7 @@ class TestBgpStateMonitorTask:
         assert event.operational_state == "down"
         assert event.remote_address == peer_address
         assert event.remote_as == 10
-        assert event.peer_uptime == 100000
+        assert event.peer_uptime == 1000000
 
 
 class TestGetBgpType:
