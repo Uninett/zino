@@ -293,7 +293,6 @@ class BgpStateMonitorTask(Task):
         index = f"{self.device.name},{oid}"
 
         if data.peer_state == "established":
-            handled = False
             bgp_peer_up_time = self.device_state.bgp_peer_up_times.get(data.peer_remote_address, None)
             if (
                 bgp_peer_up_time
@@ -303,8 +302,7 @@ class BgpStateMonitorTask(Task):
             ):
                 self._bgp_external_reset(data)
                 _logger.debug(f"Noted external reset for {self.device_state.name}: {index}")
-                handled = True
-            if not handled and local_as is not data.peer_remote_as:
+            elif local_as is not data.peer_remote_as:
                 event = self.state.events.get(self.device.name, data.peer_remote_address, BGPEvent)
                 if event and event.operational_state != "established":
                     self._bgp_external_reset(data)
@@ -342,10 +340,12 @@ class BgpStateMonitorTask(Task):
                             f"is {data.peer_state} (down), but uptime = {uptime}",
                         )
 
+        # Update all states
         self.device_state.bgp_peer_oper_states[data.peer_remote_address] = data.peer_state
         self.device_state.bgp_peer_admin_states[data.peer_remote_address] = data.peer_admin_status
         self.device_state.bgp_peer_up_times[data.peer_remote_address] = data.peer_fsm_established_time
 
+        # Add new peers if found
         if data.peer_remote_address not in self.device_state.bgp_peers:
             self.device_state.bgp_peers.append(data.peer_remote_address)
 
