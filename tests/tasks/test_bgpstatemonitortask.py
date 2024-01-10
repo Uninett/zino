@@ -509,7 +509,7 @@ class TestGetLocalAs:
     async def test_get_local_as_returns_correct_value_for_juniper(self, juniper_bgp_device):
         state = ZinoState()
         task = BgpStateMonitorTask(juniper_bgp_device, state)
-        assert (await task._get_local_as(bgp_style="juniper")) == 200
+        assert (await task._get_local_as(bgp_style="juniper")) == 10
 
     @pytest.mark.asyncio
     async def test_get_local_as_returns_correct_value_for_cisco(self, cisco_bgp_device):
