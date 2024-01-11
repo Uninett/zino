@@ -12,6 +12,8 @@ from zino.config.models import DEFAULT_INTERVAL_MINUTES
 from zino.scheduler import get_scheduler, load_and_schedule_polldevs
 
 STATE_DUMP_JOB_ID = "zino.dump_state"
+# Never try to dump state more often than this:
+MINIMUM_STATE_DUMP_INTERVAL = timedelta(seconds=10)
 _log = logging.getLogger("zino")
 
 
@@ -55,9 +57,9 @@ def init_event_loop(args: argparse.Namespace):
     return True
 
 
-def reschedule_dump_state_on_commit(event_id: int, max_wait=timedelta(seconds=10)):
-    """Observer that reschedules the state dumper job whenever an event is committed and there's more than 10
-    seconds until the next schedule state dump.
+def reschedule_dump_state_on_commit(event_id: int, max_wait: timedelta = MINIMUM_STATE_DUMP_INTERVAL):
+    """Observer that reschedules the state dumper job whenever an event is committed and there's more than `max_wait`
+    time until the next scheduled state dump.
     """
     scheduler = get_scheduler()
     job = scheduler.get_job(job_id=STATE_DUMP_JOB_ID)
