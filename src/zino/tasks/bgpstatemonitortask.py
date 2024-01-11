@@ -290,19 +290,18 @@ class BgpStateMonitorTask(Task):
         if data.peer_remote_address == "32.1.7.0":
             return
 
+        # Internal bgp sessions are not observed
+        if local_as == data.peer_remote_as:
+            return
+
         index = f"{self.device.name},{oid}"
 
         if data.peer_state == "established":
             bgp_peer_up_time = self.device_state.bgp_peer_up_times.get(data.peer_remote_address, None)
-            if (
-                bgp_peer_up_time
-                and uptime >= bgp_peer_up_time
-                and bgp_peer_up_time > data.peer_fsm_established_time
-                and local_as != data.peer_remote_as
-            ):
+            if bgp_peer_up_time and uptime >= bgp_peer_up_time and bgp_peer_up_time > data.peer_fsm_established_time:
                 self._bgp_external_reset(data)
                 _logger.debug(f"Noted external reset for {self.device_state.name}: {index}")
-            elif local_as != data.peer_remote_as:
+            else:
                 event = self.state.events.get(self.device.name, data.peer_remote_address, BGPEvent)
                 if event and event.operational_state != "established":
                     self._bgp_external_reset(data)
@@ -311,8 +310,9 @@ class BgpStateMonitorTask(Task):
             bgp_peer_admin_state = self.device_state.bgp_peer_admin_states.get(data.peer_remote_address, None)
             if not bgp_peer_admin_state:
                 self.device_state.bgp_peer_admin_states[data.peer_remote_address] = "unknown"
+                bgp_peer_admin_state = "unknown"
             if data.peer_admin_status in ["stop", "halted"]:
-                if self.device_state.bgp_peer_admin_states[data.peer_remote_address] != data.peer_admin_status:
+                if bgp_peer_admin_state != data.peer_admin_status:
                     self._bgp_admin_down(data)
                     _logger.debug(
                         f"Router {self.device_state.name} peer {data.peer_remote_address} AS {data.peer_remote_as} "
@@ -320,17 +320,14 @@ class BgpStateMonitorTask(Task):
                     )
             # peer_admin_status is start or running
             else:
-                if (
-                    self.device_state.bgp_peer_admin_states[data.peer_remote_address] != data.peer_admin_status
-                    and local_as != data.peer_remote_as
-                ):
+                if self.device_state.bgp_peer_admin_states[data.peer_remote_address] != data.peer_admin_status:
                     self._bgp_admin_up(data)
                 bgp_peer_oper_state = self.device_state.bgp_peer_oper_states.get(data.peer_remote_address, None)
                 # breakpoint()
                 if not bgp_peer_oper_state:
                     self.device_state.bgp_peer_oper_states[data.peer_remote_address] = "established"
                     bgp_peer_oper_state = "established"
-                if local_as != data.peer_remote_as and bgp_peer_oper_state == "established":
+                if bgp_peer_oper_state == "established":
                     # First verify that we've been up more than 10 minutes before we flag it as an alert
                     if uptime > 600:
                         self._bgp_oper_down(data)

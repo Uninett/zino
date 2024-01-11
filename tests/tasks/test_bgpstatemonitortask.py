@@ -102,7 +102,7 @@ class TestBgpStateMonitorTask:
         assert event.admin_status == "start"
         assert event.operational_state == "established"
         assert event.remote_address == peer_address
-        assert event.remote_as == 10
+        assert event.remote_as == 20
         assert event.peer_uptime == 250
 
     @pytest.mark.asyncio
@@ -193,7 +193,7 @@ class TestBgpStateMonitorTask:
         assert event.admin_status == "start"
         assert event.operational_state == "established"
         assert event.remote_address == peer_address
-        assert event.remote_as == 10
+        assert event.remote_as == 20
         assert event.peer_uptime == 250
 
     @pytest.mark.asyncio
@@ -251,7 +251,7 @@ class TestBgpStateMonitorTask:
         assert event.admin_status == "stop"
         assert event.operational_state == "down"
         assert event.remote_address == peer_address
-        assert event.remote_as == 10
+        assert event.remote_as == 20
         assert event.peer_uptime == 0
 
     @pytest.mark.asyncio
@@ -277,7 +277,7 @@ class TestBgpStateMonitorTask:
         assert event.admin_status == "stop"
         assert event.operational_state == "down"
         assert event.remote_address == peer_address
-        assert event.remote_as == 10
+        assert event.remote_as == 20
         assert event.peer_uptime == 0
 
     @pytest.mark.asyncio
@@ -303,7 +303,7 @@ class TestBgpStateMonitorTask:
         assert event.admin_status == "halted"
         assert event.operational_state == "down"
         assert event.remote_address == peer_address
-        assert event.remote_as == 10
+        assert event.remote_as == 20
         assert event.peer_uptime == 0
 
     @pytest.mark.asyncio
@@ -414,7 +414,7 @@ class TestBgpStateMonitorTask:
         assert event.admin_status == "start"
         assert event.operational_state == "down"
         assert event.remote_address == peer_address
-        assert event.remote_as == 10
+        assert event.remote_as == 20
         assert event.peer_uptime == 1000000
 
     @pytest.mark.asyncio
@@ -444,7 +444,7 @@ class TestBgpStateMonitorTask:
         assert event.admin_status == "start"
         assert event.operational_state == "down"
         assert event.remote_address == peer_address
-        assert event.remote_as == 10
+        assert event.remote_as == 20
         assert event.peer_uptime == 1000000
 
     @pytest.mark.asyncio
@@ -474,7 +474,7 @@ class TestBgpStateMonitorTask:
         assert event.admin_status == "running"
         assert event.operational_state == "down"
         assert event.remote_address == peer_address
-        assert event.remote_as == 10
+        assert event.remote_as == 20
         assert event.peer_uptime == 1000000
 
 
