@@ -104,8 +104,8 @@ class Events(BaseModel):
     def commit(self, event: Event):
         """Commits an Event object to the state, replacing any existing event by the same id.
 
-        If the event, for some reason, does not replace an existing event, indexes are rebuilt. This entrusts the
-        committer to not change the identifying index attributes of a modified event.
+        If the event, for some reason, does not replace an existing event, indexes are rebuilt. This assumes the
+        committer does not change the identifying index attributes of a modified event.
         """
         if event.state == EventState.EMBRYONIC:
             event.state = EventState.OPEN
