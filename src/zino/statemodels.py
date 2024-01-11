@@ -178,7 +178,7 @@ class ReachabilityState(Enum):
 class Event(BaseModel):
     """Keeps track of event state"""
 
-    id: int
+    id: Optional[int] = None
 
     router: str
     port: Optional[PortOrIPAddress] = None
