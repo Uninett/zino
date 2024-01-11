@@ -82,8 +82,6 @@ class Events(BaseModel):
             id=event_id,
             router=device_name,
             port=port,
-            state=EventState.EMBRYONIC,
-            opened=now(),
         )
         _log.debug("created event %r", event)
 
