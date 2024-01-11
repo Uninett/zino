@@ -63,7 +63,7 @@ class TestBgpStateMonitorTask:
         )
         state = ZinoState()
         task = BgpStateMonitorTask(device, state)
-        peer_address = IPv4Address("10.0.0.2")
+        peer_address = IPv4Address("10.0.0.1")
         # set initial state
         task.device_state.bgp_peer_up_times = {peer_address: 5000}
         await task.run()
@@ -115,7 +115,7 @@ class TestBgpStateMonitorTask:
         )
         state = ZinoState()
         task = BgpStateMonitorTask(device, state)
-        peer_address = IPv4Address("10.0.0.2")
+        peer_address = IPv4Address("10.0.0.1")
         # set initial state
         task.device_state.bgp_peer_up_times = {peer_address: 5000}
         await task.run()
@@ -141,7 +141,7 @@ class TestBgpStateMonitorTask:
         )
         state = ZinoState()
         task = BgpStateMonitorTask(device, state)
-        peer_address = IPv4Address("10.0.0.2")
+        peer_address = IPv4Address("10.0.0.1")
         # create admin down event
         event, _ = state.events.get_or_create_event(device_name=device.name, port=peer_address, event_class=BGPEvent)
         event.operational_state = "down"
@@ -206,7 +206,7 @@ class TestBgpStateMonitorTask:
         )
         state = ZinoState()
         task = BgpStateMonitorTask(device, state)
-        peer_address = IPv4Address("10.0.0.2")
+        peer_address = IPv4Address("10.0.0.1")
         # create admin down event
         event, _ = state.events.get_or_create_event(device_name=device.name, port=peer_address, event_class=BGPEvent)
         event.operational_state = "down"
@@ -290,7 +290,7 @@ class TestBgpStateMonitorTask:
         )
         state = ZinoState()
         task = BgpStateMonitorTask(device, state)
-        peer_address = IPv4Address("10.0.0.2")
+        peer_address = IPv4Address("10.0.0.1")
         # set initial state
         task.device_state.bgp_peer_admin_states = {peer_address: "running"}
         await task.run()
@@ -370,7 +370,7 @@ class TestBgpStateMonitorTask:
         )
         state = ZinoState()
         task = BgpStateMonitorTask(device, state)
-        peer_address = IPv4Address("10.0.0.2")
+        peer_address = IPv4Address("10.0.0.1")
         # set initial state
         task.device_state.bgp_peer_admin_states = {peer_address: "halted"}
         task.device_state.bgp_peer_oper_states = {peer_address: "idle"}
@@ -461,7 +461,7 @@ class TestBgpStateMonitorTask:
         )
         state = ZinoState()
         task = BgpStateMonitorTask(device, state)
-        peer_address = IPv4Address("10.0.0.2")
+        peer_address = IPv4Address("10.0.0.1")
         # set initial state
         task.device_state.bgp_peer_admin_states = {peer_address: "running"}
         task.device_state.bgp_peer_oper_states = {peer_address: "established"}
