@@ -19,6 +19,8 @@ from zino.tasks.task import Task
 
 _logger = logging.getLogger(__name__)
 
+TIME_BEFORE_OPER_DOWN_ALERT = 600
+
 
 @dataclass
 class BaseBgpRow:
@@ -329,7 +331,7 @@ class BgpStateMonitorTask(Task):
                     bgp_peer_oper_state = "established"
                 if bgp_peer_oper_state == "established":
                     # First verify that we've been up more than 10 minutes before we flag it as an alert
-                    if uptime > 600:
+                    if uptime > TIME_BEFORE_OPER_DOWN_ALERT:
                         self._bgp_oper_down(data)
                         _logger.debug(
                             f"Router {self.device_state.name} peer {data.peer_remote_address} AS {data.peer_remote_as} "
