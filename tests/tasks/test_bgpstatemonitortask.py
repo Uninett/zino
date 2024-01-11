@@ -143,7 +143,7 @@ class TestBgpStateMonitorTask:
         task = BgpStateMonitorTask(device, state)
         peer_address = IPv4Address("10.0.0.2")
         # create admin down event
-        event, _ = state.events.get_or_create_event(device.name, peer_address, BGPEvent)
+        event, _ = state.events.get_or_create_event(device_name=device.name, port=peer_address, event_class=BGPEvent)
         event.operational_state = "down"
         event.admin_status = "stop"
         event.remote_address = peer_address
@@ -176,7 +176,7 @@ class TestBgpStateMonitorTask:
         task = BgpStateMonitorTask(device, state)
         peer_address = IPv4Address("10.0.0.1")
         # create admin down event
-        event, _ = state.events.get_or_create_event(device.name, peer_address, BGPEvent)
+        event, _ = state.events.get_or_create_event(device_name=device.name, port=peer_address, event_class=BGPEvent)
         event.operational_state = "down"
         event.admin_status = "stop"
         event.remote_address = peer_address
@@ -208,7 +208,7 @@ class TestBgpStateMonitorTask:
         task = BgpStateMonitorTask(device, state)
         peer_address = IPv4Address("10.0.0.2")
         # create admin down event
-        event, _ = state.events.get_or_create_event(device.name, peer_address, BGPEvent)
+        event, _ = state.events.get_or_create_event(device_name=device.name, port=peer_address, event_class=BGPEvent)
         event.operational_state = "down"
         event.admin_status = "halted"
         event.remote_address = peer_address
