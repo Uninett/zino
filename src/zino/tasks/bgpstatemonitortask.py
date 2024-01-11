@@ -325,7 +325,6 @@ class BgpStateMonitorTask(Task):
                 if self.device_state.bgp_peer_admin_states[data.peer_remote_address] != data.peer_admin_status:
                     self._bgp_admin_up(data)
                 bgp_peer_oper_state = self.device_state.bgp_peer_oper_states.get(data.peer_remote_address, None)
-                # breakpoint()
                 if not bgp_peer_oper_state:
                     self.device_state.bgp_peer_oper_states[data.peer_remote_address] = "established"
                     bgp_peer_oper_state = "established"
