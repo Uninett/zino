@@ -132,7 +132,7 @@ class TestBgpStateMonitorTask:
         assert event.peer_uptime == 250
 
     @pytest.mark.asyncio
-    async def test_session_up_general_creates_event(self, snmpsim, snmp_test_port):
+    async def test_session_up_general_updates_event(self, snmpsim, snmp_test_port):
         device = PollDevice(
             name=DEVICE_NAME,
             address=DEVICE_ADDRESS,
@@ -165,7 +165,7 @@ class TestBgpStateMonitorTask:
         assert event.peer_uptime == 250
 
     @pytest.mark.asyncio
-    async def test_session_up_cisco_creates_event(self, snmpsim, snmp_test_port):
+    async def test_session_up_cisco_updates_event(self, snmpsim, snmp_test_port):
         device = PollDevice(
             name=DEVICE_NAME,
             address=DEVICE_ADDRESS,
@@ -197,7 +197,7 @@ class TestBgpStateMonitorTask:
         assert event.peer_uptime == 250
 
     @pytest.mark.asyncio
-    async def test_session_up_juniper_creates_event(self, snmpsim, snmp_test_port):
+    async def test_session_up_juniper_updates_event(self, snmpsim, snmp_test_port):
         device = PollDevice(
             name=DEVICE_NAME,
             address=DEVICE_ADDRESS,
