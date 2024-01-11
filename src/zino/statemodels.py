@@ -183,7 +183,7 @@ class Event(BaseModel):
     router: str
     port: Optional[PortOrIPAddress] = None
     type: Literal["Event"] = "Event"
-    state: EventState
+    state: EventState = EventState.EMBRYONIC
     opened: datetime.datetime = Field(default_factory=now)
     updated: Optional[datetime.datetime] = None
     priority: int = 100
