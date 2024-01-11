@@ -33,7 +33,6 @@ def init_event_loop(args: argparse.Namespace):
         next_run_time=datetime.now(),
     )
     scheduler.add_job(func=state.state.dump_state_to_file, trigger="interval", seconds=30)
-    scheduler.add_job(func=state.state.dump_state_to_log, trigger="interval", seconds=30)
 
     loop = asyncio.get_event_loop()
     server = loop.create_server(lambda: ZinoTestProtocol(state=state.state), "127.0.0.1", 8001)
