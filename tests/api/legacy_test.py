@@ -10,7 +10,7 @@ from zino.api.legacy import (
     ZinoTestProtocol,
     requires_authentication,
 )
-from zino.statemodels import ReachabilityEvent
+from zino.statemodels import EventState, ReachabilityEvent
 
 
 class TestZino1BaseServerProtocol:
@@ -405,6 +405,55 @@ class TestZino1ServerProtocolAddhistCommand:
 
         output = authenticated_protocol.transport.data_buffer.getvalue().decode()
         assert "\r\n500 " in output
+
+
+class TestZino1ServerProtocolSetstateCommand:
+    @pytest.mark.asyncio
+    async def test_when_caseid_is_invalid_it_should_output_error(self, authenticated_protocol):
+        await authenticated_protocol.data_received(b"SETSTATE 999 ignored\r\n")
+
+        output = authenticated_protocol.transport.data_buffer.getvalue().decode()
+        assert "\r\n500 " in output
+
+    @pytest.mark.asyncio
+    async def test_when_state_is_invalid_it_should_output_error(self, authenticated_protocol):
+        state = authenticated_protocol._state
+        event = state.events.create_event("foo", None, ReachabilityEvent)
+        state.events.commit(event)
+
+        await authenticated_protocol.data_received(f"SETSTATE {event.id} invalidgabbagabba\r\n".encode())
+
+        output = authenticated_protocol.transport.data_buffer.getvalue().decode()
+        assert "\r\n500 " in output
+
+    @pytest.mark.asyncio
+    async def test_when_caseid_and_state_is_valid_event_state_should_be_changed(self, authenticated_protocol):
+        state = authenticated_protocol._state
+        event = state.events.create_event("foo", None, ReachabilityEvent)
+        state.events.commit(event)
+
+        await authenticated_protocol.data_received(f"SETSTATE {event.id} ignored\r\n".encode())
+
+        output = authenticated_protocol.transport.data_buffer.getvalue().decode()
+        assert "\r\n200 " in output
+
+        updated_event = state.events[event.id]
+        assert updated_event.state == EventState.IGNORED
+
+    @pytest.mark.asyncio
+    async def test_when_caseid_and_state_is_valid_event_history_should_contain_username(self, authenticated_protocol):
+        state = authenticated_protocol._state
+        event = state.events.create_event("foo", None, ReachabilityEvent)
+        state.events.commit(event)
+
+        await authenticated_protocol.data_received(f"SETSTATE {event.id} ignored\r\n".encode())
+
+        output = authenticated_protocol.transport.data_buffer.getvalue().decode()
+        assert "\r\n200 " in output
+
+        updated_event = state.events[event.id]
+        last_history_entry = updated_event.history[-1]
+        assert authenticated_protocol.user in last_history_entry.message
 
 
 class TestZino1TestProtocol:
