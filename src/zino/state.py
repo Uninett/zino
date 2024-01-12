@@ -8,7 +8,7 @@ from typing import Dict, Optional
 
 from pydantic import BaseModel, Field
 
-from zino.config.models import PollDevice
+from zino.config.models import IPAddress, PollDevice
 from zino.events import Events
 from zino.statemodels import DeviceStates
 
@@ -27,6 +27,7 @@ class ZinoState(BaseModel):
 
     devices: DeviceStates = Field(default_factory=DeviceStates)
     events: Events = Field(default_factory=Events)
+    addresses: dict[IPAddress, str] = {}
 
     def dump_state_to_file(self, filename: str = STATE_FILENAME):
         """Dumps the full state to a file in JSON format"""
