@@ -1,18 +1,10 @@
 import json
-import logging
 import os
 from json import JSONDecodeError
 
 import pytest
 
 from zino.state import ZinoState
-
-
-def test_dump_state_to_log_should_dump_to_log(caplog):
-    with caplog.at_level(logging.DEBUG):
-        state = ZinoState()
-        state.dump_state_to_log()
-    assert "Dumping state" in caplog.text
 
 
 def test_dump_state_to_file_should_dump_valid_json_to_file(tmp_path):

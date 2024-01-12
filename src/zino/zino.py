@@ -43,7 +43,6 @@ def init_event_loop(args: argparse.Namespace):
         func=state.state.dump_state_to_file, trigger="interval", id=STATE_DUMP_JOB_ID, minutes=DEFAULT_INTERVAL_MINUTES
     )
     state.state.events.add_event_observer(reschedule_dump_state_on_commit)
-    scheduler.add_job(func=state.state.dump_state_to_log, trigger="interval", seconds=30)
 
     loop = asyncio.get_event_loop()
     server = loop.create_server(lambda: ZinoTestProtocol(state=state.state), "127.0.0.1", 8001)

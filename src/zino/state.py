@@ -4,7 +4,6 @@ __all__ = ["polldevs", "ZinoState"]
 
 import json
 import logging
-import pprint
 from typing import Dict, Optional
 
 from pydantic import BaseModel, Field
@@ -28,9 +27,6 @@ class ZinoState(BaseModel):
 
     devices: DeviceStates = Field(default_factory=DeviceStates)
     events: Events = Field(default_factory=Events)
-
-    def dump_state_to_log(self):
-        _log.debug("Dumping state to log:\n%s", pprint.pformat(self.model_dump(exclude_none=True)))
 
     def dump_state_to_file(self, filename: str = STATE_FILENAME):
         """Dumps the full state to a file in JSON format"""
