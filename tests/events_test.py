@@ -84,6 +84,18 @@ class TestEvents:
 
         assert events[copy.id] is copy
 
+    def test_commit_should_update_index(self):
+        events = Events()
+        original_event = events.get_or_create_event("foobar", None, ReachabilityEvent)
+        events.commit(original_event)
+
+        copy = events.checkout(original_event.id)
+        copy.add_log("this is the successor event")
+
+        events.commit(copy)
+
+        assert events.get("foobar", None, ReachabilityEvent) is copy
+
     def test_commit_should_open_embryonic_event(self):
         events = Events()
         event = events.get_or_create_event("foobar", None, ReachabilityEvent)
