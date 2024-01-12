@@ -17,7 +17,7 @@ class TestEvents:
 
         assert isinstance(event, ReachabilityEvent)
 
-    def test_event_registry_should_not_contain_newly_created_event(self):
+    def test_event_registry_should_not_contain_uncommited_event(self):
         events = Events()
         events.create_event("foobar", None, ReachabilityEvent)
 
