@@ -110,8 +110,8 @@ class Events(BaseModel):
         is_new = not event.id
         if is_new:
             event.id = self.get_next_available_event_id()
-            index = EventIndex(event.router, event.port, type(event))
-            self._events_by_index[index] = event
+        index = EventIndex(event.router, event.port, type(event))
+        self._events_by_index[index] = event
         self.events[event.id] = event
 
         self._call_observers_for(event)
