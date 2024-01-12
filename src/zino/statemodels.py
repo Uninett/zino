@@ -1,5 +1,6 @@
 """Basic data models for keeping/serializing/deserializing Zino state"""
 import datetime
+import logging
 from enum import Enum
 from ipaddress import IPv4Address, IPv6Address
 from typing import Any, Dict, List, Literal, Optional, Union
@@ -12,6 +13,8 @@ from zino.time import now
 IPAddress = Union[IPv4Address, IPv6Address]
 AlarmType = Literal["yellow", "red"]
 PortOrIPAddress = Union[int, IPAddress, AlarmType]
+
+_logger = logging.getLogger(__name__)
 
 
 class InterfaceState(StrEnum):
@@ -178,12 +181,12 @@ class ReachabilityState(Enum):
 class Event(BaseModel):
     """Keeps track of event state"""
 
-    id: int
+    id: Optional[int] = None
 
     router: str
     port: Optional[PortOrIPAddress] = None
     type: Literal["Event"] = "Event"
-    state: EventState
+    state: EventState = EventState.EMBRYONIC
     opened: datetime.datetime = Field(default_factory=now)
     updated: Optional[datetime.datetime] = None
     priority: int = 100
@@ -197,6 +200,17 @@ class Event(BaseModel):
     ac_down: Optional[datetime.timedelta] = None
 
     polladdr: Optional[IPAddress] = None
+
+    def set_state(self, new_state: EventState, user: str = "monitor"):
+        """Sets a new event state value, logging the change to the event history with a username"""
+        if new_state == self.state:
+            return
+
+        old_state, self.state = self.state, new_state
+        if (old_state, new_state) == (EventState.EMBRYONIC, EventState.OPEN):
+            self.opened = now()
+        self.add_history(f"state change {old_state.value} -> {new_state.value} ({user})")
+        _logger.debug("id %s state %s -> %s by %s", self.id, old_state.value, new_state.value, user)
 
     def add_log(self, message: str) -> LogEntry:
         entry = LogEntry(message=message)

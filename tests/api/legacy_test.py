@@ -266,7 +266,9 @@ class TestZino1ServerProtocolCaseidsCommand:
     async def test_should_output_a_list_of_known_event_ids(self, authenticated_protocol):
         state = authenticated_protocol._state
         event1 = state.events.create_event("foo", None, ReachabilityEvent)
+        state.events.commit(event1)
         event2 = state.events.create_event("bar", None, ReachabilityEvent)
+        state.events.commit(event2)
 
         await authenticated_protocol.data_received(b"CASEIDS\r\n")
 
@@ -293,6 +295,7 @@ class TestZino1ServerProtocolGetattrsCommand:
     async def test_should_output_correct_attrs(self, authenticated_protocol):
         state = authenticated_protocol._state
         event1 = state.events.create_event("foo", None, ReachabilityEvent)
+        state.events.commit(event1)
 
         await authenticated_protocol.data_received(f"GETATTRS {event1.id}\r\n".encode())
 
@@ -316,6 +319,7 @@ class TestZino1ServerProtocolGethistCommand:
         event = state.events.create_event("foo", None, ReachabilityEvent)
         event.add_history("line one\nline two\nline three")
         event.add_history("another line one\nanother line two\nanother line")
+        state.events.commit(event)
 
         await authenticated_protocol.data_received(f"GETHIST {event.id}\r\n".encode())
 
@@ -323,7 +327,7 @@ class TestZino1ServerProtocolGethistCommand:
 
         output = output[output.find("301 history follows") :]
         lines = output.splitlines()
-        assert len(lines) == 8
+        assert len(lines) == 9
         assert lines[-1] == "."
         assert all(line[0].isdigit() or line.startswith(" ") for line in lines[:-1])
 
@@ -342,6 +346,7 @@ class TestZino1ServerProtocolGetlogCommand:
         event = state.events.create_event("foo", None, ReachabilityEvent)
         event.add_log("line one\nline two\nline three")
         event.add_log("another line one\nanother line two\nanother line")
+        state.events.commit(event)
 
         await authenticated_protocol.data_received(f"GETLOG {event.id}\r\n".encode())
 
@@ -366,6 +371,7 @@ class TestZino1ServerProtocolAddhistCommand:
     async def test_should_add_history_entry_to_event(self, authenticated_protocol, event_loop):
         state = authenticated_protocol._state
         event = state.events.create_event("foo", None, ReachabilityEvent)
+        state.events.commit(event)
 
         def mock_multiline():
             future = event_loop.create_future()
@@ -381,6 +387,7 @@ class TestZino1ServerProtocolAddhistCommand:
     async def test_should_prefix_history_message_with_username(self, authenticated_protocol, event_loop):
         state = authenticated_protocol._state
         event = state.events.create_event("foo", None, ReachabilityEvent)
+        state.events.commit(event)
 
         def mock_multiline():
             future = event_loop.create_future()

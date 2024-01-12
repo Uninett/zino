@@ -1,6 +1,6 @@
 import logging
 from collections import namedtuple
-from typing import Any, Callable, Dict, Optional, Tuple, Type, Union
+from typing import Any, Callable, Dict, Optional, Type, Union
 
 from pydantic.main import BaseModel
 
@@ -14,7 +14,6 @@ from zino.statemodels import (
     PortStateEvent,
     ReachabilityEvent,
 )
-from zino.time import now
 
 EventIndex = namedtuple("EventIndex", "router port type")
 
@@ -53,43 +52,38 @@ class Events(BaseModel):
         device_name: str,
         port: Optional[PortOrIPAddress],
         event_class: Type[Event],
-    ) -> Tuple[Event, bool]:
-        """Creates a new event for the given event identifiers, or, if one matching this identifier already exists,
-        returns that.
+    ) -> Event:
+        """Creates and returns a new event for the given event identifiers, or, if an event matching this identifier
+        already exists in the index, returns that.
 
-        :returns: (Event, created) where Event is the existing or newly created Event object, while created is a boolean
-                  indicating whether the returned object was just created by this method or if it existed from before.
+        A new event is not immediately committed to the event index; this must be done by explicitly calling the
+        `commit()` method.  I.e. the caller can assume that when the returned `Event` object's `id` value is `None`,
+        it is a new event.
 
+        If a matching event already exists, the return value is a checkout copy, as if the `checkout()` method had been
+        used.  The assumption is that the caller is looking to make changes to the fetched event.
         """
         try:
-            return self.create_event(device_name, port, event_class), True
+            return self.create_event(device_name, port, event_class)
         except EventExistsError:
-            return self.get(device_name, port, event_class), False
+            event = self.get(device_name, port, event_class)
+            return self.checkout(event.id)
 
     def create_event(self, device_name: str, port: Optional[PortOrIPAddress], event_class: Type[Event]) -> Event:
         """Creates a new event for the given event identifiers. If an event already exists for this combination of
         identifiers, an EventExistsError is raised.
 
+        The event is not committed to the event registry; this must be done by explicitly calling the `commit()` method.
         """
         index = EventIndex(device_name, port, event_class)
         if index in self._events_by_index:
             raise EventExistsError(f"Event for {index} already exists")
 
-        event_id = self.last_event_id + 1
-        self.last_event_id = event_id
-
         event = event_class(
-            id=event_id,
             router=device_name,
             port=port,
-            state=EventState.EMBRYONIC,
-            opened=now(),
         )
-        _log.debug("created event %r", event)
-
-        self.events[event_id] = event
-        self._events_by_index[index] = event
-        _log.debug("created %r", event)
+        _log.debug("created embryonic event %r", event)
         return event
 
     def get(self, device_name: str, port: Optional[PortOrIPAddress], event_class: Type[Event]) -> Event:
@@ -101,26 +95,35 @@ class Events(BaseModel):
         """Checks out a copy of an event that can be freely modified without being persisted"""
         return self[event_id].model_copy(deep=True)
 
-    def commit(self, event: Event):
+    def commit(self, event: Event, user: str = "monitor"):
         """Commits an Event object to the state, replacing any existing event by the same id.
 
-        If the event, for some reason, does not replace an existing event, indexes are rebuilt. This assumes the
-        committer does not change the identifying index attributes of a modified event.
+        If the event does not have an id, it is considered a new event and is assigned a new id value before it is
+        placed in the event index.
+
+        This all assumes the committer does not change the identifying index attributes of an existing event that it
+        has modified, as that will break the index.
         """
         if event.state == EventState.EMBRYONIC:
-            event.state = EventState.OPEN
-            event.opened = now()
+            event.set_state(EventState.OPEN, user)
 
-        is_new = event.id not in self
-        self.events[event.id] = event
+        is_new = not event.id
         if is_new:
-            self._rebuild_indexes()
+            event.id = self.get_next_available_event_id()
+            index = EventIndex(event.router, event.port, type(event))
+            self._events_by_index[index] = event
+        self.events[event.id] = event
 
         self._call_observers_for(event)
 
     def add_event_observer(self, func: callable):
         """Adds an observer function that will be called with the ID of any committed event as its argument"""
         self._observers.append(func)
+
+    def get_next_available_event_id(self):
+        """Returns the next available event id"""
+        self.last_event_id += 1
+        return self.last_event_id
 
     def _call_observers_for(self, event: Event):
         for observer in self._observers:

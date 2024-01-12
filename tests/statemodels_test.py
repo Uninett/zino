@@ -49,6 +49,30 @@ class TestEvent:
 
         assert Event.zinoify_value(Throwaway()) == "foo"
 
+    def test_when_set_state_is_called_it_should_change_state(self, fake_event):
+        fake_event.set_state(EventState.CLOSED, user="nobody")
+        assert fake_event.state == EventState.CLOSED
+
+    def test_when_state_is_changed_set_state_should_add_history_entry(self, fake_event):
+        history_count_before = len(fake_event.history)
+        fake_event.set_state(EventState.CLOSED, user="nobody")
+        history_count_after = len(fake_event.history)
+        assert history_count_after > history_count_before
+
+    def test_when_state_is_changed_set_state_should_add_history_entry_with_details(self, fake_event):
+        old_state = fake_event.state
+        fake_event.set_state(EventState.CLOSED, user="zaphod")
+        last_history_entry = fake_event.history[-1]
+
+        for detail in (old_state.value, EventState.CLOSED.value, "zaphod"):
+            assert detail in last_history_entry.message
+
+    def test_when_state_is_unchanged_set_state_should_not_add_history_entry(self, fake_event):
+        history_count_before = len(fake_event.history)
+        fake_event.set_state(fake_event.state, user="nobody")
+        history_count_after = len(fake_event.history)
+        assert history_count_after == history_count_before
+
 
 class TestLogEntryModelDumpLegacy:
     def test_should_be_prefixed_by_timestamp(self):
