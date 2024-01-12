@@ -64,6 +64,7 @@ class BFDTask(Task):
 
         log = f"Port {port.ifdescr} changed BFD state from {port.bfd_state.session_state} to {new_state.session_state}"
         event.add_log(log)
+        self.state.events.commit(event)
 
     async def _poll_juniper(self) -> BFDStates:
         bfd_rows = await self._snmp.sparsewalk(*self.JUNIPER_BFD_COLUMNS)
