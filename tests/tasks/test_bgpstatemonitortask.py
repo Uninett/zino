@@ -143,12 +143,13 @@ class TestBgpStateMonitorTask:
         task = BgpStateMonitorTask(device, state)
         peer_address = IPv4Address("10.0.0.1")
         # create admin down event
-        event, _ = state.events.get_or_create_event(device_name=device.name, port=peer_address, event_class=BGPEvent)
+        event = state.events.get_or_create_event(device_name=device.name, port=peer_address, event_class=BGPEvent)
         event.operational_state = "down"
         event.admin_status = "stop"
         event.remote_address = peer_address
         event.remote_as = 20
         event.peer_uptime = 0
+        state.events.commit(event=event)
 
         await task.run()
 
@@ -176,12 +177,13 @@ class TestBgpStateMonitorTask:
         task = BgpStateMonitorTask(device, state)
         peer_address = IPv4Address("10.0.0.1")
         # create admin down event
-        event, _ = state.events.get_or_create_event(device_name=device.name, port=peer_address, event_class=BGPEvent)
+        event = state.events.get_or_create_event(device_name=device.name, port=peer_address, event_class=BGPEvent)
         event.operational_state = "down"
         event.admin_status = "stop"
         event.remote_address = peer_address
         event.remote_as = 20
         event.peer_uptime = 0
+        state.events.commit(event=event)
 
         await task.run()
         # check if state has been updated to reflect state defined in .snmprec
@@ -208,12 +210,13 @@ class TestBgpStateMonitorTask:
         task = BgpStateMonitorTask(device, state)
         peer_address = IPv4Address("10.0.0.1")
         # create admin down event
-        event, _ = state.events.get_or_create_event(device_name=device.name, port=peer_address, event_class=BGPEvent)
+        event = state.events.get_or_create_event(device_name=device.name, port=peer_address, event_class=BGPEvent)
         event.operational_state = "down"
         event.admin_status = "halted"
         event.remote_address = peer_address
         event.remote_as = 20
         event.peer_uptime = 0
+        state.events.commit(event=event)
 
         await task.run()
         # check if state has been updated to reflect state defined in .snmprec

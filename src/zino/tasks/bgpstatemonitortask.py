@@ -12,7 +12,6 @@ from zino.statemodels import (
     BGPEvent,
     BgpOperStatus,
     BgpStyle,
-    EventState,
     IPAddress,
 )
 from zino.tasks.task import Task
@@ -352,10 +351,7 @@ class BgpStateMonitorTask(Task):
             self.device_state.bgp_peers.append(data.peer_remote_address)
 
     def _bgp_external_reset(self, data: BaseBgpRow):
-        event, created = self.state.events.get_or_create_event(self.device.name, data.peer_remote_address, BGPEvent)
-        if created:
-            event.state = EventState.OPEN
-            event.add_history("Change state to Open")
+        event = self.state.events.get_or_create_event(self.device.name, data.peer_remote_address, BGPEvent)
 
         event.operational_state = data.peer_state
         event.admin_status = data.peer_admin_status
@@ -367,11 +363,10 @@ class BgpStateMonitorTask(Task):
         _logger.info(log)
         event.add_log(log)
 
+        self.state.events.commit(event=event)
+
     def _bgp_admin_down(self, data: BaseBgpRow):
-        event, created = self.state.events.get_or_create_event(self.device.name, data.peer_remote_address, BGPEvent)
-        if created:
-            event.state = EventState.OPEN
-            event.add_history("Change state to Open")
+        event = self.state.events.get_or_create_event(self.device.name, data.peer_remote_address, BGPEvent)
 
         if event.admin_status == data.peer_admin_status:
             return
@@ -389,12 +384,10 @@ class BgpStateMonitorTask(Task):
         _logger.info(log)
         event.add_log(log)
 
-    def _bgp_admin_up(self, data: BaseBgpRow):
-        event, created = self.state.events.get_or_create_event(self.device.name, data.peer_remote_address, BGPEvent)
+        self.state.events.commit(event=event)
 
-        if created:
-            event.state = EventState.OPEN
-            event.add_history("Change state to Open")
+    def _bgp_admin_up(self, data: BaseBgpRow):
+        event = self.state.events.get_or_create_event(self.device.name, data.peer_remote_address, BGPEvent)
 
         if event.admin_status == data.peer_admin_status:
             return
@@ -412,11 +405,10 @@ class BgpStateMonitorTask(Task):
         _logger.info(log)
         event.add_log(log)
 
+        self.state.events.commit(event=event)
+
     def _bgp_oper_down(self, data: BaseBgpRow):
-        event, created = self.state.events.get_or_create_event(self.device.name, data.peer_remote_address, BGPEvent)
-        if created:
-            event.state = EventState.OPEN
-            event.add_history("Change state to Open")
+        event = self.state.events.get_or_create_event(self.device.name, data.peer_remote_address, BGPEvent)
 
         if event.operational_state == "down":
             return
@@ -433,3 +425,5 @@ class BgpStateMonitorTask(Task):
         )
         _logger.info(log)
         event.add_log(log)
+
+        self.state.events.commit(event=event)
