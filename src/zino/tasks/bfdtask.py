@@ -4,14 +4,7 @@ from typing import Dict, Literal
 
 from zino.scheduler import get_scheduler
 from zino.snmp import SNMP, SparseWalkResponse
-from zino.statemodels import (
-    BFDEvent,
-    BFDSessState,
-    BFDState,
-    EventState,
-    IPAddress,
-    Port,
-)
+from zino.statemodels import BFDEvent, BFDSessState, BFDState, IPAddress, Port
 from zino.tasks.task import Task
 
 _log = logging.getLogger(__name__)
@@ -52,10 +45,7 @@ class BFDTask(Task):
         port.bfd_state = new_state
 
     def _create_or_update_event(self, port: Port, new_state: BFDState):
-        event, created = self.state.events.get_or_create_event(self.device.name, port.ifindex, BFDEvent)
-        if created:
-            event.state = EventState.OPEN
-            event.add_history("Change state to Open")
+        event = self.state.events.get_or_create_event(self.device.name, port.ifindex, BFDEvent)
 
         event.bfdstate = new_state.session_state
         event.bfdix = new_state.session_index
@@ -64,6 +54,7 @@ class BFDTask(Task):
 
         log = f"Port {port.ifdescr} changed BFD state from {port.bfd_state.session_state} to {new_state.session_state}"
         event.add_log(log)
+        self.state.events.commit(event)
 
     async def _poll_juniper(self) -> BFDStates:
         bfd_rows = await self._snmp.sparsewalk(*self.JUNIPER_BFD_COLUMNS)

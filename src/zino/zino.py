@@ -2,12 +2,18 @@
 import argparse
 import asyncio
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
+
+import tzlocal
 
 from zino import state
 from zino.api.legacy import ZinoTestProtocol
+from zino.config.models import DEFAULT_INTERVAL_MINUTES
 from zino.scheduler import get_scheduler, load_and_schedule_polldevs
 
+STATE_DUMP_JOB_ID = "zino.dump_state"
+# Never try to dump state more often than this:
+MINIMUM_STATE_DUMP_INTERVAL = timedelta(seconds=10)
 _log = logging.getLogger("zino")
 
 
@@ -32,8 +38,11 @@ def init_event_loop(args: argparse.Namespace):
         minutes=1,
         next_run_time=datetime.now(),
     )
-    scheduler.add_job(func=state.state.dump_state_to_file, trigger="interval", seconds=30)
-    scheduler.add_job(func=state.state.dump_state_to_log, trigger="interval", seconds=30)
+    # Schedule state dumping every DEFAULT_INTERVAL_MINUTES and reschedule whenever events are committed
+    scheduler.add_job(
+        func=state.state.dump_state_to_file, trigger="interval", id=STATE_DUMP_JOB_ID, minutes=DEFAULT_INTERVAL_MINUTES
+    )
+    state.state.events.add_event_observer(reschedule_dump_state_on_commit)
 
     loop = asyncio.get_event_loop()
     server = loop.create_server(lambda: ZinoTestProtocol(state=state.state), "127.0.0.1", 8001)
@@ -45,6 +54,18 @@ def init_event_loop(args: argparse.Namespace):
         pass
 
     return True
+
+
+def reschedule_dump_state_on_commit(event_id: int, max_wait: timedelta = MINIMUM_STATE_DUMP_INTERVAL):
+    """Observer that reschedules the state dumper job whenever an event is committed and there's more than `max_wait`
+    time until the next scheduled state dump.
+    """
+    scheduler = get_scheduler()
+    job = scheduler.get_job(job_id=STATE_DUMP_JOB_ID)
+    next_run = datetime.now(tz=tzlocal.get_localzone()) + max_wait
+    if job.next_run_time > next_run:
+        _log.debug("event %s committed, rescheduling state dump from %s to %s", event_id, job.next_run_time, next_run)
+        job.modify(next_run_time=next_run)
 
 
 def parse_args(arguments=None):

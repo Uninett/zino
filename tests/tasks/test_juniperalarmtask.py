@@ -104,19 +104,22 @@ class TestJuniperalarmTask:
         task = juniper_alarm_task
         device_state = task.state.devices.get(device_name=task.device.name)
         device_state.enterprise_id = 2636
-        yellow_event, _ = task.state.events.get_or_create_event(
+        yellow_event = task.state.events.get_or_create_event(
             device_name=task.device.name, port="yellow", event_class=AlarmEvent
         )
         yellow_event.alarm_count = 2
-        red_event, _ = task.state.events.get_or_create_event(
+        task.state.events.commit(yellow_event)
+        red_event = task.state.events.get_or_create_event(
             device_name=task.device.name, port="red", event_class=AlarmEvent
         )
         red_event.alarm_count = 3
+        task.state.events.commit(red_event)
 
         await task.run()
 
-        assert yellow_event.alarm_count == 1
-        assert red_event.alarm_count == 2
+        new_yellow_event, new_red_event = task.state.events[yellow_event.id], task.state.events[red_event.id]
+        assert new_yellow_event.alarm_count == 1
+        assert new_red_event.alarm_count == 2
 
     @pytest.mark.asyncio
     async def test_task_does_not_create_alarm_events_on_unchanged_alarm_count(self, juniper_alarm_task):

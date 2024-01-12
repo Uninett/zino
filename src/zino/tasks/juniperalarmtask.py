@@ -2,7 +2,7 @@ import logging
 from typing import Literal
 
 from zino.snmp import SNMP
-from zino.statemodels import AlarmEvent, EventState
+from zino.statemodels import AlarmEvent
 from zino.tasks.task import Task
 
 _logger = logging.getLogger(__name__)
@@ -61,15 +61,13 @@ class JuniperAlarmTask(Task):
         return yellow_alarm_count, red_alarm_count
 
     def create_alarm_event(self, color: Literal["yellow", "red"], alarm_count: int):
-        alarm_event, created = self.state.events.get_or_create_event(
+        alarm_event = self.state.events.get_or_create_event(
             device_name=self.device.name,
             port=color,
             event_class=AlarmEvent,
         )
-        if created:
-            alarm_event.state = EventState.OPEN
-            alarm_event.add_history("Change state to Open")
 
         old_alarm_count = alarm_event.alarm_count
         alarm_event.alarm_count = alarm_count
         alarm_event.add_log(f"{self.device.name} {color} alarms went from {old_alarm_count} to {alarm_count}")
+        self.state.events.commit(alarm_event)

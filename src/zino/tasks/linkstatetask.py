@@ -7,7 +7,7 @@ from typing import Any
 from zino.oid import OID
 from zino.scheduler import get_scheduler
 from zino.snmp import SNMP, SparseWalkResponse
-from zino.statemodels import EventState, InterfaceState, Port, PortStateEvent
+from zino.statemodels import InterfaceState, Port, PortStateEvent
 from zino.tasks.task import Task
 
 _logger = logging.getLogger(__name__)
@@ -108,10 +108,7 @@ class LinkStateTask(Task):
         port.state = state
 
     def _make_or_update_state_event(self, port: Port, new_state: InterfaceState, last_change: int):
-        event, created = self.state.events.get_or_create_event(self.device.name, port.ifindex, PortStateEvent)
-        if created:
-            event.state = EventState.OPEN
-            event.add_history("Change state to Open")
+        event = self.state.events.get_or_create_event(self.device.name, port.ifindex, PortStateEvent)
 
         event.portstate = new_state
         event.ifindex = port.ifindex
@@ -128,6 +125,7 @@ class LinkStateTask(Task):
         )
         _logger.info(log)
         event.add_log(log)
+        self.state.events.commit(event)
 
         self._schedule_verification_of_single_port(port.ifindex)
 

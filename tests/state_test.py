@@ -1,18 +1,10 @@
 import json
-import logging
 import os
 from json import JSONDecodeError
 
 import pytest
 
 from zino.state import ZinoState
-
-
-def test_dump_state_to_log_should_dump_to_log(caplog):
-    with caplog.at_level(logging.DEBUG):
-        state = ZinoState()
-        state.dump_state_to_log()
-    assert "Dumping state" in caplog.text
 
 
 def test_dump_state_to_file_should_dump_valid_json_to_file(tmp_path):
@@ -55,7 +47,30 @@ def valid_state_file(tmp_path):
             "devices": {}
           },
           "events": {
-            "events": {},
+            "events": {
+              "1": {
+                "id": 1,
+                "router": "example-gw1",
+                "type": "reachability",
+                "state": "open",
+                "opened": "2023-12-06T17:03:38.73336Z",
+                "updated": "2023-12-06T17:03:38.733633Z",
+                "priority": 100,
+                "log": [
+                  {
+                    "timestamp": "2023-12-06T17:03:38.733633Z",
+                    "message": "example-gw1 no-response"
+                  }
+                ],
+                "history": [
+                  {
+                    "timestamp": "2023-12-06T17:03:38.733615Z",
+                    "message": "Change state to Open"
+                  }
+                ],
+                "reachability": "no-response"
+              }
+            },
             "last_event_id": 42
           }
         }
