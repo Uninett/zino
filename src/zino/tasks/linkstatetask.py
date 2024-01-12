@@ -128,6 +128,7 @@ class LinkStateTask(Task):
         )
         _logger.info(log)
         event.add_log(log)
+        self.state.events.commit(event)
 
         self._schedule_verification_of_single_port(port.ifindex)
 

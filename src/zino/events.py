@@ -1,6 +1,6 @@
 import logging
 from collections import namedtuple
-from typing import Dict, Optional, Tuple, Type, Union
+from typing import Any, Callable, Dict, Optional, Tuple, Type, Union
 
 from pydantic.main import BaseModel
 
@@ -25,6 +25,7 @@ class Events(BaseModel):
     events: Dict[int, Union[PortStateEvent, BGPEvent, BFDEvent, ReachabilityEvent, AlarmEvent, Event]] = {}
     last_event_id: int = 0
     _events_by_index: Dict[EventIndex, Event] = {}
+    _observers: list[Callable[[int], Any]] = []
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -95,6 +96,35 @@ class Events(BaseModel):
         """Returns an event based on its identifiers, None if no match was found"""
         index = EventIndex(device_name, port, event_class)
         return self._events_by_index.get(index)
+
+    def checkout(self, event_id: int) -> Event:
+        """Checks out a copy of an event that can be freely modified without being persisted"""
+        return self[event_id].model_copy(deep=True)
+
+    def commit(self, event: Event):
+        """Commits an Event object to the state, replacing any existing event by the same id.
+
+        If the event, for some reason, does not replace an existing event, indexes are rebuilt. This assumes the
+        committer does not change the identifying index attributes of a modified event.
+        """
+        if event.state == EventState.EMBRYONIC:
+            event.state = EventState.OPEN
+            event.opened = now()
+
+        is_new = event.id not in self
+        self.events[event.id] = event
+        if is_new:
+            self._rebuild_indexes()
+
+        self._call_observers_for(event)
+
+    def add_event_observer(self, func: callable):
+        """Adds an observer function that will be called with the ID of any committed event as its argument"""
+        self._observers.append(func)
+
+    def _call_observers_for(self, event: Event):
+        for observer in self._observers:
+            observer(event.id)
 
 
 class EventExistsError(Exception):

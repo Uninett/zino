@@ -32,7 +32,7 @@ class ReachableTask(Task):
             if event.reachability != ReachabilityState.NORESPONSE:
                 event.reachability = ReachabilityState.NORESPONSE
                 event.add_log(f"{self.device.name} no-response")
-            # TODO we need a mechanism to "commit" event changes, to trigger notifications to clients
+            self.state.events.commit(event)
             self._schedule_extra_job()
         else:
             _logger.debug("Device %s is reachable", self.device.name)

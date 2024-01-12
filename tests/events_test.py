@@ -1,7 +1,9 @@
+from unittest.mock import Mock
+
 import pytest
 
 from zino.events import EventExistsError, Events
-from zino.statemodels import Event, ReachabilityEvent
+from zino.statemodels import Event, EventState, ReachabilityEvent
 
 
 class TestEvents:
@@ -47,3 +49,46 @@ class TestEvents:
         event2, _ = events.get_or_create_event("foobar", None, ReachabilityEvent)
 
         assert event2 is event1
+
+    def test_checkout_should_return_copy(self):
+        events = Events()
+        original_event, _ = events.get_or_create_event("foobar", None, ReachabilityEvent)
+        copy = events.checkout(original_event.id)
+
+        assert original_event is not copy
+
+    def test_checkout_should_return_deep_log_copy(self):
+        events = Events()
+        original_event, _ = events.get_or_create_event("foobar", None, ReachabilityEvent)
+        original_event.add_log("first log")
+
+        copy = events.checkout(original_event.id)
+        copy.add_log("second log")
+
+        assert original_event.log != copy.log
+
+    def test_commit_should_replace_event(self):
+        events = Events()
+        original_event, _ = events.get_or_create_event("foobar", None, ReachabilityEvent)
+        copy = events.checkout(original_event.id)
+        copy.add_log("this is the successor event")
+
+        events.commit(copy)
+
+        assert events.get("foobar", None, ReachabilityEvent) is copy
+
+    def test_commit_should_open_embryonic_event(self):
+        events = Events()
+        event, _ = events.get_or_create_event("foobar", None, ReachabilityEvent)
+        assert event.state == EventState.EMBRYONIC
+        events.commit(event)
+        assert event.state == EventState.OPEN
+
+    def test_when_observer_is_added_it_should_be_called_on_commit(self):
+        events = Events()
+        observer = Mock()
+        events.add_event_observer(observer.observe)
+        event, _ = events.get_or_create_event("foobar", None, ReachabilityEvent)
+
+        events.commit(event)
+        assert observer.observe.called
