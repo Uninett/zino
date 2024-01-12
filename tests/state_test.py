@@ -55,7 +55,30 @@ def valid_state_file(tmp_path):
             "devices": {}
           },
           "events": {
-            "events": {},
+            "events": {
+              "1": {
+                "id": 1,
+                "router": "example-gw1",
+                "type": "reachability",
+                "state": "open",
+                "opened": "2023-12-06T17:03:38.73336Z",
+                "updated": "2023-12-06T17:03:38.733633Z",
+                "priority": 100,
+                "log": [
+                  {
+                    "timestamp": "2023-12-06T17:03:38.733633Z",
+                    "message": "example-gw1 no-response"
+                  }
+                ],
+                "history": [
+                  {
+                    "timestamp": "2023-12-06T17:03:38.733615Z",
+                    "message": "Change state to Open"
+                  }
+                ],
+                "reachability": "no-response"
+              }
+            },
             "last_event_id": 42
           }
         }
