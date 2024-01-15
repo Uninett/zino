@@ -28,6 +28,33 @@ class TestGetBGPStyle:
         assert (await task._get_bgp_style()) is None
 
 
+class TestGetLocalAs:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("task", ["juniper-bgp"], indirect=True)
+    async def test_get_local_as_returns_correct_value_for_juniper(self, task):
+        assert (await task._get_local_as(bgp_style=BGPStyle.JUNIPER)) == 10
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("task", ["cisco-bgp"], indirect=True)
+    async def test_get_local_as_returns_correct_value_for_cisco(self, task):
+        assert (await task._get_local_as(bgp_style=BGPStyle.CISCO)) == 10
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("task", ["general-bgp"], indirect=True)
+    async def test_get_local_as_returns_correct_value_for_general(self, task):
+        assert (await task._get_local_as(bgp_style=BGPStyle.GENERAL)) == 10
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("task", ["public"], indirect=True)
+    async def test_get_local_as_returns_none_for_non_existent_local_as(self, task):
+        assert (await task._get_local_as(bgp_style=BGPStyle.GENERAL)) is None
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("task", ["public"], indirect=True)
+    async def test_get_local_as_returns_none_for_non_existent_local_as_with_juniper_bgp_style(self, task):
+        assert (await task._get_local_as(bgp_style=BGPStyle.JUNIPER)) is None
+
+
 @pytest.fixture
 def task(request, snmpsim, snmp_test_port):
     device = PollDevice(
