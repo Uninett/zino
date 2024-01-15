@@ -9,6 +9,10 @@ from zino.tasks.task import Task
 _logger = logging.getLogger(__name__)
 
 
+class DeviceUnreachableError(Exception):
+    pass
+
+
 class ReachableTask(Task):
     EXTRA_JOB_INTERVAL = 60
 
@@ -19,7 +23,7 @@ class ReachableTask(Task):
     async def run(self):
         """Checks if device is reachable. Schedules extra reachability checks if not."""
         if self._extra_job_is_running():
-            return
+            raise DeviceUnreachableError
         try:
             await self._get_uptime()
         except TimeoutError:
@@ -30,6 +34,7 @@ class ReachableTask(Task):
                 event.add_log(f"{self.device.name} no-response")
             self.state.events.commit(event)
             self._schedule_extra_job()
+            raise DeviceUnreachableError
         else:
             _logger.debug("Device %s is reachable", self.device.name)
             self._update_reachability_event_as_reachable()
