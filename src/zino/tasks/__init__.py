@@ -1,7 +1,18 @@
+import logging
+
+_log = logging.getLogger(__name__)
+
+
 async def run_all_tasks(device, state):
+    from zino.tasks.reachabletask import DeviceUnreachableError
+
     for task_class in get_registered_tasks():
         task = task_class(device, state)
-        await task.run()
+        try:
+            await task.run()
+        except DeviceUnreachableError:
+            _log.debug(f"Device {device.name} could not be reached. Cancelling other tasks.")
+            break
 
 
 def get_registered_tasks():
