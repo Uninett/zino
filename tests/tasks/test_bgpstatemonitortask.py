@@ -57,6 +57,39 @@ class TestBGPStateMonitorTask:
         assert event.remote_as == DEFAULT_REMOTE_AS
         assert event.peer_uptime == DEFAULT_UPTIME
 
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "task", ["general-bgp-external-reset", "cisco-bgp-external-reset", "juniper-bgp-external-reset"], indirect=True
+    )
+    async def test_session_up_updates_event(self, task):
+        """Tests that the oper down event should be updated if a BGP connection to a device reports that their
+        oper_state has changed back to established
+        """
+        # create admin down event
+        event = task.state.events.get_or_create_event(
+            device_name=task.device.name, subindex=PEER_ADDRESS, event_class=BGPEvent
+        )
+        event.operational_state = BGPOperState.DOWN
+        event.admin_status = BGPAdminStatus.STOP
+        event.remote_address = PEER_ADDRESS
+        event.remote_as = DEFAULT_REMOTE_AS
+        event.peer_uptime = 0
+        task.state.events.commit(event=event)
+
+        await task.run()
+
+        # check if state has been updated to reflect state defined in .snmprec
+        assert task.device_state.bgp_peers[PEER_ADDRESS].admin_status in [BGPAdminStatus.RUNNING, BGPAdminStatus.START]
+        assert task.device_state.bgp_peers[PEER_ADDRESS].oper_state == BGPOperState.ESTABLISHED
+        # check that the correct event has been created
+        event = task.state.events.get(device_name=task.device.name, subindex=PEER_ADDRESS, event_class=BGPEvent)
+        assert event
+        assert event.admin_status in [BGPAdminStatus.RUNNING, BGPAdminStatus.START]
+        assert event.operational_state == BGPOperState.ESTABLISHED
+        assert event.remote_address == PEER_ADDRESS
+        assert event.remote_as == DEFAULT_REMOTE_AS
+        assert event.peer_uptime == DEFAULT_UPTIME
+
 
 class TestGetBGPStyle:
     @pytest.mark.asyncio
