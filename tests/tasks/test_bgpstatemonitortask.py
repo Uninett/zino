@@ -18,6 +18,7 @@ class TestBgpStateMonitorTask:
     @pytest.mark.asyncio
     @pytest.mark.parametrize("task", ["missing-info-bgp"], indirect=True)
     async def test_task_logs_missing_information(self, task, caplog):
+        """Tests that the BGP state monitor task logs if necessary information for a BGP device is missing"""
         with caplog.at_level(logging.INFO):
             await task.run()
 
@@ -26,6 +27,7 @@ class TestBgpStateMonitorTask:
     @pytest.mark.asyncio
     @pytest.mark.parametrize("task", ["general-bgp-external-reset", "cisco-bgp-external-reset"], indirect=True)
     async def test_external_reset_creates_event(self, task):
+        """Tests that an event should be made if a BGP connection to a device has been reset"""
         peer_address = IPv4Address("10.0.0.1")
         # set initial state
         task.device_state.bgp_peer_up_times = {peer_address: 5000}
@@ -45,6 +47,7 @@ class TestBgpStateMonitorTask:
     @pytest.mark.asyncio
     @pytest.mark.parametrize("task", ["juniper-bgp-external-reset"], indirect=True)
     async def test_external_reset_juniper_creates_event(self, task):
+        """Tests that an event should be made if a BGP connection to a juniper device has been reset"""
         peer_address = IPv4Address("10.0.0.1")
         # set initial state
         task.device_state.bgp_peer_up_times = {peer_address: 5000}
@@ -64,6 +67,9 @@ class TestBgpStateMonitorTask:
     @pytest.mark.asyncio
     @pytest.mark.parametrize("task", ["general-bgp-external-reset", "cisco-bgp-external-reset"], indirect=True)
     async def test_session_up_updates_event(self, task):
+        """Tests that the oper down event should be updated if a BGP connection to a device reports that their
+        oper_state has changed back to established
+        """
         peer_address = IPv4Address("10.0.0.1")
         # create admin down event
         event = task.state.events.get_or_create_event(
@@ -93,6 +99,9 @@ class TestBgpStateMonitorTask:
     @pytest.mark.asyncio
     @pytest.mark.parametrize("task", ["juniper-bgp-external-reset"], indirect=True)
     async def test_session_up_juniper_updates_event(self, task):
+        """Tests that the oper down event should be updated if a BGP connection to a juniper device reports that their
+        oper_state has changed back to established
+        """
         peer_address = IPv4Address("10.0.0.1")
         # create admin down event
         event = task.state.events.get_or_create_event(
@@ -121,6 +130,9 @@ class TestBgpStateMonitorTask:
     @pytest.mark.asyncio
     @pytest.mark.parametrize("task", ["general-bgp-admin-down", "cisco-bgp-admin-down"], indirect=True)
     async def test_admin_down_creates_event(self, task):
+        """Tests that an event should be made if a BGP connection to a device reports that their admin_state has changed
+        from start to stop
+        """
         peer_address = IPv4Address("10.0.0.1")
         # set initial state
         task.device_state.bgp_peer_admin_states = {peer_address: "start"}
@@ -140,6 +152,9 @@ class TestBgpStateMonitorTask:
     @pytest.mark.asyncio
     @pytest.mark.parametrize("task", ["juniper-bgp-admin-down"], indirect=True)
     async def test_admin_down_juniper_creates_event(self, task):
+        """Tests that an event should be made if a BGP connection to a juniper device reports that their admin_state has
+        changed from running to halted
+        """
         peer_address = IPv4Address("10.0.0.1")
         # set initial state
         task.device_state.bgp_peer_admin_states = {peer_address: "running"}
@@ -159,6 +174,9 @@ class TestBgpStateMonitorTask:
     @pytest.mark.asyncio
     @pytest.mark.parametrize("task", ["general-bgp-admin-up", "cisco-bgp-admin-up"], indirect=True)
     async def test_admin_up_general_creates_event(self, task):
+        """Tests that an event should be made if a BGP connection to a device reports that their admin_state has changed
+        from stop to start
+        """
         peer_address = IPv4Address("10.0.0.1")
         # set initial state
         task.device_state.bgp_peer_admin_states = {peer_address: "stop"}
@@ -179,6 +197,9 @@ class TestBgpStateMonitorTask:
     @pytest.mark.asyncio
     @pytest.mark.parametrize("task", ["juniper-bgp-admin-up"], indirect=True)
     async def test_admin_up_juniper_creates_event(self, task):
+        """Tests that an event should be made if a BGP connection to a juniper device reports that their admin_state has
+        changed from halted to running
+        """
         peer_address = IPv4Address("10.0.0.1")
         # set initial state
         task.device_state.bgp_peer_admin_states = {peer_address: "halted"}
@@ -199,9 +220,8 @@ class TestBgpStateMonitorTask:
     @pytest.mark.asyncio
     @pytest.mark.parametrize("task", ["general-bgp-oper-down", "cisco-bgp-oper-down"], indirect=True)
     async def test_oper_down_general_creates_event(self, task):
-        """Tests that an event should be made if a BGP connection to a device that is in a different AS
-        than the local AS for this device reports that their oper_state has changed from established to
-        something else
+        """Tests that an event should be made if a BGP connection to a device reports that their oper_state has changed
+        from established to something else
         """
         peer_address = IPv4Address("10.0.0.1")
         # set initial state
@@ -222,9 +242,8 @@ class TestBgpStateMonitorTask:
     @pytest.mark.asyncio
     @pytest.mark.parametrize("task", ["juniper-bgp-oper-down"], indirect=True)
     async def test_oper_down_juniper_creates_event(self, task):
-        """Tests that an event should be made if a BGP connection to a device that is in a different AS
-        than the local AS for this device reports that their oper_state has changed from established to
-        something else
+        """Tests that an event should be made if a BGP connection to a juniper device reports that their oper_state has
+        changed from established to something else
         """
         peer_address = IPv4Address("10.0.0.1")
         # set initial state
