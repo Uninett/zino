@@ -117,6 +117,35 @@ class TestBGPStateMonitorTask:
         assert event.remote_as == DEFAULT_REMOTE_AS
         assert event.peer_uptime == 0
 
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "task", ["general-bgp-admin-up", "cisco-bgp-admin-up", "juniper-bgp-admin-up"], indirect=True
+    )
+    async def test_admin_up_creates_event(self, task):
+        """Tests that an event should be made if a BGP connection to a device reports that their admin_status has
+        changed from stop to start
+        """
+        # set initial state
+        task.device_state.bgp_peers = {
+            PEER_ADDRESS: BGPPeerSession(
+                uptime=DEFAULT_UPTIME,
+                admin_status=BGPAdminStatus.STOP,
+                oper_state=BGPOperState.IDLE,
+            )
+        }
+        await task.run()
+        # check if state has been updated to reflect state defined in .snmprec
+        assert task.device_state.bgp_peers[PEER_ADDRESS].admin_status in [BGPAdminStatus.RUNNING, BGPAdminStatus.START]
+        assert task.device_state.bgp_peers[PEER_ADDRESS].oper_state != BGPOperState.ESTABLISHED
+        # check that the correct event has been created
+        event = task.state.events.get(device_name=task.device.name, subindex=PEER_ADDRESS, event_class=BGPEvent)
+        assert event
+        assert event.admin_status in [BGPAdminStatus.RUNNING, BGPAdminStatus.START]
+        assert event.operational_state == BGPOperState.IDLE
+        assert event.remote_address == PEER_ADDRESS
+        assert event.remote_as == DEFAULT_REMOTE_AS
+        assert event.peer_uptime == 0
+
 
 class TestGetBGPStyle:
     @pytest.mark.asyncio
