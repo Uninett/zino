@@ -5,7 +5,7 @@ import pytest
 from zino.config.models import PollDevice
 from zino.state import ZinoState
 from zino.statemodels import ReachabilityEvent, ReachabilityState
-from zino.tasks.reachabletask import ReachableTask
+from zino.tasks.reachabletask import DeviceUnreachableError, ReachableTask
 
 
 @pytest.fixture()
@@ -39,13 +39,15 @@ class TestReachableTask:
     @pytest.mark.asyncio
     async def test_run_should_create_event_if_device_is_unreachable(self, unreachable_task):
         task = unreachable_task
-        assert (await unreachable_task.run()) is None
+        with pytest.raises(DeviceUnreachableError):
+            await task.run()
         event = task.state.events.get(task.device.name, None, ReachabilityEvent)
         assert event
 
     @pytest.mark.asyncio
     async def test_run_should_start_extra_job_if_device_is_unreachable(self, unreachable_task):
-        assert (await unreachable_task.run()) is None
+        with pytest.raises(DeviceUnreachableError):
+            await unreachable_task.run()
         assert unreachable_task._extra_job_is_running()
 
     @pytest.mark.asyncio
@@ -72,7 +74,8 @@ class TestReachableTask:
         event.reachability = ReachabilityState.REACHABLE
         task.state.events.commit(event)
 
-        assert (await task.run()) is None
+        with pytest.raises(DeviceUnreachableError):
+            await task.run()
         updated_event = task.state.events[event.id]
         assert updated_event.reachability == ReachabilityState.NORESPONSE
 
