@@ -1,3 +1,4 @@
+import logging
 from ipaddress import IPv4Address, IPv6Address
 
 import pytest
@@ -6,6 +7,22 @@ from zino.config.models import PollDevice
 from zino.state import ZinoState
 from zino.statemodels import BGPStyle
 from zino.tasks.bgpstatemonitortask import BGPStateMonitorTask
+
+
+class TestBGPStateMonitorTask:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("task", ["public", "juniper-bgp", "cisco-bgp", "general-bgp"], indirect=True)
+    async def test_task_runs_without_errors(self, task):
+        assert (await task.run()) is None
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("task", ["missing-info-bgp"], indirect=True)
+    async def test_task_logs_missing_information(self, task, caplog):
+        """Tests that the BGP state monitor task logs if necessary information for a BGP device is missing"""
+        with caplog.at_level(logging.INFO):
+            await task.run()
+
+        assert f"router {task.device.name} misses BGP variables" in caplog.text
 
 
 class TestGetBGPStyle:
@@ -81,6 +98,12 @@ class TestFixupIPAddress:
         string_address = "13c7:db1c:4430:c826:6333:aed0:e605:3a3b"
         decoded_address = task._fixup_ip_address(string_address)
         assert decoded_address == IPv6Address(string_address)
+
+    @pytest.mark.parametrize("task", ["general-bgp"], indirect=True)
+    def test_parsing_invalid_ip_address_raises_error(self, task):
+        string_address = "abc"
+        with pytest.raises(ValueError):
+            task._fixup_ip_address(string_address)
 
 
 @pytest.fixture
