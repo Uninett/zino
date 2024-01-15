@@ -27,7 +27,6 @@ class ReachableTask(Task):
         try:
             await self._get_uptime()
         except TimeoutError:
-            _logger.debug("Device %s is not reachable", self.device.name)
             event = self.state.events.get_or_create_event(self.device.name, None, ReachabilityEvent)
             if event.reachability != ReachabilityState.NORESPONSE:
                 event.reachability = ReachabilityState.NORESPONSE
