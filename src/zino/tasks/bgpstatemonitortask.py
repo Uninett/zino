@@ -299,7 +299,7 @@ class BgpStateMonitorTask(Task):
 
         if data.peer_state == "established":
             bgp_peer_up_time = self.device_state.bgp_peer_up_times.get(data.peer_remote_address, None)
-            if bgp_peer_up_time and uptime >= bgp_peer_up_time and bgp_peer_up_time > data.peer_fsm_established_time:
+            if bgp_peer_up_time and uptime >= bgp_peer_up_time > data.peer_fsm_established_time:
                 self._bgp_external_reset(data)
                 _logger.debug(f"Noted external reset for {self.device_state.name}: {index}")
             else:
