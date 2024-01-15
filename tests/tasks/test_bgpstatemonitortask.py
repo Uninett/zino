@@ -5,8 +5,18 @@ import pytest
 
 from zino.config.models import PollDevice
 from zino.state import ZinoState
-from zino.statemodels import BGPStyle
+from zino.statemodels import (
+    BGPAdminStatus,
+    BGPEvent,
+    BGPOperState,
+    BGPPeerSession,
+    BGPStyle,
+)
 from zino.tasks.bgpstatemonitortask import BGPStateMonitorTask
+
+PEER_ADDRESS = IPv4Address("10.0.0.1")
+DEFAULT_REMOTE_AS = 20
+DEFAULT_UPTIME = 250
 
 
 class TestBGPStateMonitorTask:
@@ -23,6 +33,29 @@ class TestBGPStateMonitorTask:
             await task.run()
 
         assert f"router {task.device.name} misses BGP variables" in caplog.text
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "task", ["general-bgp-external-reset", "cisco-bgp-external-reset", "juniper-bgp-external-reset"], indirect=True
+    )
+    async def test_external_reset_creates_event(self, task):
+        """Tests that an event should be made if a BGP connection to a device has been reset"""
+        # set initial state
+        task.device_state.bgp_peers = {
+            PEER_ADDRESS: BGPPeerSession(uptime=500, admin_status=BGPAdminStatus.STOP, oper_state=BGPOperState.DOWN)
+        }
+        await task.run()
+        # check if state has been updated to reflect state defined in .snmprec
+        assert task.device_state.bgp_peers[PEER_ADDRESS].admin_status in [BGPAdminStatus.RUNNING, BGPAdminStatus.START]
+        assert task.device_state.bgp_peers[PEER_ADDRESS].oper_state == BGPOperState.ESTABLISHED
+        # check that the correct event has been created
+        event = task.state.events.get(device_name=task.device.name, subindex=PEER_ADDRESS, event_class=BGPEvent)
+        assert event
+        assert event.admin_status in [BGPAdminStatus.RUNNING, BGPAdminStatus.START]
+        assert event.operational_state == BGPOperState.ESTABLISHED
+        assert event.remote_address == PEER_ADDRESS
+        assert event.remote_as == DEFAULT_REMOTE_AS
+        assert event.peer_uptime == DEFAULT_UPTIME
 
 
 class TestGetBGPStyle:
