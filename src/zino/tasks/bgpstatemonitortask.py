@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass
-from ipaddress import AddressValueError, IPv4Address, IPv6Address
+from ipaddress import ip_address
 from typing import Any, Iterable, Tuple, Union
 
 from pyasn1.type.univ import OctetString
@@ -270,16 +270,7 @@ class BgpStateMonitorTask(Task):
         else:
             address_str = address
 
-        try:
-            return IPv4Address(address=address_str)
-        except AddressValueError:
-            pass
-        try:
-            return IPv6Address(address=address_str)
-        except AddressValueError:
-            pass
-
-        raise TypeError(f"Input {address} could not be converted to IP address.")
+        return ip_address(address=address_str)
 
     def _update_single_bgp_entry(self, oid, row: dict[str, Any], local_as: int, uptime: int):
         data = BaseBgpRow(**row)
