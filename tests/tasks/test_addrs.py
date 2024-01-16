@@ -18,6 +18,7 @@ class TestAddressMapTask:
     async def test_get_addrs_should_find_addresses(self, address_task_with_dummy_device):
         result = await address_task_with_dummy_device._get_addrs()
         assert result == {
+            IPv4Address("8.8.8.8"),
             IPv4Address("10.0.0.4"),
             IPv4Address("10.129.0.10"),
             IPv4Address("127.0.0.1"),
@@ -43,7 +44,7 @@ class TestAddressMapTask:
     async def test_when_address_is_taken_from_other_device_it_should_update_the_state_accordingly(
         self, address_task_with_dummy_device
     ):
-        old_address = IPv4Address("10.0.0.4")
+        old_address = IPv4Address("8.8.8.8")
         state = address_task_with_dummy_device.state
         state.addresses[old_address] = "some-other-device"
 
