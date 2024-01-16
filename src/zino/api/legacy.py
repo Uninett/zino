@@ -8,13 +8,14 @@ import inspect
 import logging
 import re
 import textwrap
+from functools import wraps
 from pathlib import Path
 from typing import Callable, List, Optional, Union
 
 from zino import version
 from zino.api import auth
 from zino.state import ZinoState
-from zino.statemodels import Event
+from zino.statemodels import Event, EventState
 
 _logger = logging.getLogger(__name__)
 
@@ -210,13 +211,14 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         and translation to an actual Event object.
         """
 
-        def _verify(self, case_id: Union[str, int]):
+        @wraps(responder)
+        def _verify(self, case_id: Union[str, int], *args, **kwargs):
             try:
                 case_id = int(case_id)
                 event = self._state.events[case_id]
             except (ValueError, KeyError):
                 return self._respond_error(f'event "{case_id}" does not exist')
-            return responder(self, event)
+            return responder(self, event, *args, **kwargs)
 
         return _verify
 
@@ -282,6 +284,22 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         _logger.debug("id %s history added: %r", event.id, message)
 
         self._respond_ok()
+
+    @requires_authentication
+    @_translate_case_id_to_event
+    async def do_setstate(self, event: Event, state: str):
+        """Sets the state of an event."""
+        try:
+            event_state = EventState(state)
+        except ValueError:
+            allowable_states = ", ".join(s.value for s in EventState)
+            return self._respond_error(f"state must be one of {allowable_states}")
+
+        out_event = self._state.events.checkout(event.id)
+        out_event.set_state(event_state, user=self.user)
+        self._state.events.commit(out_event)
+
+        return self._respond_ok()
 
 
 class ZinoTestProtocol(Zino1ServerProtocol):
