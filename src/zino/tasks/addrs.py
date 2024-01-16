@@ -1,4 +1,5 @@
 import logging
+import re
 from ipaddress import ip_address
 from typing import Any, List, Optional
 
@@ -7,6 +8,32 @@ from zino.statemodels import IPAddress
 from zino.tasks.task import Task
 
 _logger = logging.getLogger(__name__)
+
+
+IGNORE_ADDRS = {
+    ip_address(ip)
+    for ip in (
+        # UNINETTs anycast PIM RP addresses (should be configurable)
+        "128.39.0.85",
+        "128.39.0.2",
+        # SUNET PIM RP address
+        "193.10.80.229",
+        # NORDUnet PIM RP addresses
+        "193.10.251.1",
+        "109.105.96.128",
+    )
+}
+
+IGNORE_ADDR_PATTERNS = [
+    re.compile(pat)
+    for pat in (
+        r"^10\.",
+        r"^127\.",
+        r"^128\.0\.",
+        r"^172\.(1[6-9]|2[0-9]|3[0-1])\.",
+        r"^192\.168\.",
+    )
+]
 
 
 class AddressMapTask(Task):
@@ -30,9 +57,8 @@ class AddressMapTask(Task):
     def _update_address_maps(self, addresses: List[IPAddress]):
         state = self.state
         for address in addresses:
-            # Here we need a mechanism get gets a list of ignores from config:
-            # if ignoreAddress(address):
-            #     continue
+            if self.is_ignored(address):
+                continue
             if address not in state.addresses:
                 _logger.info("%s adds address %s", self.device.name, address)
             elif state.addresses[address] != self.device.name:
@@ -51,6 +77,15 @@ class AddressMapTask(Task):
             _logger.info("%s no longer has these addresses: %r", self.device.name, missing_addresses)
             for address in missing_addresses:
                 del state.addresses[address]
+
+    @staticmethod
+    def is_ignored(address: IPAddress) -> bool:
+        """Returns True if a particular address should be ignored.
+
+        For the time being, the address lists and patterns to ignore are hard-coded in this module, as they were in
+        Zino 1, but they should later be moved to a configuration file.
+        """
+        return address in IGNORE_ADDRS or any(pattern.match(str(address)) for pattern in IGNORE_ADDR_PATTERNS)
 
 
 def validate_ipaddr(address: Any) -> Optional[IPAddress]:
