@@ -1,11 +1,11 @@
 import logging
 
+from zino.tasks.errors import DeviceUnreachableError
+
 _log = logging.getLogger(__name__)
 
 
 async def run_all_tasks(device, state):
-    from zino.tasks.reachabletask import DeviceUnreachableError
-
     for task_class in get_registered_tasks():
         task = task_class(device, state)
         try:

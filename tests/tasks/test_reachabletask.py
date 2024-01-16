@@ -5,8 +5,8 @@ import pytest
 from zino.config.models import PollDevice
 from zino.state import ZinoState
 from zino.statemodels import ReachabilityEvent, ReachabilityState
-from zino.tasks.reachabletask import DeviceUnreachableError, ReachableTask
-
+from zino.tasks.reachabletask import ReachableTask
+from zino.tasks.errors import DeviceUnreachableError
 
 @pytest.fixture()
 def reachable_task(snmpsim, snmp_test_port):

@@ -4,13 +4,10 @@ from apscheduler.jobstores.base import JobLookupError
 
 from zino.scheduler import get_scheduler
 from zino.statemodels import ReachabilityEvent, ReachabilityState
+from zino.tasks.errors import DeviceUnreachableError
 from zino.tasks.task import Task
 
 _logger = logging.getLogger(__name__)
-
-
-class DeviceUnreachableError(Exception):
-    pass
 
 
 class ReachableTask(Task):
