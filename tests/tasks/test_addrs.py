@@ -53,6 +53,13 @@ class TestAddressMapTask:
         assert state.addresses[old_address] == address_task_with_dummy_device.device.name
 
 
+@pytest.mark.parametrize(
+    "address,expected", [("128.0.0.1", True), ("8.8.8.8", False), ("192.168.42.42", True), ("172.16.0.1", True)]
+)
+def test_is_ignored(address, expected):
+    assert AddressMapTask.is_ignored(ipaddress.ip_address(address)) == expected
+
+
 class TestValidateIpAddr:
     def test_when_input_is_valid_ipv4_it_should_return_an_ipv4address(self):
         assert validate_ipaddr("192.168.0.1") == IPv4Address("192.168.0.1")
