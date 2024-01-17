@@ -77,7 +77,7 @@ def address_task_with_dummy_device(snmpsim, snmp_test_port) -> AddressMapTask:
         name="buick.lab.example.org",
         address="127.0.0.1",
         port=snmp_test_port,
-        community="ipadentaddr",
+        community="ip-ad-ent-addr",
     )
     state = ZinoState()
     task = AddressMapTask(device, state)
