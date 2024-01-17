@@ -301,6 +301,16 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
 
         return self._respond_ok()
 
+    @requires_authentication
+    async def do_community(self, router_name: str):
+        from zino.state import polldevs
+
+        if router_name in polldevs:
+            device = polldevs[router_name]
+            self._respond(201, f"{device.community}")
+        else:
+            self._respond_error("router unknown")
+
 
 class ZinoTestProtocol(Zino1ServerProtocol):
     """Extended Zino 1 server protocol with test commands added in"""
