@@ -166,6 +166,11 @@ class TestMibResolver:
         SNMP._resolve_object(object_type)
         assert object_type[0]
 
+    def test_ipadentaddr_should_be_resolved(self):
+        object_type = SNMP._oid_to_object_type("IP-MIB", "ipAdEntAddr")
+        SNMP._resolve_object(object_type)
+        assert object_type[0]
+
 
 class TestUnreachableDeviceShouldRaiseException:
     @pytest.mark.asyncio
