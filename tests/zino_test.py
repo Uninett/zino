@@ -1,5 +1,4 @@
 import subprocess
-import sys
 from argparse import Namespace
 from datetime import timedelta
 from unittest.mock import Mock, patch
@@ -22,12 +21,10 @@ def test_zino_help_screen_should_not_crash():
 
 def test_zino_should_not_crash_right_away(polldevs_conf_with_no_routers):
     """This tests that the main function runs Zino for at least 2 seconds"""
-    from zino.zino import main
-
     seconds_to_run_for = 2
-    testargs = ["zino", "--stop-in", str(seconds_to_run_for), "--polldevs", str(polldevs_conf_with_no_routers)]
-    with patch.object(sys, "argv", testargs):
-        main()
+    subprocess.check_call(
+        ["zino", "--stop-in", str(seconds_to_run_for), "--polldevs", str(polldevs_conf_with_no_routers)]
+    )
 
 
 def test_zino_argparser_works(polldevs_conf):
