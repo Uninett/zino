@@ -12,6 +12,7 @@ from zino.api import auth
 from zino.state import ZinoState
 
 if TYPE_CHECKING:
+    from zino.api.legacy import Zino1ServerProtocol
     from zino.api.server import ZinoServer
 
 _logger = logging.getLogger(__name__)
@@ -31,6 +32,7 @@ class Zino1NotificationProtocol(asyncio.Protocol):
         self.nonce: Optional[str] = None
 
         self._state = state if state is not None else ZinoState()
+        self._tied_to: "Zino1ServerProtocol" = None
 
     @property
     def peer_name(self) -> str:
@@ -48,6 +50,19 @@ class Zino1NotificationProtocol(asyncio.Protocol):
         _logger.info("Lost connection from %s: %s", self.peer_name, exc)
         if self.server:
             del self.server.notification_channels[self.nonce]
+
+    def goodbye(self):
+        """Called by the tied server channel when that closes to gracefully close this channel too"""
+        self._respond_raw("Normal quit from client, closing down")
+        self.transport.close()
+
+    @property
+    def tied_to(self) -> Optional["Zino1ServerProtocol"]:
+        return self._tied_to
+
+    @tied_to.setter
+    def tied_to(self, client: "Zino1ServerProtocol") -> None:
+        self._tied_to = client
 
     def _notify(self, event_id: int, change_type: str, value: Any):
         self._respond_raw(f"{event_id} {change_type} {value}")

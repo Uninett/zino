@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Callable, List, Optional, Union
 
 from zino import version
 from zino.api import auth
+from zino.api.notify import Zino1NotificationProtocol
 from zino.state import ZinoState
 from zino.statemodels import Event, EventState
 
@@ -46,6 +47,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         """
         self.server = server
         self.transport: Optional[asyncio.Transport] = None
+        self.notification_channel: Optional[Zino1NotificationProtocol] = None
         self._authenticated_as: Optional[str] = None
         self._current_task: asyncio.Task = None
         self._multiline_future: asyncio.Future = None
@@ -84,6 +86,8 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         _logger.info("Client disconnected: %s", self.peer_name)
         if self.server:
             self.server.active_clients.remove(self)
+        if self.notification_channel:
+            self.notification_channel.goodbye()
 
     def data_received(self, data):
         try:
@@ -326,6 +330,20 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
             self._respond(201, f"{device.community}")
         else:
             self._respond_error("router unknown")
+
+    @requires_authentication
+    async def do_ntie(self, nonce: str):
+        """Implements the NTIE command that ties together this session with a notification channel."""
+        try:
+            channel = self.server.notification_channels[nonce]
+        except KeyError:
+            return self._respond_error("Could not find your notify socket")
+
+        self.notification_channel = channel
+        channel.tied_to = self
+        _logger.info("Client %s tied to notification channel %s", self.peer_name, channel.peer_name)
+
+        return self._respond_ok()
 
 
 class ZinoTestProtocol(Zino1ServerProtocol):
