@@ -8,7 +8,7 @@ from typing import Optional
 import tzlocal
 
 from zino import state
-from zino.api.legacy import ZinoTestProtocol
+from zino.api.server import ZinoServer
 from zino.config.models import DEFAULT_INTERVAL_MINUTES
 from zino.scheduler import get_scheduler, load_and_schedule_polldevs
 from zino.statemodels import Event
@@ -47,9 +47,8 @@ def init_event_loop(args: argparse.Namespace):
     state.state.events.add_event_observer(reschedule_dump_state_on_commit)
 
     loop = asyncio.get_event_loop()
-    server = loop.create_server(lambda: ZinoTestProtocol(state=state.state), "127.0.0.1", 8001)
-    server_setup_result = loop.run_until_complete(server)
-    _log.info("Serving on %r", server_setup_result.sockets[0].getsockname())
+    server = ZinoServer(loop=loop, state=state.state)
+    server.serve()
 
     if args.stop_in:
         _log.info("Instructed to stop in %s seconds", args.stop_in)
