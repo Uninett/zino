@@ -101,3 +101,10 @@ exclude = [
 [tool.isort]
 profile = "black"
 src_paths = ["src", "tests"]
+
+[tool.coverage.report]
+# Regexes for lines to exclude from consideration
+exclude_also = [
+    # Don't need coverage for ellipsis used for type annotations
+    "...",
+]
