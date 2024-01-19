@@ -51,6 +51,8 @@ class LineData:
 def create_state(old_state_file: str) -> ZinoState:
     new_state = ZinoState()
     event_attrs = []
+    bfd_sess_addr = []
+    bfd_sess_discr = []
     event_indices: EventIndices = {}
     old_state_lines = read_file_lines(old_state_file)
     for line in old_state_lines:
@@ -68,14 +70,17 @@ def create_state(old_state_file: str) -> ZinoState:
         elif "::EventIdToIx" in line:
             event_id, event_index = get_event_index(linedata)
             event_indices[event_id] = event_index
+        elif "::bfdSessState" in line:
+            set_bfd_sess_state(linedata, new_state)
         elif "::bfdSessAddr" in line:
             if "::bfdSessAddrType" in line:
                 continue
-            set_bfd_sess_addr(linedata, new_state)
-        elif "::bfdSessState" in line:
-            set_bfd_sess_state(linedata, new_state)
+            else:
+                # bfdSessState has to be parsed first
+                bfd_sess_addr.append(linedata)
         elif "::bfdSessDiscr" in line:
-            set_bfd_sess_discr(linedata, new_state)
+            # bfdSessState has to be parsed first
+            bfd_sess_discr.append(linedata)
         elif "::JNXalarms" in line:
             set_jnx_alarms(linedata, new_state)
         elif "::portState" in line:
@@ -88,6 +93,10 @@ def create_state(old_state_file: str) -> ZinoState:
             pass
     for linedata in event_attrs:
         set_event_attrs(linedata, new_state, event_indices)
+    for linedata in bfd_sess_addr:
+        set_bfd_sess_addr(linedata, new_state)
+    for linedata in bfd_sess_discr:
+        set_bfd_sess_discr(linedata, new_state)
     return new_state
 
 
