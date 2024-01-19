@@ -46,7 +46,7 @@ class LineData:
     value: str
 
 
-def create_state(old_state_file: str):
+def create_state(old_state_file: str) -> ZinoState:
     new_state = ZinoState()
     event_attrs = []
     event_indices: EventIndices = {}
