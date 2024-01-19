@@ -97,6 +97,18 @@ def create_state(old_state_file: str) -> ZinoState:
             set_bgp_peer_up_time(linedata, new_state)
         elif "::bgpPeers" in line:
             set_bgp_peers(linedata, new_state)
+        elif "::firstFlap" in line:
+            set_first_flap(linedata, new_state)
+        elif "::flapHistVal" in line:
+            set_flap_hist_val(linedata, new_state)
+        elif "::flappedAboveThreshold" in line:
+            set_flapped_above_threshold(linedata, new_state)
+        elif "::flapping" in line:
+            set_flapping(linedata, new_state)
+        elif "::flaps" in line:
+            set_flaps(linedata, new_state)
+        elif "::lastFlap" in line:
+            set_last_flap(linedata, new_state)
     for linedata in event_attrs:
         set_event_attrs(linedata, new_state, event_indices)
     for linedata in bfd_sess_addr:
@@ -380,19 +392,31 @@ def set_bgp_peers(linedata: LineData, state: ZinoState):
     _log.info("bgpPeers is not supported")
 
 
+def set_first_flap(linedata: LineData, state: ZinoState):
+    _log.info("firstFlap is not supported")
+
+
+def set_flap_hist_val(linedata: LineData, state: ZinoState):
+    _log.info("flapHistVal is not supported")
+
+
+def set_flapped_above_threshold(linedata: LineData, state: ZinoState):
+    _log.info("flappedAboveThreshold is not supported")
+
+
+def set_flapping(linedata: LineData, state: ZinoState):
+    _log.info("flapping is not supported")
+
+
+def set_flaps(linedata: LineData, state: ZinoState):
+    _log.info("flaps is not supported")
+
+
+def set_last_flap(linedata: LineData, state: ZinoState):
+    _log.info("lastFlap is not supported")
+
+
 """
-firstFlap
-
-flapHistVal
-
-flappedAboveThreshold
-
-flapping
-
-flaps
-
-lastFlap
-
 lastAge
 
 localAS
