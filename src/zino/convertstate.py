@@ -234,7 +234,7 @@ def set_event_attrs(linedata: LineData, state: ZinoState, indices):
     elif event_field == "lastevent":
         _log.info("lastevent is not a supported event field")
     elif event_field == "log":
-        event.history = parse_log_and_history(linedata.value)
+        event.log = parse_log_and_history(linedata.value)
     elif event_field == "polladdr":
         event.polladdr = parse_ip(linedata.value)
     elif event_field == "opened":
