@@ -63,7 +63,7 @@ def create_state(old_state_file: str) -> ZinoState:
         elif "::pm::lastid" in line:
             set_last_id(linedata, new_state)
         elif "::EventAttrs" in line:
-            # Parse later, need to parse ::EventId first
+            # Parse later, need to parse ::EventIdToIx first
             event_attrs.append(linedata)
         elif "::EventIdToIx" in line:
             event_id, event_index = get_event_index(linedata)
