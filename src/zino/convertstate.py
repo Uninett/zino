@@ -227,20 +227,20 @@ def set_event_attrs(linedata: LineData, state: ZinoState, indices):
         _log.info("flaps is not a supported event field")
     elif event_field == "flapstate":
         _log.info("flapstate is not a supported event field")
-    if event_field == "ifindex":
+    elif event_field == "ifindex":
         event.updated = int(linedata.value)
-    if event_field == "portstate":
+    elif event_field == "portstate":
         event.portstate = InterfaceState(linedata.value)
-    if event_field == "bfdAddr":
+    elif event_field == "bfdAddr":
         if "unknown" in linedata.value:
             return
         else:
             event.bfdaddr = parse_ip(linedata.value)
-    if event_field == "bfdDiscr":
+    elif event_field == "bfdDiscr":
         event.bfddiscr = int(linedata.value)
-    if event_field == "bfdIx":
+    elif event_field == "bfdIx":
         event.bfdix = int(linedata.value)
-    if event_field == "bfdState":
+    elif event_field == "bfdState":
         event.bfdstate = BFDSessState(linedata.value)
 
 
