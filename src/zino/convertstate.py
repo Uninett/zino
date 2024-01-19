@@ -14,6 +14,7 @@ from zino.statemodels import (
     AlarmType,
     BFDEvent,
     BFDSessState,
+    BFDState,
     BGPEvent,
     EventState,
     InterfaceState,
@@ -246,32 +247,32 @@ def set_jnx_alarms(linedata: LineData, state: ZinoState):
 
 
 def set_bfd_sess_addr(linedata: LineData, state: ZinoState):
+    """Requires the matching Port and BFDState object to exist"""
     if not linedata.value:
         return
-    ip = parse_ip(linedata.value)
-    device_name = linedata.identifiers[0]
-    port = linedata.identifiers[1]
-    event_index = EventIndex(device_name, port, BFDEvent)
-    event = state.events.get_or_create_event(*event_index)
-    event.bfdaddr = ip
+    device = state.devices.get(linedata.identifiers[0])
+    ifindex = int(linedata.identifiers[1])
+    port = device.ports[ifindex]
+    port.bfd_state.session_addr = parse_ip(linedata.value)
 
 
 def set_bfd_sess_state(linedata: LineData, state: ZinoState):
-    port = linedata.identifiers[1]
-    device_name = linedata.identifiers[0]
-    bfd_state = linedata.value
-    event_index = EventIndex(device_name, port, BFDEvent)
-    event = state.events.get_or_create_event(*event_index)
-    event.bfdstate = bfd_state
+    device = state.devices.get(linedata.identifiers[0])
+    ifindex = int(linedata.identifiers[1])
+    if ifindex not in device.ports:
+        device.ports[ifindex] = Port(ifindex=ifindex)
+    port = device.ports[ifindex]
+    if not port.bfd_state:
+        port.bfd_state = BFDState()
+    port.bfd_state.session_state = BFDSessState(linedata.value)
 
 
 def set_bfd_sess_discr(linedata: LineData, state: ZinoState):
-    port = linedata.identifiers[1]
-    device_name = linedata.identifiers[0]
-    bfd_discr = int(linedata.value)
-    event_index = EventIndex(device_name, port, BFDEvent)
-    event = state.events.get_or_create_event(*event_index)
-    event.bfddiscr = bfd_discr
+    """Requires the matching Port and BFDState object to exist"""
+    device = state.devices.get(linedata.identifiers[0])
+    ifindex = int(linedata.identifiers[1])
+    port = device.ports[ifindex]
+    port.bfd_state.session_discr = int(linedata.value)
 
 
 def set_is_cisco(linedata: LineData, state: ZinoState):
