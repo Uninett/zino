@@ -268,12 +268,13 @@ def set_bfd_sess_addr(linedata: LineData, state: ZinoState):
 def set_bfd_sess_state(linedata: LineData, state: ZinoState):
     device = state.devices.get(linedata.identifiers[0])
     ifindex = int(linedata.identifiers[1])
+    sess_state = BFDSessState(linedata.value)
     if ifindex not in device.ports:
         device.ports[ifindex] = Port(ifindex=ifindex)
     port = device.ports[ifindex]
     if not port.bfd_state:
-        port.bfd_state = BFDState()
-    port.bfd_state.session_state = BFDSessState(linedata.value)
+        port.bfd_state = BFDState(session_state=sess_state)
+    port.bfd_state.session_state = sess_state
 
 
 def set_bfd_sess_discr(linedata: LineData, state: ZinoState):
