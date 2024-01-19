@@ -109,6 +109,20 @@ def create_state(old_state_file: str) -> ZinoState:
             set_flaps(linedata, new_state)
         elif "::lastFlap" in line:
             set_last_flap(linedata, new_state)
+        elif "::lastAge" in line:
+            set_last_age(linedata, new_state)
+        elif "::localAS" in line:
+            set_local_as(linedata, new_state)
+        elif "::sawPeer" in line:
+            set_saw_peer(linedata, new_state)
+        elif "::lastTime" in line:
+            set_last_time(linedata, new_state)
+        elif "::runsOn" in line:
+            set_runs_on(linedata, new_state)
+        elif "::pm_events" in line:
+            set_pm_events(linedata, new_state)
+        elif "::pm_events" in line:
+            set_addr_to_router(linedata, new_state)
     for linedata in event_attrs:
         set_event_attrs(linedata, new_state, event_indices)
     for linedata in bfd_sess_addr:
@@ -416,17 +430,19 @@ def set_last_flap(linedata: LineData, state: ZinoState):
     _log.info("lastFlap is not supported")
 
 
-"""
-lastAge
+def set_last_age(linedata: LineData, state: ZinoState):
+    """Not sure what lastAge is"""
+    _log.info("lastAgeis not supported")
 
-localAS
 
-lasttime
+def set_local_as(linedata: LineData, state: ZinoState):
+    """localAS is BGP related"""
+    _log.info("localAS not supported")
 
-pm_events
 
-sawPeer
-"""
+def set_saw_peer(linedata: LineData, state: ZinoState):
+    """Timestamp for last time a BGP peer was seen"""
+    _log.info("sawPeernot supported")
 
 
 def get_parser():
