@@ -13,6 +13,8 @@ from zino.time import now
 IPAddress = Union[IPv4Address, IPv6Address]
 AlarmType = Literal["yellow", "red"]
 SubIndex = Union[None, int, IPAddress, AlarmType]
+CISCO_ENTERPRISE_ID = 9
+JUNIPER_ENTERPRISE_ID = 2636
 
 _logger = logging.getLogger(__name__)
 
