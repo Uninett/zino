@@ -10,6 +10,7 @@ from zino.api.legacy import (
     ZinoTestProtocol,
     requires_authentication,
 )
+from zino.config.models import PollDevice
 from zino.statemodels import EventState, ReachabilityEvent
 
 
@@ -454,6 +455,36 @@ class TestZino1ServerProtocolSetstateCommand:
         updated_event = state.events[event.id]
         last_history_entry = updated_event.history[-1]
         assert authenticated_protocol.user in last_history_entry.message
+
+
+class TestZino1ServerProtocolCommunityCommand:
+    @pytest.mark.asyncio
+    @patch("zino.state.polldevs", dict())
+    async def test_should_output_community_for_router(self, authenticated_protocol):
+        from zino.state import polldevs
+
+        router_name = "buick.lab.example.org"
+        community = "public"
+        device = PollDevice(
+            name=router_name,
+            address="127.0.0.1",
+            port=666,
+            community=community,
+        )
+        polldevs[device.name] = device
+
+        await authenticated_protocol.data_received(f"COMMUNITY {router_name}\r\n".encode())
+
+        output = authenticated_protocol.transport.data_buffer.getvalue()
+        assert f"201 {device.community}\r\n".encode() in output
+
+    @pytest.mark.asyncio
+    @patch("zino.state.polldevs", dict())
+    async def test_should_output_error_response_for_unknown_router(self, authenticated_protocol):
+        await authenticated_protocol.data_received(b"COMMUNITY unknown.router.example.org\r\n")
+
+        output = authenticated_protocol.transport.data_buffer.getvalue()
+        assert b"500 router unknown\r\n" in output
 
 
 class TestZino1TestProtocol:
