@@ -260,7 +260,7 @@ def set_event_attrs(linedata: LineData, state: ZinoState, indices):
     elif event_field == "flapstate":
         _log.info("flapstate is not a supported event field")
     elif event_field == "ifindex":
-        event.updated = datetime.fromtimestamp(int(linedata.value))
+        event.ifindex = int(linedata.value)
     elif event_field == "portstate":
         event.portstate = InterfaceState(linedata.value)
     elif event_field == "bfdAddr":
