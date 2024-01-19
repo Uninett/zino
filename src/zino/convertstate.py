@@ -89,6 +89,14 @@ def create_state(old_state_file: str) -> ZinoState:
             set_port_to_if_descr(linedata, new_state)
         elif "::portToLocIfDescr" in line:
             set_port_to_loc_if_descr(linedata, new_state)
+        elif "::bgpPeerAdminState":
+            set_bgp_peer_admin_state(linedata, new_state)
+        elif "::bgpPeerOperState" in line:
+            set_bgp_peer_oper_state(linedata, new_state)
+        elif "::bgpPeerUpTime" in line:
+            set_bgp_peer_up_time(linedata, new_state)
+        elif "::bgpPeers" in line:
+            set_bgp_peers(linedata, new_state)
     for linedata in event_attrs:
         set_event_attrs(linedata, new_state, event_indices)
     for linedata in bfd_sess_addr:
@@ -352,15 +360,27 @@ def set_event_close_times(linedata: LineData, state: ZinoState):
     _log.info("eventCloseTimes is not supported")
 
 
+def set_bgp_peer_admin_state(linedata: LineData, state: ZinoState):
+    """Supported soon"""
+    _log.info("bgpPeerAdminState is not supported")
+
+
+def set_bgp_peer_oper_state(linedata: LineData, state: ZinoState):
+    """Supported soon"""
+    _log.info("bgpPeerOperState is not supported")
+
+
+def set_bgp_peer_up_time(linedata: LineData, state: ZinoState):
+    """Supported soon"""
+    _log.info("bgpPeerUpTime is not supported")
+
+
+def set_bgp_peers(linedata: LineData, state: ZinoState):
+    """Supported soon"""
+    _log.info("bgpPeers is not supported")
+
+
 """
-bgpPeerAdminState
-
-bgpPeerOperState
-
-bgpPeerUpTime
-
-bgpPeers
-
 firstFlap
 
 flapHistVal
