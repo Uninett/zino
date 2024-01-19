@@ -1,7 +1,7 @@
 import argparse
 import logging
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from ipaddress import ip_address
 from typing import List, Optional, get_args
 
@@ -218,7 +218,7 @@ def set_event_attrs(linedata: LineData, state: ZinoState, indices):
     elif event_field == "updated":
         event.updated = datetime.fromtimestamp(int(linedata.value))
     elif event_field == "ac-down":
-        event.ac_down = datetime.fromtimestamp(int(linedata.value))
+        event.ac_down = timedelta(seconds=int(linedata.value))
     elif event_field == "descr":
         event.descr = linedata.value
     elif event_field == "flaps":
@@ -226,7 +226,7 @@ def set_event_attrs(linedata: LineData, state: ZinoState, indices):
     elif event_field == "flapstate":
         _log.info("flapstate is not a supported event field")
     elif event_field == "ifindex":
-        event.updated = int(linedata.value)
+        event.updated = datetime.fromtimestamp(int(linedata.value))
     elif event_field == "portstate":
         event.portstate = InterfaceState(linedata.value)
     elif event_field == "bfdAddr":
