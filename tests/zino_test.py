@@ -36,17 +36,19 @@ class TestZinoRescheduleDumpStateOnCommit:
     def test_when_more_than_10_seconds_remains_until_next_dump_it_should_reschedule(self):
         scheduler = get_scheduler()
         mock_job = Mock(next_run_time=now() + timedelta(minutes=5))
+        mock_event = Mock(id=42)
 
         with patch.object(scheduler, "get_job") as get_job:
             get_job.return_value = mock_job
-            zino.reschedule_dump_state_on_commit(42)
+            zino.reschedule_dump_state_on_commit(mock_event)
             assert mock_job.modify.called
 
     def test_when_less_than_10_seconds_remains_until_next_dump_it_should_not_reschedule(self):
         scheduler = get_scheduler()
         mock_job = Mock(next_run_time=now() + timedelta(seconds=5))
+        mock_event = Mock(id=42)
 
         with patch.object(scheduler, "get_job") as get_job:
             get_job.return_value = mock_job
-            zino.reschedule_dump_state_on_commit(42)
+            zino.reschedule_dump_state_on_commit(mock_event)
             assert not mock_job.modify.called
