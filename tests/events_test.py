@@ -1,3 +1,4 @@
+from typing import Optional
 from unittest.mock import Mock
 
 import pytest
@@ -111,3 +112,19 @@ class TestEvents:
 
         events.commit(event)
         assert observer.observe.called
+
+    def test_commit_should_call_observers_with_old_and_new_event_objects(self):
+        events = Events()
+        initial_event = events.get_or_create_event("foobar", None, ReachabilityEvent)
+        events.commit(initial_event)
+        updated_event = events.checkout(initial_event.id)
+        updated_event.add_history("something happened")
+
+        def observer(new_event: Event, old_event: Optional[Event] = None) -> None:
+            assert new_event is updated_event
+            assert old_event is initial_event
+            observer.called = True
+
+        events.add_event_observer(observer)
+        events.commit(updated_event)
+        assert observer.called
