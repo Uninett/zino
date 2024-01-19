@@ -1,18 +1,28 @@
 import argparse
+import logging
 from dataclasses import dataclass
 from datetime import datetime
 from ipaddress import ip_address
-from typing import Optional
+from typing import Optional, get_args
 
 from zino.events import EventIndex
 from zino.state import ZinoState
 from zino.statemodels import (
+    CISCO_ENTERPRISE_ID,
+    JUNIPER_ENTERPRISE_ID,
     AlarmEvent,
+    AlarmType,
     BFDEvent,
     BGPEvent,
+    EventState,
+    InterfaceState,
+    IPAddress,
+    Port,
     PortStateEvent,
     ReachabilityEvent,
 )
+
+_log = logging.getLogger(__name__)
 
 EventIndices = dict[str, EventIndex]
 
@@ -56,19 +66,37 @@ def create_state(old_state_file: str):
             event_id, event_index = get_event_index(linedata)
             event_indices[event_id] = event_index
         elif "::bfdSessAddr" in line:
-            try:
-                set_bfd_sess_addr(linedata, new_state)
-            except ValueError:
-                pass
+            if "::bfdSessAddrType" in line:
+                continue
+            set_bfd_sess_addr(linedata, new_state)
         elif "::bfdSessState" in line:
             set_bfd_sess_state(linedata, new_state)
         elif "::bfdSessDiscr" in line:
             set_bfd_sess_discr(linedata, new_state)
+        elif "::JNXalarms" in line:
+            set_jnx_alarms(linedata, new_state)
+        elif "::portState" in line:
+            set_port_state(linedata, new_state)
+        elif "::portToIfDescr" in line:
+            set_port_to_if_descr(linedata, new_state)
+        elif "::portToLocIfDescr" in line:
+            set_port_to_loc_if_descr(linedata, new_state)
         else:
             pass
     for linedata in event_attrs:
         set_event_attrs(linedata, new_state, event_indices)
     return new_state
+
+
+def parse_ip(ip: str) -> IPAddress:
+    try:
+        return ip_address(ip)
+    except ValueError:
+        if ":" in ip:
+            ip = bytes(int(i, 16) for i in ip.split(":"))
+            return ip_address(ip)
+        else:
+            raise ValueError(f"Could not parse {ip}")
 
 
 def read_file_lines(file: str):
@@ -112,16 +140,6 @@ def get_value(line: str) -> str:
     return value
 
 
-def addr_to_router(state, line):
-    # addr is a polldevs things, so this should prob be ignored
-    pass
-
-
-def runs_on():
-    # RunsOn command i think says if an interface runs on top of another interface
-    pass
-
-
 def set_boot_time(linedata: LineData, state: ZinoState):
     device = state.devices.get(linedata.identifiers[0])
     timestamp = int(linedata.value)
@@ -135,7 +153,7 @@ def get_event_index(line: LineData) -> tuple[str, EventIndex]:
     event_id = line.identifiers[0]
     device, ip_or_port, event_type = tuple(line.value.split(","))
     if ":" in ip_or_port:
-        ip_or_port = ip_address(bytes(int(i, 16) for i in ip_or_port.split(":")))
+        ip_or_port = parse_ip(ip_or_port)
     event_index = EventIndex(device, ip_or_port, event_name_to_type[event_type])
     return event_id, event_index
 
@@ -144,77 +162,78 @@ def set_event_attrs(linedata: LineData, state: ZinoState, indices):
     event_field = linedata.identifiers[0]
     event_id = linedata.identifiers[1]
     event_index = indices[event_id]
-    event, _ = state.events.get_or_create_event(*event_index)
+    event = state.events.get_or_create_event(*event_index)
     if event_field == "priority":
         event.priority = linedata.value
-    if event_field == "history":
+    elif event_field == "history":
+        # parse as dict, use json to read maybe
         pass
-    if event_field == "bgpOS":
+    elif event_field == "bgpOS":
+        _log.debug("bgpOS is not a supported event field")
+    elif event_field == "bgpAS":
+        _log.debug("bgpAS is not a supported event field")
+    elif event_field == "lastevent":
+        _log.debug("lastevent is not a supported event field")
+    elif event_field == "log":
+        # parse as dict, use json to read maybe
         pass
-    if event_field == "bgpAS":
+    elif event_field == "polladdr":
+        event.polladdr = parse_ip(linedata.value)
+    elif event_field == "opened":
+        event.opened = datetime.fromtimestamp(int(linedata.value))
+    elif event_field == "peer-uptime":
+        event.peer_uptime = int(linedata.value)
+    elif event_field == "remote-AS":
+        event.remote_as = int(linedata.value)
+    elif event_field == "remote-addr":
+        try:
+            event.remote_addr = parse_ip(linedata.value)
+        except ValueError:
+            raise ValueError(linedata.value)
+    elif event_field == "router":
+        event.router = linedata.value
+    elif event_field == "state":
+        event.state = EventState(linedata.value)
+    elif event_field == "updated":
+        event.updated = datetime.fromtimestamp(int(linedata.value))
+    elif event_field == "ac-down":
+        event.ac_down = datetime.fromtimestamp(int(linedata.value))
+    elif event_field == "descr":
+        event.descr = linedata.value
+    elif event_field == "flaps":
+        _log.debug("flaps is not a supported event field")
         pass
-    if event_field == "lastevent":
-        pass
-    if event_field == "log":
-        pass
-    if event_field == "polladdr":
-        pass
-    if event_field == "opened":
-        pass
-    if event_field == "peer-uptime":
-        pass
-    if event_field == "remote-AS":
-        pass
-    if event_field == "remote-addr":
-        pass
-    if event_field == "router":
-        pass
-    if event_field == "state":
-        pass
-    if event_field == "updated":
-        pass
-    if event_field == "ac-down":
-        pass
-    if event_field == "descr":
-        pass
-    if event_field == "flaps":
-        pass
-    if event_field == "flapstate":
+    elif event_field == "flapstate":
+        _log.debug("flapstate is not a supported event field")
         pass
     if event_field == "ifindex":
-        pass
+        event.updated = int(linedata.value)
+    if event_field == "portstate":
+        event.portstate = InterfaceState(linedata.value)
 
 
 def set_last_id(linedata: LineData, state: ZinoState):
     state.events.last_event_id = int(linedata.value)
 
 
-def set_last_time(state, linedata):
-    # Dont think Zino2 supports this value
-    pass
-
-
-def event_close_times():
-    pass
-
-
-def event_id_to_ix():
-    pass
-
-
-def jnx_alarms():
-    pass
+def set_jnx_alarms(linedata: LineData, state: ZinoState):
+    device = state.devices.get(linedata.identifiers[0])
+    alarm_type = linedata.identifiers[1]
+    assert alarm_type in get_args(AlarmType)
+    alarm_count = linedata.value
+    if not device.alarms:
+        device.alarms = {}
+    device.alarms[alarm_type] = alarm_count
 
 
 def set_bfd_sess_addr(linedata: LineData, state: ZinoState):
-    ip = linedata.value
-    if ":" in ip:
-        ip = bytes(int(i, 16) for i in ip.split(":"))
-    ip = ip_address(ip)
+    if not linedata.value:
+        return
+    ip = parse_ip(linedata.value)
     device_name = linedata.identifiers[0]
     port = linedata.identifiers[1]
     event_index = EventIndex(device_name, port, BFDEvent)
-    event, _ = state.events.get_or_create_event(*event_index)
+    event = state.events.get_or_create_event(*event_index)
     event.bfdaddr = ip
 
 
@@ -223,7 +242,7 @@ def set_bfd_sess_state(linedata: LineData, state: ZinoState):
     device_name = linedata.identifiers[0]
     bfd_state = linedata.value
     event_index = EventIndex(device_name, port, BFDEvent)
-    event, _ = state.events.get_or_create_event(*event_index)
+    event = state.events.get_or_create_event(*event_index)
     event.bfdstate = bfd_state
 
 
@@ -232,27 +251,76 @@ def set_bfd_sess_discr(linedata: LineData, state: ZinoState):
     device_name = linedata.identifiers[0]
     bfd_discr = linedata.value
     event_index = EventIndex(device_name, port, BFDEvent)
-    event, _ = state.events.get_or_create_event(*event_index)
+    event = state.events.get_or_create_event(*event_index)
     event.bfddiscr = bfd_discr
 
 
+def set_is_cisco(linedata: LineData, state: ZinoState):
+    is_cisco = bool(int(linedata.value))
+    if is_cisco:
+        state.device.enterprise_id = CISCO_ENTERPRISE_ID
+
+
+def set_is_juniper(linedata: LineData, state: ZinoState):
+    is_juniper = bool(int(linedata.value))
+    if is_juniper:
+        state.device.enterprise_id = JUNIPER_ENTERPRISE_ID
+
+
+def set_port_state(linedata: LineData, state: ZinoState):
+    device = state.devices.get(linedata.identifiers[0])
+    ifindex = linedata.identifiers[1]
+    if ifindex not in device.ports:
+        device.ports[ifindex] = Port(ifindex=ifindex)
+    if linedata.value == "flapping":
+        _log.debug("flapping port state is not supported")
+        return
+    device.ports[ifindex].state = InterfaceState(linedata.value)
+
+
+def set_port_to_if_descr(linedata: LineData, state: ZinoState):
+    device = state.devices.get(linedata.identifiers[0])
+    ifindex = linedata.identifiers[1]
+    if ifindex not in device.ports:
+        device.ports[ifindex] = Port(ifindex=ifindex)
+    device.ports[ifindex].ifdescr = linedata.value
+
+
+def set_port_to_loc_if_descr(linedata: LineData, state: ZinoState):
+    """Sets ifalias value"""
+    device = state.devices.get(linedata.identifiers[0])
+    ifindex = linedata.identifiers[1]
+    if ifindex not in device.ports:
+        device.ports[ifindex] = Port(ifindex=ifindex)
+    device.ports[ifindex].ifalias = linedata.value
+
+
+def set_pm_events(linedata: LineData, state: ZinoState):
+    """Planned Maintenance events. Not implemented yet"""
+    _log.debug("pm_events is not a supported")
+
+
+def set_addr_to_router(linedata: LineData, state: ZinoState):
+    """addr is a polldevs things, so this should prob be ignored"""
+    _log.debug("addrToRouter is not supported")
+
+
+def set_runs_on(linedata: LineData, state: ZinoState):
+    """RunsOn command i think says if an interface runs on top of another interface"""
+    _log.debug("runsOn is not supported")
+
+
+def set_last_time(linedata: LineData, state: ZinoState):
+    """Dont think Zino2 supports this value"""
+    _log.debug("lastTime is not a supported")
+
+
+def set_event_close_times(linedata: LineData, state: ZinoState):
+    """Dont think Zino2 supports this value"""
+    _log.debug("eventCloseTimes is not a supported")
+
+
 """
-
-def get_line_data(line) -> LineData:
-    removed_function = line.split('(')
-    try:
-        identifiers = line.split('(')[1]
-    except IndexError:
-        removed_function
-    split_id_from_value = removed_function.split(')')
-    identifiers = split_id_from_value[0].split(',')
-    # strips whitespace and double quotes from beginning and end of string
-    value = split_id_from_value[1].strip(' "')
-    return LineData(value=value, identifiers=tuple(identifiers))
-bfdSessDiscr
-
-bfdSessDiscr
-
 bgpPeerAdminState
 
 bgpPeerOperState
@@ -271,27 +339,15 @@ flapping
 
 flaps
 
-isCisco
-
-isJuniper
+lastFlap
 
 lastAge
 
-lastFlap
-
 localAS
-
-lastid
 
 lasttime
 
 pm_events
-
-portState
-
-portToIfDescr
-
-portToLocIfDescr
 
 sawPeer
 """
