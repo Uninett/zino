@@ -1,6 +1,6 @@
 import logging
 from collections import namedtuple
-from typing import Any, Callable, Dict, Optional, Type, Union
+from typing import Any, Callable, Dict, Optional, Protocol, Type, Union
 
 from pydantic.main import BaseModel
 
@@ -18,6 +18,13 @@ from zino.statemodels import (
 EventIndex = namedtuple("EventIndex", "router port type")
 
 _log = logging.getLogger(__name__)
+
+
+class EventObserver(Protocol):
+    """Defines a valid protocol for event observer functions"""
+
+    def __call__(self, new_event: Event, old_event: Optional[Event] = None) -> None:
+        ...
 
 
 class Events(BaseModel):
