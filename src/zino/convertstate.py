@@ -13,6 +13,7 @@ from zino.statemodels import (
     AlarmEvent,
     AlarmType,
     BFDEvent,
+    BFDSessState,
     BGPEvent,
     EventState,
     InterfaceState,
@@ -220,6 +221,14 @@ def set_event_attrs(linedata: LineData, state: ZinoState, indices):
         event.updated = int(linedata.value)
     if event_field == "portstate":
         event.portstate = InterfaceState(linedata.value)
+    if event_field == "bfdAddr":
+        event.bfdaddr = parse_ip(linedata.value)
+    if event_field == "bfdDiscr":
+        event.bfddiscr = int(linedata.value)
+    if event_field == "bfdIx":
+        event.bfdix = int(linedata.value)
+    if event_field == "bfdState":
+        event.bfdstate = BFDSessState(linedata.value)
 
 
 def set_last_id(linedata: LineData, state: ZinoState):
