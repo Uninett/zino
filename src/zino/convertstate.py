@@ -263,6 +263,9 @@ def set_event_attrs(linedata: LineData, state: ZinoState, indices):
         event.ifindex = int(linedata.value)
     elif event_field == "portstate":
         event.portstate = InterfaceState(linedata.value)
+    elif event_field == "port":
+        # event.port exists, but it does not allow strings like "ge-1/0/1"
+        _log.info("port is not supported event field")
     elif event_field == "bfdAddr":
         if "unknown" in linedata.value:
             return
