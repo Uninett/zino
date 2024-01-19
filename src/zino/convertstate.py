@@ -240,6 +240,7 @@ def set_event_attrs(linedata: LineData, state: ZinoState, indices):
         event.bfdix = int(linedata.value)
     elif event_field == "bfdState":
         event.bfdstate = BFDSessState(linedata.value)
+    state.events.commit(event)
 
 
 def set_last_id(linedata: LineData, state: ZinoState):
