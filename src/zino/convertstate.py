@@ -147,11 +147,11 @@ def set_boot_time(linedata: LineData, state: ZinoState):
     device.boot_time = datetime.fromtimestamp(timestamp)
 
 
-def get_event_index(line: LineData) -> tuple[str, EventIndex]:
+def get_event_index(line: LineData) -> tuple[int, EventIndex]:
     """Parses a LineData representing an EventIdToIx line and returns a tuple
     of event_id, event_index
     """
-    event_id = line.identifiers[0]
+    event_id = int(line.identifiers[0])
     device, ip_or_port, event_type = tuple(line.value.split(","))
     if ":" in ip_or_port:
         ip_or_port = parse_ip(ip_or_port)
@@ -177,11 +177,11 @@ def parse_log_and_history(line: str) -> List[LogEntry]:
 
 def set_event_attrs(linedata: LineData, state: ZinoState, indices):
     event_field = linedata.identifiers[0]
-    event_id = linedata.identifiers[1]
+    event_id = int(linedata.identifiers[1])
     event_index = indices[event_id]
     event = state.events.get_or_create_event(*event_index)
     if event_field == "priority":
-        event.priority = linedata.value
+        event.priority = int(linedata.value)
     elif event_field == "history":
         event.history = parse_log_and_history(linedata.value)
     elif event_field == "bgpOS":
@@ -230,7 +230,7 @@ def set_jnx_alarms(linedata: LineData, state: ZinoState):
     device = state.devices.get(linedata.identifiers[0])
     alarm_type = linedata.identifiers[1]
     assert alarm_type in get_args(AlarmType)
-    alarm_count = linedata.value
+    alarm_count = int(linedata.value)
     if not device.alarms:
         device.alarms = {}
     device.alarms[alarm_type] = alarm_count
@@ -259,7 +259,7 @@ def set_bfd_sess_state(linedata: LineData, state: ZinoState):
 def set_bfd_sess_discr(linedata: LineData, state: ZinoState):
     port = linedata.identifiers[1]
     device_name = linedata.identifiers[0]
-    bfd_discr = linedata.value
+    bfd_discr = int(linedata.value)
     event_index = EventIndex(device_name, port, BFDEvent)
     event = state.events.get_or_create_event(*event_index)
     event.bfddiscr = bfd_discr
@@ -279,7 +279,7 @@ def set_is_juniper(linedata: LineData, state: ZinoState):
 
 def set_port_state(linedata: LineData, state: ZinoState):
     device = state.devices.get(linedata.identifiers[0])
-    ifindex = linedata.identifiers[1]
+    ifindex = int(linedata.identifiers[1])
     if ifindex not in device.ports:
         device.ports[ifindex] = Port(ifindex=ifindex)
     if linedata.value == "flapping":
@@ -290,7 +290,7 @@ def set_port_state(linedata: LineData, state: ZinoState):
 
 def set_port_to_if_descr(linedata: LineData, state: ZinoState):
     device = state.devices.get(linedata.identifiers[0])
-    ifindex = linedata.identifiers[1]
+    ifindex = int(linedata.identifiers[1])
     if ifindex not in device.ports:
         device.ports[ifindex] = Port(ifindex=ifindex)
     device.ports[ifindex].ifdescr = linedata.value
@@ -299,7 +299,7 @@ def set_port_to_if_descr(linedata: LineData, state: ZinoState):
 def set_port_to_loc_if_descr(linedata: LineData, state: ZinoState):
     """Sets ifalias value"""
     device = state.devices.get(linedata.identifiers[0])
-    ifindex = linedata.identifiers[1]
+    ifindex = int(linedata.identifiers[1])
     if ifindex not in device.ports:
         device.ports[ifindex] = Port(ifindex=ifindex)
     device.ports[ifindex].ifalias = linedata.value
