@@ -3,7 +3,7 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime
 from ipaddress import ip_address
-from typing import Optional, get_args
+from typing import List, Optional, get_args
 
 from zino.events import EventIndex
 from zino.state import ZinoState
@@ -17,6 +17,7 @@ from zino.statemodels import (
     EventState,
     InterfaceState,
     IPAddress,
+    LogEntry,
     Port,
     PortStateEvent,
     ReachabilityEvent,
@@ -158,6 +159,22 @@ def get_event_index(line: LineData) -> tuple[str, EventIndex]:
     return event_id, event_index
 
 
+def parse_log_and_history(line: str) -> List[LogEntry]:
+    return_list = []
+    entries = line.split("{")
+    for entry in entries:
+        if not entry:
+            # If just empty string caused by using .split()
+            continue
+        cleaned_entry = entry.replace("}", "")
+        cleaned_entry_split = cleaned_entry.split()
+        timestamp = cleaned_entry_split[0]
+        log_msg = " ".join(cleaned_entry_split[1:])
+        log_entry = LogEntry(timestamp=timestamp, message=log_msg)
+        return_list.append(log_entry)
+    return return_list
+
+
 def set_event_attrs(linedata: LineData, state: ZinoState, indices):
     event_field = linedata.identifiers[0]
     event_id = linedata.identifiers[1]
@@ -166,8 +183,7 @@ def set_event_attrs(linedata: LineData, state: ZinoState, indices):
     if event_field == "priority":
         event.priority = linedata.value
     elif event_field == "history":
-        # parse as dict, use json to read maybe
-        pass
+        event.history = parse_log_and_history(linedata.value)
     elif event_field == "bgpOS":
         _log.debug("bgpOS is not a supported event field")
     elif event_field == "bgpAS":
@@ -175,8 +191,7 @@ def set_event_attrs(linedata: LineData, state: ZinoState, indices):
     elif event_field == "lastevent":
         _log.debug("lastevent is not a supported event field")
     elif event_field == "log":
-        # parse as dict, use json to read maybe
-        pass
+        event.history = parse_log_and_history(linedata.value)
     elif event_field == "polladdr":
         event.polladdr = parse_ip(linedata.value)
     elif event_field == "opened":
