@@ -278,7 +278,8 @@ def set_event_attrs(linedata: LineData, state: ZinoState, indices):
 
 
 def set_last_id(linedata: LineData, state: ZinoState):
-    state.events.last_event_id = int(linedata.value)
+    """Event IDs are generated automatically so value from zino1 dump wont match zino2 IDs"""
+    _log.info("lastId not supported")
 
 
 def set_jnx_alarms(linedata: LineData, state: ZinoState):
