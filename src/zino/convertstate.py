@@ -232,7 +232,10 @@ def set_event_attrs(linedata: LineData, state: ZinoState, indices):
     if event_field == "portstate":
         event.portstate = InterfaceState(linedata.value)
     if event_field == "bfdAddr":
-        event.bfdaddr = parse_ip(linedata.value)
+        if "unknown" in linedata.value:
+            return
+        else:
+            event.bfdaddr = parse_ip(linedata.value)
     if event_field == "bfdDiscr":
         event.bfddiscr = int(linedata.value)
     if event_field == "bfdIx":
