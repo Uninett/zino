@@ -329,7 +329,7 @@ def set_port_to_loc_if_descr(linedata: LineData, state: ZinoState):
 
 def set_pm_events(linedata: LineData, state: ZinoState):
     """Planned Maintenance events. Not implemented yet"""
-    _log.info("pm_events is not a supported")
+    _log.info("pm_events is not supported")
 
 
 def set_addr_to_router(linedata: LineData, state: ZinoState):
@@ -344,12 +344,12 @@ def set_runs_on(linedata: LineData, state: ZinoState):
 
 def set_last_time(linedata: LineData, state: ZinoState):
     """Dont think Zino2 supports this value"""
-    _log.info("lastTime is not a supported")
+    _log.info("lastTime is not supported")
 
 
 def set_event_close_times(linedata: LineData, state: ZinoState):
     """Dont think Zino2 supports this value"""
-    _log.info("eventCloseTimes is not a supported")
+    _log.info("eventCloseTimes is not supported")
 
 
 """
