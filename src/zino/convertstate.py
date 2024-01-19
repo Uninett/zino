@@ -185,11 +185,11 @@ def set_event_attrs(linedata: LineData, state: ZinoState, indices):
     elif event_field == "history":
         event.history = parse_log_and_history(linedata.value)
     elif event_field == "bgpOS":
-        _log.debug("bgpOS is not a supported event field")
+        _log.info("bgpOS is not a supported event field")
     elif event_field == "bgpAS":
-        _log.debug("bgpAS is not a supported event field")
+        _log.info("bgpAS is not a supported event field")
     elif event_field == "lastevent":
-        _log.debug("lastevent is not a supported event field")
+        _log.info("lastevent is not a supported event field")
     elif event_field == "log":
         event.history = parse_log_and_history(linedata.value)
     elif event_field == "polladdr":
@@ -216,10 +216,10 @@ def set_event_attrs(linedata: LineData, state: ZinoState, indices):
     elif event_field == "descr":
         event.descr = linedata.value
     elif event_field == "flaps":
-        _log.debug("flaps is not a supported event field")
+        _log.info("flaps is not a supported event field")
         pass
     elif event_field == "flapstate":
-        _log.debug("flapstate is not a supported event field")
+        _log.info("flapstate is not a supported event field")
         pass
     if event_field == "ifindex":
         event.updated = int(linedata.value)
@@ -288,7 +288,7 @@ def set_port_state(linedata: LineData, state: ZinoState):
     if ifindex not in device.ports:
         device.ports[ifindex] = Port(ifindex=ifindex)
     if linedata.value == "flapping":
-        _log.debug("flapping port state is not supported")
+        _log.info("flapping port state is not supported")
         return
     device.ports[ifindex].state = InterfaceState(linedata.value)
 
@@ -312,27 +312,27 @@ def set_port_to_loc_if_descr(linedata: LineData, state: ZinoState):
 
 def set_pm_events(linedata: LineData, state: ZinoState):
     """Planned Maintenance events. Not implemented yet"""
-    _log.debug("pm_events is not a supported")
+    _log.info("pm_events is not a supported")
 
 
 def set_addr_to_router(linedata: LineData, state: ZinoState):
     """addr is a polldevs things, so this should prob be ignored"""
-    _log.debug("addrToRouter is not supported")
+    _log.info("addrToRouter is not supported")
 
 
 def set_runs_on(linedata: LineData, state: ZinoState):
     """RunsOn command i think says if an interface runs on top of another interface"""
-    _log.debug("runsOn is not supported")
+    _log.info("runsOn is not supported")
 
 
 def set_last_time(linedata: LineData, state: ZinoState):
     """Dont think Zino2 supports this value"""
-    _log.debug("lastTime is not a supported")
+    _log.info("lastTime is not a supported")
 
 
 def set_event_close_times(linedata: LineData, state: ZinoState):
     """Dont think Zino2 supports this value"""
-    _log.debug("eventCloseTimes is not a supported")
+    _log.info("eventCloseTimes is not a supported")
 
 
 """
@@ -378,10 +378,10 @@ def get_parser():
 
 
 def main():
+    logging.basicConfig(format="%(message)s", level=logging.INFO)
     parser = get_parser()
     args = parser.parse_args()
-    state = create_state(args.statedump)
-    print(state)
+    create_state(args.statedump)
 
 
 if __name__ == "__main__":
