@@ -121,7 +121,7 @@ def create_state(old_state_file: str) -> ZinoState:
             set_runs_on(linedata, new_state)
         elif "::pm_events" in line:
             set_pm_events(linedata, new_state)
-        elif "::pm_events" in line:
+        elif "::AddrToRouter" in line:
             set_addr_to_router(linedata, new_state)
     for linedata in event_attrs:
         set_event_attrs(linedata, new_state, event_indices)
