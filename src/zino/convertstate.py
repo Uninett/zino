@@ -89,8 +89,6 @@ def create_state(old_state_file: str) -> ZinoState:
             set_port_to_if_descr(linedata, new_state)
         elif "::portToLocIfDescr" in line:
             set_port_to_loc_if_descr(linedata, new_state)
-        else:
-            pass
     for linedata in event_attrs:
         set_event_attrs(linedata, new_state, event_indices)
     for linedata in bfd_sess_addr:
