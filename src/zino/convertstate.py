@@ -214,10 +214,8 @@ def set_event_attrs(linedata: LineData, state: ZinoState, indices):
         event.descr = linedata.value
     elif event_field == "flaps":
         _log.info("flaps is not a supported event field")
-        pass
     elif event_field == "flapstate":
         _log.info("flapstate is not a supported event field")
-        pass
     if event_field == "ifindex":
         event.updated = int(linedata.value)
     if event_field == "portstate":
