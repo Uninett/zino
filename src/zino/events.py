@@ -1,6 +1,6 @@
 import logging
 from collections import namedtuple
-from typing import Any, Callable, Dict, Optional, Protocol, Type, Union
+from typing import Dict, Optional, Protocol, Type, Union
 
 from pydantic.main import BaseModel
 
@@ -31,7 +31,7 @@ class Events(BaseModel):
     events: Dict[int, Union[PortStateEvent, BGPEvent, BFDEvent, ReachabilityEvent, AlarmEvent, Event]] = {}
     last_event_id: int = 0
     _events_by_index: Dict[EventIndex, Event] = {}
-    _observers: list[Callable[[int], Any]] = []
+    _observers: list[EventObserver] = []
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -116,25 +116,28 @@ class Events(BaseModel):
 
         is_new = not event.id
         if is_new:
+            old_event = None
             event.id = self.get_next_available_event_id()
+        else:
+            old_event = self.events[event.id]
         index = EventIndex(event.router, event.port, type(event))
         self._events_by_index[index] = event
         self.events[event.id] = event
 
-        self._call_observers_for(event)
+        self._call_observers_for(new_event=event, old_event=old_event)
 
-    def add_event_observer(self, func: callable):
-        """Adds an observer function that will be called with the ID of any committed event as its argument"""
-        self._observers.append(func)
+    def add_event_observer(self, observer: EventObserver):
+        """Adds an observer function that will be called any time an event is committed"""
+        self._observers.append(observer)
 
     def get_next_available_event_id(self):
         """Returns the next available event id"""
         self.last_event_id += 1
         return self.last_event_id
 
-    def _call_observers_for(self, event: Event):
+    def _call_observers_for(self, new_event: Event, old_event: Optional[Event] = None):
         for observer in self._observers:
-            observer(event.id)
+            observer(new_event=new_event, old_event=old_event)
 
 
 class EventExistsError(Exception):
