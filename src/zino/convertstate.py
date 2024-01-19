@@ -201,10 +201,7 @@ def set_event_attrs(linedata: LineData, state: ZinoState, indices):
     elif event_field == "remote-AS":
         event.remote_as = int(linedata.value)
     elif event_field == "remote-addr":
-        try:
-            event.remote_addr = parse_ip(linedata.value)
-        except ValueError:
-            raise ValueError(linedata.value)
+        event.remote_addr = parse_ip(linedata.value)
     elif event_field == "router":
         event.router = linedata.value
     elif event_field == "state":
