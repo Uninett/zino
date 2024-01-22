@@ -10,6 +10,7 @@ from zino.statemodels import (
     LogEntry,
     ReachabilityEvent,
 )
+from zino.time import now
 
 
 class TestEvent:
@@ -72,6 +73,14 @@ class TestEvent:
         fake_event.set_state(fake_event.state, user="nobody")
         history_count_after = len(fake_event.history)
         assert history_count_after == history_count_before
+
+    def test_get_changed_fields_should_correctly_detect_changed_fields(self, fake_event):
+        copy = fake_event.model_copy(deep=True)
+        copy.add_log("test")
+        copy.updated = now() + datetime.timedelta(seconds=3)
+
+        changed = fake_event.get_changed_fields(copy)
+        assert set(changed) == {"log", "updated"}
 
 
 class TestLogEntryModelDumpLegacy:
