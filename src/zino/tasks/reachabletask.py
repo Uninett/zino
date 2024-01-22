@@ -21,7 +21,7 @@ class ReachableTask(Task):
         if self._extra_job_is_running():
             return
         try:
-            await self._get_sysuptime()
+            await self._get_uptime()
         except TimeoutError:
             _logger.debug("Device %s is not reachable", self.device.name)
             event = self.state.events.get_or_create_event(self.device.name, None, ReachabilityEvent)
@@ -36,17 +36,13 @@ class ReachableTask(Task):
 
     async def _run_extra_job(self):
         try:
-            await self._get_sysuptime()
+            await self._get_uptime()
         except TimeoutError:
             return
         else:
             _logger.debug("Device %s is reachable", self.device.name)
             self._update_reachability_event_as_reachable()
             self._deschedule_extra_job()
-
-    async def _get_sysuptime(self):
-        result = await self.snmp.get("SNMPv2-MIB", "sysUpTime", 0)
-        return result
 
     def _update_reachability_event_as_reachable(self):
         event = self.state.events.get(self.device.name, None, ReachabilityEvent)
