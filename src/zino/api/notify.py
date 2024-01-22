@@ -6,7 +6,7 @@ the server.
 """
 import asyncio
 import logging
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, NamedTuple, Optional
 
 from zino.api import auth
 from zino.state import ZinoState
@@ -16,6 +16,14 @@ if TYPE_CHECKING:
     from zino.api.server import ZinoServer
 
 _logger = logging.getLogger(__name__)
+
+
+class Notification(NamedTuple):
+    """Represents the contents of a single notification"""
+
+    event_id: int
+    change_type: str
+    value: Any
 
 
 class Zino1NotificationProtocol(asyncio.Protocol):
@@ -64,8 +72,9 @@ class Zino1NotificationProtocol(asyncio.Protocol):
     def tied_to(self, client: "Zino1ServerProtocol") -> None:
         self._tied_to = client
 
-    def _notify(self, event_id: int, change_type: str, value: Any):
-        self._respond_raw(f"{event_id} {change_type} {value}")
+    def notify(self, notification: Notification):
+        """Sends a notification to the connected client"""
+        self._respond_raw(f"{notification.event_id} {notification.change_type} {notification.value}")
 
     def _respond_raw(self, message: str):
         """Encodes and sends a response line to the connected client"""

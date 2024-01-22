@@ -1,6 +1,6 @@
 from unittest.mock import Mock
 
-from zino.api.notify import Zino1NotificationProtocol
+from zino.api.notify import Notification, Zino1NotificationProtocol
 from zino.api.server import ZinoServer
 from zino.state import ZinoState
 
@@ -44,7 +44,7 @@ class TestZino1NotificationProtocol:
         protocol = Zino1NotificationProtocol()
         fake_transport = Mock()
         protocol.connection_made(fake_transport)
-        protocol._notify(42, "test", "data")
+        protocol.notify(Notification(42, "test", "data"))
         assert fake_transport.write.called
         response = fake_transport.write.call_args[0][0]
         assert response.startswith(b"42 test data")
