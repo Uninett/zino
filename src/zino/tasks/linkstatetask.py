@@ -49,20 +49,18 @@ class LinkStateTask(Task):
         self._scheduler = get_scheduler()
 
     async def run(self):
-        snmp = SNMP(self.device)
         poll_list = [("IF-MIB", column) for column in BASE_POLL_LIST]
-        attrs = await snmp.sparsewalk(*poll_list)
-        self.sysuptime = await self._get_uptime(snmp)
+        attrs = await self.snmp.sparsewalk(*poll_list)
+        self.sysuptime = await self._get_uptime(self.snmp)
         _logger.debug("%s ifattrs: %r", self.device.name, attrs)
 
         self._update_interfaces(attrs)
 
     async def poll_single_interface(self, ifindex: int):
         """Polls and updates a single interface"""
-        snmp = SNMP(self.device)
         poll_list = [("IF-MIB", column, str(ifindex - 1)) for column in BASE_POLL_LIST]
-        result = await snmp.getnext2(*poll_list)
-        self.sysuptime = await self._get_uptime(snmp)
+        result = await self.snmp.getnext2(*poll_list)
+        self.sysuptime = await self._get_uptime(self.snmp)
         _logger.debug("poll_single_interface %s result: %r", self.device.name, result)
 
         assert all(ident.index == OID(f".{ifindex}") for ident, value in result)
