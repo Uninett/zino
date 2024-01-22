@@ -23,7 +23,7 @@ class TestVendorTask:
         device = PollDevice(name="localhost", address="127.0.0.1", community="invalid", port=666)
         state = ZinoState()
         task = VendorTask(device, state)
-        with patch("zino.tasks.reachabletask.SNMP.get") as get_mock:
+        with patch("zino.tasks.task.SNMP.get") as get_mock:
             get_mock.side_effect = TimeoutError
             with pytest.raises(TimeoutError):
                 await task.run()

@@ -22,7 +22,7 @@ def unreachable_task():
     device = PollDevice(name="nonexist", address="127.0.0.1", community="invalid", port=666)
     state = ZinoState()
     task = ReachableTask(device, state)
-    with patch("zino.tasks.reachabletask.SNMP.get") as get_mock:
+    with patch("zino.tasks.task.SNMP.get") as get_mock:
         get_mock.side_effect = TimeoutError
         yield task
     task._deschedule_extra_job()

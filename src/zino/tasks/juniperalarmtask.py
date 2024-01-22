@@ -1,7 +1,6 @@
 import logging
 from typing import Literal
 
-from zino.snmp import SNMP
 from zino.statemodels import AlarmEvent
 from zino.tasks.task import Task
 
@@ -35,9 +34,8 @@ class JuniperAlarmTask(Task):
             self.create_alarm_event(color="red", alarm_count=red_alarm_count)
 
     async def _get_juniper_alarms(self):
-        snmp = SNMP(self.device)
-        yellow_alarm_count = await snmp.get("JUNIPER-ALARM-MIB", "jnxYellowAlarmCount", 0)
-        red_alarm_count = await snmp.get("JUNIPER-ALARM-MIB", "jnxRedAlarmCount", 0)
+        yellow_alarm_count = await self.snmp.get("JUNIPER-ALARM-MIB", "jnxYellowAlarmCount", 0)
+        red_alarm_count = await self.snmp.get("JUNIPER-ALARM-MIB", "jnxRedAlarmCount", 0)
         if yellow_alarm_count:
             yellow_alarm_count = yellow_alarm_count.value
         if red_alarm_count:

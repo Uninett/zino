@@ -3,7 +3,6 @@ import logging
 from apscheduler.jobstores.base import JobLookupError
 
 from zino.scheduler import get_scheduler
-from zino.snmp import SNMP
 from zino.statemodels import ReachabilityEvent, ReachabilityState
 from zino.tasks.task import Task
 
@@ -46,8 +45,7 @@ class ReachableTask(Task):
             self._deschedule_extra_job()
 
     async def _get_sysuptime(self):
-        snmp = SNMP(self.device)
-        result = await snmp.get("SNMPv2-MIB", "sysUpTime", 0)
+        result = await self.snmp.get("SNMPv2-MIB", "sysUpTime", 0)
         return result
 
     def _update_reachability_event_as_reachable(self):

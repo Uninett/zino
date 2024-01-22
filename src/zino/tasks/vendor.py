@@ -1,7 +1,6 @@
 import logging
 from typing import Optional, Tuple
 
-from zino.snmp import SNMP
 from zino.tasks.task import Task
 
 _logger = logging.getLogger(__name__)
@@ -28,6 +27,5 @@ class VendorTask(Task):
             return sysobjectid[len(ENTERPRISES)]
 
     async def _get_sysobjectid(self) -> Optional[Tuple[int, ...]]:
-        snmp = SNMP(self.device)
-        result = await snmp.get("SNMPv2-MIB", "sysObjectID", 0)
+        result = await self.snmp.get("SNMPv2-MIB", "sysObjectID", 0)
         return result.value

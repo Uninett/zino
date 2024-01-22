@@ -4,7 +4,7 @@ from typing import Dict, Literal
 
 from zino.oid import OID
 from zino.scheduler import get_scheduler
-from zino.snmp import SNMP, SparseWalkResponse
+from zino.snmp import SparseWalkResponse
 from zino.statemodels import BFDEvent, BFDSessState, BFDState, IPAddress, Port
 from zino.tasks.task import Task
 
@@ -36,7 +36,6 @@ class BFDTask(Task):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._scheduler = get_scheduler()
-        self._snmp = SNMP(self.device)
 
     async def run(self):
         if self.device_state.is_juniper:
@@ -77,7 +76,7 @@ class BFDTask(Task):
         self.state.events.commit(event)
 
     async def _poll_juniper(self) -> DescrBFDStates:
-        bfd_rows = await self._snmp.sparsewalk(*self.JUNIPER_BFD_COLUMNS)
+        bfd_rows = await self.snmp.sparsewalk(*self.JUNIPER_BFD_COLUMNS)
         bfd_states = self._parse_juniper_rows(bfd_rows)
         return bfd_states
 
@@ -97,7 +96,7 @@ class BFDTask(Task):
         return bfd_states
 
     async def _poll_cisco(self) -> IndexBFDStates:
-        bfd_rows = await self._snmp.sparsewalk(*self.CISCO_BFD_COLUMNS)
+        bfd_rows = await self.snmp.sparsewalk(*self.CISCO_BFD_COLUMNS)
         bfd_states = self._parse_cisco_rows(bfd_rows)
         return bfd_states
 
