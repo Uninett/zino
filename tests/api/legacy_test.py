@@ -4,6 +4,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from zino import version
+from zino.api.auth import get_challenge
 from zino.api.legacy import (
     Zino1BaseServerProtocol,
     Zino1ServerProtocol,
@@ -504,6 +505,44 @@ class TestZino1ServerProtocolCommunityCommand:
 
         output = authenticated_protocol.transport.data_buffer.getvalue()
         assert b"500 router unknown\r\n" in output
+
+
+class TestZino1ServerProtocolNtieCommand:
+    @pytest.mark.asyncio
+    async def test_when_nonce_is_bogus_it_should_respond_with_error(self, event_loop, authenticated_protocol):
+        server = ZinoServer(loop=event_loop, state=ZinoState())
+        server.notification_channels = dict()  # Ensure there are none for this test
+        authenticated_protocol.server = server
+
+        await authenticated_protocol.data_received(b"NTIE cromulent\r\n")
+
+        output = authenticated_protocol.transport.data_buffer.getvalue().decode()
+        assert "\r\n500 " in output
+
+    @pytest.mark.asyncio
+    async def test_when_nonce_exists_it_should_respond_with_ok(self, event_loop, authenticated_protocol):
+        server = ZinoServer(loop=event_loop, state=ZinoState())
+        nonce = get_challenge()
+        mock_channel = Mock()
+        server.notification_channels[nonce] = mock_channel
+        authenticated_protocol.server = server
+
+        await authenticated_protocol.data_received(f"NTIE {nonce}\r\n".encode())
+
+        output = authenticated_protocol.transport.data_buffer.getvalue().decode()
+        assert "\r\n200 " in output
+
+    @pytest.mark.asyncio
+    async def test_when_nonce_exists_it_should_tie_the_corresponding_channel(self, event_loop, authenticated_protocol):
+        server = ZinoServer(loop=event_loop, state=ZinoState())
+        nonce = get_challenge()
+        mock_channel = Mock()
+        server.notification_channels[nonce] = mock_channel
+        authenticated_protocol.server = server
+
+        await authenticated_protocol.data_received(f"NTIE {nonce}\r\n".encode())
+
+        assert mock_channel.tied_to is authenticated_protocol
 
 
 class TestZino1TestProtocol:
