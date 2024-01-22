@@ -280,8 +280,10 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         self._respond(302, "please provide new history entry, terminate with '.'")
         data = await self._read_multiline()
         message = f"{self.user}\n" + "\n".join(line.strip() for line in data)
-        event.add_history(message)
-        _logger.debug("id %s history added: %r", event.id, message)
+        out_event = self._state.events.checkout(event.id)
+        out_event.add_history(message)
+        self._state.events.commit(out_event)
+        _logger.debug("id %s history added: %r", out_event.id, message)
 
         self._respond_ok()
 

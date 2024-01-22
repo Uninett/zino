@@ -382,7 +382,8 @@ class TestZino1ServerProtocolAddhistCommand:
         with patch.object(authenticated_protocol, "_read_multiline", mock_multiline):
             pre_count = len(event.history)
             await authenticated_protocol.do_addhist(event.id)
-            assert len(event.history) > pre_count
+            committed_event = state.events[event.id]
+            assert len(committed_event.history) > pre_count
 
     @pytest.mark.asyncio
     async def test_should_prefix_history_message_with_username(self, authenticated_protocol, event_loop):
@@ -397,7 +398,8 @@ class TestZino1ServerProtocolAddhistCommand:
 
         with patch.object(authenticated_protocol, "_read_multiline", mock_multiline):
             await authenticated_protocol.do_addhist(event.id)
-            entry = event.history[-1]
+            committed_event = state.events[event.id]
+            entry = committed_event.history[-1]
             assert entry.message.startswith(authenticated_protocol.user)
 
     @pytest.mark.asyncio
