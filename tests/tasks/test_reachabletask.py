@@ -1,7 +1,6 @@
 import pytest
 
 from zino.statemodels import ReachabilityEvent, ReachabilityState
-from zino.tasks.reachabletask import ReachableTask
 from zino.tasks.errors import DeviceUnreachableError
 
 
