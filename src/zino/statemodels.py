@@ -108,9 +108,9 @@ class DeviceState(BaseModel):
     def set_boot_time_from_uptime(self, uptime: int):
         """Calculates and sets the device boot time from a current uptime value.
 
-        :param uptime: An uptime value in seconds
+        :param uptime: An uptime value in 100ths of a second
         """
-        self.boot_time = now() - datetime.timedelta(seconds=uptime)
+        self.boot_time = now() - datetime.timedelta(seconds=uptime / 100)
 
 
 class DeviceStates(BaseModel):
