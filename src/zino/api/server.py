@@ -1,9 +1,11 @@
 import logging
 from asyncio import AbstractEventLoop
+from typing import Optional
 
 from zino.api.legacy import Zino1ServerProtocol, ZinoTestProtocol
 from zino.api.notify import Zino1NotificationProtocol
 from zino.state import ZinoState
+from zino.statemodels import Event
 
 _logger = logging.getLogger(__name__)
 
@@ -38,3 +40,9 @@ class ZinoServer:
         )
         self.notify_server = self._loop.run_until_complete(notify_coroutine)
         _logger.info("Serving notifications on %r", self.notify_server.sockets[0].getsockname())
+
+        self.state.events.add_event_observer(self.on_event_commit)
+
+    def on_event_commit(self, new_event: Event, old_event: Optional[Event] = None) -> None:
+        """Event observer to build notifications for notification channels"""
+        Zino1NotificationProtocol.build_and_send_notifications(self, new_event, old_event)
