@@ -77,6 +77,17 @@ zino: error: argument --polldevs: can't open 'polldevs.cf': [Errno 2] No such fi
 $
 ```
 
+### Configuring Zino
+
+At minimum, Zino must be configured with a list of SNMP-enabled routers to
+monitor.  By default, it looks for `polldevs.cf` in the current working
+directory, but a different configuration file can be specified using the
+`--polldevs` command line option.
+
+See the [polldevs.cf.example](./polldevs.cf.example) file for an example of the
+configuration format.
+
+
 ## Developing Zino
 
 ### Running tests
