@@ -192,7 +192,11 @@ def set_event_attrs(linedata: LineData, state: ZinoState, indices: EventIndices)
     event_field = linedata.identifiers[0]
     event_id = int(linedata.identifiers[1])
     event_index = indices[event_id]
-    event = state.events.get_or_create_event(*event_index)
+    if event_id in state.events.events:
+        event = state.events.events[event_id]
+    else:
+        event = state.events.create_event(*event_index)
+        event.id = event_id
     if event_field == "priority":
         event.priority = int(linedata.value)
     elif event_field == "history":
@@ -247,7 +251,7 @@ def set_event_attrs(linedata: LineData, state: ZinoState, indices: EventIndices)
         event.bfdix = int(linedata.value)
     elif event_field == "bfdState":
         event.bfdstate = BFDSessState(linedata.value)
-    state.events.commit(event)
+    state.events.events[event.id] = event
 
 
 def set_jnx_alarms(linedata: LineData, state: ZinoState):
@@ -331,8 +335,7 @@ def set_port_to_loc_if_descr(linedata: LineData, state: ZinoState):
 
 
 def set_last_id(linedata: LineData, state: ZinoState):
-    """Event IDs are generated automatically so value from zino1 dump wont match zino2 IDs"""
-    _log.info("lastId not supported")
+    state.events.last_event_id = int(linedata.value)
 
 
 def set_pm_events(linedata: LineData, state: ZinoState):
