@@ -1,31 +1,7 @@
-from unittest.mock import patch
-
 import pytest
 
-from zino.config.models import PollDevice
-from zino.state import ZinoState
 from zino.statemodels import ReachabilityEvent, ReachabilityState
-from zino.tasks.reachabletask import ReachableTask
-
-
-@pytest.fixture()
-def reachable_task(snmpsim, snmp_test_port):
-    device = PollDevice(name="buick.lab.example.org", address="127.0.0.1", port=snmp_test_port)
-    state = ZinoState()
-    task = ReachableTask(device, state)
-    yield task
-    task._deschedule_extra_job()
-
-
-@pytest.fixture()
-def unreachable_task():
-    device = PollDevice(name="nonexist", address="127.0.0.1", community="invalid", port=666)
-    state = ZinoState()
-    task = ReachableTask(device, state)
-    with patch("zino.tasks.task.SNMP.get") as get_mock:
-        get_mock.side_effect = TimeoutError
-        yield task
-    task._deschedule_extra_job()
+from zino.tasks.errors import DeviceUnreachableError
 
 
 class TestReachableTask:
@@ -39,13 +15,15 @@ class TestReachableTask:
     @pytest.mark.asyncio
     async def test_run_should_create_event_if_device_is_unreachable(self, unreachable_task):
         task = unreachable_task
-        assert (await unreachable_task.run()) is None
+        with pytest.raises(DeviceUnreachableError):
+            await task.run()
         event = task.state.events.get(task.device.name, None, ReachabilityEvent)
         assert event
 
     @pytest.mark.asyncio
     async def test_run_should_start_extra_job_if_device_is_unreachable(self, unreachable_task):
-        assert (await unreachable_task.run()) is None
+        with pytest.raises(DeviceUnreachableError):
+            await unreachable_task.run()
         assert unreachable_task._extra_job_is_running()
 
     @pytest.mark.asyncio
@@ -72,7 +50,8 @@ class TestReachableTask:
         event.reachability = ReachabilityState.REACHABLE
         task.state.events.commit(event)
 
-        assert (await task.run()) is None
+        with pytest.raises(DeviceUnreachableError):
+            await task.run()
         updated_event = task.state.events[event.id]
         assert updated_event.reachability == ReachabilityState.NORESPONSE
 
