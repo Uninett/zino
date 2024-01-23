@@ -17,10 +17,10 @@ class Task(ABC):
         """Runs job asynchronously"""
 
     async def _get_uptime(self) -> int:
-        """Polls and returns the device sysuptime value rounded to seconds"""
+        """Polls and returns the device sysuptime value"""
         response = await self.snmp.get("SNMPv2-MIB", "sysUpTime", 0)
         uptime = response.value
-        return round(uptime / 100)
+        return uptime
 
     @property
     def device_state(self) -> DeviceState:

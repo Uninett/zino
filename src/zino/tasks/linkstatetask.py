@@ -104,7 +104,7 @@ class LinkStateTask(Task):
             state = data.oper_status
         state = InterfaceState(state)
         if port.state and port.state != state:
-            self._make_or_update_state_event(port, state, round(data.last_change / 100))
+            self._make_or_update_state_event(port, state, data.last_change)
         port.state = state
 
     def _make_or_update_state_event(self, port: Port, new_state: InterfaceState, last_change: int):
@@ -117,7 +117,7 @@ class LinkStateTask(Task):
         event.descr = port.ifdescr
 
         uptime = self.sysuptime or last_change
-        event_time = datetime.datetime.now() - datetime.timedelta(seconds=(uptime - last_change))
+        event_time = datetime.datetime.now() - datetime.timedelta(seconds=(uptime - last_change) / 100)
 
         log = (
             f'{event.router}: port "{port.ifdescr}" ix {port.ifindex} ({port.ifalias}) '
