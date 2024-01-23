@@ -41,7 +41,8 @@ def get_identifiers(line: str) -> tuple[str, ...]:
 
 def get_value(line: str) -> str:
     # remove everything before the value is defined
-    value = line.split('"')[1]
+    value = line.split(")")[1:]
+    value = ")".join(value)
     # strip whitespace and quotes
     value = value.strip(' "')
     return value
