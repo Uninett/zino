@@ -43,7 +43,7 @@ dev = [
     "isort",
     "pre-commit",
     "pytest",
-    "pytest-asyncio",
+    "pytest-asyncio<0.22.0",
     "retry",
     "ruff",
     "snmpsim",
