@@ -235,11 +235,6 @@ def set_event_attrs(linedata: LineData, state: ZinoState, indices):
     state.events.commit(event)
 
 
-def set_last_id(linedata: LineData, state: ZinoState):
-    """Event IDs are generated automatically so value from zino1 dump wont match zino2 IDs"""
-    _log.info("lastId not supported")
-
-
 def set_jnx_alarms(linedata: LineData, state: ZinoState):
     device = state.devices.get(linedata.identifiers[0])
     alarm_type = linedata.identifiers[1]
@@ -318,6 +313,11 @@ def set_port_to_loc_if_descr(linedata: LineData, state: ZinoState):
     if ifindex not in device.ports:
         device.ports[ifindex] = Port(ifindex=ifindex)
     device.ports[ifindex].ifalias = linedata.value
+
+
+def set_last_id(linedata: LineData, state: ZinoState):
+    """Event IDs are generated automatically so value from zino1 dump wont match zino2 IDs"""
+    _log.info("lastId not supported")
 
 
 def set_pm_events(linedata: LineData, state: ZinoState):
