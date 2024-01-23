@@ -21,6 +21,7 @@ from zino.statemodels import (
     IPAddress,
     LogEntry,
     Port,
+    PortOrIPAddress,
     PortStateEvent,
     ReachabilityEvent,
 )
@@ -150,15 +151,25 @@ def get_event_index(line: LineData) -> tuple[int, EventIndex]:
     of event_id, event_index
     """
     event_id = int(line.identifiers[0])
-    device, ip_or_port, event_type = tuple(line.value.split(","))
-    if ip_or_port in get_args(AlarmType):
-        pass
-    elif ":" in ip_or_port:
-        ip_or_port = parse_ip(ip_or_port)
-    else:
-        ip_or_port = int(ip_or_port)
-    event_index = EventIndex(device, ip_or_port, event_name_to_type[event_type])
+    device, port_or_ip, event_type = tuple(line.value.split(","))
+    port_or_ip = parse_port_or_ip(port_or_ip)
+    event_index = EventIndex(device, port_or_ip, event_name_to_type[event_type])
     return event_id, event_index
+
+
+def parse_port_or_ip(port_or_ip: str) -> PortOrIPAddress:
+    """Parses the part of a EventIdToIx line that defines the ip/port value"""
+    if port_or_ip in get_args(AlarmType):
+        return port_or_ip
+    try:
+        return parse_ip(port_or_ip)
+    except ValueError:
+        pass
+    try:
+        return int(port_or_ip)
+    except ValueError:
+        pass
+    raise ValueError(f"Invalid PortOrIpAddress value: {port_or_ip}")
 
 
 def parse_log_and_history(line: str) -> List[LogEntry]:
