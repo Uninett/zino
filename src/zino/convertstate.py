@@ -227,7 +227,7 @@ def set_event_attrs(linedata: LineData, state: ZinoState, indices: EventIndices)
         _log.info("port is not supported event field")
     elif event_field == "bfdAddr":
         if "unknown" in linedata.value:
-            return
+            pass
         else:
             event.bfdaddr = parse_ip(linedata.value)
     elif event_field == "bfdDiscr":
