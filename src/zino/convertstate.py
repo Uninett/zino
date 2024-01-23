@@ -131,7 +131,7 @@ def parse_ip(ip: str) -> IPAddress:
             ip = bytes(int(i, 16) for i in ip.split(":"))
             return ip_address(ip)
         else:
-            raise ValueError(f"Could not parse {ip}")
+            raise
 
 
 def read_file_lines(file: str):
