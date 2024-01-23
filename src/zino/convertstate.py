@@ -177,7 +177,7 @@ def parse_log_and_history(line: str) -> List[LogEntry]:
     return return_list
 
 
-def set_event_attrs(linedata: LineData, state: ZinoState, indices):
+def set_event_attrs(linedata: LineData, state: ZinoState, indices: EventIndices):
     event_field = linedata.identifiers[0]
     event_id = int(linedata.identifiers[1])
     event_index = indices[event_id]
