@@ -12,7 +12,74 @@ replacement for the Tcl-based Zino.
 Development of Zino 2.0 is fully sponsored by [NORDUnet](https://nordu.net/),
 on behalf of the nordic NRENs.
 
-## Running tests
+## Installing Zino
+
+First, ensure you have Python 3.9, 3.10 or 3.11 available on your system.
+Second, we recommend that you create a *Python virtual environment*, which is
+isolated from other Python software installed on your system, and installing
+Zino into that.
+
+### Creating a Python virtual environment for Zino
+
+To create a new virtual environment in the directory `./zino-env`, run:
+
+```shell
+python -m venv ./zino-env
+```
+
+This virtual environment can now be "activated" in your shell, so that any
+further Python related commands run in your shell are running from inside the
+new environment:
+
+```shell
+. ./zino-env/bin/activate
+```
+
+### Installing from PyPI
+
+With your Zino virtual environment activated in your shell, run:
+
+```shell
+pip install zino
+```
+
+### Installing from source
+
+With your Zino virtual environment activated in your shell, clone the Zino
+source code directly from GitHub and install it from there:
+
+```shell
+git clone https://github.com/Uninett/zino.git
+cd zino
+pip install .
+```
+
+### Running Zino for the first time
+
+You should be able to run Zino (although you will need to configure a list of
+devices to poll in `polldevs.cf` first) from the command line as long as its
+virtual environment is activated:
+
+```console
+$ zino
+usage: zino [-h] [--polldevs PATH] [--debug] [--stop-in N]
+zino: error: argument --polldevs: can't open 'polldevs.cf': [Errno 2] No such file or directory: 'polldevs.cf'
+$
+```
+
+Even if the environment hasn't been activated in your shell, you can still run
+Zino from inside this environment:
+
+```console
+$ ./zino-env/bin/zino
+usage: zino [-h] [--polldevs PATH] [--debug] [--stop-in N]
+zino: error: argument --polldevs: can't open 'polldevs.cf': [Errno 2] No such file or directory: 'polldevs.cf'
+$
+```
+
+## Developing Zino
+
+### Running tests
 
 [tox](https://tox.wiki/) and [pytest](https://pytest.org/) are used to run the
 test suite. To run the test suite on all supported versions of Python, run:
@@ -21,7 +88,7 @@ test suite. To run the test suite on all supported versions of Python, run:
 tox
 ```
 
-## Code style
+### Code style
 
 Zino code should follow the [PEP-8](https://peps.python.org/pep-0008/) and
 [PEP-257](https://peps.python.org/pep-0257/)
