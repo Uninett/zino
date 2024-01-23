@@ -172,6 +172,36 @@ class TestBGPStateMonitorTask:
         assert event.remote_as == DEFAULT_REMOTE_AS
         assert event.peer_uptime == 1000000
 
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "task",
+        ["general-bgp-oper-down-short", "cisco-bgp-oper-down-short", "juniper-bgp-oper-down-short"],
+        indirect=True,
+    )
+    async def test_oper_down_does_not_create_event_if_uptime_less_than_specified(self, task):
+        """Tests that an event should not be made if a BGP connection to a device reports that their oper_state has
+        changed from established to something else, but the uptime is less than a specified time
+        """
+        # set initial state
+        if task.device_state.bgp_style == BGPStyle.JUNIPER:
+            task.device_state.bgp_peers = {
+                PEER_ADDRESS: BGPPeerSession(
+                    uptime=DEFAULT_UPTIME, admin_status=BGPAdminStatus.RUNNING, oper_state=BGPOperState.ESTABLISHED
+                )
+            }
+        else:
+            task.device_state.bgp_peers = {
+                PEER_ADDRESS: BGPPeerSession(
+                    uptime=DEFAULT_UPTIME, admin_status=BGPAdminStatus.START, oper_state=BGPOperState.ESTABLISHED
+                )
+            }
+        await task.run()
+        # check if state has been updated to reflect state defined in .snmprec
+        assert task.device_state.bgp_peers[PEER_ADDRESS].oper_state != BGPOperState.ESTABLISHED
+        # check that no event has been created
+        event = task.state.events.get(device_name=task.device.name, subindex=PEER_ADDRESS, event_class=BGPEvent)
+        assert not event
+
 
 class TestGetBGPStyle:
     @pytest.mark.asyncio
