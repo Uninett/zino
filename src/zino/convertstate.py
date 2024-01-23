@@ -1,11 +1,11 @@
 import argparse
 import logging
-from dataclasses import dataclass
 from datetime import datetime, timedelta
 from ipaddress import ip_address
-from typing import List, Optional, get_args
+from typing import List, get_args
 
 from zino.events import EventIndex
+from zino.linedata import LineData, get_line_data
 from zino.state import ZinoState
 from zino.statemodels import (
     CISCO_ENTERPRISE_ID,
@@ -36,16 +36,6 @@ event_name_to_type = {
     "alarm": AlarmEvent,
     "portstate": PortStateEvent,
 }
-
-
-@dataclass
-class LineData:
-    """Flexible definition of the value and identifiers found in a Zino1 .tcl state dump.
-    Each line in the state dump can contain several identifiers but there is always only one value.
-    """
-
-    identifiers: Optional[tuple[str, ...]]
-    value: str
 
 
 def create_state(old_state_file: str) -> ZinoState:
@@ -147,41 +137,6 @@ def read_file_lines(file: str):
     with open(file, "r", encoding="latin-1") as state_file:
         lines = state_file.read().splitlines()
     return lines
-
-
-def get_line_data(line) -> LineData:
-    """Parses a line from a Zino1 .tcl filedump into a LineData object
-    containing useful information
-    """
-    try:
-        identifiers = get_identifiers(line)
-    except IndexError:
-        identifiers = None
-    value = get_value(line)
-    return LineData(value=value, identifiers=identifiers)
-
-
-def get_identifiers(line: str) -> tuple[str, ...]:
-    # removes part of line before identifiers are defined
-    split_line = line.split("(")[1]
-    # removes everything after the identifiers
-    split_line = split_line.split(")")[0]
-    identifiers = split_line.split(",")
-    if "EventAttrs" in line:
-        # remove everything before the event ID starts
-        event_line = line.split("_")[1]
-        # remove everything after event ID
-        event_id = event_line.split("(")[0]
-        identifiers.append(event_id)
-    return tuple(identifiers)
-
-
-def get_value(line: str) -> str:
-    # remove everything before the value is defined
-    value = line.split('"')[1]
-    # strip whitespace and quotes
-    value = value.strip(' "')
-    return value
 
 
 def set_boot_time(linedata: LineData, state: ZinoState):
