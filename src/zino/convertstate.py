@@ -151,8 +151,12 @@ def get_event_index(line: LineData) -> tuple[int, EventIndex]:
     """
     event_id = int(line.identifiers[0])
     device, ip_or_port, event_type = tuple(line.value.split(","))
-    if ":" in ip_or_port:
+    if ip_or_port in get_args(AlarmType):
+        pass
+    elif ":" in ip_or_port:
         ip_or_port = parse_ip(ip_or_port)
+    else:
+        ip_or_port = int(ip_or_port)
     event_index = EventIndex(device, ip_or_port, event_name_to_type[event_type])
     return event_id, event_index
 
