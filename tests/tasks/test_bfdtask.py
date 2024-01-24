@@ -75,7 +75,7 @@ async def test_event_should_not_be_made_the_first_time_a_port_is_polled(task, de
     assert device_port.bfd_state
     event = task.state.events.get(
         device_name=task.device.name,
-        port=device_port.ifindex,
+        subindex=device_port.ifindex,
         event_class=BFDEvent,
     )
     assert not event
@@ -88,7 +88,7 @@ async def test_state_changing_should_create_event(task, device_port, bfd_state):
     device_port.bfd_state = down_state
     await task.run()
     assert device_port.bfd_state != down_state
-    event = task.state.events.get(device_name=task.device.name, port=device_port.ifindex, event_class=BFDEvent)
+    event = task.state.events.get(device_name=task.device.name, subindex=device_port.ifindex, event_class=BFDEvent)
     assert event
 
 
@@ -98,7 +98,7 @@ async def test_state_not_changing_should_not_create_event(task, device_port, bfd
     device_port.bfd_state = bfd_state
     await task.run()
     assert device_port.bfd_state == bfd_state
-    event = task.state.events.get(device_name=task.device.name, port=device_port.ifindex, event_class=BFDEvent)
+    event = task.state.events.get(device_name=task.device.name, subindex=device_port.ifindex, event_class=BFDEvent)
     assert not event
 
 

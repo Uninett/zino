@@ -60,7 +60,7 @@ class JuniperAlarmTask(Task):
     def create_alarm_event(self, color: AlarmType, alarm_count: int):
         alarm_event = self.state.events.get_or_create_event(
             device_name=self.device.name,
-            port=color,
+            subindex=color,
             event_class=AlarmEvent,
         )
 

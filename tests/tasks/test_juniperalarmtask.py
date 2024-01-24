@@ -72,8 +72,8 @@ class TestJuniperalarmTask:
 
         await task.run()
 
-        yellow_event = task.state.events.get(device_name=task.device.name, port="yellow", event_class=AlarmEvent)
-        red_event = task.state.events.get(device_name=task.device.name, port="red", event_class=AlarmEvent)
+        yellow_event = task.state.events.get(device_name=task.device.name, subindex="yellow", event_class=AlarmEvent)
+        red_event = task.state.events.get(device_name=task.device.name, subindex="red", event_class=AlarmEvent)
 
         assert yellow_event
         assert red_event
@@ -92,8 +92,8 @@ class TestJuniperalarmTask:
 
         await task.run()
 
-        yellow_event = task.state.events.get(device_name=task.device.name, port="yellow", event_class=AlarmEvent)
-        red_event = task.state.events.get(device_name=task.device.name, port="red", event_class=AlarmEvent)
+        yellow_event = task.state.events.get(device_name=task.device.name, subindex="yellow", event_class=AlarmEvent)
+        red_event = task.state.events.get(device_name=task.device.name, subindex="red", event_class=AlarmEvent)
 
         assert not yellow_event
         assert red_event
@@ -105,13 +105,13 @@ class TestJuniperalarmTask:
         device_state = task.state.devices.get(device_name=task.device.name)
         device_state.enterprise_id = 2636
         yellow_event = task.state.events.get_or_create_event(
-            device_name=task.device.name, port="yellow", event_class=AlarmEvent
+            device_name=task.device.name, subindex="yellow", event_class=AlarmEvent
         )
         yellow_event.alarm_type = "yellow"
         yellow_event.alarm_count = 2
         task.state.events.commit(yellow_event)
         red_event = task.state.events.get_or_create_event(
-            device_name=task.device.name, port="red", event_class=AlarmEvent
+            device_name=task.device.name, subindex="red", event_class=AlarmEvent
         )
         red_event.alarm_type = "red"
         red_event.alarm_count = 3
@@ -135,8 +135,8 @@ class TestJuniperalarmTask:
 
         await task.run()
 
-        yellow_event = task.state.events.get(device_name=task.device.name, port="yellow", event_class=AlarmEvent)
-        red_event = task.state.events.get(device_name=task.device.name, port="red", event_class=AlarmEvent)
+        yellow_event = task.state.events.get(device_name=task.device.name, subindex="yellow", event_class=AlarmEvent)
+        red_event = task.state.events.get(device_name=task.device.name, subindex="red", event_class=AlarmEvent)
 
         assert not yellow_event
         assert not red_event
@@ -155,8 +155,8 @@ class TestJuniperalarmTask:
         device_state.enterprise_id = 2636
         await task.run()
 
-        yellow_event = task.state.events.get(device_name=task.device.name, port="yellow", event_class=AlarmEvent)
-        red_event = task.state.events.get(device_name=task.device.name, port="red", event_class=AlarmEvent)
+        yellow_event = task.state.events.get(device_name=task.device.name, subindex="yellow", event_class=AlarmEvent)
+        red_event = task.state.events.get(device_name=task.device.name, subindex="red", event_class=AlarmEvent)
 
         assert not yellow_event
         assert not red_event
