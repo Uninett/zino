@@ -1,7 +1,6 @@
 import logging
-from typing import Literal
 
-from zino.statemodels import AlarmEvent
+from zino.statemodels import AlarmEvent, AlarmType
 from zino.tasks.task import Task
 
 _logger = logging.getLogger(__name__)
@@ -58,7 +57,7 @@ class JuniperAlarmTask(Task):
 
         return yellow_alarm_count, red_alarm_count
 
-    def create_alarm_event(self, color: Literal["yellow", "red"], alarm_count: int):
+    def create_alarm_event(self, color: AlarmType, alarm_count: int):
         alarm_event = self.state.events.get_or_create_event(
             device_name=self.device.name,
             port=color,
