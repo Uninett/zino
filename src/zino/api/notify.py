@@ -1,6 +1,6 @@
 """Notification channel implementation for Zino 2.0.
 
-Notification channels are currently part of the legacy API from the Tcl-based Zino 1.0, and is a simple text-based,
+Notification channels are currently part of the legacy API from the Tcl-based Zino 1.0.  They are a simple text-based,
 line-oriented protocol.  Clients are not expected to send any data to a notification channel, only receive data from
 the server.
 """
