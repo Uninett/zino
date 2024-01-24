@@ -45,7 +45,7 @@ class Zino1NotificationProtocol(asyncio.Protocol):
         self._tied_to: "Zino1ServerProtocol" = None
 
     @property
-    def peer_name(self) -> str:
+    def peer_name(self) -> Optional[str]:
         return self.transport.get_extra_info("peername") if self.transport else None
 
     def connection_made(self, transport: asyncio.Transport):

@@ -59,7 +59,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         self._secrets_file = secrets_file
 
     @property
-    def peer_name(self) -> str:
+    def peer_name(self) -> Optional[str]:
         return self.transport.get_extra_info("peername") if self.transport else None
 
     @property

@@ -14,9 +14,9 @@ class TestZino1NotificationProtocol:
     def test_init_should_succeed(self):
         assert Zino1NotificationProtocol()
 
-    def test_when_unconnected_then_peer_name_should_be_none(self):
+    def test_when_not_connected_then_peer_name_should_be_none(self):
         protocol = Zino1NotificationProtocol()
-        assert not protocol.peer_name
+        assert protocol.peer_name is None
 
     def test_when_connected_then_peer_name_should_be_available(self):
         expected = "foobar"
