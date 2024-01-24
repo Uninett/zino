@@ -111,6 +111,7 @@ class LinkStateTask(Task):
         event = self.state.events.get_or_create_event(self.device.name, port.ifindex, PortStateEvent)
 
         event.portstate = new_state
+        event.port = port.ifdescr
         event.ifindex = port.ifindex
         event.polladdr = self.device.address
         event.priority = self.device.priority

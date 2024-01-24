@@ -107,11 +107,13 @@ class TestJuniperalarmTask:
         yellow_event = task.state.events.get_or_create_event(
             device_name=task.device.name, port="yellow", event_class=AlarmEvent
         )
+        yellow_event.alarm_type = "yellow"
         yellow_event.alarm_count = 2
         task.state.events.commit(yellow_event)
         red_event = task.state.events.get_or_create_event(
             device_name=task.device.name, port="red", event_class=AlarmEvent
         )
+        red_event.alarm_type = "red"
         red_event.alarm_count = 3
         task.state.events.commit(red_event)
 

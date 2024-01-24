@@ -65,6 +65,7 @@ class JuniperAlarmTask(Task):
         )
 
         old_alarm_count = alarm_event.alarm_count
+        alarm_event.alarm_type = color
         alarm_event.alarm_count = alarm_count
         alarm_event.add_log(f"{self.device.name} {color} alarms went from {old_alarm_count} to {alarm_count}")
         self.state.events.commit(alarm_event)
