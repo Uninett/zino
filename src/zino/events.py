@@ -10,9 +10,9 @@ from zino.statemodels import (
     BGPEvent,
     Event,
     EventState,
-    PortOrIPAddress,
     PortStateEvent,
     ReachabilityEvent,
+    SubIndex,
 )
 
 EventIndex = namedtuple("EventIndex", "router port type")
@@ -57,7 +57,7 @@ class Events(BaseModel):
     def get_or_create_event(
         self,
         device_name: str,
-        port: Optional[PortOrIPAddress],
+        port: SubIndex,
         event_class: Type[Event],
     ) -> Event:
         """Creates and returns a new event for the given event identifiers, or, if an event matching this identifier
@@ -76,7 +76,7 @@ class Events(BaseModel):
             event = self.get(device_name, port, event_class)
             return self.checkout(event.id)
 
-    def create_event(self, device_name: str, port: Optional[PortOrIPAddress], event_class: Type[Event]) -> Event:
+    def create_event(self, device_name: str, port: SubIndex, event_class: Type[Event]) -> Event:
         """Creates a new event for the given event identifiers. If an event already exists for this combination of
         identifiers, an EventExistsError is raised.
 
@@ -93,7 +93,7 @@ class Events(BaseModel):
         _log.debug("created embryonic event %r", event)
         return event
 
-    def get(self, device_name: str, port: Optional[PortOrIPAddress], event_class: Type[Event]) -> Event:
+    def get(self, device_name: str, port: SubIndex, event_class: Type[Event]) -> Event:
         """Returns an event based on its identifiers, None if no match was found"""
         index = EventIndex(device_name, port, event_class)
         return self._events_by_index.get(index)

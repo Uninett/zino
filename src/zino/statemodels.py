@@ -12,7 +12,7 @@ from zino.time import now
 
 IPAddress = Union[IPv4Address, IPv6Address]
 AlarmType = Literal["yellow", "red"]
-PortOrIPAddress = Union[int, IPAddress, AlarmType]
+SubIndex = Union[None, int, IPAddress, AlarmType]
 
 _logger = logging.getLogger(__name__)
 
@@ -186,7 +186,7 @@ class Event(BaseModel):
     id: Optional[int] = None
 
     router: str
-    port: Optional[PortOrIPAddress] = None
+    port: SubIndex = None
     type: Literal["Event"] = "Event"
     state: EventState = EventState.EMBRYONIC
     opened: datetime.datetime = Field(default_factory=now)
