@@ -115,7 +115,7 @@ class LinkStateTask(Task):
         event.ifindex = port.ifindex
         event.polladdr = self.device.address
         event.priority = self.device.priority
-        event.descr = port.ifdescr
+        event.descr = port.ifalias
 
         uptime = self.sysuptime or last_change
         event_time = datetime.datetime.now() - datetime.timedelta(seconds=(uptime - last_change) / 100)
