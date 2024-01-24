@@ -4,7 +4,7 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 This is the modern Python re-implementation of the battle-proven Zino network
-monitor, first implemented in Tcl/Scotty at Uninett in the 1990s.
+state monitor, first implemented in Tcl/Scotty at Uninett in the 1990s.
 
 This is still a work in progress, and is not yet a fully functional
 replacement for the Tcl-based Zino.
