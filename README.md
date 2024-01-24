@@ -56,25 +56,28 @@ pip install .
 
 ### Running Zino for the first time
 
-You should be able to run Zino (although you will need to configure a list of
-devices to poll in `polldevs.cf` first) from the command line as long as its
-virtual environment is activated:
+In order for Zino to function properly, you first need to make a minimal
+`polldevs.cf` configuration file, as described in the next section.  However,
+at this point you can test that the `zino` command is available to run:
 
 ```console
-$ zino
+$ zino --help
 usage: zino [-h] [--polldevs PATH] [--debug] [--stop-in N]
-zino: error: argument --polldevs: can't open 'polldevs.cf': [Errno 2] No such file or directory: 'polldevs.cf'
-$
+
+Zino is not OpenView
+
+options:
+  -h, --help       show this help message and exit
+  --polldevs PATH  Path to polldevs.cf
+  --debug          Set global log level to DEBUG. Very chatty!
+  --stop-in N      Stop zino after N seconds.
 ```
 
-Even if the environment hasn't been activated in your shell, you can still run
-Zino from inside this environment:
+Even if the Python virtual environment hasn't been activated in your shell, you
+can still run Zino directly from inside this environment, like so:
 
-```console
-$ ./zino-env/bin/zino
-usage: zino [-h] [--polldevs PATH] [--debug] [--stop-in N]
-zino: error: argument --polldevs: can't open 'polldevs.cf': [Errno 2] No such file or directory: 'polldevs.cf'
-$
+```shell
+./zino-env/bin/zino --help
 ```
 
 ### Configuring Zino
@@ -87,6 +90,9 @@ directory, but a different configuration file can be specified using the
 See the [polldevs.cf.example](./polldevs.cf.example) file for an example of the
 configuration format.
 
+Zino will check `polldevs.cf` for changes on a scheduled interval while it's
+running, so any changes made while Zino is running should be picked up without
+requiring a restart of the process.
 
 ## Developing Zino
 
