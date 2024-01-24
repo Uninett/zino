@@ -6,8 +6,15 @@
 This is the modern Python re-implementation of the battle-proven Zino network
 state monitor, first implemented in Tcl/Scotty at Uninett in the 1990s.
 
-This is still a work in progress, and is not yet a fully functional
-replacement for the Tcl-based Zino.
+This is still a work in progress, and is not yet a fully functional replacement
+for the original Tcl-based Zino.  An incomplete list of features that have yet
+to be ported:
+
+- SNMP trap reception
+  - Hence, no port flapping status
+- Planned maintenance (the `PM` family of API commands)
+- Router and single-port poll triggering from the API (the `POLLRTR` and
+  `POLLINTF` API commands)
 
 Development of Zino 2.0 is fully sponsored by [NORDUnet](https://nordu.net/),
 on behalf of the nordic NRENs.
