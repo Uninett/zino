@@ -5,9 +5,12 @@
 # be unique across all of Zino.  Comments begin with the # character.
 
 # Default values that will apply to all router entries unless overridden:
+# interval is a number of *minutes* between polling jobs for a router.
 default interval: 5
 default community: public
 default domain: example.org
+# hcounters specifies whether "high capacity octet counters" should be
+# preferred during polling. In this modern day and age, they definitely should.
 default hcounters: yes
 
 # Example router, with a higher scheduling priority.  Interfaces whose name
