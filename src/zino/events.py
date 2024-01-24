@@ -53,7 +53,7 @@ class Events(BaseModel):
         """
         new_index: Dict[EventIndex, Event] = {}
         for event in self.events.values():
-            key = EventIndex(event.router, event.port, type(event))
+            key = EventIndex(event.router, event.subindex, type(event))
             new_index[key] = event
         self._events_by_index = new_index
 
@@ -91,7 +91,6 @@ class Events(BaseModel):
 
         event = event_class(
             router=device_name,
-            port=port,
         )
         _log.debug("created embryonic event %r", event)
         return event
@@ -123,7 +122,7 @@ class Events(BaseModel):
             event.id = self.get_next_available_event_id()
         else:
             old_event = self.events[event.id]
-        index = EventIndex(event.router, event.port, type(event))
+        index = EventIndex(event.router, event.subindex, type(event))
         self._events_by_index[index] = event
         self.events[event.id] = event
 
