@@ -337,7 +337,7 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         """Implements the NTIE command that ties together this session with a notification channel."""
         try:
             channel = self.server.notification_channels[nonce]
-        except KeyError:
+        except (AttributeError, KeyError):
             return self._respond_error("Could not find your notify socket")
 
         self.notification_channel = channel
