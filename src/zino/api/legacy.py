@@ -41,6 +41,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
     ):
         """Initializes a protocol instance.
 
+        :param server: An optional instance of `ZinoServer`.
         :param state: An optional reference to a running Zino state that this server should be based on.  If omitted,
                       this protocol will create and work on an empty state object.
         :param secrets_file: An optional alternative path to the file containing users and their secrets.

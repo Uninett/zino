@@ -33,6 +33,7 @@ class Zino1NotificationProtocol(asyncio.Protocol):
     def __init__(self, server: Optional["ZinoServer"] = None, state: Optional[ZinoState] = None):
         """Initializes a protocol instance.
 
+        :param server: An optional instance of `ZinoServer`.
         :param state: An optional reference to a running Zino state that this server should be based on.  If omitted,
                       this protocol will create and work on an empty state object.
         """
