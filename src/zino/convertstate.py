@@ -119,7 +119,10 @@ def create_state(old_state_file: str) -> ZinoState:
         elif "::AddrToRouter" in line:
             set_addr_to_router(linedata, new_state)
     for linedata in event_attrs:
-        set_event_attrs(linedata, new_state, event_indices)
+        try:
+            set_event_attrs(linedata, new_state, event_indices)
+        except ValueError as e:
+            _log.error(f"Error setting event attribute: {e}")
     for linedata in bfd_sess_addr:
         set_bfd_sess_addr(linedata, new_state)
     for linedata in bfd_sess_discr:
@@ -268,7 +271,7 @@ def set_event_attrs(linedata: LineData, state: ZinoState, indices: EventIndices)
         # These are set via other means
         pass
     else:
-        raise ValueError(f"Unknown event field {event_field}")
+        raise ValueError(f"Unknown event attribute {event_field}")
     state.events.events[event.id] = event
 
 
