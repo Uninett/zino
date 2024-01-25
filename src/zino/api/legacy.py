@@ -238,7 +238,10 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
                 case_id = int(case_id)
                 event = self._state.events[case_id]
             except (ValueError, KeyError):
-                return self._respond_error(f'event "{case_id}" does not exist')
+                self._respond_error(f'event "{case_id}" does not exist')
+                response = asyncio.get_running_loop().create_future()
+                response.set_result(None)
+                return response
             return responder(self, event, *args, **kwargs)
 
         return _verify
