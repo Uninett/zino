@@ -192,6 +192,7 @@ def set_event_attrs(linedata: LineData, state: ZinoState, indices: EventIndices)
     event_field = linedata.identifiers[0]
     event_id = int(linedata.identifiers[1])
     event_index = indices[event_id]
+    state.events.last_event_id = max(state.events.last_event_id, event_id)
     if event_id in state.events.events:
         event = state.events.events[event_id]
     else:
