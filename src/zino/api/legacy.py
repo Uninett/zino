@@ -10,12 +10,16 @@ import re
 import textwrap
 from functools import wraps
 from pathlib import Path
-from typing import Callable, List, Optional, Union
+from typing import TYPE_CHECKING, Callable, List, Optional, Union
 
 from zino import version
 from zino.api import auth
+from zino.api.notify import Zino1NotificationProtocol
 from zino.state import ZinoState
 from zino.statemodels import Event, EventState
+
+if TYPE_CHECKING:
+    from zino.api.server import ZinoServer
 
 _logger = logging.getLogger(__name__)
 
@@ -29,14 +33,22 @@ def requires_authentication(func: Callable) -> Callable:
 class Zino1BaseServerProtocol(asyncio.Protocol):
     """Base implementation of the Zino 1 protocol, with a basic command dispatcher for subclasses to utilize."""
 
-    def __init__(self, state: Optional[ZinoState] = None, secrets_file: Optional[Union[Path, str]] = "secrets"):
+    def __init__(
+        self,
+        server: Optional["ZinoServer"] = None,
+        state: Optional[ZinoState] = None,
+        secrets_file: Optional[Union[Path, str]] = "secrets",
+    ):
         """Initializes a protocol instance.
 
+        :param server: An optional instance of `ZinoServer`.
         :param state: An optional reference to a running Zino state that this server should be based on.  If omitted,
                       this protocol will create and work on an empty state object.
         :param secrets_file: An optional alternative path to the file containing users and their secrets.
         """
+        self.server = server
         self.transport: Optional[asyncio.Transport] = None
+        self.notification_channel: Optional[Zino1NotificationProtocol] = None
         self._authenticated_as: Optional[str] = None
         self._current_task: asyncio.Task = None
         self._multiline_future: asyncio.Future = None
@@ -47,7 +59,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         self._secrets_file = secrets_file
 
     @property
-    def peer_name(self) -> str:
+    def peer_name(self) -> Optional[str]:
         return self.transport.get_extra_info("peername") if self.transport else None
 
     @property
@@ -65,9 +77,18 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
 
     def connection_made(self, transport: asyncio.Transport):
         self.transport = transport
-        _logger.debug("New server connection from %s", self.peer_name)
+        _logger.info("New server connection from %s", self.peer_name)
+        if self.server:
+            self.server.active_clients.add(self)
         self._authentication_challenge = auth.get_challenge()
         self._respond_ok(f"{self._authentication_challenge} Hello, there")
+
+    def connection_lost(self, exc: Optional[Exception]) -> None:
+        _logger.info("Client disconnected: %s", self.peer_name)
+        if self.server:
+            self.server.active_clients.remove(self)
+        if self.notification_channel:
+            self.notification_channel.goodbye()
 
     def data_received(self, data):
         try:
@@ -312,6 +333,20 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
             self._respond(201, f"{device.community}")
         else:
             self._respond_error("router unknown")
+
+    @requires_authentication
+    async def do_ntie(self, nonce: str):
+        """Implements the NTIE command that ties together this session with a notification channel."""
+        try:
+            channel = self.server.notification_channels[nonce]
+        except (AttributeError, KeyError):
+            return self._respond_error("Could not find your notify socket")
+
+        self.notification_channel = channel
+        channel.tied_to = self
+        _logger.info("Client %s tied to notification channel %s", self.peer_name, channel.peer_name)
+
+        return self._respond_ok()
 
 
 class ZinoTestProtocol(Zino1ServerProtocol):

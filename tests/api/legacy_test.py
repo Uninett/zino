@@ -4,13 +4,16 @@ from unittest.mock import Mock, patch
 import pytest
 
 from zino import version
+from zino.api.auth import get_challenge
 from zino.api.legacy import (
     Zino1BaseServerProtocol,
     Zino1ServerProtocol,
     ZinoTestProtocol,
     requires_authentication,
 )
+from zino.api.server import ZinoServer
 from zino.config.models import PollDevice
+from zino.state import ZinoState
 from zino.statemodels import EventState, ReachabilityEvent
 
 
@@ -18,9 +21,9 @@ class TestZino1BaseServerProtocol:
     def test_should_init_without_error(self):
         assert Zino1BaseServerProtocol()
 
-    def test_when_unconnected_then_peer_name_should_be_none(self):
+    def test_when_not_connected_then_peer_name_should_be_none(self):
         protocol = Zino1BaseServerProtocol()
-        assert not protocol.peer_name
+        assert protocol.peer_name is None
 
     def test_when_connected_then_peer_name_should_be_available(self):
         expected = "foobar"
@@ -177,6 +180,23 @@ class TestZino1BaseServerProtocol:
 
         await protocol.data_received(b"RAISEERROR\r\n")
         assert "ZeroDivisionError" in caplog.text
+
+    def test_when_connected_it_should_register_instance_in_server(self, event_loop):
+        server = ZinoServer(loop=event_loop, state=ZinoState())
+        protocol = Zino1BaseServerProtocol(server=server)
+        fake_transport = Mock()
+        protocol.connection_made(fake_transport)
+
+        assert protocol in server.active_clients
+
+    def test_when_disconnected_it_should_deregister_instance_from_server(self, event_loop):
+        server = ZinoServer(loop=event_loop, state=ZinoState())
+        protocol = Zino1BaseServerProtocol(server=server)
+        fake_transport = Mock()
+        protocol.connection_made(fake_transport)
+        protocol.connection_lost(exc=None)
+
+        assert protocol not in server.active_clients
 
 
 class TestZino1ServerProtocolUserCommand:
@@ -487,6 +507,44 @@ class TestZino1ServerProtocolCommunityCommand:
 
         output = authenticated_protocol.transport.data_buffer.getvalue()
         assert b"500 router unknown\r\n" in output
+
+
+class TestZino1ServerProtocolNtieCommand:
+    @pytest.mark.asyncio
+    async def test_when_nonce_is_bogus_it_should_respond_with_error(self, event_loop, authenticated_protocol):
+        server = ZinoServer(loop=event_loop, state=ZinoState())
+        server.notification_channels = dict()  # Ensure there are none for this test
+        authenticated_protocol.server = server
+
+        await authenticated_protocol.data_received(b"NTIE cromulent\r\n")
+
+        output = authenticated_protocol.transport.data_buffer.getvalue().decode()
+        assert "\r\n500 " in output
+
+    @pytest.mark.asyncio
+    async def test_when_nonce_exists_it_should_respond_with_ok(self, event_loop, authenticated_protocol):
+        server = ZinoServer(loop=event_loop, state=ZinoState())
+        nonce = get_challenge()
+        mock_channel = Mock()
+        server.notification_channels[nonce] = mock_channel
+        authenticated_protocol.server = server
+
+        await authenticated_protocol.data_received(f"NTIE {nonce}\r\n".encode())
+
+        output = authenticated_protocol.transport.data_buffer.getvalue().decode()
+        assert "\r\n200 " in output
+
+    @pytest.mark.asyncio
+    async def test_when_nonce_exists_it_should_tie_the_corresponding_channel(self, event_loop, authenticated_protocol):
+        server = ZinoServer(loop=event_loop, state=ZinoState())
+        nonce = get_challenge()
+        mock_channel = Mock()
+        server.notification_channels[nonce] = mock_channel
+        authenticated_protocol.server = server
+
+        await authenticated_protocol.data_received(f"NTIE {nonce}\r\n".encode())
+
+        assert mock_channel.tied_to is authenticated_protocol
 
 
 class TestZino1TestProtocol:

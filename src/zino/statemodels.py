@@ -255,6 +255,10 @@ class Event(BaseModel):
             return str(int(value.timestamp()))
         return str(value)
 
+    def get_changed_fields(self, other: "Event") -> List[str]:
+        """Compares this Event to another Event and returns a list of names of attributes that are different"""
+        return [field for field in self.model_fields if getattr(other, field) != getattr(self, field)]
+
 
 class PortStateEvent(Event):
     type: Literal["portstate"] = "portstate"
