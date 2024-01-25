@@ -335,7 +335,8 @@ def set_port_to_loc_if_descr(linedata: LineData, state: ZinoState):
 
 
 def set_last_id(linedata: LineData, state: ZinoState):
-    state.events.last_event_id = int(linedata.value)
+    """this is an id related to planned maintenance"""
+    _log.info("lastid is not supported")
 
 
 def set_pm_events(linedata: LineData, state: ZinoState):
