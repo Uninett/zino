@@ -258,6 +258,8 @@ def set_event_attrs(linedata: LineData, state: ZinoState, indices: EventIndices)
         event.bfdstate = BFDSessState(linedata.value)
     elif event_field == "lasttrans":
         event.lasttrans = datetime.fromtimestamp(int(linedata.value))
+    elif event_field == "alarm-count":
+        event.alarm_count = int(linedata.value)
     elif event_field in ["id", "type"]:
         # These are set via other means
         pass
