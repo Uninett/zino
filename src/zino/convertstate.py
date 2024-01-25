@@ -260,6 +260,8 @@ def set_event_attrs(linedata: LineData, state: ZinoState, indices: EventIndices)
         event.lasttrans = datetime.fromtimestamp(int(linedata.value))
     elif event_field == "alarm-count":
         event.alarm_count = int(linedata.value)
+    elif event_field == "alarm-type":
+        _log.info("alarm-type is not a supported event field")
     elif event_field in ["id", "type"]:
         # These are set via other means
         pass
