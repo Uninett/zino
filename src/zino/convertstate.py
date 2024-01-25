@@ -256,6 +256,11 @@ def set_event_attrs(linedata: LineData, state: ZinoState, indices: EventIndices)
         event.bfdix = int(linedata.value)
     elif event_field == "bfdState":
         event.bfdstate = BFDSessState(linedata.value)
+    elif event_field in ["id", "type"]:
+        # These are set via other means
+        pass
+    else:
+        raise ValueError(f"Unknown event field {event_field}")
     state.events.events[event.id] = event
 
 
