@@ -14,7 +14,7 @@ from zino.api.legacy import (
 from zino.api.server import ZinoServer
 from zino.config.models import PollDevice
 from zino.state import ZinoState
-from zino.statemodels import EventState, ReachabilityEvent
+from zino.statemodels import Event, EventState, ReachabilityEvent
 
 
 class TestZino1BaseServerProtocol:
@@ -197,6 +197,43 @@ class TestZino1BaseServerProtocol:
         protocol.connection_lost(exc=None)
 
         assert protocol not in server.active_clients
+
+
+class TestZino1ServerProtocolTranslateCaseIdToEvent:
+    @pytest.mark.asyncio
+    async def test_when_caseid_exists_it_should_return_event_object(self):
+        args = []
+
+        class TestProtocol(Zino1ServerProtocol):
+            @Zino1ServerProtocol._translate_case_id_to_event
+            async def do_foo(self, event: Event):
+                args.append(event)
+                self._respond_ok()
+
+        protocol = TestProtocol()
+
+        test_event = protocol._state.events.create_event("example-gw", None, ReachabilityEvent)
+        protocol._state.events.commit(test_event)
+
+        fake_transport = Mock()
+        protocol.connection_made(fake_transport)
+        await protocol.do_foo(test_event.id)
+
+        assert args[0] is test_event
+
+    @pytest.mark.asyncio
+    async def test_when_caseid_doesnt_exist_the_return_value_should_be_awaitable(self):
+        class TestProtocol(Zino1ServerProtocol):
+            @Zino1ServerProtocol._translate_case_id_to_event
+            async def do_foo(self, event: Event):
+                self._respond_ok()
+                return "foo"
+
+        protocol = TestProtocol()
+        fake_transport = Mock()
+        protocol.connection_made(fake_transport)
+        result = await protocol.do_foo(42)
+        assert not result
 
 
 class TestZino1ServerProtocolUserCommand:
