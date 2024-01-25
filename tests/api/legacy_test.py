@@ -142,7 +142,7 @@ class TestZino1BaseServerProtocol:
         assert "FOO" in result
         assert callable(result["FOO"])
 
-    def test_when_command_has_incorrect_number_of_args_then_an_error_response_should_be_sent(self):
+    def test_when_command_has_too_few_args_then_an_error_response_should_be_sent(self):
         class TestProtocol(Zino1BaseServerProtocol):
             async def do_foo(self, arg1, arg2):
                 pass
@@ -156,6 +156,20 @@ class TestZino1BaseServerProtocol:
         assert response.startswith(b"500 ")
         assert b"arg1" in response, "arguments are not mentioned in response"
         assert b"arg2" in response, "arguments are not mentioned in response"
+
+    @pytest.mark.asyncio
+    async def test_when_command_has_too_many_args_then_it_should_ignore_the_extraneous_args(self):
+        class TestProtocol(Zino1BaseServerProtocol):
+            async def do_foo(self, arg1, arg2):
+                self._respond_ok()
+
+        protocol = TestProtocol()
+        fake_transport = Mock()
+        protocol.connection_made(fake_transport)
+        await protocol.data_received(b"FOO bar baz qux\r\n")
+        assert fake_transport.write.called
+        response = fake_transport.write.call_args[0][0]
+        assert response.startswith(b"200 ")
 
     def test_when_command_is_not_alphanumeric_then_get_responder_should_ignore_it(self):
         protocol = Zino1BaseServerProtocol()
