@@ -80,6 +80,10 @@ def create_state(old_state_file: str) -> ZinoState:
             set_port_to_if_descr(linedata, new_state)
         elif "::portToLocIfDescr" in line:
             set_port_to_loc_if_descr(linedata, new_state)
+        elif "::isJuniper" in line:
+            set_is_juniper(linedata, new_state)
+        elif "::isCisco" in line:
+            set_is_cisco(linedata, new_state)
         elif "::bgpPeerAdminState":
             set_bgp_peer_admin_state(linedata, new_state)
         elif "::bgpPeerOperState" in line:
@@ -297,14 +301,16 @@ def set_bfd_sess_discr(linedata: LineData, state: ZinoState):
 
 def set_is_cisco(linedata: LineData, state: ZinoState):
     is_cisco = bool(int(linedata.value))
+    device = state.devices.get(linedata.identifiers[0])
     if is_cisco:
-        state.device.enterprise_id = CISCO_ENTERPRISE_ID
+        device.enterprise_id = CISCO_ENTERPRISE_ID
 
 
 def set_is_juniper(linedata: LineData, state: ZinoState):
     is_juniper = bool(int(linedata.value))
+    device = state.devices.get(linedata.identifiers[0])
     if is_juniper:
-        state.device.enterprise_id = JUNIPER_ENTERPRISE_ID
+        device.enterprise_id = JUNIPER_ENTERPRISE_ID
 
 
 def set_port_state(linedata: LineData, state: ZinoState):
