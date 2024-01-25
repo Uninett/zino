@@ -90,6 +90,18 @@ class TestZino1BaseServerProtocol:
 
         assert data == ["line one", "line two"]
 
+    @pytest.mark.timeout(5)
+    @pytest.mark.asyncio
+    async def test_data_received_should_break_down_multiline_input_packets(self):
+        protocol = Zino1BaseServerProtocol()
+        fake_transport = Mock()
+        protocol.connection_made(fake_transport)
+        future = protocol._read_multiline()
+        protocol.data_received(b"line one\r\nline two\r\n.\r\n")
+        data = await future
+
+        assert data == ["line one", "line two"]
+
     def test_when_command_is_unknown_then_dispatcher_should_respond_with_error(self):
         protocol = Zino1BaseServerProtocol()
         fake_transport = Mock()
