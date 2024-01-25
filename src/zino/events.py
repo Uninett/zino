@@ -72,6 +72,10 @@ class Events(BaseModel):
 
         If a matching event already exists, the return value is a checkout copy, as if the `checkout()` method had been
         used.  The assumption is that the caller is looking to make changes to the fetched event.
+
+        Please note that what kind of event attribute subindex represents will vary between event classes.  This method
+        will therefore not be able to set this attribute on a newly created event object, and the caller is responsible
+        for doing so.
         """
         try:
             return self.create_event(device_name, subindex, event_class)
@@ -84,6 +88,10 @@ class Events(BaseModel):
         identifiers, an EventExistsError is raised.
 
         The event is not committed to the event registry; this must be done by explicitly calling the `commit()` method.
+
+        Please note that what kind of event attribute subindex represents will vary between event classes.  This method
+        will therefore not be able to set this attribute on the newly created event object, and the caller is
+        responsible for doing so.
         """
         index = EventIndex(device_name, subindex, event_class)
         if index in self._events_by_index:
