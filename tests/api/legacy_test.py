@@ -56,7 +56,7 @@ class TestZino1BaseServerProtocol:
         protocol = TestProtocol()
         fake_transport = Mock()
         protocol.connection_made(fake_transport)
-        await protocol.data_received(b"FOO bar eggs\r\n")
+        await protocol.message_received("FOO bar eggs")
 
         assert args == ["bar", "eggs"], "do_foo() was apparently not called"
 
@@ -138,7 +138,7 @@ class TestZino1BaseServerProtocol:
         protocol.connection_made(fake_transport)
         protocol.user = "fake"
         fake_transport.write = Mock()
-        await protocol.data_received(b"FOO\r\n")
+        await protocol.message_received("FOO")
 
         assert fake_transport.write.called
         assert fake_transport.write.call_args[0][0].startswith(b"200 foo")
@@ -178,7 +178,7 @@ class TestZino1BaseServerProtocol:
         protocol = TestProtocol()
         fake_transport = Mock()
         protocol.connection_made(fake_transport)
-        await protocol.data_received(b"FOO bar baz qux\r\n")
+        await protocol.message_received("FOO bar baz qux")
         assert fake_transport.write.called
         response = fake_transport.write.call_args[0][0]
         assert response.startswith(b"200 ")
@@ -194,7 +194,7 @@ class TestZino1BaseServerProtocol:
         protocol = ZinoTestProtocol()
         protocol.connection_made(buffered_fake_transport)
 
-        await protocol.data_received(b"RAISEERROR\r\n")
+        await protocol.message_received("RAISEERROR")
         assert b"500 internal error" in buffered_fake_transport.data_buffer.getvalue()
 
     @pytest.mark.asyncio
@@ -204,7 +204,7 @@ class TestZino1BaseServerProtocol:
         protocol = ZinoTestProtocol()
         protocol.connection_made(buffered_fake_transport)
 
-        await protocol.data_received(b"RAISEERROR\r\n")
+        await protocol.message_received("RAISEERROR")
         assert "ZeroDivisionError" in caplog.text
 
     def test_when_connected_it_should_register_instance_in_server(self, event_loop):
@@ -270,7 +270,7 @@ class TestZino1ServerProtocolUserCommand:
         protocol.connection_made(fake_transport)
         fake_transport.write = Mock()  # reset output after welcome banner
         protocol._authentication_challenge = "foo"  # fake a known challenge string
-        await protocol.data_received(b"USER user1 7982ef54a5495225c5d6395c42308c074491407c\r\n")
+        await protocol.message_received("USER user1 7982ef54a5495225c5d6395c42308c074491407c")
 
         assert fake_transport.write.called
         response = fake_transport.write.call_args[0][0]
@@ -283,7 +283,7 @@ class TestZino1ServerProtocolUserCommand:
         fake_transport = Mock()
         protocol.connection_made(fake_transport)
         fake_transport.write = Mock()  # reset output after welcome banner
-        await protocol.data_received(b"USER user1 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\r\n")
+        await protocol.message_received("USER user1 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 
         assert fake_transport.write.called
         response = fake_transport.write.call_args[0][0]
@@ -297,11 +297,11 @@ class TestZino1ServerProtocolUserCommand:
         protocol.connection_made(fake_transport)
         protocol._authentication_challenge = "foo"  # fake a known challenge string
 
-        await protocol.data_received(b"USER user1 7982ef54a5495225c5d6395c42308c074491407c\r\n")
+        await protocol.message_received("USER user1 7982ef54a5495225c5d6395c42308c074491407c")
         assert protocol.is_authenticated
 
         fake_transport.write = Mock()  # reset output after welcome banner
-        await protocol.data_received(b"USER another bar\r\n")
+        await protocol.message_received("USER another bar")
         assert fake_transport.write.called
         response = fake_transport.write.call_args[0][0]
         assert response.startswith(b"500")
@@ -310,7 +310,7 @@ class TestZino1ServerProtocolUserCommand:
 class TestZino1ServerProtocolQuitCommand:
     @pytest.mark.asyncio
     async def test_when_quit_is_issued_then_transport_should_be_closed(self, authenticated_protocol):
-        await authenticated_protocol.data_received(b"QUIT\r\n")
+        await authenticated_protocol.message_received("QUIT")
         assert authenticated_protocol.transport.close.called
 
 
@@ -322,7 +322,7 @@ class TestZino1ServerProtocolHelpCommand:
         protocol = Zino1ServerProtocol()
         protocol.connection_made(buffered_fake_transport)
 
-        await protocol.data_received(b"HELP\r\n")
+        await protocol.message_received("HELP")
 
         all_unauthenticated_command_names = set(
             name
@@ -336,7 +336,7 @@ class TestZino1ServerProtocolHelpCommand:
 
     @pytest.mark.asyncio
     async def test_when_authenticated_help_is_issued_then_all_commands_should_be_listed(self, authenticated_protocol):
-        await authenticated_protocol.data_received(b"HELP\r\n")
+        await authenticated_protocol.message_received("HELP")
 
         all_command_names = set(authenticated_protocol._get_all_responders())
         for command_name in all_command_names:
@@ -354,7 +354,7 @@ class TestZino1ServerProtocolCaseidsCommand:
         event2 = state.events.create_event("bar", None, ReachabilityEvent)
         state.events.commit(event2)
 
-        await authenticated_protocol.data_received(b"CASEIDS\r\n")
+        await authenticated_protocol.message_received("CASEIDS")
 
         output = authenticated_protocol.transport.data_buffer.getvalue()
         assert f"{event1.id}\r\n".encode() in output
@@ -368,7 +368,7 @@ class TestZino1ServerProtocolVersionCommand:
         protocol.connection_made(buffered_fake_transport)
         protocol._authenticated = True  # fake authentication
 
-        await protocol.data_received(b"VERSION\r\n")
+        await protocol.message_received("VERSION")
 
         expected = str(version.__version__).encode()
         assert expected in buffered_fake_transport.data_buffer.getvalue()
@@ -381,7 +381,7 @@ class TestZino1ServerProtocolGetattrsCommand:
         event1 = state.events.create_event("foo", None, ReachabilityEvent)
         state.events.commit(event1)
 
-        await authenticated_protocol.data_received(f"GETATTRS {event1.id}\r\n".encode())
+        await authenticated_protocol.message_received(f"GETATTRS {event1.id}")
 
         output = authenticated_protocol.transport.data_buffer.getvalue().decode()
         assert f"id: {event1.id}\r\n" in output
@@ -390,7 +390,7 @@ class TestZino1ServerProtocolGetattrsCommand:
 
     @pytest.mark.asyncio
     async def test_when_caseid_is_invalid_it_should_output_error(self, authenticated_protocol):
-        await authenticated_protocol.data_received(b"GETATTRS 42\r\n")
+        await authenticated_protocol.message_received("GETATTRS 42")
 
         output = authenticated_protocol.transport.data_buffer.getvalue().decode()
         assert "\r\n500 " in output
@@ -405,7 +405,7 @@ class TestZino1ServerProtocolGethistCommand:
         event.add_history("another line one\nanother line two\nanother line")
         state.events.commit(event)
 
-        await authenticated_protocol.data_received(f"GETHIST {event.id}\r\n".encode())
+        await authenticated_protocol.message_received(f"GETHIST {event.id}")
 
         output: str = authenticated_protocol.transport.data_buffer.getvalue().decode()
 
@@ -417,7 +417,7 @@ class TestZino1ServerProtocolGethistCommand:
 
     @pytest.mark.asyncio
     async def test_when_caseid_is_invalid_it_should_output_error(self, authenticated_protocol):
-        await authenticated_protocol.data_received(b"GETHIST 999\r\n")
+        await authenticated_protocol.message_received("GETHIST 999")
 
         output = authenticated_protocol.transport.data_buffer.getvalue().decode()
         assert "\r\n500 " in output
@@ -432,7 +432,7 @@ class TestZino1ServerProtocolGetlogCommand:
         event.add_log("another line one\nanother line two\nanother line")
         state.events.commit(event)
 
-        await authenticated_protocol.data_received(f"GETLOG {event.id}\r\n".encode())
+        await authenticated_protocol.message_received(f"GETLOG {event.id}")
 
         output: str = authenticated_protocol.transport.data_buffer.getvalue().decode()
 
@@ -444,7 +444,7 @@ class TestZino1ServerProtocolGetlogCommand:
 
     @pytest.mark.asyncio
     async def test_when_caseid_is_invalid_it_should_output_error(self, authenticated_protocol):
-        await authenticated_protocol.data_received(b"GETLOG 999\r\n")
+        await authenticated_protocol.message_received("GETLOG 999")
 
         output = authenticated_protocol.transport.data_buffer.getvalue().decode()
         assert "\r\n500 " in output
@@ -487,7 +487,7 @@ class TestZino1ServerProtocolAddhistCommand:
 
     @pytest.mark.asyncio
     async def test_when_caseid_is_invalid_it_should_output_error(self, authenticated_protocol):
-        await authenticated_protocol.data_received(b"ADDHIST 999\r\n")
+        await authenticated_protocol.message_received("ADDHIST 999")
 
         output = authenticated_protocol.transport.data_buffer.getvalue().decode()
         assert "\r\n500 " in output
@@ -496,7 +496,7 @@ class TestZino1ServerProtocolAddhistCommand:
 class TestZino1ServerProtocolSetstateCommand:
     @pytest.mark.asyncio
     async def test_when_caseid_is_invalid_it_should_output_error(self, authenticated_protocol):
-        await authenticated_protocol.data_received(b"SETSTATE 999 ignored\r\n")
+        await authenticated_protocol.message_received("SETSTATE 999 ignored")
 
         output = authenticated_protocol.transport.data_buffer.getvalue().decode()
         assert "\r\n500 " in output
@@ -507,7 +507,7 @@ class TestZino1ServerProtocolSetstateCommand:
         event = state.events.create_event("foo", None, ReachabilityEvent)
         state.events.commit(event)
 
-        await authenticated_protocol.data_received(f"SETSTATE {event.id} invalidgabbagabba\r\n".encode())
+        await authenticated_protocol.message_received(f"SETSTATE {event.id} invalidgabbagabba")
 
         output = authenticated_protocol.transport.data_buffer.getvalue().decode()
         assert "\r\n500 " in output
@@ -518,7 +518,7 @@ class TestZino1ServerProtocolSetstateCommand:
         event = state.events.create_event("foo", None, ReachabilityEvent)
         state.events.commit(event)
 
-        await authenticated_protocol.data_received(f"SETSTATE {event.id} ignored\r\n".encode())
+        await authenticated_protocol.message_received(f"SETSTATE {event.id} ignored")
 
         output = authenticated_protocol.transport.data_buffer.getvalue().decode()
         assert "\r\n200 " in output
@@ -532,7 +532,7 @@ class TestZino1ServerProtocolSetstateCommand:
         event = state.events.create_event("foo", None, ReachabilityEvent)
         state.events.commit(event)
 
-        await authenticated_protocol.data_received(f"SETSTATE {event.id} ignored\r\n".encode())
+        await authenticated_protocol.message_received(f"SETSTATE {event.id} ignored")
 
         output = authenticated_protocol.transport.data_buffer.getvalue().decode()
         assert "\r\n200 " in output
@@ -558,7 +558,7 @@ class TestZino1ServerProtocolCommunityCommand:
         )
         polldevs[device.name] = device
 
-        await authenticated_protocol.data_received(f"COMMUNITY {router_name}\r\n".encode())
+        await authenticated_protocol.message_received(f"COMMUNITY {router_name}")
 
         output = authenticated_protocol.transport.data_buffer.getvalue()
         assert f"201 {device.community}\r\n".encode() in output
@@ -566,7 +566,7 @@ class TestZino1ServerProtocolCommunityCommand:
     @pytest.mark.asyncio
     @patch("zino.state.polldevs", dict())
     async def test_should_output_error_response_for_unknown_router(self, authenticated_protocol):
-        await authenticated_protocol.data_received(b"COMMUNITY unknown.router.example.org\r\n")
+        await authenticated_protocol.message_received("COMMUNITY unknown.router.example.org")
 
         output = authenticated_protocol.transport.data_buffer.getvalue()
         assert b"500 router unknown\r\n" in output
@@ -579,7 +579,7 @@ class TestZino1ServerProtocolNtieCommand:
         server.notification_channels = dict()  # Ensure there are none for this test
         authenticated_protocol.server = server
 
-        await authenticated_protocol.data_received(b"NTIE cromulent\r\n")
+        await authenticated_protocol.message_received("NTIE cromulent")
 
         output = authenticated_protocol.transport.data_buffer.getvalue().decode()
         assert "\r\n500 " in output
@@ -592,7 +592,7 @@ class TestZino1ServerProtocolNtieCommand:
         server.notification_channels[nonce] = mock_channel
         authenticated_protocol.server = server
 
-        await authenticated_protocol.data_received(f"NTIE {nonce}\r\n".encode())
+        await authenticated_protocol.message_received(f"NTIE {nonce}")
 
         output = authenticated_protocol.transport.data_buffer.getvalue().decode()
         assert "\r\n200 " in output
@@ -605,7 +605,7 @@ class TestZino1ServerProtocolNtieCommand:
         server.notification_channels[nonce] = mock_channel
         authenticated_protocol.server = server
 
-        await authenticated_protocol.data_received(f"NTIE {nonce}\r\n".encode())
+        await authenticated_protocol.message_received(f"NTIE {nonce}")
 
         assert mock_channel.tied_to is authenticated_protocol
 
@@ -618,7 +618,7 @@ class TestZino1TestProtocol:
         protocol.connection_made(fake_transport)
         protocol.user = "foo"
         fake_transport.write = Mock()
-        await protocol.data_received(b"AUTHTEST\r\n")
+        await protocol.message_received("AUTHTEST")
 
         assert fake_transport.write.called
         assert fake_transport.write.call_args[0][0].startswith(b"200 ")
