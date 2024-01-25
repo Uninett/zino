@@ -1,6 +1,5 @@
 import logging
-from collections import namedtuple
-from typing import Dict, Optional, Protocol, Type, Union
+from typing import Dict, NamedTuple, Optional, Protocol, Type, Union
 
 from pydantic.main import BaseModel
 
@@ -10,14 +9,18 @@ from zino.statemodels import (
     BGPEvent,
     Event,
     EventState,
-    PortOrIPAddress,
     PortStateEvent,
     ReachabilityEvent,
+    SubIndex,
 )
 
-EventIndex = namedtuple("EventIndex", "router port type")
-
 _log = logging.getLogger(__name__)
+
+
+class EventIndex(NamedTuple):
+    router: str
+    subindex: SubIndex
+    type: Type
 
 
 class EventObserver(Protocol):
@@ -50,14 +53,14 @@ class Events(BaseModel):
         """
         new_index: Dict[EventIndex, Event] = {}
         for event in self.events.values():
-            key = EventIndex(event.router, event.port, type(event))
+            key = EventIndex(event.router, event.subindex, type(event))
             new_index[key] = event
         self._events_by_index = new_index
 
     def get_or_create_event(
         self,
         device_name: str,
-        port: Optional[PortOrIPAddress],
+        subindex: SubIndex,
         event_class: Type[Event],
     ) -> Event:
         """Creates and returns a new event for the given event identifiers, or, if an event matching this identifier
@@ -69,33 +72,40 @@ class Events(BaseModel):
 
         If a matching event already exists, the return value is a checkout copy, as if the `checkout()` method had been
         used.  The assumption is that the caller is looking to make changes to the fetched event.
+
+        Please note that what kind of event attribute subindex represents will vary between event classes.  This method
+        will therefore not be able to set this attribute on a newly created event object, and the caller is responsible
+        for doing so.
         """
         try:
-            return self.create_event(device_name, port, event_class)
+            return self.create_event(device_name, subindex, event_class)
         except EventExistsError:
-            event = self.get(device_name, port, event_class)
+            event = self.get(device_name, subindex, event_class)
             return self.checkout(event.id)
 
-    def create_event(self, device_name: str, port: Optional[PortOrIPAddress], event_class: Type[Event]) -> Event:
+    def create_event(self, device_name: str, subindex: SubIndex, event_class: Type[Event]) -> Event:
         """Creates a new event for the given event identifiers. If an event already exists for this combination of
         identifiers, an EventExistsError is raised.
 
         The event is not committed to the event registry; this must be done by explicitly calling the `commit()` method.
+
+        Please note that what kind of event attribute subindex represents will vary between event classes.  This method
+        will therefore not be able to set this attribute on the newly created event object, and the caller is
+        responsible for doing so.
         """
-        index = EventIndex(device_name, port, event_class)
+        index = EventIndex(device_name, subindex, event_class)
         if index in self._events_by_index:
             raise EventExistsError(f"Event for {index} already exists")
 
         event = event_class(
             router=device_name,
-            port=port,
         )
         _log.debug("created embryonic event %r", event)
         return event
 
-    def get(self, device_name: str, port: Optional[PortOrIPAddress], event_class: Type[Event]) -> Event:
+    def get(self, device_name: str, subindex: SubIndex, event_class: Type[Event]) -> Event:
         """Returns an event based on its identifiers, None if no match was found"""
-        index = EventIndex(device_name, port, event_class)
+        index = EventIndex(device_name, subindex, event_class)
         return self._events_by_index.get(index)
 
     def checkout(self, event_id: int) -> Event:
@@ -120,7 +130,7 @@ class Events(BaseModel):
             event.id = self.get_next_available_event_id()
         else:
             old_event = self.events[event.id]
-        index = EventIndex(event.router, event.port, type(event))
+        index = EventIndex(event.router, event.subindex, type(event))
         self._events_by_index[index] = event
         self.events[event.id] = event
 

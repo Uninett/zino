@@ -66,6 +66,9 @@ class BFDTask(Task):
     def _create_or_update_event(self, port: Port, new_state: BFDState):
         event = self.state.events.get_or_create_event(self.device.name, port.ifindex, BFDEvent)
 
+        event.ifindex = port.ifindex
+        event.polladdr = self.device.address
+        event.priority = self.device.priority
         event.bfdstate = new_state.session_state
         event.bfdix = new_state.session_index
         event.bfddiscr = new_state.session_discr

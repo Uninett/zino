@@ -28,6 +28,8 @@ class ReachableTask(Task):
             if event.reachability != ReachabilityState.NORESPONSE:
                 event.reachability = ReachabilityState.NORESPONSE
                 event.add_log(f"{self.device.name} no-response")
+            event.polladdr = self.device.address
+            event.priority = self.device.priority
             self.state.events.commit(event)
             self._schedule_extra_job()
             raise DeviceUnreachableError

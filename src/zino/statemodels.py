@@ -12,7 +12,7 @@ from zino.time import now
 
 IPAddress = Union[IPv4Address, IPv6Address]
 AlarmType = Literal["yellow", "red"]
-PortOrIPAddress = Union[int, IPAddress, AlarmType]
+SubIndex = Union[None, int, IPAddress, AlarmType]
 
 _logger = logging.getLogger(__name__)
 
@@ -186,7 +186,6 @@ class Event(BaseModel):
     id: Optional[int] = None
 
     router: str
-    port: Optional[PortOrIPAddress] = None
     type: Literal["Event"] = "Event"
     state: EventState = EventState.EMBRYONIC
     opened: datetime.datetime = Field(default_factory=now)
@@ -202,6 +201,16 @@ class Event(BaseModel):
     ac_down: Optional[datetime.timedelta] = None
 
     polladdr: Optional[IPAddress] = None
+
+    @property
+    def subindex(self) -> SubIndex:
+        """Returns an identifier of a router subcomponent that this event refers to.
+
+        This value is used to index an event uniquely, and the property itself is usually only called if the event index
+        class needs to re-index all existing events - something that usually only happens when loading serialized
+        state from disk.
+        """
+        return None
 
     def set_state(self, new_state: EventState, user: str = "monitor"):
         """Sets a new event state value, logging the change to the event history with a username"""
@@ -249,9 +258,14 @@ class Event(BaseModel):
 
 class PortStateEvent(Event):
     type: Literal["portstate"] = "portstate"
+    port: Optional[str] = ""
     ifindex: Optional[int] = None
     portstate: Optional[InterfaceState] = None
     descr: Optional[str] = None
+
+    @property
+    def subindex(self) -> SubIndex:
+        return self.port
 
 
 class BGPEvent(Event):
@@ -260,13 +274,22 @@ class BGPEvent(Event):
     remote_as: Optional[int] = None
     peer_uptime: Optional[int] = None
 
+    @property
+    def subindex(self) -> SubIndex:
+        return self.remote_addr
+
 
 class BFDEvent(Event):
     type: Literal["bfd"] = "bfd"
+    ifindex: Optional[int] = None
     bfdstate: Optional[BFDSessState] = None
     bfdix: Optional[int] = None
     bfddiscr: Optional[int] = None
     bfdaddr: Optional[IPAddress] = None
+
+    @property
+    def subindex(self) -> SubIndex:
+        return self.ifindex
 
 
 class ReachabilityEvent(Event):
@@ -276,4 +299,9 @@ class ReachabilityEvent(Event):
 
 class AlarmEvent(Event):
     type: Literal["alarm"] = "alarm"
+    alarm_type: Optional[AlarmType] = None
     alarm_count: Optional[int] = None
+
+    @property
+    def subindex(self) -> SubIndex:
+        return self.alarm_type
