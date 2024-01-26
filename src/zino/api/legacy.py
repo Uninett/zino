@@ -51,6 +51,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         self.notification_channel: Optional[Zino1NotificationProtocol] = None
         self._authenticated_as: Optional[str] = None
         self._current_task: asyncio.Task = None
+        self._input_buffer = bytearray()
         self._multiline_future: asyncio.Future = None
         self._multiline_buffer: List[str] = []
         self._authentication_challenge: Optional[str] = None
@@ -91,13 +92,18 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
             self.notification_channel.goodbye()
 
     def data_received(self, data):
-        try:
-            message = data.decode().rstrip("\r\n")
-        except UnicodeDecodeError:
-            _logger.error("Received garbage server input from %s: %r", self.peer_name, data)
-            self.transport.close()
-            return
-        _logger.debug("Data received from %s: %r", self.peer_name, message)
+        self._input_buffer.extend(data)
+        while b"\n" in self._input_buffer:
+            line, self._input_buffer = self._input_buffer.split(b"\n", 1)
+            try:
+                self.message_received(line.rstrip(b"\r").decode())
+            except UnicodeDecodeError:
+                _logger.error("Received garbage server input from %s: %r", self.peer_name, line)
+                self.transport.close()
+                return
+
+    def message_received(self, message: str):
+        _logger.debug("Message received from %s: %r", self.peer_name, message)
 
         if self._multiline_future:
             if message == ".":
