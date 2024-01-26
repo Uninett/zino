@@ -38,6 +38,7 @@ zino = "zino.zino:main"
 docs = ["sphinx>=2.2.0"]
 dev = [
     "black",
+    "build",
     "coverage",
     "ipython",
     "isort",
@@ -49,6 +50,7 @@ dev = [
     "ruff",
     "snmpsim",
     "tox<4",
+    "twine",
 ]
 
 [tool.setuptools]
