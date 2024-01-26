@@ -21,9 +21,9 @@ from zino.statemodels import (
     IPAddress,
     LogEntry,
     Port,
-    PortOrIPAddress,
     PortStateEvent,
     ReachabilityEvent,
+    SubIndex,
 )
 
 _log = logging.getLogger(__name__)
@@ -158,25 +158,27 @@ def get_event_index(line: LineData) -> tuple[int, EventIndex]:
     of event_id, event_index
     """
     event_id = int(line.identifiers[0])
-    device, port_or_ip, event_type = tuple(line.value.split(","))
-    port_or_ip = parse_port_or_ip(port_or_ip)
-    event_index = EventIndex(device, port_or_ip, event_name_to_type[event_type])
+    device, subindex, event_type = tuple(line.value.split(","))
+    subindex = parse_subindex(subindex)
+    event_index = EventIndex(device, subindex, event_name_to_type[event_type])
     return event_id, event_index
 
 
-def parse_port_or_ip(port_or_ip: str) -> PortOrIPAddress:
+def parse_subindex(subindex: str) -> SubIndex:
     """Parses the part of a EventIdToIx line that defines the ip/port value"""
-    if port_or_ip in get_args(AlarmType):
-        return port_or_ip
+    if subindex is None:
+        return subindex
+    if subindex in get_args(AlarmType):
+        return subindex
     try:
-        return parse_ip(port_or_ip)
+        return parse_ip(subindex)
     except ValueError:
         pass
     try:
-        return int(port_or_ip)
+        return int(subindex)
     except ValueError:
         pass
-    raise ValueError(f"Invalid PortOrIpAddress value: {port_or_ip}")
+    raise ValueError(f"Invalid SubIndex: {subindex}")
 
 
 def parse_log_and_history(line: str) -> List[LogEntry]:
@@ -246,8 +248,7 @@ def set_event_attrs(linedata: LineData, state: ZinoState, indices: EventIndices)
     elif event_field == "portstate":
         event.portstate = InterfaceState(linedata.value)
     elif event_field == "port":
-        # event.port exists, but it does not allow strings like "ge-1/0/1"
-        _log.info("port is not supported event field")
+        event.port = linedata.value
     elif event_field == "bfdAddr":
         if "unknown" in linedata.value:
             pass
