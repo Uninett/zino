@@ -92,12 +92,24 @@ class TestZino1BaseServerProtocol:
 
     @pytest.mark.timeout(5)
     @pytest.mark.asyncio
-    async def test_data_received_should_break_down_multiline_input_packets(self):
+    async def test_data_received_should_break_down_multiline_input_packets_with_cr_and_lf(self):
         protocol = Zino1BaseServerProtocol()
         fake_transport = Mock()
         protocol.connection_made(fake_transport)
         future = protocol._read_multiline()
         protocol.data_received(b"line one\r\nline two\r\n.\r\n")
+        data = await future
+
+        assert data == ["line one", "line two"]
+
+    @pytest.mark.timeout(5)
+    @pytest.mark.asyncio
+    async def test_data_received_should_break_down_multiline_input_packets_with_just_lf(self):
+        protocol = Zino1BaseServerProtocol()
+        fake_transport = Mock()
+        protocol.connection_made(fake_transport)
+        future = protocol._read_multiline()
+        protocol.data_received(b"line one\nline two\n.\n")
         data = await future
 
         assert data == ["line one", "line two"]
