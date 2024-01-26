@@ -41,13 +41,15 @@ is also utilized to monitor the NORDUnet backbone.
 Here's a quote about its features from the `README` file of the original Tcl
 codebase:
 
-> o Trap-driven polling; receives and interprets traps.
-> o Periodic status polling (by default low frequency).
-> o A simplistic event handling system.
-> o A simple SMTP-like client/server protocol.
-> o A TK-based user interface.
+```
+ o Trap-driven polling; receives and interprets traps.
+ o Periodic status polling (by default low frequency).
+ o A simplistic event handling system.
+ o A simple SMTP-like client/server protocol.
+ o A TK-based user interface.
 
-> all in a little under 5000 lines of Tcl.
+all in a little under 5000 lines of Tcl.
+```
 
 This project aims to port all this to Python, except for the TK-based user
 interface.  The Python implementation keeps backwards compatibility with the
