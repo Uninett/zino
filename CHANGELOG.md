@@ -8,6 +8,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Zino 2 is a full rewrite of the original Tcl-based Zino state monitor.  This
 changelog only details changes from Zino 2 on and out.
 
-## [Unreleased]
+## [2.0.0-alpha.1] - 2024-01-26
 
-The first official release has not happened yet.
+This is the first official release of Zino 2.
