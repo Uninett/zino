@@ -19,6 +19,71 @@ to be ported:
 Development of Zino 2.0 is fully sponsored by [NORDUnet](https://nordu.net/),
 on behalf of the nordic NRENs.
 
+## Table of contents
+
+- [What is Zino?](#what-is-zino)
+- [Installing](#installing-zino)
+- [Configuring](#configuring-zino)
+- [Contributing](#developing-zino)
+
+## What is Zino?
+
+Zino Is Not OpenView.
+
+Zino is an SNMP network monitor that began its life at Uninett in the mid
+1990s.  It was a homegrown system written in Tcl, specifically to monitor the
+routers of the Norwegian national research network (NREN), a large backbone
+network that connects the widely geographically dispersed higher education and
+research institutions of Norway.  Uninett was also part of NORDUnet, the
+collaboration that interconnects the NRENs of the Nordic countries, and Zino
+is also utilized to monitor the NORDUnet backbone.
+
+Here's a quote about its features from the `README` file of the original Tcl
+codebase:
+
+> o Trap-driven polling; receives and interprets traps.
+> o Periodic status polling (by default low frequency).
+> o A simplistic event handling system.
+> o A simple SMTP-like client/server protocol.
+> o A TK-based user interface.
+
+> all in a little under 5000 lines of Tcl.
+
+This project aims to port all this to Python, except for the TK-based user
+interface.  The Python implementation keeps backwards compatibility with the
+"simple SMTP-like client/server protocol", so that the existing user interface
+clients can be re-used (such as *Ritz* and *cuRitz*).  Additionally, a new web
+user interface client is being developed at https://github.com/uninett/howitz .
+
+Zino is essentially a small program that can run in the background, monitoring
+your router network for:
+
+- Link state
+- BGP session state
+- BFD session state
+- Juniper chassis alarms
+
+All changes will result in an "event" (aka a "case"), in which Zino will log
+all further related changes until the case is manually closed by a human
+operator via the server protocol on port 8001 (essentially through some user
+interface).
+
+Notifications are typically achieved by having a client program to fetch active
+events from the Zino server and decide from that which notifications need to be
+sent.
+
+Zino has very few dependencies, other than the Python packages required to run
+it.  Zino serializes its running state to a JSON file on disk, and can resume
+its work from this file when restarted.
+
+Redundancy can thus be achieved by running two or more Zino servers in
+parallel.  A typical solution is for one server to be the "master", and the
+other to be a "hot standby".  To ensure the master and the standby are mostly
+in sync, a typical solution is to transfer the state dump from the master to
+the standby every 24 hours and then restarting the standby from the master's
+state dump.  Zino clients can be typically be configured to automatically
+switch to using a standby server if the master is unavailable.
+
 ## Installing Zino
 
 First, ensure you have Python 3.9, 3.10 or 3.11 available on your system.
