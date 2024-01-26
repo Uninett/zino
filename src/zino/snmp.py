@@ -4,7 +4,7 @@ import os
 import threading
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Any, NamedTuple, Sequence, Union
+from typing import Any, NamedTuple, Sequence, Tuple, Union
 
 from pyasn1.type import univ
 from pysnmp.hlapi.asyncio import (
@@ -387,6 +387,20 @@ class SNMP:
             if not query_objects:
                 break  # Nothing left to query
         return dict(results)
+
+    def is_in_scope(self, entry: MibObject, oid: Tuple[str, str]):
+        """Returns if the given MibObject is within the subtree defined by the given OID"""
+        object_type = self._oid_to_object_type(*oid)
+        self._resolve_object(object_type=object_type)
+        root = OID(object_type[0])
+        return root.is_a_prefix_of(other=entry.oid)
+
+    async def subtree_is_supported(self, *oid: str) -> bool:
+        """Returns if the device has an entry for at least one object within the subtree of the given OID"""
+        entry = await self.getnext(*oid)
+        if entry and self.is_in_scope(entry=entry, oid=oid):
+            return True
+        return False
 
     @staticmethod
     def _object_type_to_mib_object(object_type: ObjectType) -> MibObject:

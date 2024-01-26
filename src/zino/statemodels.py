@@ -17,6 +17,35 @@ SubIndex = Union[None, int, IPAddress, AlarmType]
 _logger = logging.getLogger(__name__)
 
 
+class BGPStyle(StrEnum):
+    """The set of allowable BGP styles"""
+
+    JUNIPER = "juniper"
+    CISCO = "cisco"
+    GENERAL = "general"
+
+
+class BGPAdminStatus(StrEnum):
+    """The set of allowable BGP admin status"""
+
+    RUNNING = "running"
+    HALTED = "halted"
+    START = "start"
+    STOP = "stop"
+
+
+class BGPOperState(StrEnum):
+    """The set of allowable BGP oper states"""
+
+    IDLE = "idle"
+    CONNECT = "connect"
+    ACTIVE = "active"
+    OPENSENT = "opensent"
+    OPENCONFIRM = "openconfirm"
+    ESTABLISHED = "established"
+    DOWN = "down"
+
+
 class InterfaceState(StrEnum):
     """Enumerates allowable interface states.  Most of these values come from ifOperState from RFC 2863 (IF-MIB), but
     also adds internal Zino states that don't exist in the MIB.
@@ -62,6 +91,14 @@ class Port(BaseModel):
     bfd_state: Optional[BFDState] = None
 
 
+class BGPPeerSession(BaseModel):
+    """Keeps a BGP peer session"""
+
+    uptime: int
+    admin_status: BGPAdminStatus
+    oper_state: BGPOperState
+
+
 class DeviceState(BaseModel):
     """Keep device state"""
 
@@ -72,6 +109,8 @@ class DeviceState(BaseModel):
     ports: Dict[int, Port] = {}
     alarms: Optional[Dict[AlarmType, int]] = None
     boot_time: Optional[datetime.datetime] = None
+    bgp_style: Optional[BGPStyle] = None
+    bgp_peers: dict[IPAddress, BGPPeerSession] = dict()
 
     # This is the remaining set of potential device attributes stored in device state by the original Zino code:
     # EventId
@@ -81,10 +120,6 @@ class DeviceState(BaseModel):
     # bfdSessAddrType
     # bfdSessDiscr
     # bfdSessState
-    # bgpPeerAdminState
-    # bgpPeerOperState
-    # bgpPeerUpTime
-    # bgpPeers
     # firstFlap
     # flapping
     # flaps
@@ -274,13 +309,15 @@ class PortStateEvent(Event):
 
 class BGPEvent(Event):
     type: Literal["bgp"] = "bgp"
-    remote_addr: Optional[IPAddress] = None
+    remote_address: Optional[IPAddress] = None
     remote_as: Optional[int] = None
     peer_uptime: Optional[int] = None
+    operational_state: Optional[BGPOperState] = None
+    admin_status: Optional[BGPAdminStatus] = None
 
     @property
     def subindex(self) -> SubIndex:
-        return self.remote_addr
+        return self.remote_address
 
 
 class BFDEvent(Event):
