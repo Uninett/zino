@@ -29,7 +29,7 @@ dependencies = [
 dynamic = ["version"]
 
 [project.urls]
-"Homepage" = "https://gitlab.sikt.no/verktoy/zino2"
+"Homepage" = "https://github.com/Uninett/zino"
 
 [project.scripts]
 zino = "zino.zino:main"
