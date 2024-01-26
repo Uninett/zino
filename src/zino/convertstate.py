@@ -84,7 +84,7 @@ def create_state(old_state_file: str) -> ZinoState:
             set_is_juniper(linedata, new_state)
         elif "::isCisco" in line:
             set_is_cisco(linedata, new_state)
-        elif "::bgpPeerAdminState":
+        elif "::bgpPeerAdminState" in line:
             set_bgp_peer_admin_state(linedata, new_state)
         elif "::bgpPeerOperState" in line:
             set_bgp_peer_oper_state(linedata, new_state)
