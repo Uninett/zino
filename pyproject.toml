@@ -107,7 +107,7 @@ src_paths = ["src", "tests"]
 # Regexes for lines to exclude from consideration
 exclude_also = [
     # Don't need coverage for ellipsis used for type annotations
-    "...",
+    "\\.\\.\\.",
     # Don't complain about lines excluded unless type checking
     "if TYPE_CHECKING:",
 ]
