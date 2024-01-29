@@ -49,7 +49,7 @@ jobs:
       ################################
       # Run Linter against code base #
       ################################
-      - name: Lint Code Base
+      - name: Lint Code Base with black, flake8 and isort
         uses: github/super-linter/slim@v5
         env:
           VALIDATE_ALL_CODEBASE: false
@@ -65,3 +65,11 @@ jobs:
           PYTHON_ISORT_CONFIG_FILE: pyproject.toml
           # Exclude mibdumps files
           FILTER_REGEX_EXCLUDE: .*src/zino/mibdumps/.*
+
+      ################################
+      # Run ruff against code base #
+      ################################
+      - name: Lint Code Base with ruff
+        uses: chartboost/ruff-action@v1
+        with:
+          args: --exclude "mibdumps"
