@@ -279,7 +279,7 @@ class BGPStateMonitorTask(Task):
             _logger.debug(f"Noted external reset for {self.device_state.name}: {data.peer_remote_address}")
         else:
             event = self.state.events.get(self.device.name, data.peer_remote_address, BGPEvent)
-            if event and event.operational_state != "established":
+            if event and event.bgpos != "established":
                 self._bgp_external_reset(data)
                 _logger.debug(f"BGP session up for {self.device_state.name}: {data.peer_remote_address}")
 
@@ -364,7 +364,7 @@ class BGPStateMonitorTask(Task):
     def _bgp_oper_down(self, data: BaseBGPRow):
         event = self.state.events.get_or_create_event(self.device.name, data.peer_remote_address, BGPEvent)
 
-        if event.operational_state == "down":
+        if event.bgpos == "down":
             return
 
         copied_data = replace(data, peer_state="down")
@@ -382,7 +382,7 @@ class BGPStateMonitorTask(Task):
     def _update_bgp_event(self, event: BGPEvent, data: BaseBGPRow, last_event: str) -> BGPEvent:
         """Updates a given BGP event with the given BGP data"""
 
-        event.operational_state = data.peer_state
+        event.bgpos = data.peer_state
         event.admin_status = data.peer_admin_status
         event.remote_addr = data.peer_remote_address
         event.remote_as = data.peer_remote_as

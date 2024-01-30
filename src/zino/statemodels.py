@@ -312,7 +312,7 @@ class BGPEvent(Event):
     remote_addr: Optional[IPAddress] = None
     remote_as: Optional[int] = None
     peer_uptime: Optional[int] = None
-    operational_state: Optional[BGPOperState] = None
+    bgpos: Optional[BGPOperState] = None
     admin_status: Optional[BGPAdminStatus] = None
     lastevent: Optional[str] = None
 
