@@ -133,6 +133,17 @@ class TestBGPStateMonitorTask:
                 oper_state=BGPOperState.IDLE,
             )
         }
+        # create admin down event
+        event = task.state.events.get_or_create_event(
+            device_name=task.device.name, subindex=PEER_ADDRESS, event_class=BGPEvent
+        )
+        event.operational_state = BGPOperState.DOWN
+        event.admin_status = BGPAdminStatus.STOP
+        event.remote_address = PEER_ADDRESS
+        event.remote_as = DEFAULT_REMOTE_AS
+        event.peer_uptime = 0
+        task.state.events.commit(event=event)
+
         await task.run()
         # check if state has been updated to reflect state defined in .snmprec
         assert task.device_state.bgp_peers[PEER_ADDRESS].admin_status in [BGPAdminStatus.RUNNING, BGPAdminStatus.START]

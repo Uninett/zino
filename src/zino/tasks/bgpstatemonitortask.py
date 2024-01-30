@@ -345,7 +345,8 @@ class BGPStateMonitorTask(Task):
     def _bgp_admin_up(self, data: BaseBGPRow):
         event = self.state.events.get_or_create_event(self.device.name, data.peer_remote_address, BGPEvent)
 
-        if event.admin_status == data.peer_admin_status:
+        # No previous event, so no need to notify or event already up to date
+        if event.id is None or event.admin_status == data.peer_admin_status:
             return
 
         copied_data = replace(data, peer_fsm_established_time=0)
