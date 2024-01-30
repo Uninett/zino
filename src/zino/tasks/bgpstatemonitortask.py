@@ -327,7 +327,7 @@ class BGPStateMonitorTask(Task):
     def _bgp_admin_down(self, data: BaseBGPRow):
         event = self.state.events.get_or_create_event(self.device.name, data.peer_remote_address, BGPEvent)
 
-        if event.admin_status == data.peer_admin_status:
+        if event.bgpas == data.peer_admin_status:
             return
 
         copied_data = replace(data, peer_state="down", peer_fsm_established_time=0)
@@ -346,7 +346,7 @@ class BGPStateMonitorTask(Task):
         event = self.state.events.get_or_create_event(self.device.name, data.peer_remote_address, BGPEvent)
 
         # No previous event, so no need to notify or event already up to date
-        if event.id is None or event.admin_status == data.peer_admin_status:
+        if event.id is None or event.bgpas == data.peer_admin_status:
             return
 
         copied_data = replace(data, peer_fsm_established_time=0)
@@ -383,7 +383,7 @@ class BGPStateMonitorTask(Task):
         """Updates a given BGP event with the given BGP data"""
 
         event.bgpos = data.peer_state
-        event.admin_status = data.peer_admin_status
+        event.bgpas = data.peer_admin_status
         event.remote_addr = data.peer_remote_address
         event.remote_as = data.peer_remote_as
         event.peer_uptime = data.peer_fsm_established_time

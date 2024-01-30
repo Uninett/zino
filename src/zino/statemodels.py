@@ -313,7 +313,7 @@ class BGPEvent(Event):
     remote_as: Optional[int] = None
     peer_uptime: Optional[int] = None
     bgpos: Optional[BGPOperState] = None
-    admin_status: Optional[BGPAdminStatus] = None
+    bgpas: Optional[BGPAdminStatus] = None
     lastevent: Optional[str] = None
 
     @property
