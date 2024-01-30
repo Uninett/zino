@@ -314,6 +314,7 @@ class BGPEvent(Event):
     peer_uptime: Optional[int] = None
     operational_state: Optional[BGPOperState] = None
     admin_status: Optional[BGPAdminStatus] = None
+    lastevent: Optional[str] = None
 
     @property
     def subindex(self) -> SubIndex:
