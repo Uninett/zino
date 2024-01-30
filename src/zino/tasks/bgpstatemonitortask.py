@@ -384,7 +384,7 @@ class BGPStateMonitorTask(Task):
 
         event.operational_state = data.peer_state
         event.admin_status = data.peer_admin_status
-        event.remote_address = data.peer_remote_address
+        event.remote_addr = data.peer_remote_address
         event.remote_as = data.peer_remote_as
         event.peer_uptime = data.peer_fsm_established_time
         event.polladdr = self.device.address
