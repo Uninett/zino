@@ -1,8 +1,9 @@
 import argparse
 import logging
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from ipaddress import ip_address
-from typing import List, get_args
+from typing import List, NamedTuple, Optional, get_args
 
 from zino.events import EventIndex
 from zino.linedata import LineData, get_line_data
@@ -15,7 +16,10 @@ from zino.statemodels import (
     BFDEvent,
     BFDSessState,
     BFDState,
+    BGPAdminStatus,
     BGPEvent,
+    BGPOperState,
+    BGPPeerSession,
     EventState,
     InterfaceState,
     IPAddress,
@@ -39,11 +43,31 @@ event_name_to_type = {
 }
 
 
+@dataclass
+class TempBGPPeerSession:
+    """Temporary class for defining BGPPeerSession objects. The attributes are optional
+    so they can be set one at a time. This is useful as the state dump is read one line at a time.
+    """
+
+    uptime: Optional[int] = None
+    admin_status: Optional[BGPAdminStatus] = None
+    oper_state: Optional[BGPOperState] = None
+
+
+class BGPDevicePeerIndex(NamedTuple):
+    """Defines a device and a peer using the name of the device and the IP for the peer"""
+
+    device: str
+    ip: IPAddress
+
+
 def create_state(old_state_file: str) -> ZinoState:
     new_state = ZinoState()
     event_attrs = []
     bfd_sess_addr = []
     bfd_sess_discr = []
+    bgp_sessions: dict[BGPDevicePeerIndex, TempBGPPeerSession] = dict()
+    bgp_peers = []
     event_indices: EventIndices = {}
     old_state_lines = read_file_lines(old_state_file)
     for line in old_state_lines:
@@ -85,13 +109,13 @@ def create_state(old_state_file: str) -> ZinoState:
         elif "::isCisco" in line:
             set_is_cisco(linedata, new_state)
         elif "::bgpPeerAdminState" in line:
-            set_bgp_peer_admin_state(linedata, new_state)
+            set_bgp_peer_admin_status(linedata, bgp_sessions)
         elif "::bgpPeerOperState" in line:
-            set_bgp_peer_oper_state(linedata, new_state)
+            set_bgp_peer_oper_state(linedata, bgp_sessions)
         elif "::bgpPeerUpTime" in line:
-            set_bgp_peer_up_time(linedata, new_state)
+            set_bgp_peer_up_time(linedata, bgp_sessions)
         elif "::bgpPeers" in line:
-            set_bgp_peers(linedata, new_state)
+            bgp_peers.append(linedata)
         elif "::firstFlap" in line:
             set_first_flap(linedata, new_state)
         elif "::flapHistVal" in line:
@@ -127,6 +151,9 @@ def create_state(old_state_file: str) -> ZinoState:
         set_bfd_sess_addr(linedata, new_state)
     for linedata in bfd_sess_discr:
         set_bfd_sess_discr(linedata, new_state)
+    for linedata in bgp_peers:
+        # BGPPeerSession requires all values to be set at once (non-optional attributes), so this is done at the end
+        set_bgp_peers(linedata, new_state, bgp_sessions)
     return new_state
 
 
@@ -212,9 +239,9 @@ def set_event_attrs(linedata: LineData, state: ZinoState, indices: EventIndices)
     elif event_field == "history":
         event.history = parse_log_and_history(linedata.value)
     elif event_field == "bgpOS":
-        _log.info("bgpOS is not a supported event field")
+        event.operational_state = BGPOperState(linedata.value)
     elif event_field == "bgpAS":
-        _log.info("bgpAS is not a supported event field")
+        event.admin_status = BGPAdminStatus(linedata.value)
     elif event_field == "lastevent":
         _log.info("lastevent is not a supported event field")
     elif event_field == "log":
@@ -389,24 +416,78 @@ def set_event_close_times(linedata: LineData, state: ZinoState):
     _log.info("eventCloseTimes is not supported")
 
 
-def set_bgp_peer_admin_state(linedata: LineData, state: ZinoState):
-    """Supported soon"""
-    _log.info("bgpPeerAdminState is not supported")
+def set_bgp_peer_admin_status(linedata: LineData, sessions: dict[BGPDevicePeerIndex, TempBGPPeerSession]):
+    try:
+        ip = parse_ip(linedata.identifiers[1])
+    except ValueError:
+        # There is a bug in zino1 statedump where invalid IPv6 addresses are dumped
+        _log.error(f"Could not parse ip {linedata.identifiers[1]}")
+    else:
+        index = BGPDevicePeerIndex(linedata.identifiers[0], ip)
+        session = sessions.get(index, TempBGPPeerSession())
+        session.admin_status = BGPAdminStatus(linedata.value)
+        sessions[index] = session
 
 
-def set_bgp_peer_oper_state(linedata: LineData, state: ZinoState):
-    """Supported soon"""
-    _log.info("bgpPeerOperState is not supported")
+def set_bgp_peer_oper_state(linedata: LineData, sessions: dict[BGPDevicePeerIndex, TempBGPPeerSession]):
+    try:
+        ip = parse_ip(linedata.identifiers[1])
+    except ValueError:
+        # There is a bug in zino1 statedump where invalid IPv6 addresses are dumped
+        _log.error(f"Could not parse ip {linedata.identifiers[1]}")
+    else:
+        index = BGPDevicePeerIndex(linedata.identifiers[0], ip)
+        session = sessions.get(index, TempBGPPeerSession())
+        session.oper_state = BGPOperState(linedata.value)
+        sessions[index] = session
 
 
-def set_bgp_peer_up_time(linedata: LineData, state: ZinoState):
-    """Supported soon"""
-    _log.info("bgpPeerUpTime is not supported")
+def set_bgp_peer_up_time(linedata: LineData, sessions: dict[BGPDevicePeerIndex, TempBGPPeerSession]):
+    try:
+        ip = parse_ip(linedata.identifiers[1])
+    except ValueError:
+        # There is a bug in zino1 statedump where invalid IPv6 addresses are dumped
+        _log.error(f"Could not parse ip {linedata.identifiers[1]}")
+    else:
+        index = BGPDevicePeerIndex(linedata.identifiers[0], ip)
+        session = sessions.get(index, TempBGPPeerSession())
+        session.uptime = int(linedata.value)
+        sessions[index] = session
 
 
-def set_bgp_peers(linedata: LineData, state: ZinoState):
-    """Supported soon"""
-    _log.info("bgpPeers is not supported")
+def set_bgp_peers(
+    linedata: LineData,
+    state: ZinoState,
+    temp_sessions: dict[IPAddress, TempBGPPeerSession],
+):
+    """Updates `bgp_peers` field for devices in `state` with
+    BGP session data defined in `temp_sessions`. If errors occur for one peer,
+    the error is logged and the peer is discarded before the next peer is processed.
+    """
+    device = state.devices.get(linedata.identifiers[0])
+    for peer in linedata.value.split():
+        try:
+            peer_ip = parse_ip(peer)
+        except ValueError:
+            # There is a bug in zino1 statedump where invalid IPv6 addresses are dumped
+            _log.error(f"Could not parse ip {peer}")
+            continue
+        index = BGPDevicePeerIndex(device.name, peer_ip)
+        try:
+            temp_session = temp_sessions[index]
+        except KeyError:
+            _log.error(f"Could not find BGP data for index {index}")
+            continue
+        try:
+            bgp_session = BGPPeerSession(
+                uptime=temp_session.uptime,
+                admin_status=temp_session.admin_status,
+                oper_state=temp_session.oper_state,
+            )
+        except ValueError as e:
+            _log.error(f"Could create BGPPeerSession for index {index}: {e}")
+            continue
+        device.bgp_peers[peer_ip] = bgp_session
 
 
 def set_first_flap(linedata: LineData, state: ZinoState):

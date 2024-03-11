@@ -9,6 +9,9 @@ from zino.statemodels import (
     AlarmEvent,
     BFDEvent,
     BFDSessState,
+    BGPAdminStatus,
+    BGPEvent,
+    BGPOperState,
     EventState,
     InterfaceState,
     PortStateEvent,
@@ -78,7 +81,23 @@ def test_portstate_event_is_created_correctly(save_state_path):
 
 def test_bgp_event_is_created_correctly(save_state_path):
     """Placeholder for when BGP is supported"""
-    pass
+    state = create_state(save_state_path)
+    event = state.events.checkout(100)
+    assert isinstance(event, BGPEvent)
+    assert event.type == "bgp"
+    assert event.router == "auroralane-gw1"
+    assert event.state == EventState.WAITING
+    assert event.polladdr == ip_address("219.188.192.78")
+    assert event.opened == datetime.fromtimestamp(1706257668)
+    assert event.updated == datetime.fromtimestamp(1706257668)
+    assert event.priority == 100
+    assert len(event.history) == 1
+    assert len(event.log) == 1
+    assert event.remote_address == ip_address("0515:7cfd:1bcc:279e:f5a4:5528:f4c3:58af")
+    assert event.remote_as == 100
+    assert event.peer_uptime == 420
+    assert event.operational_state == BGPOperState.DOWN
+    assert event.admin_status == BGPAdminStatus.RUNNING
 
 
 def test_jnx_alarms_are_set_correctly(save_state_path):
@@ -134,6 +153,35 @@ def test_ifalias_is_set_correctly(save_state_path):
     state = create_state(save_state_path)
     device = state.devices.get("arkham-sw1")
     assert device.ports[150].ifalias == "LACP-link, test.no-phy1"
+
+
+def test_bgp_uptime_is_set_correctly(save_state_path):
+    state = create_state(save_state_path)
+    device = state.devices.get("auroralane-gw1")
+    ip = ip_address("3000:04AB:0554:0001:0000:0000:0000:00AA")
+    assert device.bgp_peers[ip].uptime == 14000000
+
+
+def test_bgp_admin_status_is_set_correctly(save_state_path):
+    state = create_state(save_state_path)
+    device = state.devices.get("auroralane-gw1")
+    ip = ip_address("3000:04AB:0554:0001:0000:0000:0000:00AA")
+    assert device.bgp_peers[ip].admin_status == BGPAdminStatus.RUNNING
+
+
+def test_bgp_oper_status_is_set_correctly(save_state_path):
+    state = create_state(save_state_path)
+    device = state.devices.get("auroralane-gw1")
+    ip = ip_address("3000:04AB:0554:0001:0000:0000:0000:00AA")
+    assert device.bgp_peers[ip].oper_state == BGPOperState.ACTIVE
+
+
+def test_bgp_peers_is_set_correctly(save_state_path):
+    state = create_state(save_state_path)
+    device = state.devices.get("auroralane-gw1")
+    ip = ip_address("3000:04AB:0554:0001:0000:0000:0000:00AA")
+    assert ip in device.bgp_peers
+    assert len(device.bgp_peers) == 1
 
 
 @pytest.fixture
