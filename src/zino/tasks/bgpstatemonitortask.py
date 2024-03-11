@@ -90,8 +90,6 @@ class BGPStateMonitorTask(Task):
         if not bgp_info:
             return
 
-        bgp_info = self._fixup_ip_addresses(bgp_info=bgp_info)
-
         for result in bgp_info.values():
             self._update_single_bgp_entry(row=result, local_as=local_as, uptime=uptime)
 
@@ -220,21 +218,13 @@ class BGPStateMonitorTask(Task):
             _logger.info(f"router {self.device.name} misses BGP variables ({missing_variables})")
             return None
 
-        return generalized_bgp_info
-
-    def _fixup_ip_addresses(self, bgp_info: SparseWalkResponse) -> SparseWalkResponse:
-        fixed_bgp_info = dict()
-        for oid, result in bgp_info.items():
+        for result in generalized_bgp_info.values():
             try:
-                fixed_remote_address = parse_ip(result["peer_remote_address"])
+                result["peer_remote_address"] = parse_ip(result["peer_remote_address"])
             except ValueError:
                 _logger.debug(f"{self.device_state.name}: Invalid peer_remote_address {result['peer_remote_address']}")
-                continue
 
-            fixed_bgp_info[oid] = result
-            fixed_bgp_info[oid]["peer_remote_address"] = fixed_remote_address
-
-        return fixed_bgp_info
+        return generalized_bgp_info
 
     def _update_single_bgp_entry(self, row: dict[str, Any], local_as: int, uptime: int):
         data = BaseBGPRow(**row)
