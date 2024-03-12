@@ -184,8 +184,21 @@ def test_bgp_peers_is_set_correctly(save_state_path):
     assert len(device.bgp_peers) == 1
 
 
+def test_invalid_event_attribute_should_not_be_set(invalid_event_save_state_path):
+    state = create_state(invalid_event_save_state_path)
+    event = state.events.checkout(100)
+    assert not hasattr(event, "invalid_attr")
+
+
 @pytest.fixture
 def save_state_path():
     this_directory = os.path.dirname(__file__)
-    state_file = os.path.join(this_directory, "zino1_state.tcl")
+    state_file = os.path.join(this_directory, "tcl_fixtures", "zino1_state.tcl")
+    return state_file
+
+
+@pytest.fixture
+def invalid_event_save_state_path():
+    this_directory = os.path.dirname(__file__)
+    state_file = os.path.join(this_directory, "tcl_fixtures", "zino1_state_invalid_event_attr.tcl")
     return state_file
