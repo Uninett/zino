@@ -1,12 +1,12 @@
-import ipaddress
 import logging
-from typing import Dict, Literal
+from typing import Dict
 
 from zino.oid import OID
 from zino.scheduler import get_scheduler
 from zino.snmp import SparseWalkResponse
-from zino.statemodels import BFDEvent, BFDSessState, BFDState, IPAddress, Port
+from zino.statemodels import BFDEvent, BFDSessState, BFDState, Port
 from zino.tasks.task import Task
+from zino.utils import parse_ip
 
 _log = logging.getLogger(__name__)
 
@@ -121,9 +121,7 @@ class BFDTask(Task):
 
     def _parse_row(self, index: OID, state: str, discr: int, addr: str, addr_type: str) -> BFDState:
         try:
-            stripped_hexstring = addr.replace("0x", "")
-            addr_bytes = bytes.fromhex(stripped_hexstring)
-            ipaddr = self._convert_address(addr_bytes, addr_type)
+            ipaddr = parse_ip(addr)
         except ValueError as e:
             _log.error(f"Error converting addr {addr} to an IP address on device {self.device.name}: {e}")
             ipaddr = None
@@ -137,13 +135,3 @@ class BFDTask(Task):
             session_addr=ipaddr,
         )
         return bfd_state
-
-    @classmethod
-    def _convert_address(cls, address: bytes, address_type: Literal["ipv4", "ipv6"]) -> IPAddress:
-        """Converts bytes to either an ipv4 or ipv6 address"""
-        if address_type == "ipv4":
-            return ipaddress.IPv4Address(address)
-        elif address_type == "ipv6":
-            return ipaddress.IPv6Address(address)
-        else:
-            raise ValueError("address_type must be either ipv4 or ipv6")
