@@ -17,7 +17,6 @@ class TestJuniper:
             "up",
             bfd_state.session_discr,
             "0x7f000001",
-            "ipv4",
         )
         assert state == bfd_state
 

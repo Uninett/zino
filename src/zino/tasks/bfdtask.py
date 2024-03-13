@@ -22,7 +22,6 @@ class BFDTask(Task):
         ("JUNIPER-BFD-MIB", "jnxBfdSessIntfName"),  # This should match IfDescr from the IF-MIB
         ("BFD-STD-MIB", "bfdSessDiscriminator"),
         ("BFD-STD-MIB", "bfdSessAddr"),
-        ("BFD-STD-MIB", "bfdSessAddrType"),
     ]
 
     CISCO_BFD_COLUMNS = [
@@ -30,7 +29,6 @@ class BFDTask(Task):
         ("CISCO-IETF-BFD-MIB", "ciscoBfdSessInterface"),  # This should match IfIndex from the IF-MIB
         ("CISCO-IETF-BFD-MIB", "ciscoBfdSessDiscriminator"),
         ("CISCO-IETF-BFD-MIB", "ciscoBfdSessAddr"),
-        ("CISCO-IETF-BFD-MIB", "ciscoBfdSessAddrType"),
     ]
 
     def __init__(self, *args, **kwargs):
@@ -94,7 +92,6 @@ class BFDTask(Task):
                 row["bfdSessState"],
                 row["bfdSessDiscriminator"],
                 row["bfdSessAddr"],  # This is a string representing hexadecimals (ex "0x7f000001")
-                row["bfdSessAddrType"],
             )
             bfd_states[interface_name] = bfd_state
         return bfd_states
@@ -114,12 +111,11 @@ class BFDTask(Task):
                 row["ciscoBfdSessState"],
                 row["ciscoBfdSessDiscriminator"],
                 row["ciscoBfdSessAddr"],  # This is a string representing hexadecimals (ex "0x7f000001")
-                row["ciscoBfdSessAddrType"],
             )
             bfd_states[ifindex] = bfd_state
         return bfd_states
 
-    def _parse_row(self, index: OID, state: str, discr: int, addr: str, addr_type: str) -> BFDState:
+    def _parse_row(self, index: OID, state: str, discr: int, addr: str) -> BFDState:
         try:
             ipaddr = parse_ip(addr)
         except ValueError as e:
