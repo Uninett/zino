@@ -14,8 +14,7 @@ def parse_ip(ip: str) -> IPAddress:
             return _parse_hexa_string_ip(ip)
         if ":" in ip:
             return _parse_colon_separated_ip(ip)
-        else:
-            raise ValueError(f"Input {ip} could not be converted to IP address.")
+        raise ValueError(f"Input {ip} could not be converted to IP address.")
 
 
 def _parse_hexa_string_ip(ip: str) -> IPAddress:
