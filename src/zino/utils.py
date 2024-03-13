@@ -19,15 +19,7 @@ def parse_ip(ip: str) -> IPAddress:
 
 def _parse_hexa_string_ip(ip: str) -> IPAddress:
     """Parses IP addresses formatted as hexastrings, e.g. 0x7f000001"""
-    if len(ip) == 10:
-        # IPv4 address
-        address_str = ".".join((map(str, OctetString(hexValue=ip[2:]).asNumbers())))
-    elif len(ip) == 34:
-        # IPv6 address
-        address_str = ":".join(["".join(item) for item in zip(*[iter(ip[2:])] * 4)])
-    else:
-        raise ValueError(f"Input {ip} could not be converted to an IP address.")
-    return ip_address(address_str)
+    return ip_address(bytes(OctetString(hexValue=ip[2:])))
 
 
 def _parse_colon_separated_ip(ip: str) -> IPAddress:
