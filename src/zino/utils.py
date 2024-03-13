@@ -34,5 +34,4 @@ def _parse_colon_separated_ip(ip: str) -> IPAddress:
     """Parses IP addresses formatted with a colon symbol separating every octet, e.g. 7F:00:00:01
     Works for both IPv6 and IPv4 addresses with the same format
     """
-    address_str = bytes(int(i, 16) for i in ip.split(":"))
-    return ip_address(address_str)
+    return ip_address(bytes(OctetString(hexValue=ip.replace(":", ""))))
