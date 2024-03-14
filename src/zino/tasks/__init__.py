@@ -24,7 +24,17 @@ def get_registered_tasks():
     from zino.tasks.bgpstatemonitortask import BGPStateMonitorTask
     from zino.tasks.juniperalarmtask import JuniperAlarmTask
     from zino.tasks.linkstatetask import LinkStateTask
+    from zino.tasks.plannedmaintenancetask import PlannedMaintenanceTask
     from zino.tasks.reachabletask import ReachableTask
     from zino.tasks.vendor import VendorTask
 
-    return [ReachableTask, VendorTask, AddressMapTask, LinkStateTask, BFDTask, BGPStateMonitorTask, JuniperAlarmTask]
+    return [
+        ReachableTask,
+        VendorTask,
+        AddressMapTask,
+        LinkStateTask,
+        BFDTask,
+        BGPStateMonitorTask,
+        JuniperAlarmTask,
+        PlannedMaintenanceTask,
+    ]
