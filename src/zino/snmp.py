@@ -458,7 +458,7 @@ def _mib_value_to_python(value: SupportedTypes) -> Union[str, int, OID]:
             value = value.prettyPrint()
         else:
             value = str(value)
-    elif isinstance(value, ObjectIdentity):
+    elif isinstance(value, (ObjectIdentity, univ.ObjectIdentifier)):
         value = OID(str(value))
     else:
         raise ValueError(f"Could not convert unknown type {type(value)}")
