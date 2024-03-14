@@ -1,5 +1,5 @@
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from ipaddress import ip_address
 from typing import Any, Iterable, Optional
 
@@ -279,7 +279,7 @@ class BGPStateMonitorTask(Task):
             _logger.debug(f"Noted external reset for {self.device_state.name}: {data.peer_remote_address}")
         else:
             event = self.state.events.get(self.device.name, data.peer_remote_address, BGPEvent)
-            if event and event.operational_state != "established":
+            if event and event.bgpos != "established":
                 self._bgp_external_reset(data)
                 _logger.debug(f"BGP session up for {self.device_state.name}: {data.peer_remote_address}")
 
@@ -316,14 +316,7 @@ class BGPStateMonitorTask(Task):
 
     def _bgp_external_reset(self, data: BaseBGPRow):
         event = self.state.events.get_or_create_event(self.device.name, data.peer_remote_address, BGPEvent)
-
-        event.operational_state = data.peer_state
-        event.admin_status = data.peer_admin_status
-        event.remote_address = data.peer_remote_address
-        event.remote_as = data.peer_remote_as
-        event.peer_uptime = data.peer_fsm_established_time
-        event.polladdr = self.device.address
-        event.priority = self.device.priority
+        event = self._update_bgp_event(event=event, data=data, last_event="peer was reset (now up)")
 
         log = f"{event.router} peer {data.peer_remote_address} AS {data.peer_remote_as} was reset (now up)"
         _logger.info(log)
@@ -334,16 +327,11 @@ class BGPStateMonitorTask(Task):
     def _bgp_admin_down(self, data: BaseBGPRow):
         event = self.state.events.get_or_create_event(self.device.name, data.peer_remote_address, BGPEvent)
 
-        if event.admin_status == data.peer_admin_status:
+        if event.bgpas == data.peer_admin_status:
             return
 
-        event.operational_state = "down"
-        event.admin_status = data.peer_admin_status
-        event.remote_address = data.peer_remote_address
-        event.remote_as = data.peer_remote_as
-        event.peer_uptime = 0
-        event.polladdr = self.device.address
-        event.priority = self.device.priority
+        copied_data = replace(data, peer_state="down", peer_fsm_established_time=0)
+        event = self._update_bgp_event(event=event, data=copied_data, last_event="peer is admin turned off")
 
         log = (
             f"{event.router} peer {data.peer_remote_address} AS {data.peer_remote_as} is admin turned off "
@@ -357,16 +345,12 @@ class BGPStateMonitorTask(Task):
     def _bgp_admin_up(self, data: BaseBGPRow):
         event = self.state.events.get_or_create_event(self.device.name, data.peer_remote_address, BGPEvent)
 
-        if event.admin_status == data.peer_admin_status:
+        # No previous event, so no need to notify or event already up to date
+        if event.id is None or event.bgpas == data.peer_admin_status:
             return
 
-        event.operational_state = data.peer_state
-        event.admin_status = data.peer_admin_status
-        event.remote_address = data.peer_remote_address
-        event.remote_as = data.peer_remote_as
-        event.peer_uptime = 0
-        event.polladdr = self.device.address
-        event.priority = self.device.priority
+        copied_data = replace(data, peer_fsm_established_time=0)
+        event = self._update_bgp_event(event=event, data=copied_data, last_event="peer is now admin turned on")
 
         log = (
             f"{event.router} peer {data.peer_remote_address} AS {data.peer_remote_as} is now admin turned on "
@@ -380,16 +364,11 @@ class BGPStateMonitorTask(Task):
     def _bgp_oper_down(self, data: BaseBGPRow):
         event = self.state.events.get_or_create_event(self.device.name, data.peer_remote_address, BGPEvent)
 
-        if event.operational_state == "down":
+        if event.bgpos == "down":
             return
 
-        event.operational_state = "down"
-        event.admin_status = data.peer_admin_status
-        event.remote_address = data.peer_remote_address
-        event.remote_as = data.peer_remote_as
-        event.peer_uptime = data.peer_fsm_established_time
-        event.polladdr = self.device.address
-        event.priority = self.device.priority
+        copied_data = replace(data, peer_state="down")
+        event = self._update_bgp_event(event=event, data=copied_data, last_event="peer is down")
 
         log = (
             f"{event.router} peer {data.peer_remote_address} AS {data.peer_remote_as} is down "
@@ -399,3 +378,17 @@ class BGPStateMonitorTask(Task):
         event.add_log(log)
 
         self.state.events.commit(event=event)
+
+    def _update_bgp_event(self, event: BGPEvent, data: BaseBGPRow, last_event: str) -> BGPEvent:
+        """Updates a given BGP event with the given BGP data"""
+
+        event.bgpos = data.peer_state
+        event.bgpas = data.peer_admin_status
+        event.remote_addr = data.peer_remote_address
+        event.remote_as = data.peer_remote_as
+        event.peer_uptime = data.peer_fsm_established_time
+        event.polladdr = self.device.address
+        event.priority = self.device.priority
+        event.lastevent = last_event
+
+        return event

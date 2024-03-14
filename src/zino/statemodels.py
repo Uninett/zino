@@ -309,15 +309,16 @@ class PortStateEvent(Event):
 
 class BGPEvent(Event):
     type: Literal["bgp"] = "bgp"
-    remote_address: Optional[IPAddress] = None
+    remote_addr: Optional[IPAddress] = None
     remote_as: Optional[int] = None
     peer_uptime: Optional[int] = None
-    operational_state: Optional[BGPOperState] = None
-    admin_status: Optional[BGPAdminStatus] = None
+    bgpos: Optional[BGPOperState] = None
+    bgpas: Optional[BGPAdminStatus] = None
+    lastevent: Optional[str] = None
 
     @property
     def subindex(self) -> SubIndex:
-        return self.remote_address
+        return self.remote_addr
 
 
 class BFDEvent(Event):
