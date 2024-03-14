@@ -75,6 +75,7 @@ def init_event_loop(args: argparse.Namespace, loop: Optional[AbstractEventLoop] 
         func=state.state.dump_state_to_file, trigger="interval", id=STATE_DUMP_JOB_ID, minutes=DEFAULT_INTERVAL_MINUTES
     )
     state.state.events.add_event_observer(reschedule_dump_state_on_commit)
+    state.state.planned_maintenances.add_pm_observer(reschedule_dump_state_on_pm_change)
 
     # Schedule removing events that have been closed for a certain time
     scheduler.add_job(
@@ -152,6 +153,19 @@ def reschedule_dump_state_on_commit(new_event: Event, old_event: Optional[Event]
         _log.debug(
             "event %s committed, rescheduling state dump from %s to %s", new_event.id, job.next_run_time, next_run
         )
+        job.modify(next_run_time=next_run)
+
+
+def reschedule_dump_state_on_pm_change() -> None:
+    """Observer that reschedules the state dumper job whenever the planned maintenance
+    dict is changed and there's more than `max_wait` time until the next scheduled
+    state dump.
+    """
+    scheduler = get_scheduler()
+    job = scheduler.get_job(job_id=STATE_DUMP_JOB_ID)
+    next_run = datetime.now(tz=tzlocal.get_localzone()) + MINIMUM_STATE_DUMP_INTERVAL
+    if job.next_run_time > next_run:
+        _log.debug("planned maintenances changed, rescheduling state dump from %s to %s", job.next_run_time, next_run)
         job.modify(next_run_time=next_run)
 
 
