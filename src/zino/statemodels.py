@@ -363,3 +363,20 @@ class AlarmEvent(Event):
     @property
     def subindex(self) -> SubIndex:
         return self.alarm_type
+
+
+class PlannedMaintenance:
+    id: Optional[int] = None
+    start_time: datetime.datetime
+    end_time: datetime.datetime
+    type: Literal["portstate", "device"]
+    match_type: Literal["regexp", "str", "exact", "intf-regexp"]
+    match_device: Optional[str]
+    match_expression: str
+    log: List[LogEntry] = []
+    pm_events: List[Event] = []
+
+    def add_log(self, message: str) -> LogEntry:
+        entry = LogEntry(message=message)
+        self.log.append(entry)
+        return entry
