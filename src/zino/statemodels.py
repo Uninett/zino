@@ -365,7 +365,7 @@ class AlarmEvent(Event):
         return self.alarm_type
 
 
-class PlannedMaintenance:
+class PlannedMaintenance(BaseModel):
     id: Optional[int] = None
     start_time: datetime.datetime
     end_time: datetime.datetime
