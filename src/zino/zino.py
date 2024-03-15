@@ -12,6 +12,7 @@ from zino.api.server import ZinoServer
 from zino.config.models import DEFAULT_INTERVAL_MINUTES
 from zino.scheduler import get_scheduler, load_and_schedule_polldevs
 from zino.statemodels import Event
+from zino.trapd import TrapReceiver
 
 STATE_DUMP_JOB_ID = "zino.dump_state"
 # Never try to dump state more often than this:
@@ -53,6 +54,11 @@ def init_event_loop(args: argparse.Namespace):
     if args.stop_in:
         _log.info("Instructed to stop in %s seconds", args.stop_in)
         scheduler.add_job(func=loop.stop, trigger="date", run_date=datetime.now() + timedelta(seconds=args.stop_in))
+
+    trap_receiver = TrapReceiver(port=1162, loop=loop)
+    trap_receiver.add_community("public")
+    trap_receiver.add_community("secret")
+    loop.run_until_complete(trap_receiver.open())
 
     try:
         loop.run_forever()
