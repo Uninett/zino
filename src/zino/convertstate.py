@@ -1,0 +1,554 @@
+import argparse
+import logging
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+from ipaddress import ip_address
+from typing import List, NamedTuple, Optional, get_args
+
+from zino.events import EventIndex
+from zino.linedata import LineData, get_line_data
+from zino.state import ZinoState
+from zino.statemodels import (
+    CISCO_ENTERPRISE_ID,
+    JUNIPER_ENTERPRISE_ID,
+    AlarmEvent,
+    AlarmType,
+    BFDEvent,
+    BFDSessState,
+    BFDState,
+    BGPAdminStatus,
+    BGPEvent,
+    BGPOperState,
+    BGPPeerSession,
+    EventState,
+    InterfaceState,
+    IPAddress,
+    LogEntry,
+    Port,
+    PortStateEvent,
+    ReachabilityEvent,
+    SubIndex,
+)
+
+_log = logging.getLogger(__name__)
+
+EventIndices = dict[str, EventIndex]
+
+event_name_to_type = {
+    "bgp": BGPEvent,
+    "bfd": BFDEvent,
+    "reachability": ReachabilityEvent,
+    "alarm": AlarmEvent,
+    "portstate": PortStateEvent,
+}
+
+
+@dataclass
+class TempBGPPeerSession:
+    """Temporary class for defining BGPPeerSession objects. The attributes are optional
+    so they can be set one at a time. This is useful as the state dump is read one line at a time.
+    """
+
+    uptime: Optional[int] = None
+    admin_status: Optional[BGPAdminStatus] = None
+    oper_state: Optional[BGPOperState] = None
+
+
+class BGPDevicePeerIndex(NamedTuple):
+    """Defines a device and a peer using the name of the device and the IP for the peer"""
+
+    device: str
+    ip: IPAddress
+
+
+def create_state(old_state_file: str) -> ZinoState:
+    new_state = ZinoState()
+    event_attrs = []
+    bfd_sess_addr = []
+    bfd_sess_discr = []
+    bgp_sessions: dict[BGPDevicePeerIndex, TempBGPPeerSession] = dict()
+    bgp_peers = []
+    event_indices: EventIndices = {}
+    old_state_lines = read_file_lines(old_state_file)
+    for line in old_state_lines:
+        # these lines do not contain any information
+        if "global" in line:
+            continue
+        linedata = get_line_data(line)
+        if "::BootTime" in line:
+            set_boot_time(linedata, new_state)
+        elif "::pm::lastid" in line:
+            set_last_id(linedata, new_state)
+        elif "::EventAttrs" in line:
+            # Parse later, need to parse ::EventIdToIx first
+            event_attrs.append(linedata)
+        elif "::EventIdToIx" in line:
+            event_id, event_index = get_event_index(linedata)
+            event_indices[event_id] = event_index
+        elif "::bfdSessState" in line:
+            set_bfd_sess_state(linedata, new_state)
+        elif "::bfdSessAddr" in line:
+            if "::bfdSessAddrType" in line:
+                continue
+            else:
+                # bfdSessState has to be parsed first
+                bfd_sess_addr.append(linedata)
+        elif "::bfdSessDiscr" in line:
+            # bfdSessState has to be parsed first
+            bfd_sess_discr.append(linedata)
+        elif "::JNXalarms" in line:
+            set_jnx_alarms(linedata, new_state)
+        elif "::portState" in line:
+            set_port_state(linedata, new_state)
+        elif "::portToIfDescr" in line:
+            set_port_to_if_descr(linedata, new_state)
+        elif "::portToLocIfDescr" in line:
+            set_port_to_loc_if_descr(linedata, new_state)
+        elif "::isJuniper" in line:
+            set_is_juniper(linedata, new_state)
+        elif "::isCisco" in line:
+            set_is_cisco(linedata, new_state)
+        elif "::bgpPeerAdminState" in line:
+            set_bgp_peer_admin_status(linedata, bgp_sessions)
+        elif "::bgpPeerOperState" in line:
+            set_bgp_peer_oper_state(linedata, bgp_sessions)
+        elif "::bgpPeerUpTime" in line:
+            set_bgp_peer_up_time(linedata, bgp_sessions)
+        elif "::bgpPeers" in line:
+            bgp_peers.append(linedata)
+        elif "::firstFlap" in line:
+            set_first_flap(linedata, new_state)
+        elif "::flapHistVal" in line:
+            set_flap_hist_val(linedata, new_state)
+        elif "::flappedAboveThreshold" in line:
+            set_flapped_above_threshold(linedata, new_state)
+        elif "::flapping" in line:
+            set_flapping(linedata, new_state)
+        elif "::flaps" in line:
+            set_flaps(linedata, new_state)
+        elif "::lastFlap" in line:
+            set_last_flap(linedata, new_state)
+        elif "::lastAge" in line:
+            set_last_age(linedata, new_state)
+        elif "::localAS" in line:
+            set_local_as(linedata, new_state)
+        elif "::sawPeer" in line:
+            set_saw_peer(linedata, new_state)
+        elif "::lastTime" in line:
+            set_last_time(linedata, new_state)
+        elif "::runsOn" in line:
+            set_runs_on(linedata, new_state)
+        elif "::pm_events" in line:
+            set_pm_events(linedata, new_state)
+        elif "::AddrToRouter" in line:
+            set_addr_to_router(linedata, new_state)
+    for linedata in event_attrs:
+        try:
+            set_event_attrs(linedata, new_state, event_indices)
+        except ValueError as e:
+            _log.error(f"Error setting event attribute: {e}")
+    for linedata in bfd_sess_addr:
+        set_bfd_sess_addr(linedata, new_state)
+    for linedata in bfd_sess_discr:
+        set_bfd_sess_discr(linedata, new_state)
+    for linedata in bgp_peers:
+        # BGPPeerSession requires all values to be set at once (non-optional attributes), so this is done at the end
+        set_bgp_peers(linedata, new_state, bgp_sessions)
+    return new_state
+
+
+def parse_ip(ip: str) -> IPAddress:
+    try:
+        return ip_address(ip)
+    except ValueError:
+        if ":" in ip:
+            ip = bytes(int(i, 16) for i in ip.split(":"))
+            return ip_address(ip)
+        else:
+            raise
+
+
+def read_file_lines(file: str):
+    with open(file, "r", encoding="latin-1") as state_file:
+        lines = state_file.read().splitlines()
+    return lines
+
+
+def set_boot_time(linedata: LineData, state: ZinoState):
+    device = state.devices.get(linedata.identifiers[0])
+    timestamp = int(linedata.value)
+    device.boot_time = datetime.fromtimestamp(timestamp)
+
+
+def get_event_index(line: LineData) -> tuple[int, EventIndex]:
+    """Parses a LineData representing an EventIdToIx line and returns a tuple
+    of event_id, event_index
+    """
+    event_id = int(line.identifiers[0])
+    device, subindex, event_type = tuple(line.value.split(","))
+    subindex = parse_subindex(subindex)
+    event_index = EventIndex(device, subindex, event_name_to_type[event_type])
+    return event_id, event_index
+
+
+def parse_subindex(subindex: str) -> SubIndex:
+    """Parses the part of a EventIdToIx line that defines the ip/port value"""
+    if subindex is None:
+        return subindex
+    if subindex in get_args(AlarmType):
+        return subindex
+    try:
+        return parse_ip(subindex)
+    except ValueError:
+        pass
+    try:
+        return int(subindex)
+    except ValueError:
+        pass
+    raise ValueError(f"Invalid SubIndex: {subindex}")
+
+
+def parse_log_and_history(line: str) -> List[LogEntry]:
+    return_list = []
+    entries = line.split("{")
+    for entry in entries:
+        if not entry:
+            # If just empty string caused by using .split()
+            continue
+        cleaned_entry = entry.replace("}", "")
+        cleaned_entry_split = cleaned_entry.split()
+        timestamp = cleaned_entry_split[0]
+        log_msg = " ".join(cleaned_entry_split[1:])
+        log_entry = LogEntry(timestamp=timestamp, message=log_msg)
+        return_list.append(log_entry)
+    return return_list
+
+
+def set_event_attrs(linedata: LineData, state: ZinoState, indices: EventIndices):
+    event_field = linedata.identifiers[0]
+    event_id = int(linedata.identifiers[1])
+    event_index = indices[event_id]
+    state.events.last_event_id = max(state.events.last_event_id, event_id)
+    if event_id in state.events.events:
+        event = state.events.events[event_id]
+    else:
+        event = state.events.create_event(*event_index)
+        event.id = event_id
+    if event_field == "priority":
+        event.priority = int(linedata.value)
+    elif event_field == "history":
+        event.history = parse_log_and_history(linedata.value)
+    elif event_field == "bgpOS":
+        event.operational_state = BGPOperState(linedata.value)
+    elif event_field == "bgpAS":
+        event.admin_status = BGPAdminStatus(linedata.value)
+    elif event_field == "lastevent":
+        _log.info("lastevent is not a supported event field")
+    elif event_field == "log":
+        event.log = parse_log_and_history(linedata.value)
+    elif event_field == "polladdr":
+        event.polladdr = parse_ip(linedata.value)
+    elif event_field == "opened":
+        event.opened = datetime.fromtimestamp(int(linedata.value))
+    elif event_field == "peer-uptime":
+        event.peer_uptime = int(linedata.value)
+    elif event_field == "remote-AS":
+        event.remote_as = int(linedata.value)
+    elif event_field == "remote-addr":
+        event.remote_address = parse_ip(linedata.value)
+    elif event_field == "router":
+        event.router = linedata.value
+    elif event_field == "state":
+        event.state = EventState(linedata.value)
+    elif event_field == "updated":
+        event.updated = datetime.fromtimestamp(int(linedata.value))
+    elif event_field == "ac-down":
+        event.ac_down = timedelta(seconds=int(linedata.value))
+    elif event_field == "descr":
+        event.descr = linedata.value
+    elif event_field == "flaps":
+        _log.info("flaps is not a supported event field")
+    elif event_field == "flapstate":
+        _log.info("flapstate is not a supported event field")
+    elif event_field == "ifindex":
+        event.ifindex = int(linedata.value)
+    elif event_field == "portstate":
+        event.portstate = InterfaceState(linedata.value)
+    elif event_field == "port":
+        event.port = linedata.value
+    elif event_field == "bfdAddr":
+        if "unknown" in linedata.value:
+            pass
+        else:
+            event.bfdaddr = parse_ip(linedata.value)
+    elif event_field == "bfdDiscr":
+        event.bfddiscr = int(linedata.value)
+    elif event_field == "bfdIx":
+        event.bfdix = int(linedata.value)
+    elif event_field == "bfdState":
+        event.bfdstate = BFDSessState(linedata.value)
+    elif event_field == "lasttrans":
+        event.lasttrans = datetime.fromtimestamp(int(linedata.value))
+    elif event_field == "alarm-count":
+        event.alarm_count = int(linedata.value)
+    elif event_field == "alarm-type":
+        event.alarm_type = linedata.value
+        _log.info("alarm-type is not a supported event field")
+    elif event_field == "Neigh-rDNS":
+        _log.info("Neigh-rDNS is not a supported event field")
+    elif event_field in ["id", "type"]:
+        # These are set via other means
+        pass
+    else:
+        raise ValueError(f"Unknown event attribute {event_field}")
+    state.events.events[event.id] = event
+
+
+def set_jnx_alarms(linedata: LineData, state: ZinoState):
+    device = state.devices.get(linedata.identifiers[0])
+    alarm_type = linedata.identifiers[1]
+    assert alarm_type in get_args(AlarmType)
+    alarm_count = int(linedata.value)
+    if not device.alarms:
+        device.alarms = {}
+    device.alarms[alarm_type] = alarm_count
+
+
+def set_bfd_sess_addr(linedata: LineData, state: ZinoState):
+    """Requires the matching Port and BFDState object to exist"""
+    if not linedata.value:
+        return
+    device = state.devices.get(linedata.identifiers[0])
+    ifindex = int(linedata.identifiers[1])
+    port = device.ports[ifindex]
+    port.bfd_state.session_addr = parse_ip(linedata.value)
+
+
+def set_bfd_sess_state(linedata: LineData, state: ZinoState):
+    device = state.devices.get(linedata.identifiers[0])
+    ifindex = int(linedata.identifiers[1])
+    sess_state = BFDSessState(linedata.value)
+    if ifindex not in device.ports:
+        device.ports[ifindex] = Port(ifindex=ifindex)
+    port = device.ports[ifindex]
+    if not port.bfd_state:
+        port.bfd_state = BFDState(session_state=sess_state)
+    port.bfd_state.session_state = sess_state
+
+
+def set_bfd_sess_discr(linedata: LineData, state: ZinoState):
+    """Requires the matching Port and BFDState object to exist"""
+    device = state.devices.get(linedata.identifiers[0])
+    ifindex = int(linedata.identifiers[1])
+    port = device.ports[ifindex]
+    port.bfd_state.session_discr = int(linedata.value)
+
+
+def set_is_cisco(linedata: LineData, state: ZinoState):
+    is_cisco = bool(int(linedata.value))
+    device = state.devices.get(linedata.identifiers[0])
+    if is_cisco:
+        device.enterprise_id = CISCO_ENTERPRISE_ID
+
+
+def set_is_juniper(linedata: LineData, state: ZinoState):
+    is_juniper = bool(int(linedata.value))
+    device = state.devices.get(linedata.identifiers[0])
+    if is_juniper:
+        device.enterprise_id = JUNIPER_ENTERPRISE_ID
+
+
+def set_port_state(linedata: LineData, state: ZinoState):
+    device = state.devices.get(linedata.identifiers[0])
+    ifindex = int(linedata.identifiers[1])
+    if ifindex not in device.ports:
+        device.ports[ifindex] = Port(ifindex=ifindex)
+    if linedata.value == "flapping":
+        _log.info("flapping port state is not supported")
+        return
+    device.ports[ifindex].state = InterfaceState(linedata.value)
+
+
+def set_port_to_if_descr(linedata: LineData, state: ZinoState):
+    device = state.devices.get(linedata.identifiers[0])
+    ifindex = int(linedata.identifiers[1])
+    if ifindex not in device.ports:
+        device.ports[ifindex] = Port(ifindex=ifindex)
+    device.ports[ifindex].ifdescr = linedata.value
+
+
+def set_port_to_loc_if_descr(linedata: LineData, state: ZinoState):
+    """Sets ifalias value"""
+    device = state.devices.get(linedata.identifiers[0])
+    ifindex = int(linedata.identifiers[1])
+    if ifindex not in device.ports:
+        device.ports[ifindex] = Port(ifindex=ifindex)
+    device.ports[ifindex].ifalias = linedata.value
+
+
+def set_last_id(linedata: LineData, state: ZinoState):
+    """this is an id related to planned maintenance"""
+    _log.info("lastid is not supported")
+
+
+def set_pm_events(linedata: LineData, state: ZinoState):
+    """Planned Maintenance events. Not implemented yet"""
+    _log.info("pm_events is not supported")
+
+
+def set_addr_to_router(linedata: LineData, state: ZinoState):
+    """addr is a polldevs things, so this should prob be ignored"""
+    _log.info("addrToRouter is not supported")
+
+
+def set_runs_on(linedata: LineData, state: ZinoState):
+    """RunsOn command i think says if an interface runs on top of another interface"""
+    _log.info("runsOn is not supported")
+
+
+def set_last_time(linedata: LineData, state: ZinoState):
+    """Dont think Zino2 supports this value"""
+    _log.info("lastTime is not supported")
+
+
+def set_event_close_times(linedata: LineData, state: ZinoState):
+    """Dont think Zino2 supports this value"""
+    _log.info("eventCloseTimes is not supported")
+
+
+def set_bgp_peer_admin_status(linedata: LineData, sessions: dict[BGPDevicePeerIndex, TempBGPPeerSession]):
+    try:
+        ip = parse_ip(linedata.identifiers[1])
+    except ValueError:
+        # There is a bug in zino1 statedump where invalid IPv6 addresses are dumped
+        _log.error(f"Could not parse ip {linedata.identifiers[1]}")
+    else:
+        index = BGPDevicePeerIndex(linedata.identifiers[0], ip)
+        session = sessions.get(index, TempBGPPeerSession())
+        session.admin_status = BGPAdminStatus(linedata.value)
+        sessions[index] = session
+
+
+def set_bgp_peer_oper_state(linedata: LineData, sessions: dict[BGPDevicePeerIndex, TempBGPPeerSession]):
+    try:
+        ip = parse_ip(linedata.identifiers[1])
+    except ValueError:
+        # There is a bug in zino1 statedump where invalid IPv6 addresses are dumped
+        _log.error(f"Could not parse ip {linedata.identifiers[1]}")
+    else:
+        index = BGPDevicePeerIndex(linedata.identifiers[0], ip)
+        session = sessions.get(index, TempBGPPeerSession())
+        session.oper_state = BGPOperState(linedata.value)
+        sessions[index] = session
+
+
+def set_bgp_peer_up_time(linedata: LineData, sessions: dict[BGPDevicePeerIndex, TempBGPPeerSession]):
+    try:
+        ip = parse_ip(linedata.identifiers[1])
+    except ValueError:
+        # There is a bug in zino1 statedump where invalid IPv6 addresses are dumped
+        _log.error(f"Could not parse ip {linedata.identifiers[1]}")
+    else:
+        index = BGPDevicePeerIndex(linedata.identifiers[0], ip)
+        session = sessions.get(index, TempBGPPeerSession())
+        session.uptime = int(linedata.value)
+        sessions[index] = session
+
+
+def set_bgp_peers(
+    linedata: LineData,
+    state: ZinoState,
+    temp_sessions: dict[IPAddress, TempBGPPeerSession],
+):
+    """Updates `bgp_peers` field for devices in `state` with
+    BGP session data defined in `temp_sessions`. If errors occur for one peer,
+    the error is logged and the peer is discarded before the next peer is processed.
+    """
+    device = state.devices.get(linedata.identifiers[0])
+    for peer in linedata.value.split():
+        try:
+            peer_ip = parse_ip(peer)
+        except ValueError:
+            # There is a bug in zino1 statedump where invalid IPv6 addresses are dumped
+            _log.error(f"Could not parse ip {peer}")
+            continue
+        index = BGPDevicePeerIndex(device.name, peer_ip)
+        try:
+            temp_session = temp_sessions[index]
+        except KeyError:
+            _log.error(f"Could not find BGP data for index {index}")
+            continue
+        try:
+            bgp_session = BGPPeerSession(
+                uptime=temp_session.uptime,
+                admin_status=temp_session.admin_status,
+                oper_state=temp_session.oper_state,
+            )
+        except ValueError as e:
+            _log.error(f"Could create BGPPeerSession for index {index}: {e}")
+            continue
+        device.bgp_peers[peer_ip] = bgp_session
+
+
+def set_first_flap(linedata: LineData, state: ZinoState):
+    _log.info("firstFlap is not supported")
+
+
+def set_flap_hist_val(linedata: LineData, state: ZinoState):
+    _log.info("flapHistVal is not supported")
+
+
+def set_flapped_above_threshold(linedata: LineData, state: ZinoState):
+    _log.info("flappedAboveThreshold is not supported")
+
+
+def set_flapping(linedata: LineData, state: ZinoState):
+    _log.info("flapping is not supported")
+
+
+def set_flaps(linedata: LineData, state: ZinoState):
+    _log.info("flaps is not supported")
+
+
+def set_last_flap(linedata: LineData, state: ZinoState):
+    _log.info("lastFlap is not supported")
+
+
+def set_last_age(linedata: LineData, state: ZinoState):
+    """Not sure what lastAge is"""
+    _log.info("lastAgeis not supported")
+
+
+def set_local_as(linedata: LineData, state: ZinoState):
+    """localAS is BGP related"""
+    _log.info("localAS not supported")
+
+
+def set_saw_peer(linedata: LineData, state: ZinoState):
+    """Timestamp for last time a BGP peer was seen"""
+    _log.info("sawPeernot supported")
+
+
+def get_parser():
+    parser = argparse.ArgumentParser(description="Convert Zino1 state to Zino2 compatible state")
+    parser.add_argument(
+        "input",
+        help="Absolute path to the Zino1 state you want to convert",
+    )
+    parser.add_argument(
+        "output",
+        help="Absolute path to where the new Zino2 state should be dumped",
+    )
+    return parser
+
+
+def main():
+    logging.basicConfig(format="%(message)s", level=logging.INFO)
+    parser = get_parser()
+    args = parser.parse_args()
+    state = create_state(args.input)
+    state.dump_state_to_file(args.output)
+
+
+if __name__ == "__main__":
+    main()

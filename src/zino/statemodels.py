@@ -13,6 +13,8 @@ from zino.time import now
 IPAddress = Union[IPv4Address, IPv6Address]
 AlarmType = Literal["yellow", "red"]
 SubIndex = Union[None, int, IPAddress, AlarmType]
+CISCO_ENTERPRISE_ID = 9
+JUNIPER_ENTERPRISE_ID = 2636
 
 _logger = logging.getLogger(__name__)
 
@@ -134,11 +136,11 @@ class DeviceState(BaseModel):
 
     @property
     def is_cisco(self):
-        return self.enterprise_id == 9
+        return self.enterprise_id == CISCO_ENTERPRISE_ID
 
     @property
     def is_juniper(self):
-        return self.enterprise_id == 2636
+        return self.enterprise_id == JUNIPER_ENTERPRISE_ID
 
     def set_boot_time_from_uptime(self, uptime: int):
         """Calculates and sets the device boot time from a current uptime value.
