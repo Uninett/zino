@@ -1,4 +1,5 @@
 """OID manipulation"""
+import nonexistant
 
 SEPARATOR = "."
 SEPARATOR_B = b"."
