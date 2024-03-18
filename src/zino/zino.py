@@ -36,29 +36,7 @@ def main():
 
 
 def init_event_loop(args: argparse.Namespace):
-    scheduler = get_scheduler()
-    scheduler.start()
-
-    scheduler.add_job(
-        func=load_and_schedule_polldevs,
-        trigger="interval",
-        args=(args.polldevs.name,),
-        minutes=1,
-        next_run_time=datetime.now(),
-    )
-    # Schedule state dumping every DEFAULT_INTERVAL_MINUTES and reschedule whenever events are committed
-    scheduler.add_job(
-        func=state.state.dump_state_to_file, trigger="interval", id=STATE_DUMP_JOB_ID, minutes=DEFAULT_INTERVAL_MINUTES
-    )
-    state.state.events.add_event_observer(reschedule_dump_state_on_commit)
-
     loop = asyncio.get_event_loop()
-    server = ZinoServer(loop=loop, state=state.state)
-    server.serve()
-
-    if args.stop_in:
-        _log.info("Instructed to stop in %s seconds", args.stop_in)
-        scheduler.add_job(func=loop.stop, trigger="date", run_date=datetime.now() + timedelta(seconds=args.stop_in))
 
     if args.trap_port:
         trap_receiver = TrapReceiver(port=args.trap_port, loop=loop)
@@ -75,6 +53,29 @@ def init_event_loop(args: argparse.Namespace):
         else:
             if args.user:
                 switch_to_user(args.user)
+
+    scheduler = get_scheduler()
+    scheduler.start()
+
+    scheduler.add_job(
+        func=load_and_schedule_polldevs,
+        trigger="interval",
+        args=(args.polldevs.name,),
+        minutes=1,
+        next_run_time=datetime.now(),
+    )
+    # Schedule state dumping every DEFAULT_INTERVAL_MINUTES and reschedule whenever events are committed
+    scheduler.add_job(
+        func=state.state.dump_state_to_file, trigger="interval", id=STATE_DUMP_JOB_ID, minutes=DEFAULT_INTERVAL_MINUTES
+    )
+    state.state.events.add_event_observer(reschedule_dump_state_on_commit)
+
+    server = ZinoServer(loop=loop, state=state.state)
+    server.serve()
+
+    if args.stop_in:
+        _log.info("Instructed to stop in %s seconds", args.stop_in)
+        scheduler.add_job(func=loop.stop, trigger="date", run_date=datetime.now() + timedelta(seconds=args.stop_in))
 
     try:
         loop.run_forever()
