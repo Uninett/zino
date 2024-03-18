@@ -2,7 +2,10 @@
 import argparse
 import asyncio
 import errno
+import grp
 import logging
+import os
+import pwd
 import sys
 from datetime import datetime, timedelta
 from typing import Optional
@@ -69,12 +72,58 @@ def init_event_loop(args: argparse.Namespace):
                 args.trap_port,
             )
             sys.exit(errno.EACCES)
+        else:
+            if args.user:
+                switch_to_user(args.user)
 
     try:
         loop.run_forever()
     except (KeyboardInterrupt, SystemExit):
         pass
 
+    return True
+
+
+def switch_to_user(username: str):
+    """Switch the process to another user (aka. drop privileges)"""
+
+    # Get UID/GID of current user
+    old_uid = os.getuid()
+    old_gid = os.getgid()
+
+    try:
+        # Try to get information about the given username
+        user = pwd.getpwnam(username)
+    except KeyError:
+        _log.error("Could not find user %s", username)
+        return False
+
+    if old_uid == user.pw_uid:
+        # Already running as the given user
+        _log.debug("Already running as uid/gid %d/%d.", old_uid, old_gid)
+        return True
+
+    try:
+        # Set primary group
+        os.setgid(user.pw_gid)
+
+        # Set non-primary groups
+        gids = [g.gr_gid for g in grp.getgrall() if username in g.gr_mem]
+        if gids:
+            os.setgroups(gids)
+
+        # Set user id
+        os.setuid(user.pw_uid)
+    except OSError as error:
+        # Failed changing uid/gid
+        _log.error(
+            "Failed changing uid/gid from %d/%d to %d/%d (%s)", old_uid, old_gid, user.pw_uid, user.pw_gid, error
+        )
+        return False
+
+    # Switch successful
+    _log.info("Dropped privileges to user %s", username)
+    _log.debug("uid/gid changed from %d/%d to %d/%d.", old_uid, old_gid, user.pw_uid, user.pw_gid)
     return True
 
 
@@ -108,6 +157,9 @@ def parse_args(arguments=None):
         default=162,
         help="Which UDP port to listen for traps on.  Default value is 162.  Any value below 1024 requires root "
         "privileges.  Setting to 0 disables SNMP trap monitoring.",
+    )
+    parser.add_argument(
+        "--user", metavar="USER", help="Switch to this user immediately after binding to privileged ports"
     )
     args = parser.parse_args(args=arguments)
     if args.polldevs:
