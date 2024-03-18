@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 import argparse
 import asyncio
+import errno
 import logging
+import sys
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -55,10 +57,18 @@ def init_event_loop(args: argparse.Namespace):
         _log.info("Instructed to stop in %s seconds", args.stop_in)
         scheduler.add_job(func=loop.stop, trigger="date", run_date=datetime.now() + timedelta(seconds=args.stop_in))
 
-    trap_receiver = TrapReceiver(port=1162, loop=loop)
-    trap_receiver.add_community("public")
-    trap_receiver.add_community("secret")
-    loop.run_until_complete(trap_receiver.open())
+    if args.trap_port:
+        trap_receiver = TrapReceiver(port=args.trap_port, loop=loop)
+        trap_receiver.add_community("public")
+        trap_receiver.add_community("secret")
+        try:
+            loop.run_until_complete(trap_receiver.open())
+        except PermissionError:
+            _log.fatal(
+                "Permission denied on UDP port %s. Use --trap-port to specify unprivileged port, or run as root",
+                args.trap_port,
+            )
+            sys.exit(errno.EACCES)
 
     try:
         loop.run_forever()
@@ -91,6 +101,14 @@ def parse_args(arguments=None):
         "--debug", action="store_true", default=False, help="Set global log level to DEBUG. Very chatty!"
     )
     parser.add_argument("--stop-in", type=int, default=None, help="Stop zino after N seconds.", metavar="N")
+    parser.add_argument(
+        "--trap-port",
+        type=int,
+        metavar="PORT",
+        default=162,
+        help="Which UDP port to listen for traps on.  Default value is 162.  Any value below 1024 requires root "
+        "privileges.  Setting to 0 disables SNMP trap monitoring.",
+    )
     args = parser.parse_args(args=arguments)
     if args.polldevs:
         args.polldevs.close()  # don't leave this temporary file descriptor open

@@ -23,7 +23,15 @@ def test_zino_should_not_crash_right_away(polldevs_conf_with_no_routers):
     """This tests that the main function runs Zino for at least 2 seconds"""
     seconds_to_run_for = 2
     subprocess.check_call(
-        ["zino", "--stop-in", str(seconds_to_run_for), "--polldevs", str(polldevs_conf_with_no_routers)]
+        [
+            "zino",
+            "--stop-in",
+            str(seconds_to_run_for),
+            "--polldevs",
+            str(polldevs_conf_with_no_routers),
+            "--trap-port",
+            "1162",
+        ]
     )
 
 
