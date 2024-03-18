@@ -1,3 +1,8 @@
+import getpass
+import grp
+import os
+import pwd
+import secrets
 import subprocess
 from argparse import Namespace
 from datetime import timedelta
@@ -60,3 +65,44 @@ class TestZinoRescheduleDumpStateOnCommit:
             get_job.return_value = mock_job
             zino.reschedule_dump_state_on_commit(mock_event)
             assert not mock_job.modify.called
+
+
+class TestSwitchUser:
+    def test_when_switching_to_current_user_it_should_succeed(self):
+        username = getpass.getuser()
+        assert zino.switch_to_user(username)
+
+    def test_when_user_does_not_exist_it_should_return_false(self):
+        random_username = secrets.token_hex(5)
+        print(f"attempting switch to user {random_username!r}")
+        assert not zino.switch_to_user(random_username)
+
+    @patch("pwd.getpwnam")
+    @patch("grp.getgrall")
+    @patch("os.setgid")
+    @patch("os.setgroups")
+    @patch("os.setuid")
+    def test_when_user_exists_it_should_switch_correctly_to_uid_gid_and_groups(
+        self, getpwnam, getgrall, setgid, setgroups, setuid
+    ):
+        random_username = secrets.token_hex(5)
+        pwd.getpwnam.return_value = Mock(pw_uid=666, pw_gid=999)
+        grp.getgrall.return_value = [Mock(gr_gid=4242, gr_mem=[random_username])]
+
+        assert zino.switch_to_user(random_username)
+        os.setgid.assert_called_once_with(999)
+        os.setuid.assert_called_once_with(666)
+        os.setgroups.assert_called_once_with([4242])
+
+    @patch("pwd.getpwnam")
+    @patch("grp.getgrall")
+    @patch("os.setgid")
+    @patch("os.setgroups")
+    @patch("os.setuid")
+    def test_when_setgid_raises_oserror_it_should_return_false(self, getpwnam, getgrall, setgid, setgroups, setuid):
+        random_username = secrets.token_hex(5)
+        pwd.getpwnam.return_value = Mock(pw_uid=666, pw_gid=999)
+        grp.getgrall.return_value = [Mock(gr_gid=4242, gr_mem=[random_username])]
+        os.setgid.side_effect = OSError("Mock error")
+
+        assert not zino.switch_to_user(random_username)
