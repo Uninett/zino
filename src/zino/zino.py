@@ -50,9 +50,8 @@ def init_event_loop(args: argparse.Namespace):
                 args.trap_port,
             )
             sys.exit(errno.EACCES)
-        else:
-            if args.user:
-                switch_to_user(args.user)
+    if args.user:
+        switch_to_user(args.user)
 
     scheduler = get_scheduler()
     scheduler.start()
