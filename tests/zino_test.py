@@ -64,6 +64,26 @@ def test_when_unprivileged_user_asks_for_privileged_port_zino_should_exit_with_e
         )
 
 
+@pytest.mark.asyncio
+@patch("zino.zino.switch_to_user")
+def test_when_args_specify_user_zino_init_event_loop_should_attempt_to_switch_users(switch_to_user, event_loop):
+    """Detect attempt to user switching by patching in a mock exception.  This is to avoid setting up the full Zino
+    daemon and mucking up the event loop and state, by ensuring we exit as soon as switch_to_user is called.
+    """
+
+    class MockError(Exception):
+        pass
+
+    zino.switch_to_user.side_effect = MockError()
+    with pytest.raises(MockError):
+        try:
+            zino.init_event_loop(args=Mock(trap_port=0, user="nobody"), loop=event_loop)
+        except MockError:
+            raise
+        except Exception:
+            pass
+
+
 class TestZinoRescheduleDumpStateOnCommit:
     def test_when_more_than_10_seconds_remains_until_next_dump_it_should_reschedule(self):
         scheduler = get_scheduler()
