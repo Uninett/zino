@@ -7,6 +7,7 @@ import logging
 import os
 import pwd
 import sys
+from asyncio import AbstractEventLoop
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -35,8 +36,9 @@ def main():
     init_event_loop(args)
 
 
-def init_event_loop(args: argparse.Namespace):
-    loop = asyncio.get_event_loop()
+def init_event_loop(args: argparse.Namespace, loop: Optional[AbstractEventLoop] = None):
+    if not loop:
+        loop = asyncio.get_event_loop()
 
     if args.trap_port:
         trap_receiver = TrapReceiver(port=args.trap_port, loop=loop)
