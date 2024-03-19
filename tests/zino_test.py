@@ -8,6 +8,8 @@ from argparse import Namespace
 from datetime import timedelta
 from unittest.mock import Mock, patch
 
+import pytest
+
 from zino import zino
 from zino.scheduler import get_scheduler
 from zino.time import now
@@ -43,6 +45,23 @@ def test_zino_should_not_crash_right_away(polldevs_conf_with_no_routers):
 def test_zino_argparser_works(polldevs_conf):
     parser = zino.parse_args(["--polldevs", str(polldevs_conf)])
     assert isinstance(parser, Namespace)
+
+
+@pytest.mark.skipif(os.geteuid() == 0, reason="cannot test while being root")
+def test_when_unprivileged_user_asks_for_privileged_port_zino_should_exit_with_error(polldevs_conf_with_no_routers):
+    seconds_to_run_for = 5
+    with pytest.raises(subprocess.CalledProcessError):
+        subprocess.check_call(
+            [
+                "zino",
+                "--stop-in",
+                str(seconds_to_run_for),
+                "--polldevs",
+                str(polldevs_conf_with_no_routers),
+                "--trap-port",
+                "162",
+            ]
+        )
 
 
 class TestZinoRescheduleDumpStateOnCommit:
