@@ -19,7 +19,7 @@ class TrapReceiver:
     """
 
     def __init__(self, address: str = "0.0.0.0", port: int = 162, loop=None):
-        self.transport = None
+        self.transport: udp.UdpTransport = None
         self.address = address
         self.port = port
         self.loop = loop if loop else asyncio.get_event_loop()
@@ -37,6 +37,11 @@ class TrapReceiver:
 
         ntfrcv.NotificationReceiver(self.snmp_engine, self.trap_received)
         self.snmp_engine.transportDispatcher.jobStarted(1)  # this job would never finish
+
+    def close(self):
+        """Closes the running SNMP engine and its associated ports"""
+        self.snmp_engine.transportDispatcher.closeDispatcher()
+        self.transport.closeTransport()
 
     def add_community(self, community: str):
         """Adds a new community string that will be accepted on incoming packets"""
