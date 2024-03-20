@@ -3,6 +3,7 @@
 The Legacy API from the Tcl-based Zino 1.0 is a 'vaguely SMTP-esque line-based text protocol'.  This module
 implements this protocol using asyncio semantics.
 """
+
 import asyncio
 import inspect
 import logging
@@ -233,8 +234,10 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
     @requires_authentication
     async def do_caseids(self):
         self._respond(304, "list of active cases follows, terminated with '.'")
-        for event_id in sorted(self._state.events.events):
-            self._respond_raw(str(event_id))
+        events = self._state.events.events
+        for event_id, event in sorted(events.items()):
+            if event.state != EventState.CLOSED:
+                self._respond_raw(str(event_id))
         self._respond_raw(".")
 
     def _translate_case_id_to_event(responder: callable):  # noqa

@@ -372,6 +372,21 @@ class TestZino1ServerProtocolCaseidsCommand:
         assert f"{event1.id}\r\n".encode() in output
         assert f"{event2.id}\r\n".encode() in output
 
+    @pytest.mark.asyncio
+    async def test_should_output_a_list_of_only_ids_of_non_closed_events(self, authenticated_protocol):
+        state = authenticated_protocol._state
+        event1 = state.events.create_event("foo", None, ReachabilityEvent)
+        state.events.commit(event1)
+        event2 = state.events.create_event("bar", None, ReachabilityEvent)
+        event2.state = EventState.CLOSED
+        state.events.commit(event2)
+
+        await authenticated_protocol.message_received("CASEIDS")
+
+        output = authenticated_protocol.transport.data_buffer.getvalue()
+        assert f"{event1.id}\r\n".encode() in output
+        assert f"{event2.id}\r\n".encode() not in output
+
 
 class TestZino1ServerProtocolVersionCommand:
     @pytest.mark.asyncio
