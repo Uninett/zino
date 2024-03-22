@@ -105,7 +105,6 @@ class DeviceState(BaseModel):
     name: str
     addresses: set[IPAddress] = set()
     enterprise_id: Optional[int] = None
-    boot_time: Optional[int] = None
     ports: Dict[int, Port] = {}
     alarms: Optional[Dict[AlarmType, int]] = None
     boot_time: Optional[datetime.datetime] = None
