@@ -9,7 +9,7 @@ from apscheduler.jobstores.base import JobLookupError
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from zino import state
-from zino.config.models import DEFAULT_INTERVAL_MINUTES
+from zino.config.models import DEFAULT_INTERVAL_MINUTES, PollDevice
 from zino.config.polldevs import read_polldevs
 from zino.tasks import run_all_tasks
 
@@ -48,6 +48,7 @@ def load_polldevs(polldevs_conf: str) -> Tuple[Set, Set]:
     deleted_devices = set(state.polldevs) - set(devices)
     if new_devices:
         _log.info("loaded new devices: %r", new_devices)
+        init_state_for_devices((devices[d] for d in new_devices))
     if deleted_devices:
         _log.info("deleted devices: %r", deleted_devices)
 
@@ -56,6 +57,13 @@ def load_polldevs(polldevs_conf: str) -> Tuple[Set, Set]:
         del state.polldevs[device]
 
     return new_devices, deleted_devices
+
+
+def init_state_for_devices(devices: Sequence[PollDevice]):
+    """Initializes empty state structures for new devices, if none already exist"""
+    for device in devices:
+        state.state.addresses[device.address] = device.name
+        state.state.devices.get(device.name)
 
 
 async def load_and_schedule_polldevs(polldevs_conf: str):
