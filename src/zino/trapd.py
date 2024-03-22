@@ -1,10 +1,14 @@
 """SNMP trap 'daemon' for Zino 2"""
 import asyncio
 import logging
+from ipaddress import ip_address
+from typing import Optional
 
 from pysnmp.carrier.asyncio.dgram import udp
 from pysnmp.entity import config, engine
 from pysnmp.entity.rfc3413 import ntfrcv
+
+from zino.statemodels import DeviceState, IPAddress
 
 _logger = logging.getLogger(__name__)
 
@@ -52,10 +56,25 @@ class TrapReceiver:
 
     def trap_received(self, snmp_engine, state_reference, context_engine_id, context_name, var_binds, callback_context):
         """Callback function that receives all matched trap messages on PySNMP's incoming transport socket"""
+        transport_domain, transport_address = snmp_engine.msgAndPduDsp.getTransportInfo(state_reference)
+        sender_address, sender_port = transport_address
+        sender_address = ip_address(sender_address)
+
+        router = self._lookup_device(sender_address)
+        if not router:
+            _logger.info("ignored trap from %s (not a box we monitor?)", sender_address)
+            return
+
         _logger.info(
-            'Trap from ContextEngineId "%s", ContextName "%s"',
+            'Trap from %s ContextEngineId "%s", ContextName "%s"',
+            sender_address,
             context_engine_id.prettyPrint(),
             context_name.prettyPrint(),
         )
         for name, val in var_binds:
             _logger.info("%s = %s", name.prettyPrint(), val.prettyPrint())
+
+    def _lookup_device(self, address: IPAddress) -> Optional[DeviceState]:
+        """Looks up a device from Zino's running state from an IP address"""
+        # stub implementation
+        return None
