@@ -41,7 +41,7 @@ def init_event_loop(args: argparse.Namespace, loop: Optional[AbstractEventLoop] 
         loop = asyncio.get_event_loop()
 
     if args.trap_port:
-        trap_receiver = TrapReceiver(port=args.trap_port, loop=loop)
+        trap_receiver = TrapReceiver(port=args.trap_port, loop=loop, state=state.state)
         trap_receiver.add_community("public")
         trap_receiver.add_community("secret")
         try:
