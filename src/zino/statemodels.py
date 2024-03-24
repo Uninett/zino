@@ -381,6 +381,12 @@ class PlannedMaintenance(BaseModel):
         self.log.append(entry)
         return entry
 
-    def matches(event: Event) -> bool:
+    def matches_event(self, event: Event) -> bool:
         """Returns true if `event` will be affected by this planned maintenance"""
+        pass
+
+    def matches_port(self, port: Port) -> bool:
+        pass
+
+    def matches_device(self, device: DeviceState) -> bool:
         pass
