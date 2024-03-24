@@ -380,3 +380,7 @@ class PlannedMaintenance(BaseModel):
         entry = LogEntry(message=message)
         self.log.append(entry)
         return entry
+
+    def matches(event: Event) -> bool:
+        """Returns true if `event` will be affected by this planned maintenance"""
+        pass
