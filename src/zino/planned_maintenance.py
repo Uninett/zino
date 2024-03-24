@@ -197,7 +197,7 @@ class PlannedMaintenances(BaseModel):
             events.append(event)
         return events
 
-    def _get_matching_ports(self, pm) -> list[tuple(DeviceState, Port)]:
+    def _get_matching_ports(self, pm) -> list[tuple[DeviceState, Port]]:
         from zino.state import state
 
         ports = []
