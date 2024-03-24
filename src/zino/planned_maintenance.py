@@ -202,7 +202,7 @@ class PlannedMaintenances(BaseModel):
         port_list = []
         for device in state.devices:
             for port in device.ports:
-                if pm.matches_port(port):
+                if pm.matches_portstate(device, port):
                     port_list.append((device, port))
         return port_list
 
