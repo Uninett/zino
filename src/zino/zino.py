@@ -46,7 +46,7 @@ def init_event_loop(args: argparse.Namespace):
     )
     # Schedule planned maintenance
     scheduler.add_job(
-        func=state.planned_maintenances.periodic,
+        func=state.state.planned_maintenances.periodic,
         trigger="interval",
         minutes=1,
         next_run_time=datetime.now(),
