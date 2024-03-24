@@ -385,8 +385,8 @@ class PlannedMaintenance(BaseModel):
         """Returns true if `event` will be affected by this planned maintenance"""
         pass
 
-    def matches_port(self, port: Port) -> bool:
-        """Returns true if PortstateEvents related to `port`
+    def matches_portstate(self, device: DeviceState, port: Port) -> bool:
+        """Returns true if PortstateEvents related to `port` on `device`
         will be affected by this planned maintenance
         """
         pass
