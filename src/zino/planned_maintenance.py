@@ -4,7 +4,16 @@ from typing import Dict, Literal, Optional, Protocol
 
 from pydantic.main import BaseModel
 
-from zino.statemodels import Event, EventState, PlannedMaintenance
+from zino.statemodels import (
+    AlarmEvent,
+    DeviceState,
+    Event,
+    EventState,
+    PlannedMaintenance,
+    Port,
+    PortStateEvent,
+    ReachabilityEvent,
+)
 
 _log = logging.getLogger(__name__)
 
@@ -110,44 +119,95 @@ class PlannedMaintenances(BaseModel):
 
         now = datetime.datetime.now()
 
-        started_maintenances = self.get_started_planned_maintenances(now=now)
-        for started_pm in started_maintenances:
-            events = self._get_or_create_maintenance_events_for_maintenance_start(maintenance=started_pm)
-            for event in events:
-                self._ignore_event(event)
-                started_pm.event_ids.append(event.id)
+        # Initiate PM once it becomes active
+        for started_pm in self.get_started_planned_maintenances(now=now):
+            self._start(started_pm)
 
-        active_maintenances = self.get_active_planned_maintenances(now=now)
-        # Get all events (maybe already filter here for ignored and closed events?)
+        # Make sure all events that matches a PM is ignored
         for event in state.events:
-            for active_pm in active_maintenances:
-                if active_pm.matches(event):
-                    self._ignore_event(event)
-                    active_pm.event_ids.append(event.id)
+            self._check_event(event)
 
-        ended_maintenances = self.get_ended_planned_maintenances(now=now)
-        for ended_pm in ended_maintenances:
-            for event in ended_pm.pm_events:
-                if event.state is not EventState.OPEN:
-                    self._unignore_event(event)
+        # End a PM and set events matching the PM to open
+        for ended_pm in self.get_ended_planned_maintenances(now=now):
+            self._end(ended_pm)
 
-    def _ignore_event(self, event: Event):
+        self.last_run = now
+
+    def _start(self, pm: PlannedMaintenance):
         from zino.state import state
 
-        event.state = EventState.IGNORED
-        state.events.commit(event)
+        events = self._get_or_create_events(pm)
+        for event in events:
+            event.state = EventState.IGNORED
+            state.events.commit(event)
+            pm.event_ids.append(event.id)
 
-    def _unignore_event(self, event: Event):
+    def _check_event(self, event: Event):
         from zino.state import state
 
-        # This is how it is currently done in Zino 1.0
-        # Could use some improvement on detecting the actual correct state
-        event.state = EventState.OPEN
-        state.events.commit(event)
+        if event.state in [EventState.IGNORED, EventState.CLOSED]:
+            return
 
-    def _get_or_create_maintenance_events_for_maintenance_start(self, maintenance: PlannedMaintenance) -> list[Event]:
+        active_pms = self.get_active_planned_maintenances()
+        for pm in active_pms:
+            if pm.matches(event):
+                event.state = EventState.IGNORED
+                event.add_log(f"entered into existing active PM event id {pm.id}")
+                state.events.commit(event)
+
+    def _end(self, pm: PlannedMaintenance):
+        from zino.state import state
+
+        for event_id in pm.event_ids:
+            event = state.events[event_id]
+            event.state = EventState.OPEN
+            state.events.commit(event)
+
+    def _get_or_create_events(self, pm: PlannedMaintenance) -> list[Event]:
         """Creates/gets events that are affected by the given starting planned
         maintenance
         """
         # See `start_pm` function in Zino 1.0 `pm.tcl`
-        pass
+        if pm.state == "portstate":
+            return self._get_or_create_portstate_events(pm)
+        elif pm.state == "device":
+            return self._get_or_create_device_events(pm)
+        raise ValueError(f"Invalid state {pm.state}")
+
+    def _get_or_create_portstate_events(self, pm: PlannedMaintenance) -> list[Event]:
+        from zino.state import state
+
+        events = []
+        deviceports = self._get_matching_ports(pm)
+        for device, port in deviceports:
+            event = state.events.get_or_create_event(device.name, port.ifindex, PortStateEvent)
+            # get special handling of embyonic -> open transition first
+            state.events.commit(event)
+            events.append(event)
+        return events
+
+    def _get_matching_ports(self, pm) -> list[tuple(DeviceState, Port)]:
+        from zino.state import state
+
+        port_list = []
+        for device in state.devices:
+            for port in device.ports:
+                if pm.matches_port(port):
+                    port_list.append((device, port))
+        return port_list
+
+    def _get_or_create_device_events(self, pm: PlannedMaintenance) -> list[Event]:
+        from zino.state import state
+
+        events = []
+        # all devices that the pm should affect
+        devices = [device for device in state.devices if pm.matches_device(device)]
+        for device in devices:
+            reachability_event = state.events.get_or_create_event(device.name, None, ReachabilityEvent)
+            yellow_event = state.events.get_or_create_event(device.name, "yellow", AlarmEvent)
+            red_event = state.events.get_or_create_event(device.name, "red", AlarmEvent)
+            for event in (reachability_event, yellow_event, red_event):
+                # get special handling of embyonic -> open transition first
+                state.events.commit(event)
+                events.append(event)
+        return events
