@@ -68,21 +68,27 @@ class PlannedMaintenances(BaseModel):
         """Returns all planned maintenances that have began since the last run of this
         task until now
         """
-        # Note: last run (self.last_run) can be None, which would mean this task has never run before
-        pass
+        if self.last_run:
+            return [pm for pm in self.planned_maintenances if self.last_run < pm.start_time <= now]
+        else:
+            return [pm for pm in self.planned_maintenances if pm.start_time <= now]
 
     def get_ended_planned_maintenances(self, now: datetime.datetime) -> list[PlannedMaintenance]:
         """Returns all planned maintenances that have ended since the last run of this
         task until now
         """
-        # Note: last run (self.last_run) can be None, which would mean this task has never run before
-        pass
+        if self.last_run:
+            return [pm for pm in self.planned_maintenances if self.last_run < pm.end_time <= now]
+        else:
+            return [pm for pm in self.planned_maintenances if pm.end_time <= now]
 
-    def get_active_planned_maintenances(self, now: datetime.datetime) -> list[PlannedMaintenance]:
+    def get_active_planned_maintenances(self) -> list[PlannedMaintenance]:
         """Returns all planned maintenances that are currently active
 
         This means it has started latest now and the end_time is later than now
         """
+        now = datetime.datetime.now()
+        return [pm for pm in self.planned_maintenances if pm.start_time < now < pm.end_time]
 
     def add_pm_observer(self, observer: PlannedMaintenanceObserver) -> None:
         """Adds an observer function that will be called any time a planned maintenance
