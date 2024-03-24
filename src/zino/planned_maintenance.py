@@ -115,7 +115,7 @@ class PlannedMaintenances(BaseModel):
         # Get all events (maybe already filter here for ignored and closed events?)
         for event in state.events:
             for active_pm in active_maintenances:
-                if matches_planned_maintenance(event=event, maintenance=active_pm):
+                if active_pm.matches(event):
                     self._ignore_event(event)
                     active_pm.event_ids.append(event.id)
 
@@ -145,8 +145,3 @@ class PlannedMaintenances(BaseModel):
         """
         # See `start_pm` function in Zino 1.0 `pm.tcl`
         pass
-
-
-def matches_planned_maintenance(event: Event, maintenance: PlannedMaintenance) -> bool:
-    """Returns true if the given event matches the given maintenance"""
-    pass
