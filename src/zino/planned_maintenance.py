@@ -103,30 +103,39 @@ class PlannedMaintenances(BaseModel):
         now = datetime.datetime.now()
 
         started_maintenances = self.get_started_planned_maintenances(now=now)
-        for maintenance in started_maintenances:
-            events = self._get_or_create_maintenance_events_for_maintenance_start(maintenance=maintenance)
+        for started_pm in started_maintenances:
+            events = self._get_or_create_maintenance_events_for_maintenance_start(maintenance=started_pm)
             for event in events:
-                event.state = EventState.IGNORED
-                self.state.events.commit(event)
-                maintenance.pm_events.append(event)
+                self._ignore_event(event)
+                started_pm.event_ids.append(event.id)
 
         # Get all events (maybe already filter here for ignored and closed events?)
         events = []
         for event in events:
             for active_pm in self.get_active_planned_maintenances(now=now):
                 if matches_planned_maintenance(event=event, maintenance=active_pm):
-                    event.state = EventState.IGNORED
-                    self.state.events.commit(event)
-                    active_pm.pm_events.append(event)
+                    self._ignore_event(event)
+                    active_pm.event_ids.append(event.id)
 
         ended_maintenances = self.get_ended_planned_maintenances(now=now)
-        for maintenance in ended_maintenances:
-            for event in maintenance.pm_events:
+        for ended_pm in ended_maintenances:
+            for event in ended_pm.pm_events:
                 if event.state is not EventState.OPEN:
-                    # This is how it is currently done in Zino 1.0
-                    # Could use some improvement on detecting the actual correct state
-                    event.state = EventState.OPEN
-                    self.state.events.commit(event)
+                    self._unignore_event(event)
+
+    def _ignore_event(self, event: Event):
+        from zino.state import state
+
+        event.state = EventState.IGNORED
+        state.events.commit(event)
+
+    def _unignore_event(self, event: Event):
+        from zino.state import state
+
+        # This is how it is currently done in Zino 1.0
+        # Could use some improvement on detecting the actual correct state
+        event.state = EventState.OPEN
+        state.events.commit(event)
 
     def _get_or_create_maintenance_events_for_maintenance_start(self, maintenance: PlannedMaintenance) -> list[Event]:
         """Creates/gets events that are affected by the given starting planned
