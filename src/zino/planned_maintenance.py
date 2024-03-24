@@ -200,12 +200,12 @@ class PlannedMaintenances(BaseModel):
     def _get_matching_ports(self, pm) -> list[tuple(DeviceState, Port)]:
         from zino.state import state
 
-        port_list = []
+        ports = []
         for device in state.devices:
             for port in device.ports:
                 if pm.matches_portstate(device, port):
-                    port_list.append((device, port))
-        return port_list
+                    ports.append((device, port))
+        return ports
 
     def _get_or_create_device_events(self, pm: PlannedMaintenance) -> list[Event]:
         from zino.state import state
