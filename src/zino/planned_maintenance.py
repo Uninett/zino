@@ -149,6 +149,9 @@ class PlannedMaintenances(BaseModel):
 
         events = self._get_or_create_events(pm)
         for event in events:
+            # get special handling of embryonic -> open transition first
+            state.events.commit(event)
+
             event.state = EventState.IGNORED
             state.events.commit(event)
             pm.event_ids.append(event.id)
@@ -191,8 +194,6 @@ class PlannedMaintenances(BaseModel):
         deviceports = self._get_matching_ports(pm)
         for device, port in deviceports:
             event = state.events.get_or_create_event(device.name, port.ifindex, PortStateEvent)
-            # get special handling of embryonic -> open transition first
-            state.events.commit(event)
             events.append(event)
         return events
 
@@ -217,7 +218,5 @@ class PlannedMaintenances(BaseModel):
             yellow_event = state.events.get_or_create_event(device.name, "yellow", AlarmEvent)
             red_event = state.events.get_or_create_event(device.name, "red", AlarmEvent)
             for event in (reachability_event, yellow_event, red_event):
-                # get special handling of embryonic -> open transition first
-                state.events.commit(event)
                 events.append(event)
         return events
