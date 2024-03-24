@@ -178,7 +178,6 @@ class PlannedMaintenances(BaseModel):
         """Creates/gets events that are affected by the given starting planned
         maintenance
         """
-        # See `start_pm` function in Zino 1.0 `pm.tcl`
         if pm.state == "portstate":
             return self._get_or_create_portstate_events(pm)
         elif pm.state == "device":
