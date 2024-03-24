@@ -99,6 +99,13 @@ class PlannedMaintenances(BaseModel):
         now = datetime.datetime.now()
         return [pm for pm in self.planned_maintenances if pm.start_time < now < pm.end_time]
 
+    def get_old_planned_maintenances(self, now: datetime.datetime) -> list[PlannedMaintenance]:
+        """Returns all planned maintenances that should get deleted
+
+        This means it has been 72 hours since end_time
+        """
+        return [pm for pm in self.planned_maintenances if now - pm.end_time > datetime.timedelta(hours=72)]
+
     def add_pm_observer(self, observer: PlannedMaintenanceObserver) -> None:
         """Adds an observer function that will be called any time a planned maintenance
         is added or removed
@@ -130,6 +137,10 @@ class PlannedMaintenances(BaseModel):
         # End a PM and set events matching the PM to open
         for ended_pm in self.get_ended_planned_maintenances(now=now):
             self._end(ended_pm)
+
+        old_pms = self.get_old_planned_maintenances(now)
+        for pm in old_pms:
+            self.close_planned_maintenance(pm.id, "timer expiry for old PMs", "zino")
 
         self.last_run = now
 
