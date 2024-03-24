@@ -374,7 +374,7 @@ class PlannedMaintenance(BaseModel):
     match_device: Optional[str]
     match_expression: str
     log: List[LogEntry] = []
-    pm_events: List[Event] = []
+    pm_event_ids: List[int] = []
 
     def add_log(self, message: str) -> LogEntry:
         entry = LogEntry(message=message)
