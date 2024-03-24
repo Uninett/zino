@@ -74,6 +74,14 @@ def init_event_loop(args: argparse.Namespace, loop: Optional[AbstractEventLoop] 
     scheduler.add_job(
         func=state.state.dump_state_to_file, trigger="interval", id=STATE_DUMP_JOB_ID, minutes=DEFAULT_INTERVAL_MINUTES
     )
+    # Schedule planned maintenance
+    scheduler.add_job(
+        func=state.planned_maintenances.periodic,
+        trigger="interval",
+        minutes=1,
+        next_run_time=datetime.now(),
+    )
+
     state.state.events.add_event_observer(reschedule_dump_state_on_commit)
     state.state.planned_maintenances.add_pm_observer(reschedule_dump_state_on_pm_change)
 
