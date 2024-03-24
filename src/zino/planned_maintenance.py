@@ -100,6 +100,8 @@ class PlannedMaintenances(BaseModel):
             observer()
 
     def periodic(self):
+        from zino.state import state
+
         now = datetime.datetime.now()
 
         started_maintenances = self.get_started_planned_maintenances(now=now)
@@ -109,10 +111,10 @@ class PlannedMaintenances(BaseModel):
                 self._ignore_event(event)
                 started_pm.event_ids.append(event.id)
 
+        active_maintenances = self.get_active_planned_maintenances(now=now)
         # Get all events (maybe already filter here for ignored and closed events?)
-        events = []
-        for event in events:
-            for active_pm in self.get_active_planned_maintenances(now=now):
+        for event in state.events:
+            for active_pm in active_maintenances:
                 if matches_planned_maintenance(event=event, maintenance=active_pm):
                     self._ignore_event(event)
                     active_pm.event_ids.append(event.id)
