@@ -4,6 +4,7 @@ Notification channels are currently part of the legacy API from the Tcl-based Zi
 line-oriented protocol.  Clients are not expected to send any data to a notification channel, only receive data from
 the server.
 """
+
 import asyncio
 import logging
 from typing import TYPE_CHECKING, Any, Iterator, NamedTuple, Optional
