@@ -1,4 +1,5 @@
 """Functionality to parse and validate the legacy polldevs.cf config file"""
+
 from typing import Iterator, TextIO
 
 from zino.config.models import PollDevice

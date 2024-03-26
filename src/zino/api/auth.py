@@ -2,6 +2,7 @@
 
 This only implements the authentication scheme of the legacy server protocol.
 """
+
 import io
 import secrets
 from hashlib import sha1

@@ -1,4 +1,5 @@
 """Basic data models for keeping/serializing/deserializing Zino state"""
+
 import datetime
 import logging
 from enum import Enum
