@@ -346,3 +346,36 @@ class AlarmEvent(Event):
     @property
     def subindex(self) -> SubIndex:
         return self.alarm_type
+
+
+class PlannedMaintenance(BaseModel):
+    id: Optional[int] = None
+    start_time: datetime.datetime
+    end_time: datetime.datetime
+    type: Literal["portstate", "device"]
+    match_type: Literal["regexp", "str", "exact", "intf-regexp"]
+    match_device: Optional[str]
+    match_expression: str
+    log: List[LogEntry] = []
+    event_ids: List[int] = []
+
+    def add_log(self, message: str) -> LogEntry:
+        entry = LogEntry(message=message)
+        self.log.append(entry)
+        return entry
+
+    def matches_event(self, event: Event) -> bool:
+        """Returns true if `event` will be affected by this planned maintenance"""
+        pass
+
+    def matches_portstate(self, device: DeviceState, port: Port) -> bool:
+        """Returns true if PortstateEvents related to `port` on `device`
+        will be affected by this planned maintenance
+        """
+        pass
+
+    def matches_device(self, device: DeviceState) -> bool:
+        """Returns true if ReachabilityEvents and AlarmEvents related to `device`
+        will be affected by this planned maintenance
+        """
+        pass
