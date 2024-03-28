@@ -1,6 +1,6 @@
 import datetime
 import logging
-from typing import Dict, Literal, Optional, Protocol
+from typing import TYPE_CHECKING, Dict, Literal, Optional, Protocol
 
 from pydantic.main import BaseModel
 
@@ -14,6 +14,9 @@ from zino.statemodels import (
     PortStateEvent,
     ReachabilityEvent,
 )
+
+if TYPE_CHECKING:
+    from zino.state import ZinoState
 
 _log = logging.getLogger(__name__)
 
@@ -128,15 +131,15 @@ class PlannedMaintenances(BaseModel):
 
         # Initiate PM once it becomes active
         for started_pm in self.get_started_planned_maintenances(now=now):
-            self._start(started_pm)
+            self._start(state, started_pm)
 
         # Make sure all events that matches a PM is ignored
         for event in state.events:
-            self._check_event(event)
+            self._check_event(state, event)
 
         # End a PM and set events matching the PM to open
         for ended_pm in self.get_ended_planned_maintenances(now=now):
-            self._end(ended_pm)
+            self._end(state, ended_pm)
 
         old_pms = self.get_old_planned_maintenances(now)
         for pm in old_pms:
@@ -144,10 +147,8 @@ class PlannedMaintenances(BaseModel):
 
         self.last_run = now
 
-    def _start(self, pm: PlannedMaintenance):
-        from zino.state import state
-
-        events = self._get_or_create_events(pm)
+    def _start(self, state: "ZinoState", pm: PlannedMaintenance):
+        events = self._get_or_create_events(state, pm)
         for event in events:
             # get special handling of embryonic -> open transition first
             state.events.commit(event)
@@ -156,9 +157,7 @@ class PlannedMaintenances(BaseModel):
             state.events.commit(event)
             pm.event_ids.append(event.id)
 
-    def _check_event(self, event: Event):
-        from zino.state import state
-
+    def _check_event(self, state: "ZinoState", event: Event):
         if event.state in [EventState.IGNORED, EventState.CLOSED]:
             return
 
@@ -169,37 +168,31 @@ class PlannedMaintenances(BaseModel):
                 event.add_log(f"entered into existing active PM event id {pm.id}")
                 state.events.commit(event)
 
-    def _end(self, pm: PlannedMaintenance):
-        from zino.state import state
-
+    def _end(self, state: "ZinoState", pm: PlannedMaintenance):
         for event_id in pm.event_ids:
             event = state.events[event_id]
             event.state = EventState.OPEN
             state.events.commit(event)
 
-    def _get_or_create_events(self, pm: PlannedMaintenance) -> list[Event]:
+    def _get_or_create_events(self, state: "ZinoState", pm: PlannedMaintenance) -> list[Event]:
         """Creates/gets events that are affected by the given starting planned
         maintenance
         """
         if pm.state == "portstate":
-            return self._get_or_create_portstate_events(pm)
+            return self._get_or_create_portstate_events(state, pm)
         elif pm.state == "device":
-            return self._get_or_create_device_events(pm)
+            return self._get_or_create_device_events(state, pm)
         raise ValueError(f"Invalid state {pm.state}")
 
-    def _get_or_create_portstate_events(self, pm: PlannedMaintenance) -> list[Event]:
-        from zino.state import state
-
+    def _get_or_create_portstate_events(self, state: "ZinoState", pm: PlannedMaintenance) -> list[Event]:
         events = []
-        deviceports = self._get_matching_ports(pm)
+        deviceports = self._get_matching_ports(state, pm)
         for device, port in deviceports:
             event = state.events.get_or_create_event(device.name, port.ifindex, PortStateEvent)
             events.append(event)
         return events
 
-    def _get_matching_ports(self, pm) -> list[tuple[DeviceState, Port]]:
-        from zino.state import state
-
+    def _get_matching_ports(self, state: "ZinoState", pm) -> list[tuple[DeviceState, Port]]:
         ports = []
         for device in state.devices:
             for port in device.ports:
@@ -207,9 +200,7 @@ class PlannedMaintenances(BaseModel):
                     ports.append((device, port))
         return ports
 
-    def _get_or_create_device_events(self, pm: PlannedMaintenance) -> list[Event]:
-        from zino.state import state
-
+    def _get_or_create_device_events(self, state: "ZinoState", pm: PlannedMaintenance) -> list[Event]:
         events = []
         # all devices that the pm should affect
         devices = [device for device in state.devices if pm.matches_device(device)]
