@@ -100,14 +100,15 @@ class PlannedMaintenances(BaseModel):
         This means it has started latest now and the end_time is later than now
         """
         now = datetime.datetime.now()
-        return [pm for pm in self.planned_maintenances if pm.start_time < now < pm.end_time]
+        return [pm for pm in self.planned_maintenances.values() if pm.start_time < now < pm.end_time]
 
     def get_old_planned_maintenances(self, now: datetime.datetime) -> list[PlannedMaintenance]:
         """Returns all planned maintenances that should get deleted
 
-        This means it has been 72 hours since end_time
+
+        This means it has been 3 days since end_time
         """
-        return [pm for pm in self.planned_maintenances if now - pm.end_time > datetime.timedelta(hours=72)]
+        return [pm for pm in self.planned_maintenances.values() if now - pm.end_time > datetime.timedelta(days=3)]
 
     def add_pm_observer(self, observer: PlannedMaintenanceObserver) -> None:
         """Adds an observer function that will be called any time a planned maintenance
