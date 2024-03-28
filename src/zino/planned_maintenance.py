@@ -48,9 +48,9 @@ class PlannedMaintenances(BaseModel):
         match_type: Literal["regexp", "str", "exact", "intf-regexp"],
         match_expression: str,
         match_device: Optional[str],
-    ) -> int:
+    ) -> PlannedMaintenance:
         """Creates a planned maintenance, adds it to the planned_maintenances dict and
-        returns its id
+        returns it
         """
         pm_id = self.get_next_available_pm_id()
         pm = PlannedMaintenance(
@@ -64,6 +64,7 @@ class PlannedMaintenances(BaseModel):
         )
         self.planned_maintenances[pm_id] = pm
         self._call_observers()
+        return pm
 
     def close_planned_maintenance(self, id: int, reason: str, user: str) -> None:
         """Deletes planned maintenance with the given id"""
