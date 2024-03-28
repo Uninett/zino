@@ -82,10 +82,10 @@ class PlannedMaintenances(BaseModel):
         """
         if self.last_run:
             return [
-                pm for pm in self.planned_maintenances.values() if self.last_run < pm.start_time <= now
+                pm for pm in self.planned_maintenances.values() if self.last_run < pm.start_time <= now < pm.end_time
             ]
         else:
-            return [pm for pm in self.planned_maintenances.values() if pm.start_time <= now]
+            return [pm for pm in self.planned_maintenances.values() if pm.start_time <= now < pm.end_time]
 
     def get_ended_planned_maintenances(self, now: datetime.datetime) -> list[PlannedMaintenance]:
         """Returns all planned maintenances that have ended since the last run of this
