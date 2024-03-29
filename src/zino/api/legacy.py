@@ -17,7 +17,7 @@ from zino import version
 from zino.api import auth
 from zino.api.notify import Zino1NotificationProtocol
 from zino.state import ZinoState
-from zino.statemodels import Event, EventState
+from zino.statemodels import ClosedEventError, Event, EventState
 
 if TYPE_CHECKING:
     from zino.api.server import ZinoServer
@@ -335,7 +335,10 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
             return self._respond_error(f"state must be one of {allowable_states}")
 
         out_event = self._state.events.checkout(event.id)
-        out_event.set_state(event_state, user=self.user)
+        try:
+            out_event.set_state(event_state, user=self.user)
+        except ClosedEventError:
+            return self._respond_error(f"Cannot reopen closed event {event.id}")
         self._state.events.commit(out_event)
 
         return self._respond_ok()
