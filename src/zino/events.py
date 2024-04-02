@@ -13,6 +13,7 @@ from zino.statemodels import (
     ReachabilityEvent,
     SubIndex,
 )
+from zino.time import now
 
 _log = logging.getLogger(__name__)
 
@@ -131,8 +132,15 @@ class Events(BaseModel):
         else:
             old_event = self.events[event.id]
         index = EventIndex(event.router, event.subindex, type(event))
-        self._events_by_index[index] = event
         self.events[event.id] = event
+
+        # If event is set to closed, remove it from index and set updated
+        if event.state == EventState.CLOSED:
+            if self._events_by_index.get(index) and event.id == self._events_by_index[index].id:
+                del self._events_by_index[index]
+            event.updated = now()
+        else:
+            self._events_by_index[index] = event
 
         self._call_observers_for(new_event=event, old_event=old_event)
 

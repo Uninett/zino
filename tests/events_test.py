@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import Optional
 from unittest.mock import Mock
 
@@ -5,6 +6,7 @@ import pytest
 
 from zino.events import EventExistsError, Events
 from zino.statemodels import Event, EventState, ReachabilityEvent
+from zino.time import now
 
 
 class TestEvents:
@@ -103,6 +105,25 @@ class TestEvents:
         assert event.state == EventState.EMBRYONIC
         events.commit(event)
         assert event.state == EventState.OPEN
+
+    def test_commit_should_remove_event_from_index_when_closing_event(self):
+        identifiers = "foobar", None, ReachabilityEvent
+        events = Events()
+        event = events.get_or_create_event(*identifiers)
+        events.commit(event)
+        event.set_state(EventState.CLOSED)
+        events.commit(event)
+        assert not events.get(*identifiers)
+
+    def test_commit_should_set_updated_when_closing_event(self):
+        identifiers = "foobar", None, ReachabilityEvent
+        events = Events()
+        event = events.get_or_create_event(*identifiers)
+        event.set_state(EventState.CLOSED)
+        previous_updated = event.updated
+        events.commit(event)
+        assert (now() - timedelta(minutes=1)) < event.updated < (now())
+        assert event.updated != previous_updated
 
     def test_when_observer_is_added_it_should_be_called_on_commit(self):
         events = Events()
