@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 from typing import Dict, NamedTuple, Optional, Protocol, Type, Union
 
 from pydantic.main import BaseModel
@@ -16,6 +17,8 @@ from zino.statemodels import (
 from zino.time import now
 
 _log = logging.getLogger(__name__)
+
+EVENT_EXPIRY = timedelta(hours=8)
 
 
 class EventIndex(NamedTuple):
@@ -143,6 +146,28 @@ class Events(BaseModel):
             self._events_by_index[index] = event
 
         self._call_observers_for(new_event=event, old_event=old_event)
+
+    def _delete(self, event: Event):
+        """Removes a closed event from the events dict and notifies all observers"""
+        if event.state != EventState.CLOSED:
+            return
+
+        index = EventIndex(event.router, event.subindex, type(event))
+        if self._events_by_index.get(index) and event.id == self._events_by_index[index].id:
+            _log.info("Closed event %s was still in event index, removing it now", event.id)
+            del self._events_by_index[index]
+        try:
+            del self.events[event.id]
+        except KeyError:
+            pass
+        self._call_observers_for(new_event=event)
+
+    def delete_expired_events(self):
+        """Deletes all events that have been closed for a certain time"""
+        event_list = list(self.events.values())
+        for event in event_list:
+            if event.state == EventState.CLOSED and now() > (event.updated + EVENT_EXPIRY):
+                self._delete(event)
 
     def add_event_observer(self, observer: EventObserver):
         """Adds an observer function that will be called any time an event is committed"""

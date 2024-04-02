@@ -4,6 +4,7 @@ Notification channels are currently part of the legacy API from the Tcl-based Zi
 line-oriented protocol.  Clients are not expected to send any data to a notification channel, only receive data from
 the server.
 """
+
 import asyncio
 import logging
 from typing import TYPE_CHECKING, Any, Iterator, NamedTuple, Optional
@@ -76,7 +77,7 @@ class Zino1NotificationProtocol(asyncio.Protocol):
 
     def notify(self, notification: Notification):
         """Sends a notification to the connected client"""
-        self._respond_raw(f"{notification.event_id} {notification.change_type} {notification.value}")
+        self._respond_raw(f"{notification.event_id} {notification.change_type} {notification.value or ''}")
 
     def _respond_raw(self, message: str):
         """Encodes and sends a response line to the connected client"""
@@ -89,7 +90,7 @@ class Zino1NotificationProtocol(asyncio.Protocol):
         """Prepares and sends notifications for all changes between old_event and new_event to all connected and tied
         notification channels.
         """
-        notifications = list(cls.build_notifications(new_event, old_event))
+        notifications = list(cls.build_notifications(server.state, new_event, old_event))
         tied_channels = [channel for channel in server.notification_channels.values() if channel.tied_to]
         _logger.debug("Sending %s notifications to %s tied channels", len(notifications), len(tied_channels))
 
@@ -98,12 +99,18 @@ class Zino1NotificationProtocol(asyncio.Protocol):
                 channel.notify(notification)
 
     @classmethod
-    def build_notifications(cls, new_event: Event, old_event: Optional[Event] = None) -> Iterator[Notification]:
+    def build_notifications(
+        cls, state: ZinoState, new_event: Event, old_event: Optional[Event] = None
+    ) -> Iterator[Notification]:
         """Generates a sequence of Notification objects from the changes detected between old_event and new_event.
 
         If `old_event` is `None`, it is assumed the event is brand new, and only the state change from EMBRYONIC
         matters.
         """
+        if new_event.id not in state.events.events:
+            # Event has just been scavenged after being closed for a while
+            yield Notification(new_event.id, "scavenged", None)
+
         changed = new_event.get_changed_fields(old_event) if old_event else ["state"]
 
         for attr in changed:
