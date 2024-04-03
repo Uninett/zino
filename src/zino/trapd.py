@@ -8,9 +8,16 @@ from typing import Any, NamedTuple, Optional
 from pysnmp.carrier.asyncio.dgram import udp
 from pysnmp.entity import config
 from pysnmp.entity.rfc3413 import ntfrcv
+from pysnmp.proto.rfc1902 import ObjectName
+from pysnmp.smi import view
 
 from zino.oid import OID
-from zino.snmp import _get_engine
+from zino.snmp import (
+    MibNotFoundError,
+    PysnmpMibNotFoundError,
+    _get_engine,
+    _mib_value_to_python,
+)
 from zino.state import ZinoState
 from zino.statemodels import DeviceState, IPAddress
 
@@ -104,18 +111,54 @@ class TrapReceiver:
             _logger.info("ignored trap from %s (not a box we monitor?)", sender_address)
             return
 
-        _logger.info(
+        _logger.debug(
             'Trap from %s (%s) ContextEngineId "%s", ContextName "%s"',
             router.name,
             sender_address,
             context_engine_id.prettyPrint(),
             context_name.prettyPrint(),
         )
-        for name, val in var_binds:
-            _logger.info("%s = %s", name.prettyPrint(), val.prettyPrint())
+        origin = TrapOriginator(address=sender_address, port=sender_port, device=router)
+        trap = TrapMessage(agent=origin)
+        for var, raw_value in var_binds:
+            mib, label, instance = self._resolve_object_name(var)
+            _logger.debug("(%r, %r, %s) = %s", mib, label, instance, raw_value.prettyPrint())
+            try:
+                value = _mib_value_to_python(raw_value)
+            except Exception:  # noqa
+                value = None
+            trap.variables[label] = TrapVarBind(OID(var), mib, label, instance, raw_value, value)
+
+        if "snmpTrapOID" not in trap.variables:
+            _logger.error("Trap from %s did not contain a snmpTrapOID value, ignoring", router.name)
+            return
+
+        try:
+            trap.mib, trap.name, _ = self._resolve_object_name(trap.variables["snmpTrapOID"].raw_value)
+        except Exception as error:
+            _logger.error("Could not resolve trap %s to symbolic name (%s)", raw_value.prettyPrint(), error)
+
+        self.dispatch_trap(trap)
+
+    def dispatch_trap(self, trap: TrapMessage):
+        """Dispatches incoming trap messages according to internal subscriptions"""
+        # stub implementation
+        _logger.info("Dispatching trap: %s", trap)
 
     def _lookup_device(self, address: IPAddress) -> Optional[DeviceState]:
         """Looks up a device from Zino's running state from an IP address"""
         name = self.state.addresses.get(address)
         if name in self.state.devices:
             return self.state.devices[name]
+
+    def _resolve_object_name(self, object_name: ObjectName) -> tuple[str, str, OID]:
+        """Raises MibNotFoundError if oid in `object_name` can not be found"""
+        try:
+            engine = self.snmp_engine
+            controller = engine.getUserContext("mibViewController")
+            if not controller:
+                controller = view.MibViewController(engine.getMibBuilder())
+            mib, label, instance = controller.getNodeLocation(object_name)
+            return mib, label, OID(instance) if instance else None
+        except PysnmpMibNotFoundError as error:
+            raise MibNotFoundError(error)
