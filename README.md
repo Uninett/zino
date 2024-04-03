@@ -245,3 +245,26 @@ like so:
 ```shell
 pre-commit install
 ```
+
+
+### Test trap examples
+
+Running Zino during development might look like this (listening for traps on
+the non-privileged port 1162):
+
+```shell
+zino --trap-port 1162
+```
+
+To send an example trap (`BGP4-MIB::bgpBackwardTransition`, which Zino ignores
+by default), you can use a command like:
+
+```shell
+snmptrap -v2c -c public \
+    127.0.0.1:1162 \
+    '' \
+    BGP4-MIB::bgpBackwardTransition \
+    BGP4-MIB::bgpPeerRemoteAddr a 192.168.42.42 \
+    BGP4-MIB::bgpPeerLastError x 4242 \
+    BGP4-MIB::bgpPeerState i 2
+```
