@@ -5,9 +5,10 @@ from ipaddress import ip_address
 from typing import Optional
 
 from pysnmp.carrier.asyncio.dgram import udp
-from pysnmp.entity import config, engine
+from pysnmp.entity import config
 from pysnmp.entity.rfc3413 import ntfrcv
 
+from zino.snmp import _get_engine
 from zino.state import ZinoState
 from zino.statemodels import DeviceState, IPAddress
 
@@ -29,7 +30,7 @@ class TrapReceiver:
         self.port = port
         self.loop = loop if loop else asyncio.get_event_loop()
         self.state = state or ZinoState()
-        self.snmp_engine = engine.SnmpEngine()
+        self.snmp_engine = _get_engine()
         self._communities = set()
 
     async def open(self):
