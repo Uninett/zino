@@ -1,18 +1,54 @@
 """SNMP trap 'daemon' for Zino 2"""
 import asyncio
 import logging
+from dataclasses import dataclass, field
 from ipaddress import ip_address
-from typing import Optional
+from typing import Any, NamedTuple, Optional
 
 from pysnmp.carrier.asyncio.dgram import udp
 from pysnmp.entity import config
 from pysnmp.entity.rfc3413 import ntfrcv
 
+from zino.oid import OID
 from zino.snmp import _get_engine
 from zino.state import ZinoState
 from zino.statemodels import DeviceState, IPAddress
 
 _logger = logging.getLogger(__name__)
+
+
+class TrapVarBind(NamedTuple):
+    """Describes a single trap varbind as high-level as possible, but with low level details available as well"""
+
+    oid: OID
+    mib: str
+    var: str
+    instance: OID
+    raw_value: Any
+    value: Any
+
+
+class TrapOriginator(NamedTuple):
+    """Describes the originating SNMP agent of a trap message in Zino terms"""
+
+    address: IPAddress
+    port: int
+    device: Optional[DeviceState] = None
+
+
+@dataclass
+class TrapMessage:
+    """Describes an incoming trap message in the simplest possible terms needed for Zino usage"""
+
+    agent: TrapOriginator
+    mib: Optional[str] = None
+    name: Optional[str] = None
+    variables: dict[str, TrapVarBind] = field(default_factory=dict)
+
+    def __str__(self):
+        variables = [f"{v.mib}::{v.var}{v.instance or ''}={v.value or v.raw_value}" for v in self.variables.values()]
+        variables = ", ".join(variables)
+        return f"<Trap from {self.agent.device.name}: {variables}>"
 
 
 class TrapReceiver:
