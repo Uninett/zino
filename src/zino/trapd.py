@@ -3,7 +3,7 @@ import asyncio
 import logging
 from dataclasses import dataclass, field
 from ipaddress import ip_address
-from typing import Any, NamedTuple, Optional
+from typing import Any, List, NamedTuple, Optional, Protocol
 
 from pysnmp.carrier.asyncio.dgram import udp
 from pysnmp.entity import config
@@ -20,6 +20,8 @@ from zino.snmp import (
 )
 from zino.state import ZinoState
 from zino.statemodels import DeviceState, IPAddress
+
+TrapType = tuple[str, str]  # A mib name and a corresponding trap symbolic name
 
 _logger = logging.getLogger(__name__)
 
@@ -58,6 +60,18 @@ class TrapMessage:
         return f"<Trap from {self.agent.device.name}: {variables}>"
 
 
+class TrapObserver(Protocol):
+    """Defines a valid protocol for Trap observer functions"""
+
+    def __call__(self, trap: TrapMessage, loop: Optional[asyncio.AbstractEventLoop] = None) -> Optional[bool]:
+        """A trap observer receives a trap message and an optional event loop reference.  The event loop reference
+        may be useful if the observer needs to run async actions as part of its trap processing.  If the trap
+        observer returns a true-ish value, the trap dispatcher will offer the same trap to more subscribers.  If a
+        false-ish value is returned, the trap dispatcher will stop processing this trap.
+        """
+        ...
+
+
 class TrapReceiver:
     """Zino Adapter for SNMP trap reception using PySNMP.
 
@@ -67,7 +81,13 @@ class TrapReceiver:
     and will not even pass on traps to our callbacks unless they match the authorization config for the SNMP engine.
     """
 
-    def __init__(self, address: str = "0.0.0.0", port: int = 162, loop=None, state: Optional[ZinoState] = None):
+    def __init__(
+        self,
+        address: str = "0.0.0.0",
+        port: int = 162,
+        loop: Optional[asyncio.AbstractEventLoop] = None,
+        state: Optional[ZinoState] = None,
+    ):
         self.transport: udp.UdpTransport = None
         self.address = address
         self.port = port
@@ -75,6 +95,17 @@ class TrapReceiver:
         self.state = state or ZinoState()
         self.snmp_engine = _get_engine()
         self._communities = set()
+        self._observers: dict[TrapType, List[TrapObserver]] = {}
+
+    def observe(self, subscriber: TrapObserver, *trap_types: List[TrapType]):
+        """Adds a trap subscriber to the receiver"""
+        for trap_type in trap_types:
+            observers = self._observers.setdefault(trap_type, [])
+            observers.append(subscriber)
+
+    def get_observers_for(self, trap_type: TrapType) -> List[TrapObserver]:
+        """Returns a list of trap observers for a given trap type"""
+        return self._observers.get(trap_type, [])
 
     async def open(self):
         """Opens the UDP transport socket and starts receiving traps"""
@@ -135,15 +166,24 @@ class TrapReceiver:
 
         try:
             trap.mib, trap.name, _ = self._resolve_object_name(trap.variables["snmpTrapOID"].raw_value)
-        except Exception as error:
+        except Exception as error:  # noqa
             _logger.error("Could not resolve trap %s to symbolic name (%s)", raw_value.prettyPrint(), error)
 
         self.dispatch_trap(trap)
 
     def dispatch_trap(self, trap: TrapMessage):
         """Dispatches incoming trap messages according to internal subscriptions"""
-        # stub implementation
-        _logger.info("Dispatching trap: %s", trap)
+        observers = self.get_observers_for((trap.mib, trap.name))
+        if not observers:
+            _logger.info("unknown trap: %s", trap)
+            return
+
+        for observer in observers:
+            try:
+                if not observer(trap, self.loop):
+                    return
+            except Exception:  # noqa
+                _logger.exception("Unhandled exception in trap observer %r", observer)
 
     def _lookup_device(self, address: IPAddress) -> Optional[DeviceState]:
         """Looks up a device from Zino's running state from an IP address"""
