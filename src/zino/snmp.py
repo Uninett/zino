@@ -40,6 +40,7 @@ def _get_engine():
         _local.snmp_engine = SnmpEngine()
         mib_builder = _local.snmp_engine.getMibBuilder()
         mib_builder.addMibSources(builder.DirMibSource(MIB_SOURCE_DIR))
+        mib_builder.loadModules()
     return _local.snmp_engine
 
 
