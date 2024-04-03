@@ -3,7 +3,7 @@ import asyncio
 import logging
 from dataclasses import dataclass, field
 from ipaddress import ip_address
-from typing import Any, List, NamedTuple, Optional, Protocol
+from typing import Any, List, NamedTuple, Optional, Protocol, Set
 
 from pysnmp.carrier.asyncio.dgram import udp
 from pysnmp.entity import config
@@ -22,7 +22,15 @@ from zino.state import ZinoState
 from zino.statemodels import DeviceState, IPAddress
 
 TrapType = tuple[str, str]  # A mib name and a corresponding trap symbolic name
-
+# These are spammy traps observed in Uninett, and we don't care about them:
+IGNORED_TRAPS: Set[TrapType] = {
+    ("BGP4-MIB", "bgpBackwardTransition"),
+    ("BGP4-MIB", "bgpBackwardTransNotification"),
+    ("BGP4-V2-MIB-JUNIPER", "jnxBgpM2BackwardTransition"),
+    ("SNMPv2-MIB", "authenticationFailure"),
+    ("CISCOTRAP-MIB", "tcpConnectionClose"),
+    ("BGP4-V2-MIB-JUNIPER", "jnxBgpM2BackwardTransition"),
+}
 _logger = logging.getLogger(__name__)
 
 
@@ -96,6 +104,8 @@ class TrapReceiver:
         self.snmp_engine = _get_engine()
         self._communities = set()
         self._observers: dict[TrapType, List[TrapObserver]] = {}
+
+        self.observe(ignore_trap, *IGNORED_TRAPS)
 
     def observe(self, subscriber: TrapObserver, *trap_types: List[TrapType]):
         """Adds a trap subscriber to the receiver"""
@@ -202,3 +212,8 @@ class TrapReceiver:
             return mib, label, OID(instance) if instance else None
         except PysnmpMibNotFoundError as error:
             raise MibNotFoundError(error)
+
+
+def ignore_trap(trap: TrapMessage, loop: Optional[asyncio.AbstractEventLoop] = None) -> Optional[bool]:
+    """Trap observer that just ignores incoming traps"""
+    return False
