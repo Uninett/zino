@@ -170,12 +170,7 @@ class TrapReceiver:
                 value = None
             trap.variables[label] = TrapVarBind(OID(var), mib, label, instance, raw_value, value)
 
-        if "snmpTrapOID" not in trap.variables:
-            _logger.error("Trap from %s did not contain a snmpTrapOID value, ignoring", router.name)
-            return
-
-        if "sysUpTime" not in trap.variables:
-            _logger.error("Trap from %s did not contain a sysUpTime value, ignoring", router.name)
+        if not self._verify_trap(trap):
             return
 
         # TODO do some time calculations, but ask Håvard what the deal is with RestartTime vs. BootTime
@@ -186,6 +181,19 @@ class TrapReceiver:
             _logger.error("Could not resolve trap %s to symbolic name (%s)", raw_value.prettyPrint(), error)
 
         self.dispatch_trap(trap)
+
+    @staticmethod
+    def _verify_trap(trap: TrapMessage) -> bool:
+        device = trap.agent.device.name if trap.agent.device else "N/A"
+        if "snmpTrapOID" not in trap.variables:
+            _logger.error("Trap from %s did not contain a snmpTrapOID value, ignoring", device)
+            return False
+
+        if "sysUpTime" not in trap.variables:
+            _logger.error("Trap from %s did not contain a sysUpTime value, ignoring", device)
+            return False
+
+        return True
 
     def dispatch_trap(self, trap: TrapMessage):
         """Dispatches incoming trap messages according to internal subscriptions"""
