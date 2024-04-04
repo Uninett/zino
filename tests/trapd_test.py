@@ -2,6 +2,7 @@ import asyncio
 import ipaddress
 import logging
 import shutil
+from unittest.mock import Mock
 
 import pytest
 
@@ -47,6 +48,45 @@ class TestTrapReceiver:
                 await send_trap_externally(cold_start, sysname_0, "s", "'MockDevice'")
                 assert "Trap from localhost" in caplog.text
                 assert cold_start in caplog.text
+        finally:
+            receiver.close()
+
+    @pytest.mark.skipif(not shutil.which("snmptrap"), reason="Cannot find snmptrap command line program")
+    @pytest.mark.asyncio
+    async def test_when_observer_is_added_and_trap_matches_it_should_call_it(self, state_with_localhost, event_loop):
+        receiver = TrapReceiver(address="127.0.0.1", port=1162, loop=event_loop, state=state_with_localhost)
+        receiver.add_community("public")
+        observer = Mock()
+        receiver.observe(observer, ("SNMPv2-MIB", "coldStart"))
+        try:
+            await receiver.open()
+
+            cold_start = ".1.3.6.1.6.3.1.1.5.1"
+            sysname_0 = ".1.3.6.1.2.1.1.5.0"
+            await send_trap_externally(cold_start, sysname_0, "s", "'MockDevice'")
+            assert observer.called
+        finally:
+            receiver.close()
+
+    @pytest.mark.skipif(not shutil.which("snmptrap"), reason="Cannot find snmptrap command line program")
+    @pytest.mark.asyncio
+    async def test_when_observer_raises_unhandled_exception_it_should_log_it(
+        self, state_with_localhost, event_loop, caplog
+    ):
+        receiver = TrapReceiver(address="127.0.0.1", port=1162, loop=event_loop, state=state_with_localhost)
+        receiver.add_community("public")
+        crashing_observer = Mock()
+        crashing_observer.side_effect = ValueError("mocked exception")
+        receiver.observe(crashing_observer, ("SNMPv2-MIB", "coldStart"))
+        try:
+            await receiver.open()
+
+            cold_start = ".1.3.6.1.6.3.1.1.5.1"
+            sysname_0 = ".1.3.6.1.2.1.1.5.0"
+            with caplog.at_level(logging.INFO):
+                await send_trap_externally(cold_start, sysname_0, "s", "'MockDevice'")
+                assert "ValueError" in caplog.text
+                assert "mocked exception" in caplog.text
         finally:
             receiver.close()
 
