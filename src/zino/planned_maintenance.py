@@ -208,7 +208,9 @@ class PlannedMaintenances(BaseModel):
         for device in devices:
             reachability_event = state.events.get_or_create_event(device.name, None, ReachabilityEvent)
             yellow_event = state.events.get_or_create_event(device.name, "yellow", AlarmEvent)
+            yellow_event.alarm_type = "yellow"
             red_event = state.events.get_or_create_event(device.name, "red", AlarmEvent)
+            red_event.alarm_type = "red"
             for event in (reachability_event, yellow_event, red_event):
                 events.append(event)
         return events
