@@ -2,7 +2,7 @@ import asyncio
 import ipaddress
 import logging
 import shutil
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
 import pytest_asyncio
@@ -108,6 +108,24 @@ class TestTrapReceiverExternally:
         ]
         await send_trap_externally(*bgp_backward_transition_trap)
         assert not late_observer.called
+
+    @pytest.mark.asyncio
+    async def test_when_conversion_of_varbind_to_python_object_fails_it_should_set_value_to_none(
+        self, localhost_receiver
+    ):
+        with patch("zino.trapd._mib_value_to_python", side_effect=ValueError("mock exception")):
+            with patch.object(localhost_receiver, "dispatch_trap") as mock_dispatch:
+                await send_trap_externally(OID_COLD_START, OID_SYSNAME_0, "s", "'MockDevice'")
+                assert mock_dispatch.called
+                trap = mock_dispatch.call_args.args[0]
+                assert all(var.value is None for var in trap.variables.values())
+
+    @pytest.mark.asyncio
+    async def test_when_trap_verification_fails_it_should_not_dispatch_trap(self, localhost_receiver):
+        with patch.object(localhost_receiver, "_verify_trap", return_value=False):
+            with patch.object(localhost_receiver, "dispatch_trap") as mock_dispatch:
+                await send_trap_externally(OID_COLD_START, OID_SYSNAME_0, "s", "'MockDevice'")
+                assert not mock_dispatch.called
 
 
 @pytest.fixture
