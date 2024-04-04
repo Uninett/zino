@@ -175,7 +175,7 @@ class PlannedMaintenances(BaseModel):
 
     def _end(self, state: "ZinoState", pm: PlannedMaintenance):
         for event_id in pm.event_ids:
-            event = state.events[event_id]
+            event = state.events.checkout(event_id)
             event.state = EventState.OPEN
             state.events.commit(event)
 
