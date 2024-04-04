@@ -5,16 +5,19 @@ import pytest
 from apscheduler.jobstores.base import JobLookupError
 
 from zino import scheduler
+from zino.state import ZinoState
 
 
 class TestLoadPolldevs:
     @patch("zino.state.polldevs", dict())
+    @patch("zino.state.state", ZinoState())
     def test_should_return_all_new_devices_on_first_run(self, polldevs_conf):
         new_devices, deleted_devices = scheduler.load_polldevs(polldevs_conf)
         assert len(new_devices) > 0
         assert not deleted_devices
 
     @patch("zino.state.polldevs", dict())
+    @patch("zino.state.state", ZinoState())
     def test_should_return_deleted_devices_on_second_run(self, polldevs_conf, polldevs_conf_with_single_router):
         scheduler.load_polldevs(polldevs_conf)
         new_devices, deleted_devices = scheduler.load_polldevs(polldevs_conf_with_single_router)
@@ -24,6 +27,7 @@ class TestLoadPolldevs:
 
 class TestScheduleNewDevices:
     @patch("zino.state.polldevs", dict())
+    @patch("zino.state.state", ZinoState())
     def test_should_schedule_jobs_for_new_devices(self, polldevs_conf, mocked_scheduler):
         new_devices, _ = scheduler.load_polldevs(polldevs_conf)
         assert len(new_devices) > 0
