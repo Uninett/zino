@@ -4,6 +4,8 @@ from unittest.mock import Mock
 import pytest
 
 from zino.planned_maintenance import PlannedMaintenances
+from zino.state import ZinoState
+from zino.statemodels import AlarmEvent, EventState, ReachabilityEvent
 
 
 class TestGetPlannedMaintenances:
@@ -70,9 +72,28 @@ class TestClosePlannedMaintenance:
         assert observer.observe.called
 
 
+class TestPeriodic:
+    def test_events_matching_device_pm_are_set_in_ignore(self, state, active_pm):
+        device = state.devices.get("device")
+        state.planned_maintenances.periodic(state)
+        reachability_event = state.events.get(device.name, None, ReachabilityEvent)
+        assert reachability_event.state == EventState.IGNORED
+        yellow_alarm_event = state.events.get(device.name, "yellow", AlarmEvent)
+        assert yellow_alarm_event.state == EventState.IGNORED
+        red_alarm_event = state.events.get(device.name, "red", AlarmEvent)
+        assert red_alarm_event.state == EventState.IGNORED
+
+
 @pytest.fixture
 def pms():
     return PlannedMaintenances()
+
+
+@pytest.fixture
+def state(pms):
+    state = ZinoState()
+    state.planned_maintenances = pms
+    return state
 
 
 @pytest.fixture
@@ -81,8 +102,8 @@ def active_pm(pms):
         start_time=datetime.now() - timedelta(days=1),
         end_time=datetime.now() + timedelta(days=1),
         type="device",
-        match_type="str",
-        match_expression="hello",
+        match_type="exact",
+        match_expression="device",
         match_device="device",
     )
 
