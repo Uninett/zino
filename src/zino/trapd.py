@@ -12,12 +12,7 @@ from pysnmp.proto.rfc1902 import ObjectName
 from pysnmp.smi import view
 
 from zino.oid import OID
-from zino.snmp import (
-    MibNotFoundError,
-    PysnmpMibNotFoundError,
-    _mib_value_to_python,
-    get_new_snmp_engine,
-)
+from zino.snmp import _mib_value_to_python, get_new_snmp_engine
 from zino.state import ZinoState
 from zino.statemodels import DeviceState, IPAddress
 
@@ -175,11 +170,7 @@ class TrapReceiver:
 
         # TODO do some time calculations, but ask Håvard what the deal is with RestartTime vs. BootTime
 
-        try:
-            trap.mib, trap.name, _ = self._resolve_object_name(trap.variables["snmpTrapOID"].raw_value)
-        except Exception as error:  # noqa
-            _logger.error("Could not resolve trap %s to symbolic name (%s)", raw_value.prettyPrint(), error)
-
+        trap.mib, trap.name, _ = self._resolve_object_name(trap.variables["snmpTrapOID"].raw_value)
         self.dispatch_trap(trap)
 
     @staticmethod
@@ -217,15 +208,12 @@ class TrapReceiver:
 
     def _resolve_object_name(self, object_name: ObjectName) -> tuple[str, str, OID]:
         """Raises MibNotFoundError if oid in `object_name` can not be found"""
-        try:
-            engine = self.snmp_engine
-            controller = engine.getUserContext("mibViewController")
-            if not controller:
-                controller = view.MibViewController(engine.getMibBuilder())
-            mib, label, instance = controller.getNodeLocation(object_name)
-            return mib, label, OID(instance) if instance else None
-        except PysnmpMibNotFoundError as error:
-            raise MibNotFoundError(error)
+        engine = self.snmp_engine
+        controller = engine.getUserContext("mibViewController")
+        if not controller:
+            controller = view.MibViewController(engine.getMibBuilder())
+        mib, label, instance = controller.getNodeLocation(object_name)
+        return mib, label, OID(instance) if instance else None
 
 
 def ignore_trap(trap: TrapMessage, loop: Optional[asyncio.AbstractEventLoop] = None) -> Optional[bool]:
