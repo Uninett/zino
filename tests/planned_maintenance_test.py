@@ -83,6 +83,23 @@ class TestPeriodic:
         red_alarm_event = state.events.get(device.name, "red", AlarmEvent)
         assert red_alarm_event.state == EventState.IGNORED
 
+    def test_events_affected_by_pm_get_opened_after_pm_ends(self, state, ended_pm):
+        device = state.devices.get("device")
+
+        # Create event and register it as affected by PM
+        reachability_event = state.events.create_event(device.name, None, ReachabilityEvent)
+        reachability_event.state == EventState.IGNORED
+        state.events.commit(reachability_event)
+        ended_pm.event_ids.append(reachability_event.id)
+
+        state.planned_maintenances.periodic(state)
+        assert reachability_event.state == EventState.OPEN
+
+    def test_old_pms_are_deleted(self, state, old_pm):
+        assert old_pm.id in state.planned_maintenances.planned_maintenances
+        state.planned_maintenances.periodic(state)
+        assert old_pm.id not in state.planned_maintenances.planned_maintenances
+
 
 @pytest.fixture
 def pms():
@@ -114,8 +131,8 @@ def ended_pm(pms):
         start_time=datetime.now() - timedelta(days=1),
         end_time=datetime.now() - timedelta(minutes=10),
         type="device",
-        match_type="str",
-        match_expression="hello",
+        match_type="exact",
+        match_expression="device",
         match_device="device",
     )
 
@@ -126,7 +143,7 @@ def old_pm(pms):
         start_time=datetime.now() - timedelta(days=100),
         end_time=datetime.now() - timedelta(days=99),
         type="device",
-        match_type="str",
-        match_expression="hello",
+        match_type="exact",
+        match_expression="device",
         match_device="device",
     )
