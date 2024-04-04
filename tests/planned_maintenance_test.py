@@ -63,7 +63,7 @@ class TestClosePlannedMaintenance:
         assert old_pm.id not in pms.planned_maintenances
 
     def test_should_not_raise_exception_if_no_matching_pm(self, pms, old_pm):
-        assert pms.close_planned_maintenance(pms.last_pm_id + 1, "test", "test") is None
+        assert pms.close_planned_maintenance(pms.get_next_available_pm_id(), "test", "test") is None
 
     def test_should_call_observers_after_closing_pm(self, pms, old_pm):
         observer = Mock()
