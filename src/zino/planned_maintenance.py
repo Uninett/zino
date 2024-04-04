@@ -97,12 +97,11 @@ class PlannedMaintenances(BaseModel):
         else:
             return [pm for pm in self.planned_maintenances.values() if pm.end_time <= now]
 
-    def get_active_planned_maintenances(self) -> list[PlannedMaintenance]:
+    def get_active_planned_maintenances(self, now: datetime.datetime) -> list[PlannedMaintenance]:
         """Returns all planned maintenances that are currently active
 
         This means it has started latest now and the end_time is later than now
         """
-        now = datetime.datetime.now()
         return [pm for pm in self.planned_maintenances.values() if pm.start_time < now < pm.end_time]
 
     def get_old_planned_maintenances(self, now: datetime.datetime) -> list[PlannedMaintenance]:
@@ -139,7 +138,7 @@ class PlannedMaintenances(BaseModel):
 
         # Make sure all events that matches a PM is ignored
         for event in state.events:
-            self._check_event(state, event)
+            self._check_event(state, event, now)
 
         # End a PM and set events matching the PM to open
         for ended_pm in self.get_ended_planned_maintenances(now=now):
@@ -161,11 +160,11 @@ class PlannedMaintenances(BaseModel):
             state.events.commit(event)
             pm.event_ids.append(event.id)
 
-    def _check_event(self, state: "ZinoState", event: Event):
+    def _check_event(self, state: "ZinoState", event: Event, now: datetime.datetime):
         if event.state in [EventState.IGNORED, EventState.CLOSED]:
             return
 
-        active_pms = self.get_active_planned_maintenances()
+        active_pms = self.get_active_planned_maintenances(now)
         for pm in active_pms:
             if pm.matches_event(event):
                 event.state = EventState.IGNORED
