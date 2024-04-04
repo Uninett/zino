@@ -3,6 +3,7 @@
 import datetime
 import logging
 import pathlib
+import re
 from enum import Enum
 from ipaddress import IPv4Address, IPv6Address
 from typing import Any, Dict, List, Literal, Optional, Union
@@ -383,16 +384,57 @@ class PlannedMaintenance(BaseModel):
 
     def matches_event(self, event: Event) -> bool:
         """Returns true if `event` will be affected by this planned maintenance"""
-        pass
+        from zino.state import state
+
+        device = state.devices[event.router]
+        if self.type == "portstate" and event.type == "portstate":
+            port = device.ports[event.ifindex]
+            return self.matches_portstate(device, port)
+        elif self.type == "device" and event.type == "reachability":
+            return self.matches_device(device)
+        else:
+            return False
 
     def matches_portstate(self, device: DeviceState, port: Port) -> bool:
         """Returns true if PortstateEvents related to `port` on `device`
-        will be affected by this planned maintenance
+        would be affected by this planned maintenance
         """
-        pass
+        if self.type != "portstate":
+            return False
+
+        if self.match_type == "regexp":
+            pattern = re.compile(self.match_expression)
+            return pattern.match(port.ifdescr)
+        elif self.match_type == "str":
+            return self.string_match(self.match_expression, port.ifdescr)
+        elif self.match_type == "intf-regexp":
+            device_pattern = re.compile(self.match_device)
+            if not device_pattern.match(device.name):
+                return False
+            port_pattern = re.compile(self.match_expression)
+            return port_pattern.match(port.ifdescr)
+        else:
+            return False
 
     def matches_device(self, device: DeviceState) -> bool:
         """Returns true if ReachabilityEvents and AlarmEvents related to `device`
-        will be affected by this planned maintenance
+        would be affected by this planned maintenance
+        """
+        if self.type != "device":
+            return False
+
+        if self.match_type == "regexp":
+            pattern = re.compile(self.match_expression)
+            return pattern.match(device.name)
+        elif self.match_type == "str":
+            return self.string_match(self.match_expression, device.name)
+        elif self.match_type == "exact":
+            return self.match_expression == device.name
+        else:
+            return False
+
+    def string_match(self, pattern: str, string: str) -> bool:
+        """This should behave like tcl string match https://wiki.tcl-lang.org/page/string+match
+        Returns true if `string` matches `pattern`.
         """
         pass
