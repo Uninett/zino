@@ -225,6 +225,7 @@ class Event(BaseModel):
     opened: datetime.datetime = Field(default_factory=now)
     updated: Optional[datetime.datetime] = None
     priority: int = 100
+    lastevent: Optional[str] = None
 
     log: List[LogEntry] = []
     history: List[LogEntry] = []
@@ -313,7 +314,6 @@ class BGPEvent(Event):
     peer_uptime: Optional[int] = None
     bgpos: Optional[BGPOperState] = None
     bgpas: Optional[BGPAdminStatus] = None
-    lastevent: Optional[str] = None
 
     @property
     def subindex(self) -> SubIndex:
