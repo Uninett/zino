@@ -139,7 +139,7 @@ class PlannedMaintenances(BaseModel):
         for event in state.events:
             self._check_event(state, event, now)
 
-        # End a PM and set events matching the PM to open
+        # Set events matching ended PMs to open
         for ended_pm in self.get_ended_planned_maintenances(now=now):
             self._end(state, ended_pm)
 
