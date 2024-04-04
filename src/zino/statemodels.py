@@ -405,7 +405,7 @@ class PlannedMaintenance(BaseModel):
         if self.match_type == "regexp":
             return self._regex_match(self.match_expression, port.ifdescr)
         elif self.match_type == "str":
-            return self.string_match(self.match_expression, port.ifdescr)
+            return self._string_match(self.match_expression, port.ifdescr)
         elif self.match_type == "intf-regexp":
             if self._regex_match(self.match_device, device.name):
                 return self._regex_match(self.match_expression, port.ifdescr)
@@ -424,13 +424,13 @@ class PlannedMaintenance(BaseModel):
         if self.match_type == "regexp":
             return self._regex_match(self.match_expression, device.name)
         elif self.match_type == "str":
-            return self.string_match(self.match_expression, device.name)
+            return self._string_match(self.match_expression, device.name)
         elif self.match_type == "exact":
             return self.match_expression == device.name
         else:
             return False
 
-    def string_match(self, pattern: str, string: str) -> bool:
+    def _string_match(self, pattern: str, string: str) -> bool:
         """This should behave like tcl string match https://wiki.tcl-lang.org/page/string+match
         Returns true if `string` matches `pattern`.
         """
