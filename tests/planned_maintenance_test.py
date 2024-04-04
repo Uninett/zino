@@ -42,7 +42,7 @@ class TestGetPlannedMaintenances:
         assert active_pm not in ended_pms
 
     def test_get_active_planned_maintenances(self, pms, active_pm, ended_pm, old_pm):
-        active_pms = pms.get_active_planned_maintenances()
+        active_pms = pms.get_active_planned_maintenances(datetime.now())
         assert active_pm in active_pms
         assert ended_pm not in active_pms
         assert old_pm not in active_pms
