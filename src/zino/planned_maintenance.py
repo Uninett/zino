@@ -79,7 +79,7 @@ class PlannedMaintenances(BaseModel):
 
     def get_started_planned_maintenances(self, now: datetime.datetime) -> list[PlannedMaintenance]:
         """Returns all planned maintenances that have began since the last run of this
-        task until now
+        task until `now`
         """
         if self.last_run:
             return [
@@ -90,7 +90,7 @@ class PlannedMaintenances(BaseModel):
 
     def get_ended_planned_maintenances(self, now: datetime.datetime) -> list[PlannedMaintenance]:
         """Returns all planned maintenances that have ended since the last run of this
-        task until now
+        task until `now`
         """
         if self.last_run:
             return [pm for pm in self.planned_maintenances.values() if self.last_run < pm.end_time <= now]
@@ -100,15 +100,14 @@ class PlannedMaintenances(BaseModel):
     def get_active_planned_maintenances(self, now: datetime.datetime) -> list[PlannedMaintenance]:
         """Returns all planned maintenances that are currently active
 
-        This means it has started latest now and the end_time is later than now
+        This means it has started before `now` and the end_time is later than `now`
         """
         return [pm for pm in self.planned_maintenances.values() if pm.start_time < now < pm.end_time]
 
     def get_old_planned_maintenances(self, now: datetime.datetime) -> list[PlannedMaintenance]:
         """Returns all planned maintenances that should get deleted
 
-
-        This means it has been 3 days since end_time
+        This means that `now` is 3 days later than end_time
         """
         return [pm for pm in self.planned_maintenances.values() if now - pm.end_time > datetime.timedelta(days=3)]
 
