@@ -171,6 +171,7 @@ class PlannedMaintenances(BaseModel):
                 event.state = EventState.IGNORED
                 event.add_log(f"entered into existing active PM event id {pm.id}")
                 state.events.commit(event)
+                pm.event_ids.append(event.id)
 
     def _end(self, state: "ZinoState", pm: PlannedMaintenance):
         for event_id in pm.event_ids:
