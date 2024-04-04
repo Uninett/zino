@@ -134,7 +134,7 @@ class PlannedMaintenances(BaseModel):
             self._start(state, started_pm)
 
         # Make sure all events that matches a PM is ignored
-        for event in state.events:
+        for event in state.events.events.values():
             self._check_event(state, event, now)
 
         # Set events matching ended PMs to open
@@ -204,7 +204,7 @@ class PlannedMaintenances(BaseModel):
     def _get_or_create_device_events(self, state: "ZinoState", pm: PlannedMaintenance) -> list[Event]:
         events = []
         # all devices that the pm should affect
-        devices = [device for device in state.devices if pm.matches_device(device)]
+        devices = [device for device in state.devices.devices.values() if pm.matches_device(device)]
         for device in devices:
             reachability_event = state.events.get_or_create_event(device.name, None, ReachabilityEvent)
             yellow_event = state.events.get_or_create_event(device.name, "yellow", AlarmEvent)
