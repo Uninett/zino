@@ -78,6 +78,7 @@ def init_event_loop(args: argparse.Namespace, loop: Optional[AbstractEventLoop] 
     scheduler.add_job(
         func=state.state.planned_maintenances.periodic,
         trigger="interval",
+        args=(state.state,),
         minutes=1,
         next_run_time=datetime.now(),
     )

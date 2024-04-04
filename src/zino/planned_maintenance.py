@@ -126,9 +126,7 @@ class PlannedMaintenances(BaseModel):
         for observer in self._observers:
             observer()
 
-    def periodic(self):
-        from zino.state import state
-
+    def periodic(self, state: "ZinoState"):
         now = datetime.datetime.now()
 
         # Initiate PM once it becomes active
