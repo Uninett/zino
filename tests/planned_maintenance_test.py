@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from unittest.mock import Mock
 
 import pytest
 
@@ -52,6 +53,21 @@ class TestGetPlannedMaintenances:
         assert old_pm in old_pms
         assert active_pm not in old_pms
         assert ended_pm not in old_pms
+
+
+class TestClosePlannedMaintenance:
+    def test_existing_pm_should_be_deleted(self, pms, old_pm):
+        pms.close_planned_maintenance(old_pm.id, "test", "test")
+        assert old_pm.id not in pms.planned_maintenances
+
+    def test_should_not_raise_exception_if_no_matching_pm(self, pms, old_pm):
+        assert pms.close_planned_maintenance(pms.last_pm_id + 1, "test", "test") is None
+
+    def test_should_call_observers_after_closing_pm(self, pms, old_pm):
+        observer = Mock()
+        pms.add_pm_observer(observer.observe)
+        pms.close_planned_maintenance(old_pm.id, "test", "test")
+        assert observer.observe.called
 
 
 @pytest.fixture
