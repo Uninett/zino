@@ -174,6 +174,12 @@ class TrapReceiver:
             _logger.error("Trap from %s did not contain a snmpTrapOID value, ignoring", router.name)
             return
 
+        if "sysUpTime" not in trap.variables:
+            _logger.error("Trap from %s did not contain a sysUpTime value, ignoring", router.name)
+            return
+
+        # TODO do some time calculations, but ask Håvard what the deal is with RestartTime vs. BootTime
+
         try:
             trap.mib, trap.name, _ = self._resolve_object_name(trap.variables["snmpTrapOID"].raw_value)
         except Exception as error:  # noqa
