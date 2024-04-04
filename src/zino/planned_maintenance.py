@@ -179,9 +179,9 @@ class PlannedMaintenances(BaseModel):
         """Creates/gets events that are affected by the given starting planned
         maintenance
         """
-        if pm.state == "portstate":
+        if pm.type == "portstate":
             return self._get_or_create_portstate_events(state, pm)
-        elif pm.state == "device":
+        elif pm.type == "device":
             return self._get_or_create_device_events(state, pm)
         raise ValueError(f"Invalid state {pm.state}")
 
