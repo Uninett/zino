@@ -403,16 +403,14 @@ class PlannedMaintenance(BaseModel):
             return False
 
         if self.match_type == "regexp":
-            pattern = re.compile(self.match_expression)
-            return pattern.match(port.ifdescr)
+            return self._regex_match(self.match_expression, port.ifdescr)
         elif self.match_type == "str":
             return self.string_match(self.match_expression, port.ifdescr)
         elif self.match_type == "intf-regexp":
-            device_pattern = re.compile(self.match_device)
-            if not device_pattern.match(device.name):
+            if self._regex_match(self.match_device, device.name):
+                return self._regex_match(self.match_expression, port.ifdescr)
+            else:
                 return False
-            port_pattern = re.compile(self.match_expression)
-            return port_pattern.match(port.ifdescr)
         else:
             return False
 
@@ -424,8 +422,7 @@ class PlannedMaintenance(BaseModel):
             return False
 
         if self.match_type == "regexp":
-            pattern = re.compile(self.match_expression)
-            return pattern.match(device.name)
+            return self._regex_match(self.match_expression, device.name)
         elif self.match_type == "str":
             return self.string_match(self.match_expression, device.name)
         elif self.match_type == "exact":
@@ -438,3 +435,10 @@ class PlannedMaintenance(BaseModel):
         Returns true if `string` matches `pattern`.
         """
         pass
+
+    def _regex_match(self, pattern: str, string: str) -> bool:
+        """Matches `string` against regex expression `pattern`.
+        Returns true if there is a match.
+        """
+        compiled_pattern = re.compile(pattern)
+        return bool(compiled_pattern.match(string))
