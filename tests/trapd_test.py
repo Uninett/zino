@@ -5,10 +5,14 @@ import shutil
 from unittest.mock import Mock
 
 import pytest
+import pytest_asyncio
 
 from zino.state import ZinoState
 from zino.statemodels import DeviceState
 from zino.trapd import TrapReceiver
+
+OID_COLD_START = ".1.3.6.1.6.3.1.1.5.1"
+OID_SYSNAME_0 = ".1.3.6.1.2.1.1.5.0"
 
 
 class TestTrapReceiver:
@@ -18,7 +22,9 @@ class TestTrapReceiver:
         receiver.add_community("public")
         assert len(receiver._communities) == 1
 
-    @pytest.mark.skipif(not shutil.which("snmptrap"), reason="Cannot find snmptrap command line program")
+
+@pytest.mark.skipif(not shutil.which("snmptrap"), reason="Cannot find snmptrap command line program")
+class TestTrapReceiverExternally:
     @pytest.mark.asyncio
     async def test_when_trap_is_from_unknown_device_it_should_ignore_it(self, event_loop, caplog):
         receiver = TrapReceiver(address="127.0.0.1", port=1162, loop=event_loop)
@@ -26,69 +32,36 @@ class TestTrapReceiver:
         try:
             await receiver.open()
 
-            cold_start = ".1.3.6.1.6.3.1.1.5.1"
-            sysname_0 = ".1.3.6.1.2.1.1.5.0"
             with caplog.at_level(logging.DEBUG):
-                await send_trap_externally(cold_start, sysname_0, "s", "'MockDevice'")
+                await send_trap_externally(OID_COLD_START, OID_SYSNAME_0, "s", "'MockDevice'")
                 assert "ignored trap from 127.0.0.1" in caplog.text
         finally:
             receiver.close()
 
-    @pytest.mark.skipif(not shutil.which("snmptrap"), reason="Cannot find snmptrap command line program")
     @pytest.mark.asyncio
-    async def test_when_trap_is_from_known_device_it_should_log_it(self, state_with_localhost, event_loop, caplog):
-        receiver = TrapReceiver(address="127.0.0.1", port=1162, loop=event_loop, state=state_with_localhost)
-        receiver.add_community("public")
-        try:
-            await receiver.open()
+    async def test_when_trap_is_from_known_device_it_should_log_it(self, localhost_receiver, caplog):
+        with caplog.at_level(logging.DEBUG):
+            await send_trap_externally(OID_COLD_START, OID_SYSNAME_0, "s", "'MockDevice'")
+            assert "Trap from localhost" in caplog.text
+            assert OID_COLD_START in caplog.text
 
-            cold_start = ".1.3.6.1.6.3.1.1.5.1"
-            sysname_0 = ".1.3.6.1.2.1.1.5.0"
-            with caplog.at_level(logging.DEBUG):
-                await send_trap_externally(cold_start, sysname_0, "s", "'MockDevice'")
-                assert "Trap from localhost" in caplog.text
-                assert cold_start in caplog.text
-        finally:
-            receiver.close()
-
-    @pytest.mark.skipif(not shutil.which("snmptrap"), reason="Cannot find snmptrap command line program")
     @pytest.mark.asyncio
-    async def test_when_observer_is_added_and_trap_matches_it_should_call_it(self, state_with_localhost, event_loop):
-        receiver = TrapReceiver(address="127.0.0.1", port=1162, loop=event_loop, state=state_with_localhost)
-        receiver.add_community("public")
+    async def test_when_observer_is_added_and_trap_matches_it_should_call_it(self, localhost_receiver):
         observer = Mock()
-        receiver.observe(observer, ("SNMPv2-MIB", "coldStart"))
-        try:
-            await receiver.open()
+        localhost_receiver.observe(observer, ("SNMPv2-MIB", "coldStart"))
+        await send_trap_externally(OID_COLD_START, OID_SYSNAME_0, "s", "'MockDevice'")
+        assert observer.called
 
-            cold_start = ".1.3.6.1.6.3.1.1.5.1"
-            sysname_0 = ".1.3.6.1.2.1.1.5.0"
-            await send_trap_externally(cold_start, sysname_0, "s", "'MockDevice'")
-            assert observer.called
-        finally:
-            receiver.close()
-
-    @pytest.mark.skipif(not shutil.which("snmptrap"), reason="Cannot find snmptrap command line program")
     @pytest.mark.asyncio
-    async def test_when_observer_raises_unhandled_exception_it_should_log_it(
-        self, state_with_localhost, event_loop, caplog
-    ):
-        receiver = TrapReceiver(address="127.0.0.1", port=1162, loop=event_loop, state=state_with_localhost)
-        receiver.add_community("public")
+    async def test_when_observer_raises_unhandled_exception_it_should_log_it(self, localhost_receiver, caplog):
         crashing_observer = Mock()
         crashing_observer.side_effect = ValueError("mocked exception")
-        receiver.observe(crashing_observer, ("SNMPv2-MIB", "coldStart"))
-        try:
-            await receiver.open()
+        localhost_receiver.observe(crashing_observer, ("SNMPv2-MIB", "coldStart"))
 
-            cold_start = ".1.3.6.1.6.3.1.1.5.1"
-            sysname_0 = ".1.3.6.1.2.1.1.5.0"
-            with caplog.at_level(logging.INFO):
-                await send_trap_externally(cold_start, sysname_0, "s", "'MockDevice'")
-                assert "ValueError" in caplog.text
-                assert "mocked exception" in caplog.text
-        finally:
-            receiver.close()
+        with caplog.at_level(logging.INFO):
+            await send_trap_externally(OID_COLD_START, OID_SYSNAME_0, "s", "'MockDevice'")
+            assert "ValueError" in caplog.text
+            assert "mocked exception" in caplog.text
 
 
 @pytest.fixture
@@ -98,6 +71,16 @@ def state_with_localhost():
     state.devices.devices["localhost"] = DeviceState(name="localhost", addresses={localhost})
     state.addresses[localhost] = "localhost"
     yield state
+
+
+@pytest_asyncio.fixture
+async def localhost_receiver(state_with_localhost, event_loop):
+    """Yields a TrapReceiver instance with a standardized setup for running external tests on localhost"""
+    receiver = TrapReceiver(address="127.0.0.1", port=1162, loop=event_loop, state=state_with_localhost)
+    receiver.add_community("public")
+    await receiver.open()
+    yield receiver
+    receiver.close()
 
 
 async def send_trap_externally(*args: str):
