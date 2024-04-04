@@ -73,7 +73,7 @@ class PlannedMaintenances(BaseModel):
         if not pm:
             # TODO figure out if this is enough
             return
-        pm.add_log("PM closed by %s: %s", user, reason)
+        pm.add_log(f"PM closed by {user}: {reason}")
         del self.planned_maintenances[id]
         self._call_observers()
 
