@@ -1,4 +1,3 @@
-import ipaddress
 from ipaddress import IPv4Address
 
 import pytest
@@ -10,34 +9,6 @@ from zino.statemodels import BFDEvent, BFDSessState, BFDState, Port
 from zino.tasks.bfdtask import BFDTask
 
 
-class TestConvertAddress:
-    def test_converts_bytes_to_correct_ipv6_address(self):
-        parsed_address = BFDTask._convert_address(
-            b"\x00\x00\x00\x00\x00\x00\x00\x00\00\x00\x00\x00\x00\x00\x00\x01",
-            "ipv6",
-        )
-        assert parsed_address == ipaddress.IPv6Address("::1")
-
-    def test_converts_bytes_to_correct_ipv4_address(self):
-        parsed_address = BFDTask._convert_address(b"\x7f\x00\x00\x01", "ipv4")
-        assert parsed_address == ipaddress.IPv4Address("127.0.0.1")
-
-    def test_fails_if_parsing_ipv4_as_ipv6(self):
-        with pytest.raises(ipaddress.AddressValueError):
-            BFDTask._convert_address(b"\x7f\x00\x00\x01", "ipv6")
-
-    def test_fails_if_parsing_ipv6_as_ipv4(self):
-        with pytest.raises(ipaddress.AddressValueError):
-            BFDTask._convert_address(
-                b"\x00\x00\x00\x00\x00\x00\x00\x00\00\x00\x00\x00\x00\x00\x00\x01",
-                "ipv4",
-            )
-
-    def test_fails_if_address_type_is_invalid(self):
-        with pytest.raises(ValueError):
-            BFDTask._convert_address("\x7f\x00\x00\x01", "invalid")
-
-
 class TestJuniper:
     @pytest.mark.parametrize("task", ["juniper-bfd-up"], indirect=True)
     def test_parse_row_creates_correct_bfd_state(self, task, bfd_state):
@@ -46,7 +17,6 @@ class TestJuniper:
             "up",
             bfd_state.session_discr,
             "0x7f000001",
-            "ipv4",
         )
         assert state == bfd_state
 

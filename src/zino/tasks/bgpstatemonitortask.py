@@ -1,9 +1,6 @@
 import logging
 from dataclasses import dataclass, replace
-from ipaddress import ip_address
 from typing import Any, Iterable, Optional
-
-from pyasn1.type.univ import OctetString
 
 from zino.snmp import SparseWalkResponse
 from zino.statemodels import (
@@ -15,6 +12,7 @@ from zino.statemodels import (
     IPAddress,
 )
 from zino.tasks.task import Task
+from zino.utils import parse_ip
 
 _logger = logging.getLogger(__name__)
 
@@ -228,7 +226,7 @@ class BGPStateMonitorTask(Task):
         fixed_bgp_info = dict()
         for oid, result in bgp_info.items():
             try:
-                fixed_remote_address = self._fixup_ip_address(address=result["peer_remote_address"])
+                fixed_remote_address = parse_ip(result["peer_remote_address"])
             except ValueError:
                 _logger.debug(f"{self.device_state.name}: Invalid peer_remote_address {result['peer_remote_address']}")
                 continue
@@ -237,21 +235,6 @@ class BGPStateMonitorTask(Task):
             fixed_bgp_info[oid]["peer_remote_address"] = fixed_remote_address
 
         return fixed_bgp_info
-
-    def _fixup_ip_address(self, address: str) -> IPAddress:
-        if address.startswith("0x"):
-            if len(address) == 10:
-                # IPv4 address
-                address_str = ".".join((map(str, OctetString(hexValue=address[2:]).asNumbers())))
-            elif len(address) == 34:
-                # IPv6 address
-                address_str = ":".join(["".join(item) for item in zip(*[iter(address[2:])] * 4)])
-            else:
-                raise ValueError(f"Input {address} could not be converted to IP address.")
-        else:
-            address_str = address
-
-        return ip_address(address=address_str)
 
     def _update_single_bgp_entry(self, row: dict[str, Any], local_as: int, uptime: int):
         data = BaseBGPRow(**row)
