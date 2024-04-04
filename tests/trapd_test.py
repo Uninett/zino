@@ -63,6 +63,25 @@ class TestTrapReceiverExternally:
             assert "ValueError" in caplog.text
             assert "mocked exception" in caplog.text
 
+    @pytest.mark.asyncio
+    async def test_when_trap_from_ignore_list_is_received_it_should_be_ignored(self, localhost_receiver):
+        late_observer = Mock()
+        localhost_receiver.observe(late_observer, ("BGP4-MIB", "bgpBackwardTransition"))
+        bgp_backward_transition_trap = [
+            ".1.3.6.1.2.1.15.7.2",
+            ".1.3.6.1.2.1.15.3.1.7",
+            "a",
+            "192.168.42.42",
+            ".1.3.6.1.2.1.15.3.1.14",
+            "x",
+            "4242",
+            ".1.3.6.1.2.1.15.3.1.2",
+            "i",
+            "2",
+        ]
+        await send_trap_externally(*bgp_backward_transition_trap)
+        assert not late_observer.called
+
 
 @pytest.fixture
 def state_with_localhost():
