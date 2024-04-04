@@ -7,9 +7,10 @@ from unittest.mock import Mock
 import pytest
 import pytest_asyncio
 
+from zino.oid import OID
 from zino.state import ZinoState
 from zino.statemodels import DeviceState
-from zino.trapd import TrapReceiver
+from zino.trapd import TrapMessage, TrapOriginator, TrapReceiver, TrapVarBind
 
 OID_COLD_START = ".1.3.6.1.6.3.1.1.5.1"
 OID_SYSNAME_0 = ".1.3.6.1.2.1.1.5.0"
@@ -21,6 +22,32 @@ class TestTrapReceiver:
         receiver.add_community("public")
         receiver.add_community("public")
         assert len(receiver._communities) == 1
+
+    @pytest.mark.asyncio
+    async def test_when_trap_lacks_trap_oid_it_should_be_ignored(self, localhost_receiver):
+        trap = TrapMessage(agent=TrapOriginator(address=ipaddress.ip_address("127.0.0.1"), port=666))
+        trap.variables["sysUpTime"] = TrapVarBind(
+            oid=OID(".1.3.6.1.2.1.1.3.0"),
+            mib="SNMPv2-MIB",
+            var="sysUpTime",
+            instance=OID(".0"),
+            raw_value=None,
+            value=123,
+        )
+        assert not TrapReceiver._verify_trap(trap)
+
+    @pytest.mark.asyncio
+    async def test_when_trap_lacks_sysuptime_it_should_be_ignored(self, localhost_receiver):
+        trap = TrapMessage(agent=TrapOriginator(address=ipaddress.ip_address("127.0.0.1"), port=666))
+        trap.variables["snmpTrapOID"] = TrapVarBind(
+            oid=OID(".1.3.6.1.6.3.1.1.4.1"),
+            mib="SNMPv2-MIB",
+            var="snmpTrapOID",
+            instance=None,
+            raw_value=OID(".1.1.1"),
+            value=("FAKE-MIB", "fakeTrap"),
+        )
+        assert not TrapReceiver._verify_trap(trap)
 
 
 @pytest.mark.skipif(not shutil.which("snmptrap"), reason="Cannot find snmptrap command line program")
@@ -93,7 +120,7 @@ def state_with_localhost():
 
 
 @pytest_asyncio.fixture
-async def localhost_receiver(state_with_localhost, event_loop):
+async def localhost_receiver(state_with_localhost, event_loop) -> TrapReceiver:
     """Yields a TrapReceiver instance with a standardized setup for running external tests on localhost"""
     receiver = TrapReceiver(address="127.0.0.1", port=1162, loop=event_loop, state=state_with_localhost)
     receiver.add_community("public")
