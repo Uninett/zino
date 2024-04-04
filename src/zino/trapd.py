@@ -15,8 +15,8 @@ from zino.oid import OID
 from zino.snmp import (
     MibNotFoundError,
     PysnmpMibNotFoundError,
-    _get_engine,
     _mib_value_to_python,
+    get_new_snmp_engine,
 )
 from zino.state import ZinoState
 from zino.statemodels import DeviceState, IPAddress
@@ -101,7 +101,7 @@ class TrapReceiver:
         self.port = port
         self.loop = loop if loop else asyncio.get_event_loop()
         self.state = state or ZinoState()
-        self.snmp_engine = _get_engine()
+        self.snmp_engine = get_new_snmp_engine()
         self._communities = set()
         self._observers: dict[TrapType, List[TrapObserver]] = {}
 
