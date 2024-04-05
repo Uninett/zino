@@ -114,6 +114,16 @@ class TestPeriodic:
         state.planned_maintenances.periodic(state)
         assert old_pm.id not in state.planned_maintenances.planned_maintenances
 
+    def test_event_opened_after_pm_was_initiated_is_set_to_ignored(self, state, active_pm):
+        device = state.devices.get("device")
+        event = state.events.create_event(device.name, None, ReachabilityEvent)
+        event.state = EventState.OPEN
+        state.events.commit(event)
+        # Set last run to be after start time so PM is not treated as if it just started
+        state.planned_maintenances.last_run = active_pm.start_time + timedelta(hours=1)
+        state.planned_maintenances.periodic(state)
+        assert state.events.checkout(event.id).state == EventState.IGNORED
+
 
 @pytest.fixture
 def pms():
