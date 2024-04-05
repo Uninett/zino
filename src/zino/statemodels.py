@@ -1,6 +1,7 @@
 """Basic data models for keeping/serializing/deserializing Zino state"""
 
 import datetime
+import fnmatch
 import logging
 import pathlib
 import re
@@ -435,7 +436,7 @@ class PlannedMaintenance(BaseModel):
         """This should behave like tcl string match https://wiki.tcl-lang.org/page/string+match
         Returns true if `string` matches `pattern`.
         """
-        pass
+        return fnmatch.fnmatch(string, pattern)
 
     def _regex_match(self, pattern: str, string: str) -> bool:
         """Matches `string` against regex expression `pattern`.
