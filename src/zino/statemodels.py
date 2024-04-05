@@ -304,7 +304,7 @@ class PortStateEvent(Event):
 
     @property
     def subindex(self) -> SubIndex:
-        return self.port
+        return self.ifindex
 
 
 class BGPEvent(Event):
