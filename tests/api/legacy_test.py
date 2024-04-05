@@ -540,6 +540,21 @@ class TestZino1ServerProtocolSetstateCommand:
         assert "\r\n500 " in output
 
     @pytest.mark.asyncio
+    async def test_when_event_is_closed_it_should_output_error_and_stay_closed(self, authenticated_protocol):
+        state = authenticated_protocol._state
+        event = state.events.create_event("foo", None, ReachabilityEvent)
+        event.state = EventState.CLOSED
+        state.events.commit(event)
+
+        await authenticated_protocol.message_received(f"SETSTATE {event.id} ignored")
+
+        output = authenticated_protocol.transport.data_buffer.getvalue().decode()
+        assert "\r\n500 " in output
+
+        event = state.events[event.id]
+        assert event.state == EventState.CLOSED
+
+    @pytest.mark.asyncio
     async def test_when_caseid_and_state_is_valid_event_state_should_be_changed(self, authenticated_protocol):
         state = authenticated_protocol._state
         event = state.events.create_event("foo", None, ReachabilityEvent)

@@ -1,4 +1,5 @@
 """Basic data models for keeping/serializing/deserializing Zino state"""
+
 import datetime
 import logging
 from enum import Enum
@@ -15,6 +16,12 @@ AlarmType = Literal["yellow", "red"]
 SubIndex = Union[None, int, IPAddress, AlarmType]
 
 _logger = logging.getLogger(__name__)
+
+
+class ClosedEventError(Exception):
+    """Closed events cannot be reopened"""
+
+    pass
 
 
 class BGPStyle(StrEnum):
@@ -251,6 +258,8 @@ class Event(BaseModel):
         """Sets a new event state value, logging the change to the event history with a username"""
         if new_state == self.state:
             return
+        if self.state == EventState.CLOSED:
+            raise ClosedEventError
 
         old_state, self.state = self.state, new_state
         if (old_state, new_state) == (EventState.EMBRYONIC, EventState.OPEN):
