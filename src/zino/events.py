@@ -57,8 +57,9 @@ class Events(BaseModel):
         """
         new_index: Dict[EventIndex, Event] = {}
         for event in self.events.values():
-            key = EventIndex(event.router, event.subindex, type(event))
-            new_index[key] = event
+            if event.state != EventState.CLOSED:
+                key = EventIndex(event.router, event.subindex, type(event))
+                new_index[key] = event
         self._events_by_index = new_index
 
     def get_or_create_event(
