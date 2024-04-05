@@ -2,12 +2,7 @@
 # MegaLinter GitHub Action configuration file
 # More info at https://megalinter.io
 name: MegaLinter
-
-on:
-  # Trigger mega-linter at every push to master. Action will also be visible from all Pull Requests
-  push:
-    branches: master
-  pull_request:
+on: [push, pull_request]
 
 jobs:
   megalinter:
@@ -23,7 +18,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0 # If you use VALIDATE_ALL_CODEBASE = true, you can remove this line to improve performances
+          fetch-depth: 0
       # MegaLinter
       - name: MegaLinter
         id: ml
@@ -33,11 +28,12 @@ jobs:
         env:
           # All available variables are described in documentation
           # https://megalinter.io/configuration/
-          VALIDATE_ALL_CODEBASE: true
           ENABLE_LINTERS: PYTHON_BLACK,PYTHON_ISORT,PYTHON_RUFF
           # Make workflow fail even on non blocking errors
           FORMATTERS_DISABLE_ERRORS: false
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Validate whole codebase on pushes and only changes on pull requests
+          VALIDATE_ALL_CODEBASE: ${{ github.event_name == 'push'}}
           # Tell the linter the location of the configuration file (pyproject.toml)
           LINTER_RULES_PATH: .
           PYTHON_BLACK_CONFIG_FILE: pyproject.toml
