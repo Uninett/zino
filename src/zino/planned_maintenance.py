@@ -195,8 +195,8 @@ class PlannedMaintenances(BaseModel):
 
     def _get_matching_ports(self, state: "ZinoState", pm) -> list[tuple[DeviceState, Port]]:
         ports = []
-        for device in state.devices:
-            for port in device.ports:
+        for device in state.devices.devices.values():
+            for port in device.ports.values():
                 if pm.matches_portstate(device, port):
                     ports.append((device, port))
         return ports
