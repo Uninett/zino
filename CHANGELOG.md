@@ -13,19 +13,19 @@ changelog only details changes from Zino 2 on and out.
 ### Fixed
 
 - BGP events are now presented with correctly named attributes in the legacy
-  API (#172)
+  API ([#172](https://github.com/Uninett/zino/issues/172))
 - BGP task no longer crashes on unexpected SNMP responses while probing for
-  which BGP MIB to use for a device (#184)
-- Legacy API now correctly hides closed events (#192)
-- Legacy API now correctly denies re-opening of closed events (#201)
-- BFD events now have the expected `lastevent` attribute (#200)
+  which BGP MIB to use for a device ([#184](https://github.com/Uninett/zino/issues/184))
+- Legacy API now correctly hides closed events ([#192](https://github.com/Uninett/zino/issues/192))
+- Legacy API now correctly denies re-opening of closed events ([#201](https://github.com/Uninett/zino/issues/201))
+- BFD events now have the expected `lastevent` attribute ([#200](https://github.com/Uninett/zino/issues/200))
 - Fixed potential bug with how `portstate` events are indexed internally in
-  Zino's running state (#206)
+  Zino's running state ([#206](https://github.com/Uninett/zino/issues/206))
 
 ### Changed
 
 - Functions for parsing the many ways IP addresses are represented in SNMP MIBs
-  have been consolidated into a single function (#183)
+  have been consolidated into a single function ([#183](https://github.com/Uninett/zino/issues/183))
 
 ## [2.0.0-alpha.1] - 2024-01-26
 
