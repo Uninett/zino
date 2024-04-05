@@ -163,7 +163,7 @@ class PlannedMaintenances(BaseModel):
 
         active_pms = self.get_active_planned_maintenances(now)
         for pm in active_pms:
-            if pm.matches_event(event):
+            if pm.matches_event(event, state):
                 event.state = EventState.IGNORED
                 event.add_log(f"entered into existing active PM event id {pm.id}")
                 state.events.commit(event)

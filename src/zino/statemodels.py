@@ -6,12 +6,15 @@ import pathlib
 import re
 from enum import Enum
 from ipaddress import IPv4Address, IPv6Address
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, Field
 
 from zino.compat import StrEnum
 from zino.time import now
+
+if TYPE_CHECKING:
+    from zino.state import ZinoState
 
 IPAddress = Union[IPv4Address, IPv6Address]
 AlarmType = Literal["yellow", "red"]
@@ -382,10 +385,8 @@ class PlannedMaintenance(BaseModel):
         self.log.append(entry)
         return entry
 
-    def matches_event(self, event: Event) -> bool:
+    def matches_event(self, event: Event, state: "ZinoState") -> bool:
         """Returns true if `event` will be affected by this planned maintenance"""
-        from zino.state import state
-
         device = state.devices[event.router]
         if self.type == "portstate" and event.type == "portstate":
             port = device.ports[event.ifindex]
