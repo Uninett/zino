@@ -5,7 +5,13 @@ import pytest
 
 from zino.planned_maintenance import PlannedMaintenances
 from zino.state import ZinoState
-from zino.statemodels import AlarmEvent, EventState, ReachabilityEvent
+from zino.statemodels import (
+    AlarmEvent,
+    EventState,
+    Port,
+    PortStateEvent,
+    ReachabilityEvent,
+)
 
 
 class TestGetPlannedMaintenances:
@@ -73,7 +79,7 @@ class TestClosePlannedMaintenance:
 
 
 class TestPeriodic:
-    def test_events_matching_device_pm_are_set_in_ignore(self, state, active_pm):
+    def test_events_matching_active_device_pm_are_set_in_ignore(self, state, active_pm):
         device = state.devices.get("device")
         state.planned_maintenances.periodic(state)
         reachability_event = state.events.get(device.name, None, ReachabilityEvent)
@@ -82,6 +88,14 @@ class TestPeriodic:
         assert yellow_alarm_event.state == EventState.IGNORED
         red_alarm_event = state.events.get(device.name, "red", AlarmEvent)
         assert red_alarm_event.state == EventState.IGNORED
+
+    def test_events_matching_active_portstate_pm_are_set_in_ignore(self, state, active_portstate_pm):
+        device = state.devices.get("device")
+        port = Port(ifindex=1, ifdescr="port")
+        device.ports[port.ifindex] = port
+        state.planned_maintenances.periodic(state)
+        event = state.events.get(device.name, port.ifindex, PortStateEvent)
+        assert event.state == EventState.IGNORED
 
     def test_events_affected_by_pm_get_opened_after_pm_ends(self, state, ended_pm):
         device = state.devices.get("device")
@@ -121,6 +135,18 @@ def active_pm(pms):
         type="device",
         match_type="exact",
         match_expression="device",
+        match_device="device",
+    )
+
+
+@pytest.fixture
+def active_portstate_pm(pms):
+    return pms.create_planned_maintenance(
+        start_time=datetime.now() - timedelta(days=1),
+        end_time=datetime.now() + timedelta(days=1),
+        type="portstate",
+        match_type="regexp",
+        match_expression="port",
         match_device="device",
     )
 

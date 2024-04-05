@@ -190,6 +190,7 @@ class PlannedMaintenances(BaseModel):
         deviceports = self._get_matching_ports(state, pm)
         for device, port in deviceports:
             event = state.events.get_or_create_event(device.name, port.ifindex, PortStateEvent)
+            event.ifindex = port.ifindex
             events.append(event)
         return events
 
