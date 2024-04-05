@@ -8,6 +8,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Zino 2 is a full rewrite of the original Tcl-based Zino state monitor.  This
 changelog only details changes from Zino 2 on and out.
 
+## [Unreleased]
+
+### Fixed
+
+- BGP events are now presented with correctly named attributes in the legacy
+  API (#172)
+- BGP task no longer crashes on unexpected SNMP responses while probing for
+  which BGP MIB to use for a device (#184)
+- Legacy API now correctly hides closed events (#192)
+- Legacy API now correctly denies re-opening of closed events (#201)
+- BFD events now have the expected `lastevent` attribute (#200)
+- Fixed potential bug with how `portstate` events are indexed internally in
+  Zino's running state (#206)
+
+### Changed
+
+- Functions for parsing the many ways IP addresses are represented in SNMP MIBs
+  have been consolidated into a single function (#183)
+
 ## [2.0.0-alpha.1] - 2024-01-26
 
 This is the first official release of Zino 2.
