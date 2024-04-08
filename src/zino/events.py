@@ -153,6 +153,7 @@ class Events(BaseModel):
         if event.state != EventState.CLOSED:
             return
 
+        event.dump_event_to_file(dir_name=f"old-events/{now().year}-{now().month}/{now().day}")
         index = EventIndex(event.router, event.subindex, type(event))
         if self._events_by_index.get(index) and event.id == self._events_by_index[index].id:
             _log.info("Closed event %s was still in event index, removing it now", event.id)

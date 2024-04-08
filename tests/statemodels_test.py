@@ -1,4 +1,6 @@
 import datetime
+import json
+import os
 
 import pytest
 
@@ -81,6 +83,15 @@ class TestEvent:
 
         changed = fake_event.get_changed_fields(copy)
         assert set(changed) == {"log", "updated"}
+
+    def test_dump_event_to_file_should_dump_valid_json_to_file(self, tmp_path, fake_event):
+        fake_event.set_state(EventState.CLOSED)
+        fake_event.dump_event_to_file(tmp_path)
+
+        dumpfile = f"{tmp_path}/{fake_event.id}.json"
+        assert os.path.exists(dumpfile)
+        with open(dumpfile, "r") as data:
+            assert json.load(data)
 
 
 class TestLogEntryModelDumpLegacy:
