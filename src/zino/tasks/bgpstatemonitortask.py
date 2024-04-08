@@ -1,9 +1,6 @@
 import logging
 from dataclasses import dataclass, replace
-from ipaddress import ip_address
-from typing import Any, Iterable, Optional
-
-from pyasn1.type.univ import OctetString
+from typing import Iterable, Optional
 
 from zino.snmp import SparseWalkResponse
 from zino.statemodels import (
@@ -15,6 +12,7 @@ from zino.statemodels import (
     IPAddress,
 )
 from zino.tasks.task import Task
+from zino.utils import parse_ip
 
 _logger = logging.getLogger(__name__)
 
@@ -92,10 +90,8 @@ class BGPStateMonitorTask(Task):
         if not bgp_info:
             return
 
-        bgp_info = self._fixup_ip_addresses(bgp_info=bgp_info)
-
-        for result in bgp_info.values():
-            self._update_single_bgp_entry(row=result, local_as=local_as, uptime=uptime)
+        for result in bgp_info:
+            self._update_single_bgp_entry(data=result, local_as=local_as, uptime=uptime)
 
     async def _get_bgp_style(self) -> Optional[BGPStyle]:
         if await self.snmp.subtree_is_supported("BGP4-V2-MIB-JUNIPER", "jnxBgpM2"):
@@ -120,7 +116,7 @@ class BGPStateMonitorTask(Task):
         else:
             _logger.info(f"router {self.device.name} misses {object_name}")
 
-    async def _get_juniper_bgp_info(self) -> Optional[SparseWalkResponse]:
+    async def _get_juniper_bgp_info(self) -> Optional[list[BaseBGPRow]]:
         variables = (
             "jnxBgpM2PeerState",
             "jnxBgpM2PeerStatus",
@@ -140,7 +136,7 @@ class BGPStateMonitorTask(Task):
 
         return juniper_bgp_info
 
-    async def _get_cisco_bgp_info(self) -> Optional[SparseWalkResponse]:
+    async def _get_cisco_bgp_info(self) -> Optional[list[BaseBGPRow]]:
         variables = (
             "cbgpPeer2State",
             "cbgpPeer2AdminStatus",
@@ -162,7 +158,7 @@ class BGPStateMonitorTask(Task):
 
         return cisco_bgp_info
 
-    async def _get_general_bgp_info(self) -> Optional[SparseWalkResponse]:
+    async def _get_general_bgp_info(self) -> Optional[list[BaseBGPRow]]:
         variables = (
             "bgpPeerState",
             "bgpPeerAdminStatus",
@@ -200,7 +196,7 @@ class BGPStateMonitorTask(Task):
 
     def _transform_variables_from_specific_to_general(
         self, bgp_info: SparseWalkResponse, bgp_style: BGPStyle
-    ) -> SparseWalkResponse:
+    ) -> Optional[list[BaseBGPRow]]:
         if bgp_style == BGPStyle.JUNIPER:
             translation = JUNIPER_TRANSLATION_MAP
         elif bgp_style == BGPStyle.CISCO:
@@ -222,39 +218,20 @@ class BGPStateMonitorTask(Task):
             _logger.info(f"router {self.device.name} misses BGP variables ({missing_variables})")
             return None
 
-        return generalized_bgp_info
+        results = list()
 
-    def _fixup_ip_addresses(self, bgp_info: SparseWalkResponse) -> SparseWalkResponse:
-        fixed_bgp_info = dict()
-        for oid, result in bgp_info.items():
+        # Fix up peer remote address and transform to BaseBGPRow
+        for result in generalized_bgp_info.values():
             try:
-                fixed_remote_address = self._fixup_ip_address(address=result["peer_remote_address"])
+                result["peer_remote_address"] = parse_ip(result["peer_remote_address"])
             except ValueError:
                 _logger.debug(f"{self.device_state.name}: Invalid peer_remote_address {result['peer_remote_address']}")
-                continue
-
-            fixed_bgp_info[oid] = result
-            fixed_bgp_info[oid]["peer_remote_address"] = fixed_remote_address
-
-        return fixed_bgp_info
-
-    def _fixup_ip_address(self, address: str) -> IPAddress:
-        if address.startswith("0x"):
-            if len(address) == 10:
-                # IPv4 address
-                address_str = ".".join((map(str, OctetString(hexValue=address[2:]).asNumbers())))
-            elif len(address) == 34:
-                # IPv6 address
-                address_str = ":".join(["".join(item) for item in zip(*[iter(address[2:])] * 4)])
             else:
-                raise ValueError(f"Input {address} could not be converted to IP address.")
-        else:
-            address_str = address
+                results.append(BaseBGPRow(**result))
 
-        return ip_address(address=address_str)
+        return results
 
-    def _update_single_bgp_entry(self, row: dict[str, Any], local_as: int, uptime: int):
-        data = BaseBGPRow(**row)
+    def _update_single_bgp_entry(self, data: BaseBGPRow, local_as: int, uptime: int):
         if data.peer_remote_address in BUGGY_REMOTE_ADDRESSES:
             return
 
