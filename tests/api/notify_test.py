@@ -73,37 +73,49 @@ class TestZino1NotificationProtocol:
 class TestZino1NotificationProtocolBuildNotifications:
     def test_should_make_notifications_for_regular_changed_attrs(self, fake_event):
         protocol = Zino1NotificationProtocol()
+        protocol._state.events.events[fake_event.id] = fake_event
         event_copy = fake_event.model_copy(deep=True)
         event_copy.updated = now() + timedelta(seconds=5)
 
-        notifications = list(protocol.build_notifications(new_event=event_copy, old_event=fake_event))
+        notifications = list(
+            protocol.build_notifications(state=protocol._state, new_event=event_copy, old_event=fake_event)
+        )
         assert notifications == [Notification(event_id=42, change_type="attr", value="updated")]
 
     def test_should_make_notifications_for_log_changes(self, fake_event):
         protocol = Zino1NotificationProtocol()
+        protocol._state.events.events[fake_event.id] = fake_event
         event_copy = fake_event.model_copy(deep=True)
         event_copy.add_log("foo")
 
-        notifications = list(protocol.build_notifications(new_event=event_copy, old_event=fake_event))
+        notifications = list(
+            protocol.build_notifications(state=protocol._state, new_event=event_copy, old_event=fake_event)
+        )
         assert Notification(event_id=42, change_type="log", value=1) in notifications
 
     def test_should_make_notifications_for_history_changes(self, fake_event):
         protocol = Zino1NotificationProtocol()
+        protocol._state.events.events[fake_event.id] = fake_event
         event_copy = fake_event.model_copy(deep=True)
         event_copy.add_history("foo")
 
-        notifications = list(protocol.build_notifications(new_event=event_copy, old_event=fake_event))
+        notifications = list(
+            protocol.build_notifications(state=protocol._state, new_event=event_copy, old_event=fake_event)
+        )
         assert Notification(event_id=42, change_type="history", value=1) in notifications
 
     def test_should_make_notifications_for_state_changes(self, fake_event):
         protocol = Zino1NotificationProtocol()
+        protocol._state.events.events[fake_event.id] = fake_event
         event_copy = fake_event.model_copy(deep=True)
         event_copy.state = EventState.IGNORED
 
         old, new = fake_event.state.value, event_copy.state.value
         expected = f"{old} {new}"
 
-        notifications = list(protocol.build_notifications(new_event=event_copy, old_event=fake_event))
+        notifications = list(
+            protocol.build_notifications(state=protocol._state, new_event=event_copy, old_event=fake_event)
+        )
         assert Notification(event_id=42, change_type="state", value=expected) in notifications
 
 

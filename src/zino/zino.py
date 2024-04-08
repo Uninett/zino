@@ -46,6 +46,13 @@ def init_event_loop(args: argparse.Namespace):
     )
     state.state.events.add_event_observer(reschedule_dump_state_on_commit)
 
+    # Schedule removing events that have been closed for a certain time
+    scheduler.add_job(
+        func=state.state.events.delete_expired_events,
+        trigger="interval",
+        minutes=30,
+    )
+
     loop = asyncio.get_event_loop()
     server = ZinoServer(loop=loop, state=state.state)
     server.serve()
