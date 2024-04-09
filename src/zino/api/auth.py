@@ -58,4 +58,5 @@ def read_users(filename: Optional[Union[Path, str]] = "secrets") -> dict[str, st
 
 
 class AuthenticationFailure(Exception):
-    pass
+    def __init__(self, message="Authentication failure"):
+        super().__init__(message)
