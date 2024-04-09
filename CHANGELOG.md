@@ -32,6 +32,8 @@ changelog only details changes from Zino 2 on and out.
 - BFD events now have the expected `lastevent` attribute ([#200](https://github.com/Uninett/zino/issues/200))
 - Fixed potential bug with how `portstate` events are indexed internally in
   Zino's running state ([#206](https://github.com/Uninett/zino/issues/206))
+- API now responds with a proper message on user authentication failures
+  ([#210](https://github.com/Uninett/zino/pull/210))
 
 ### Changed
 
