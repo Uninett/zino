@@ -2,6 +2,7 @@
 
 import datetime
 import logging
+import pathlib
 from enum import Enum
 from ipaddress import IPv4Address, IPv6Address
 from typing import Any, Dict, List, Literal, Optional, Union
@@ -302,6 +303,14 @@ class Event(BaseModel):
     def get_changed_fields(self, other: "Event") -> List[str]:
         """Compares this Event to another Event and returns a list of names of attributes that are different"""
         return [field for field in self.model_fields if getattr(other, field) != getattr(self, field)]
+
+    def dump_event_to_file(self, dir_name: str):
+        """Dumps the full event to a file in JSON format"""
+        pathlib.Path(dir_name).mkdir(parents=True, exist_ok=True)
+        filename = f"{dir_name}/{self.id}.json"
+        _logger.debug("dumping state to %s", filename)
+        with open(filename, "w") as statefile:
+            statefile.write(self.model_dump_json(exclude_none=True, indent=2))
 
 
 class PortStateEvent(Event):
