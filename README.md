@@ -136,15 +136,18 @@ at this point you can test that the `zino` command is available to run:
 
 ```console
 $ zino --help
-usage: zino [-h] [--polldevs PATH] [--debug] [--stop-in N]
+usage: zino [-h] [--polldevs PATH] [--debug] [--stop-in N] [--trap-port PORT] [--user USER]
 
 Zino is not OpenView
 
 options:
-  -h, --help       show this help message and exit
-  --polldevs PATH  Path to polldevs.cf
-  --debug          Set global log level to DEBUG. Very chatty!
-  --stop-in N      Stop zino after N seconds.
+  -h, --help        show this help message and exit
+  --polldevs PATH   Path to polldevs.cf
+  --debug           Set global log level to DEBUG. Very chatty!
+  --stop-in N       Stop zino after N seconds.
+  --trap-port PORT  Which UDP port to listen for traps on. Default value is 162. Any value below 1024 requires root privileges. Setting to 0
+                    disables SNMP trap monitoring.
+  --user USER       Switch to this user immediately after binding to privileged ports
 ```
 
 Even if the Python virtual environment hasn't been activated in your shell, you
@@ -153,6 +156,19 @@ can still run Zino directly from inside this environment, like so:
 ```shell
 ./zino-env/bin/zino --help
 ```
+
+By default, Zino will listen for incoming SNMP traps on UDP port `162`.  This
+port is privileged (less than 1024), however, which means that Zino *needs to
+be started as `root`* if you want to receive traps.  In order to avoid running
+continuously with `root` privileges, the `--user` option can be used to tell
+Zino to switch to running as a less privileged user as soon as port `162` has
+been acquired.
+
+Alternately, you can tell Zino to listen for traps on a non-privileged port,
+e.g. by adding `--trap-port 1162` to the command line arguments, but this only
+works if you can configure your SNMP agents to send traps to this non-standard
+port.  In any case, you can also tell Zino to skip listening for traps by
+specifying `--trap-port 0`.
 
 ### Configuring Zino
 
@@ -244,4 +260,27 @@ like so:
 
 ```shell
 pre-commit install
+```
+
+
+### Test trap examples
+
+Running Zino during development might look like this (listening for traps on
+the non-privileged port 1162):
+
+```shell
+zino --trap-port 1162
+```
+
+To send an example trap (`BGP4-MIB::bgpBackwardTransition`, which Zino ignores
+by default), you can use a command like:
+
+```shell
+snmptrap -v2c -c public \
+    127.0.0.1:1162 \
+    '' \
+    BGP4-MIB::bgpBackwardTransition \
+    BGP4-MIB::bgpPeerRemoteAddr a 192.168.42.42 \
+    BGP4-MIB::bgpPeerLastError x 4242 \
+    BGP4-MIB::bgpPeerState i 2
 ```
