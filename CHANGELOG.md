@@ -10,6 +10,17 @@ changelog only details changes from Zino 2 on and out.
 
 ## [Unreleased]
 
+### Added
+
+- SNMP traps can now be received, logged and ignored (although no useful
+  handlers have been implemented yet)
+  (([#189](https://github.com/Uninett/zino/pull/189),
+  [#193](https://github.com/Uninett/zino/pull/193))
+- Closed events now properly expire and are evicted from the running state
+  after 8 hours ([#203](https://github.com/Uninett/zino/pull/203)).
+- Expired events are dumped to separate JSON files in the `old-events/`
+  directory ([#204](https://github.com/Uninett/zino/pull/204)).
+
 ### Fixed
 
 - BGP events are now presented with correctly named attributes in the legacy
