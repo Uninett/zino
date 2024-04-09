@@ -37,10 +37,17 @@ MIB_SOURCE_DIR = os.path.join(os.path.dirname(__file__), "mibdumps")
 
 def _get_engine():
     if not getattr(_local, "snmp_engine", None):
-        _local.snmp_engine = SnmpEngine()
-        mib_builder = _local.snmp_engine.getMibBuilder()
-        mib_builder.addMibSources(builder.DirMibSource(MIB_SOURCE_DIR))
+        _local.snmp_engine = get_new_snmp_engine()
     return _local.snmp_engine
+
+
+def get_new_snmp_engine() -> SnmpEngine:
+    """Returns a new SnmpEngine object with Zino's directory of MIB modules loaded"""
+    snmp_engine = SnmpEngine()
+    mib_builder = snmp_engine.getMibBuilder()
+    mib_builder.addMibSources(builder.DirMibSource(MIB_SOURCE_DIR))
+    mib_builder.loadModules()
+    return snmp_engine
 
 
 @dataclass
