@@ -1,6 +1,6 @@
 from datetime import timedelta
 from typing import Optional
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -125,28 +125,31 @@ class TestEvents:
         assert (now() - timedelta(minutes=1)) < event.updated < (now())
         assert event.updated != previous_updated
 
-    def test_delete_closed_events_should_delete_old_closed_event(self):
+    def test_delete_closed_events_should_delete_old_closed_event(self, tmp_path):
         events = Events()
         event = events.get_or_create_event("foobar", None, ReachabilityEvent)
         event.set_state(EventState.CLOSED)
         events.commit(event)
         event.updated = now() - timedelta(days=1)
-        events.delete_expired_events()
+        with patch("zino.events.EVENT_DUMP_DIR", tmp_path):
+            events.delete_expired_events()
         assert event.id not in events.events.keys()
 
-    def test_delete_closed_events_should_not_delete_just_closed_event(self):
+    def test_delete_closed_events_should_not_delete_just_closed_event(self, tmp_path):
         events = Events()
         event = events.get_or_create_event("foobar", None, ReachabilityEvent)
         event.set_state(EventState.CLOSED)
         events.commit(event)
-        events.delete_expired_events()
+        with patch("zino.events.EVENT_DUMP_DIR", tmp_path):
+            events.delete_expired_events()
         assert event.id in events.events.keys()
 
-    def test_delete_closed_events_should_not_delete_open_event(self):
+    def test_delete_closed_events_should_not_delete_open_event(self, tmp_path):
         events = Events()
         event = events.get_or_create_event("foobar", None, ReachabilityEvent)
         events.commit(event)
-        events.delete_expired_events()
+        with patch("zino.events.EVENT_DUMP_DIR", tmp_path):
+            events.delete_expired_events()
         assert event.id in events.events.keys()
 
     def test_when_observer_is_added_it_should_be_called_on_commit(self):
@@ -174,7 +177,7 @@ class TestEvents:
         events.commit(updated_event)
         assert observer.called
 
-    def test_delete_should_call_observers_with_event_object(self):
+    def test_delete_should_call_observers_with_event_object(self, tmp_path):
         events = Events()
         event = events.get_or_create_event("foobar", None, ReachabilityEvent)
         event.set_state(EventState.CLOSED)
@@ -185,5 +188,6 @@ class TestEvents:
             observer.called = True
 
         events.add_event_observer(observer)
-        events._delete(event)
+        with patch("zino.events.EVENT_DUMP_DIR", tmp_path):
+            events._delete(event)
         assert observer.called
