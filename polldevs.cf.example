@@ -4,7 +4,9 @@
 # defaults, or a new, distinct router.  Router names can be arbitrary, but must
 # be unique across all of Zino.  Comments begin with the # character.
 
-# Default values that will apply to all router entries unless overridden:
+# The following block sets default values that will apply to all router
+# entries.  Any of these can be overridden in individual router entries:
+#
 # interval is a number of *minutes* between polling jobs for a router.
 default interval: 5
 default community: public
@@ -31,7 +33,7 @@ name: example-gw3
 address: 192.168.42.3
 interval: 2
 
-# example-gw4 uses a different SNMP community than the rest
+# example-gw4 uses a different SNMP community than the default setting:
 name: example-gw4
 address: 192.168.42.4
 community: foobar
