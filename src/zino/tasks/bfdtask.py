@@ -77,7 +77,7 @@ class BFDTask(Task):
         event.bfddiscr = new_state.session_discr
         event.bfdaddr = new_state.session_addr
 
-        log = f"changed BFD state from {port.bfd_state.session_state} to {new_state.session_state}"
+        log = f"changed BFD state to {new_state.session_state} on port {port.ifdescr} on device {self.device.name}"
         event.lastevent = log
         event.add_log(f"Port {port.ifdescr}" + log)
         self.state.events.commit(event)
