@@ -76,7 +76,6 @@ class BFDSessState(StrEnum):
     DOWN = "down"
     INIT = "init"
     UP = "up"
-    NO_SESSION = "noSession"
     FAILING = "failing"  # Cisco proprietary
 
 
