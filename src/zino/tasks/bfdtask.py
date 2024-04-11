@@ -61,6 +61,8 @@ class BFDTask(Task):
         if port.bfd_state:
             if port.bfd_state.session_state != new_state.session_state:
                 self._create_or_update_event(port, new_state)
+        elif new_state.session_state != BFDSessState.UP:
+            self._create_or_update_event(port, new_state)
 
         port.bfd_state = new_state
 
