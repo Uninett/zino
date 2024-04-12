@@ -57,7 +57,6 @@ class BFDTask(Task):
 
     def _update_state(self, port: Port, new_state: BFDState):
         """Updates the BFD state for a port. Will create or update BFD events depending on the state changes"""
-        # Do not create event if this is the first time BFD state is polled for this port
         if port.bfd_state:
             if port.bfd_state.session_state != new_state.session_state:
                 self._create_or_update_event(port, new_state)
