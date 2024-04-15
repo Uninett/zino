@@ -38,8 +38,22 @@ async def test_task_updates_state_correctly(task, device_port, bfd_state):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("task", ["juniper-bfd-down", "cisco-bfd-down"], indirect=True)
+async def test_event_should_be_made_the_first_time_a_port_is_polled_if_state_is_not_up(task, device_port):
+    assert not device_port.bfd_state
+    await task.run()
+    assert device_port.bfd_state
+    event = task.state.events.get(
+        device_name=task.device.name,
+        subindex=device_port.ifindex,
+        event_class=BFDEvent,
+    )
+    assert event
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("task", ["juniper-bfd-up", "cisco-bfd-up"], indirect=True)
-async def test_event_should_not_be_made_the_first_time_a_port_is_polled(task, device_port):
+async def test_event_should_not_be_made_the_first_time_a_port_is_polled_if_state_is_up(task, device_port):
     assert not device_port.bfd_state
     await task.run()
     assert device_port.bfd_state

@@ -45,20 +45,24 @@ class BFDTask(Task):
 
     def _update_state_for_all_ports_juniper(self, polled_state: DescrBFDStates):
         for port in self.device_state.ports.values():
-            new_state = polled_state.get(port.ifdescr, BFDState(session_state=BFDSessState.NO_SESSION))
-            self._update_state(port, new_state)
+            new_state = polled_state.get(port.ifdescr)
+            if new_state:
+                self._update_state(port, new_state)
 
     def _update_state_for_all_ports_cisco(self, polled_state: IndexBFDStates):
         for port in self.device_state.ports.values():
-            new_state = polled_state.get(port.ifindex, BFDState(session_state=BFDSessState.NO_SESSION))
-            self._update_state(port, new_state)
+            new_state = polled_state.get(port.ifindex)
+            if new_state:
+                self._update_state(port, new_state)
 
     def _update_state(self, port: Port, new_state: BFDState):
         """Updates the BFD state for a port. Will create or update BFD events depending on the state changes"""
-        # Do not create event if this is the first time BFD state is polled for this port
         if port.bfd_state:
             if port.bfd_state.session_state != new_state.session_state:
                 self._create_or_update_event(port, new_state)
+        elif new_state.session_state != BFDSessState.UP:
+            self._create_or_update_event(port, new_state)
+
         port.bfd_state = new_state
 
     def _create_or_update_event(self, port: Port, new_state: BFDState):
@@ -72,7 +76,7 @@ class BFDTask(Task):
         event.bfddiscr = new_state.session_discr
         event.bfdaddr = new_state.session_addr
 
-        log = f"changed BFD state from {port.bfd_state.session_state} to {new_state.session_state}"
+        log = f"changed BFD state to {new_state.session_state} on port {port.ifdescr} on device {self.device.name}"
         event.lastevent = log
         event.add_log(f"Port {port.ifdescr}" + log)
         self.state.events.commit(event)
