@@ -10,7 +10,7 @@ jobs:
   publish-test-results:
     name: "Publish test results"
     runs-on: ubuntu-latest
-    if: github.event.workflow_run.conclusion != 'skipped' && github.repository_owner == 'Uninett'
+    if: github.event.workflow_run.conclusion != 'skipped'
 
 
     steps:
