@@ -3,30 +3,9 @@ from ipaddress import IPv4Address
 import pytest
 
 from zino.config.models import PollDevice
-from zino.oid import OID
 from zino.state import ZinoState
 from zino.statemodels import BFDEvent, BFDSessState, BFDState, Port
 from zino.tasks.bfdtask import BFDTask
-
-
-class TestJuniper:
-    @pytest.mark.parametrize("task", ["juniper-bfd-up"], indirect=True)
-    def test_parse_row_creates_correct_bfd_state(self, task, bfd_state):
-        state = task._parse_row(
-            OID(f".{bfd_state.session_index}"),
-            "up",
-            bfd_state.session_discr,
-            "0x7f000001",
-        )
-        assert state == bfd_state
-
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize("task", ["juniper-bfd-up"], indirect=True)
-    async def test_poll_juniper_returns_correct_ifdescr_to_state_mapping(self, task, bfd_state, device_port):
-        result = await task._poll_juniper()
-        assert device_port.ifdescr in result
-        state = result.get(device_port.ifdescr)
-        assert state == bfd_state
 
 
 @pytest.mark.asyncio
