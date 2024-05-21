@@ -1,15 +1,5 @@
-import io
-
-import pytest
-
 from zino.config.models import PollDevice
-from zino.config.polldevs import (
-    InvalidConfiguration,
-    _contains_defaults,
-    _parse_defaults,
-    _read_conf_sections,
-    read_polldevs,
-)
+from zino.config.polldevs import _contains_defaults, _parse_defaults, read_polldevs
 
 
 class TestReadPolldevs:
@@ -22,48 +12,6 @@ class TestReadPolldevs:
         result = list(read_polldevs(polldevs_conf))
         assert all(device.community == "foobar" for device in result)
         assert all(device.domain == "uninett.no" for device in result)
-
-
-class TestReadConfSections:
-    def test_when_file_is_empty_it_should_return_nothing(self):
-        data = io.StringIO("")
-        result = list(_read_conf_sections(data))
-        assert not result
-
-    def test_when_file_contains_two_sections_it_should_yield_two_dicts(self):
-        data = io.StringIO(
-            """
-            name: zaphod
-
-            name: ford
-            """
-        )
-        result = list(_read_conf_sections(data))
-        assert len(result) == 2
-        assert all(isinstance(i, dict) for i in result)
-
-    def test_when_file_contains_comments_they_should_be_ignored(self):
-        data = io.StringIO(
-            """
-            # comment: just a comment
-            name: zaphod
-            #address: 192.168.0.1
-            address: 127.0.0.1
-            """
-        )
-        expected = {"name": "zaphod", "address": "127.0.0.1"}
-        result = list(_read_conf_sections(data))
-        assert result == [expected]
-
-    def test_when_file_contains_non_assignments_it_should_fail(self):
-        data = io.StringIO(
-            """
-            random data
-            not a config file
-            """
-        )
-        with pytest.raises(InvalidConfiguration):
-            list(_read_conf_sections(data))
 
 
 class TestContainsDefaults:
