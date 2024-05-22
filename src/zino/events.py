@@ -31,8 +31,7 @@ class EventIndex(NamedTuple):
 class EventObserver(Protocol):
     """Defines a valid protocol for event observer functions"""
 
-    def __call__(self, new_event: Event, old_event: Optional[Event] = None) -> None:
-        ...
+    def __call__(self, new_event: Event, old_event: Optional[Event] = None) -> None: ...
 
 
 class Events(BaseModel):
