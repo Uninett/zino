@@ -34,7 +34,7 @@ class PlannedMaintenanceObserver(Protocol):
 class PlannedMaintenances(BaseModel):
     planned_maintenances: Dict[int, PlannedMaintenance] = {}
     last_pm_id: int = 0
-    last_run: Optional[datetime.datetime] = None
+    last_run: Optional[datetime.datetime] = datetime.datetime.fromtimestamp(0)
     _observers: list[PlannedMaintenanceObserver] = []
 
     def __getitem__(self, item):
@@ -84,21 +84,13 @@ class PlannedMaintenances(BaseModel):
         """Returns all planned maintenances that have begun since the last run of this
         task until `now`
         """
-        if self.last_run:
-            return [
-                pm for pm in self.planned_maintenances.values() if self.last_run < pm.start_time <= now < pm.end_time
-            ]
-        else:
-            return [pm for pm in self.planned_maintenances.values() if pm.start_time <= now < pm.end_time]
+        return [pm for pm in self.planned_maintenances.values() if self.last_run < pm.start_time <= now < pm.end_time]
 
     def get_ended_planned_maintenances(self, now: datetime.datetime) -> list[PlannedMaintenance]:
         """Returns all planned maintenances that have ended since the last run of this
         task until `now`
         """
-        if self.last_run:
-            return [pm for pm in self.planned_maintenances.values() if self.last_run < pm.end_time <= now]
-        else:
-            return [pm for pm in self.planned_maintenances.values() if pm.end_time <= now]
+        return [pm for pm in self.planned_maintenances.values() if self.last_run < pm.end_time <= now]
 
     def get_active_planned_maintenances(self, now: datetime.datetime) -> list[PlannedMaintenance]:
         """Returns all planned maintenances that are currently active
