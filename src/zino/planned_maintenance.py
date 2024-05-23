@@ -78,7 +78,7 @@ class PlannedMaintenances(BaseModel):
         self._call_observers()
 
     def get_started_planned_maintenances(self, now: datetime.datetime) -> list[PlannedMaintenance]:
-        """Returns all planned maintenances that have began since the last run of this
+        """Returns all planned maintenances that have begun since the last run of this
         task until `now`
         """
         if self.last_run:
@@ -133,7 +133,7 @@ class PlannedMaintenances(BaseModel):
         for started_pm in self.get_started_planned_maintenances(now=now):
             self._start(state, started_pm)
 
-        # Make sure all events that matches a PM is ignored
+        # Make sure all events that match a PM is ignored
         for event in state.events.events.values():
             self._check_event(state, event, now)
 
