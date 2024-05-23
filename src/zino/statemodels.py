@@ -432,13 +432,15 @@ class PlannedMaintenance(BaseModel):
         else:
             return False
 
-    def _string_match(self, pattern: str, string: str) -> bool:
+    @staticmethod
+    def _string_match(pattern: str, string: str) -> bool:
         """This should behave like tcl string match https://wiki.tcl-lang.org/page/string+match
         Returns true if `string` matches `pattern`.
         """
         return fnmatch.fnmatch(string, pattern)
 
-    def _regex_match(self, pattern: str, string: str) -> bool:
+    @staticmethod
+    def _regex_match(pattern: str, string: str) -> bool:
         """Matches `string` against regex expression `pattern`.
         Returns true if there is a match.
         """
