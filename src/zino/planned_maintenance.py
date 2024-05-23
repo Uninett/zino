@@ -1,5 +1,5 @@
-import datetime
 import logging
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Dict, Literal, Optional, Protocol
 
 from pydantic.main import BaseModel
@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 _log = logging.getLogger(__name__)
 
 
-PM_EXPIRY_TIME = datetime.timedelta(days=3)
+PM_EXPIRY_TIME = timedelta(days=3)
 
 
 class PlannedMaintenanceObserver(Protocol):
@@ -34,7 +34,7 @@ class PlannedMaintenanceObserver(Protocol):
 class PlannedMaintenances(BaseModel):
     planned_maintenances: Dict[int, PlannedMaintenance] = {}
     last_pm_id: int = 0
-    last_run: Optional[datetime.datetime] = datetime.datetime.fromtimestamp(0)
+    last_run: Optional[datetime] = datetime.fromtimestamp(0)
     _observers: list[PlannedMaintenanceObserver] = []
 
     def __getitem__(self, item):
@@ -45,8 +45,8 @@ class PlannedMaintenances(BaseModel):
 
     def create_planned_maintenance(
         self,
-        start_time: datetime.datetime,
-        end_time: datetime.datetime,
+        start_time: datetime,
+        end_time: datetime,
         type: Literal["portstate", "device"],
         match_type: Literal["regexp", "str", "exact", "intf-regexp"],
         match_expression: str,
@@ -80,26 +80,26 @@ class PlannedMaintenances(BaseModel):
         del self.planned_maintenances[id]
         self._call_observers()
 
-    def get_started_planned_maintenances(self, now: datetime.datetime) -> list[PlannedMaintenance]:
+    def get_started_planned_maintenances(self, now: datetime) -> list[PlannedMaintenance]:
         """Returns all planned maintenances that have begun since the last run of this
         task until `now`
         """
         return [pm for pm in self.planned_maintenances.values() if self.last_run < pm.start_time <= now < pm.end_time]
 
-    def get_ended_planned_maintenances(self, now: datetime.datetime) -> list[PlannedMaintenance]:
+    def get_ended_planned_maintenances(self, now: datetime) -> list[PlannedMaintenance]:
         """Returns all planned maintenances that have ended since the last run of this
         task until `now`
         """
         return [pm for pm in self.planned_maintenances.values() if self.last_run < pm.end_time <= now]
 
-    def get_active_planned_maintenances(self, now: datetime.datetime) -> list[PlannedMaintenance]:
+    def get_active_planned_maintenances(self, now: datetime) -> list[PlannedMaintenance]:
         """Returns all planned maintenances that are currently active
 
         This means it has started before `now` and the end_time is later than `now`
         """
         return [pm for pm in self.planned_maintenances.values() if pm.start_time < now < pm.end_time]
 
-    def get_old_planned_maintenances(self, now: datetime.datetime) -> list[PlannedMaintenance]:
+    def get_old_planned_maintenances(self, now: datetime) -> list[PlannedMaintenance]:
         """Returns all planned maintenances that should get deleted
 
         This means that `now` is 3 days later than end_time
@@ -122,7 +122,7 @@ class PlannedMaintenances(BaseModel):
             observer()
 
     def periodic(self, state: "ZinoState"):
-        now = datetime.datetime.now()
+        now = datetime.now()
 
         # Initiate PM once it becomes active
         for started_pm in self.get_started_planned_maintenances(now=now):
@@ -152,7 +152,7 @@ class PlannedMaintenances(BaseModel):
             state.events.commit(event)
             pm.event_ids.append(event.id)
 
-    def _check_event(self, state: "ZinoState", event: Event, now: datetime.datetime):
+    def _check_event(self, state: "ZinoState", event: Event, now: datetime):
         if event.state in [EventState.IGNORED, EventState.CLOSED]:
             return
 
