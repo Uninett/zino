@@ -21,6 +21,9 @@ if TYPE_CHECKING:
 _log = logging.getLogger(__name__)
 
 
+PM_EXPIRY_TIME = datetime.timedelta(days=3)
+
+
 class PlannedMaintenanceObserver(Protocol):
     """Defines a valid protocol for planned maintenance observer functions"""
 
@@ -109,7 +112,7 @@ class PlannedMaintenances(BaseModel):
 
         This means that `now` is 3 days later than end_time
         """
-        return [pm for pm in self.planned_maintenances.values() if now - pm.end_time > datetime.timedelta(days=3)]
+        return [pm for pm in self.planned_maintenances.values() if now - pm.end_time > PM_EXPIRY_TIME]
 
     def add_pm_observer(self, observer: PlannedMaintenanceObserver) -> None:
         """Adds an observer function that will be called any time a planned maintenance
