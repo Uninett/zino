@@ -45,6 +45,9 @@ def init_event_loop(args: argparse.Namespace, loop: Optional[AbstractEventLoop] 
         trap_receiver.add_community("public")
         trap_receiver.add_community("secret")
 
+        # ensure observers are loaded
+        from zino.trapobservers import ignored_traps  # noqa
+
         trap_receiver.auto_subscribe_observers()
 
         try:

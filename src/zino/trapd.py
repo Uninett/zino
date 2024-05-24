@@ -17,15 +17,6 @@ from zino.state import ZinoState
 from zino.statemodels import DeviceState, IPAddress
 
 TrapType = tuple[str, str]  # A mib name and a corresponding trap symbolic name
-# These are spammy traps observed in Uninett, and we don't care about them:
-IGNORED_TRAPS: Set[TrapType] = {
-    ("BGP4-MIB", "bgpBackwardTransition"),
-    ("BGP4-MIB", "bgpBackwardTransNotification"),
-    ("BGP4-V2-MIB-JUNIPER", "jnxBgpM2BackwardTransition"),
-    ("SNMPv2-MIB", "authenticationFailure"),
-    ("CISCOTRAP-MIB", "tcpConnectionClose"),
-    ("BGP4-V2-MIB-JUNIPER", "jnxBgpM2BackwardTransition"),
-}
 _logger = logging.getLogger(__name__)
 
 
@@ -109,8 +100,6 @@ class TrapReceiver:
         self.snmp_engine = get_new_snmp_engine()
         self._communities = set()
         self._observers: dict[TrapType, List[TrapObserver]] = {}
-
-        self.observe(ignore_trap, *IGNORED_TRAPS)
 
     def auto_subscribe_observers(self):
         """Automatically subscribes all loaded TrapObserver subclasses to this trap receiver"""
@@ -232,8 +221,3 @@ class TrapReceiver:
             controller = view.MibViewController(engine.getMibBuilder())
         mib, label, instance = controller.getNodeLocation(object_name)
         return mib, label, OID(instance) if instance else None
-
-
-def ignore_trap(trap: TrapMessage, loop: Optional[asyncio.AbstractEventLoop] = None) -> Optional[bool]:
-    """Trap observer that just ignores incoming traps"""
-    return False
