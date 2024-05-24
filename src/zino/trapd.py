@@ -64,9 +64,19 @@ class TrapMessage:
 
 
 class TrapObserver(Protocol):
-    """Defines a valid protocol for Trap observer functions"""
+    """Defines a valid protocol for SNMP trap observers.
 
-    def __call__(self, trap: TrapMessage, loop: Optional[asyncio.AbstractEventLoop] = None) -> Optional[bool]:
+    A trap observer that directly subclasses this protocol can expect to be automatically registered by Zino as an
+    observer for any trap it declares in its `WANTED_TRAPS` attribute.
+    """
+
+    WANTED_TRAPS: Set[TrapType] = set()
+
+    def __init__(self, state: ZinoState, loop: Optional[asyncio.AbstractEventLoop] = None):
+        self.state = state
+        self.loop = loop if loop else asyncio.get_event_loop()
+
+    def handle_trap(self, trap: TrapMessage) -> Optional[bool]:
         """A trap observer receives a trap message and an optional event loop reference.  The event loop reference
         may be useful if the observer needs to run async actions as part of its trap processing.  If the trap
         observer returns a true-ish value, the trap dispatcher will offer the same trap to more subscribers.  If a
@@ -195,7 +205,7 @@ class TrapReceiver:
 
         for observer in observers:
             try:
-                if not observer(trap, self.loop):
+                if not observer.handle_trap(trap):
                     return
             except Exception:  # noqa
                 _logger.exception("Unhandled exception in trap observer %r", observer)

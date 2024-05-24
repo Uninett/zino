@@ -77,12 +77,12 @@ class TestTrapReceiverExternally:
         observer = Mock()
         localhost_receiver.observe(observer, ("SNMPv2-MIB", "coldStart"))
         await send_trap_externally(OID_COLD_START, OID_SYSNAME_0, "s", "'MockDevice'")
-        assert observer.called
+        assert observer.handle_trap.called
 
     @pytest.mark.asyncio
     async def test_when_observer_raises_unhandled_exception_it_should_log_it(self, localhost_receiver, caplog):
         crashing_observer = Mock()
-        crashing_observer.side_effect = ValueError("mocked exception")
+        crashing_observer.handle_trap.side_effect = ValueError("mocked exception")
         localhost_receiver.observe(crashing_observer, ("SNMPv2-MIB", "coldStart"))
 
         with caplog.at_level(logging.INFO):
@@ -91,8 +91,11 @@ class TestTrapReceiverExternally:
             assert "mocked exception" in caplog.text
 
     @pytest.mark.asyncio
-    async def test_when_trap_from_ignore_list_is_received_it_should_be_ignored(self, localhost_receiver):
+    async def test_when_early_observer_returns_false_it_should_not_call_later_observers(self, localhost_receiver):
+        early_observer = Mock()
+        early_observer.handle_trap.return_value = False
         late_observer = Mock()
+        localhost_receiver.observe(early_observer, ("BGP4-MIB", "bgpBackwardTransition"))
         localhost_receiver.observe(late_observer, ("BGP4-MIB", "bgpBackwardTransition"))
         bgp_backward_transition_trap = [
             ".1.3.6.1.2.1.15.7.2",
@@ -107,7 +110,8 @@ class TestTrapReceiverExternally:
             "2",
         ]
         await send_trap_externally(*bgp_backward_transition_trap)
-        assert not late_observer.called
+        assert early_observer.handle_trap.called
+        assert not late_observer.handle_trap.called
 
     @pytest.mark.asyncio
     async def test_when_conversion_of_varbind_to_python_object_fails_it_should_set_value_to_none(
