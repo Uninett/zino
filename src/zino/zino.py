@@ -44,6 +44,9 @@ def init_event_loop(args: argparse.Namespace, loop: Optional[AbstractEventLoop] 
         trap_receiver = TrapReceiver(port=args.trap_port, loop=loop, state=state.state)
         trap_receiver.add_community("public")
         trap_receiver.add_community("secret")
+
+        trap_receiver.auto_subscribe_observers()
+
         try:
             loop.run_until_complete(trap_receiver.open())
         except PermissionError:

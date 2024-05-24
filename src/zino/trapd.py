@@ -112,6 +112,14 @@ class TrapReceiver:
 
         self.observe(ignore_trap, *IGNORED_TRAPS)
 
+    def auto_subscribe_observers(self):
+        """Automatically subscribes all loaded TrapObserver subclasses to this trap receiver"""
+        for observer_class in TrapObserver.__subclasses__():
+            if not observer_class.WANTED_TRAPS:
+                continue
+            observer_instance = observer_class(self.state, self.loop)
+            self.observe(observer_instance, *observer_instance.WANTED_TRAPS)
+
     def observe(self, subscriber: TrapObserver, *trap_types: List[TrapType]):
         """Adds a trap subscriber to the receiver"""
         for trap_type in trap_types:
