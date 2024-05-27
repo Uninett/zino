@@ -432,6 +432,62 @@ class PlannedMaintenance(BaseModel):
         else:
             return False
 
+    def start(self, state: "ZinoState"):
+        events = self._get_or_create_events(state)
+        for event in events:
+            # get special handling of embryonic -> open transition first
+            state.events.commit(event)
+            event.state = EventState.IGNORED
+            state.events.commit(event)
+            self.event_ids.append(event.id)
+
+    def _get_or_create_events(self, state: "ZinoState") -> list[Event]:
+        """Creates/gets events that are affected by the given starting planned
+        maintenance
+        """
+        if self.type == "portstate":
+            return self._get_or_create_portstate_events(state)
+        elif self.type == "device":
+            return self._get_or_create_device_events(state)
+        raise ValueError(f"Invalid state {self.state}")
+
+    def _get_or_create_portstate_events(self, state: "ZinoState") -> list[Event]:
+        events = []
+        deviceports = self._get_matching_ports(state)
+        for device, port in deviceports:
+            event = state.events.get_or_create_event(device.name, port.ifindex, PortStateEvent)
+            event.ifindex = port.ifindex
+            events.append(event)
+        return events
+
+    def _get_matching_ports(self, state: "ZinoState") -> list[tuple[DeviceState, Port]]:
+        ports = []
+        for device in state.devices.devices.values():
+            for port in device.ports.values():
+                if self.matches_portstate(device, port):
+                    ports.append((device, port))
+        return ports
+
+    def _get_or_create_device_events(self, state: "ZinoState") -> list[Event]:
+        events = []
+        # all devices that the pm should affect
+        devices = [device for device in state.devices.devices.values() if self.matches_device(device)]
+        for device in devices:
+            reachability_event = state.events.get_or_create_event(device.name, None, ReachabilityEvent)
+            yellow_event = state.events.get_or_create_event(device.name, "yellow", AlarmEvent)
+            yellow_event.alarm_type = "yellow"
+            red_event = state.events.get_or_create_event(device.name, "red", AlarmEvent)
+            red_event.alarm_type = "red"
+            for event in (reachability_event, yellow_event, red_event):
+                events.append(event)
+        return events
+
+    def end(self, state: "ZinoState"):
+        for event_id in self.event_ids:
+            event = state.events.checkout(event_id)
+            event.state = EventState.OPEN
+            state.events.commit(event)
+
     @staticmethod
     def _string_match(pattern: str, string: str) -> bool:
         """This should behave like tcl string match https://wiki.tcl-lang.org/page/string+match
