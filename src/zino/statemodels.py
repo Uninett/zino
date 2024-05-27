@@ -392,7 +392,7 @@ class PlannedMaintenance(BaseModel):
         if self.type == "portstate" and event.type == "portstate":
             port = device.ports[event.ifindex]
             return self.matches_portstate(device, port)
-        elif self.type == "device" and event.type == "reachability":
+        elif self.type == "device" and event.type in ["reachability", "alarm"]:
             return self.matches_device(device)
         else:
             return False
