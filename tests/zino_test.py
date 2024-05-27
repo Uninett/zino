@@ -66,7 +66,7 @@ def test_when_unprivileged_user_asks_for_privileged_port_zino_should_exit_with_e
 
 @pytest.mark.asyncio
 @patch("zino.zino.switch_to_user")
-def test_when_args_specify_user_zino_init_event_loop_should_attempt_to_switch_users(switch_to_user, event_loop):
+async def test_when_args_specify_user_zino_init_event_loop_should_attempt_to_switch_users(switch_to_user, event_loop):
     """Detect attempt to user switching by patching in a mock exception.  This is to avoid setting up the full Zino
     daemon and mucking up the event loop and state, by ensuring we exit as soon as switch_to_user is called.
     """
