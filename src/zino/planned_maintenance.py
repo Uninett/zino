@@ -4,16 +4,7 @@ from typing import TYPE_CHECKING, Dict, Literal, Optional, Protocol
 
 from pydantic.main import BaseModel
 
-from zino.statemodels import (
-    AlarmEvent,
-    DeviceState,
-    Event,
-    EventState,
-    PlannedMaintenance,
-    Port,
-    PortStateEvent,
-    ReachabilityEvent,
-)
+from zino.statemodels import Event, EventState, PlannedMaintenance
 
 if TYPE_CHECKING:
     from zino.state import ZinoState
@@ -126,7 +117,7 @@ class PlannedMaintenances(BaseModel):
 
         # Initiate PM once it becomes active
         for started_pm in self.get_started_planned_maintenances(now=now):
-            self._start(state, started_pm)
+            started_pm.start(state)
 
         # Make sure all events that match a PM is ignored
         for event in state.events.events.values():
@@ -134,7 +125,7 @@ class PlannedMaintenances(BaseModel):
 
         # Set events matching ended PMs to open
         for ended_pm in self.get_ended_planned_maintenances(now=now):
-            self._end(state, ended_pm)
+            ended_pm.end(state)
 
         # Delete events that have been closed for a certain amount of time
         old_pms = self.get_old_planned_maintenances(now)
@@ -142,16 +133,6 @@ class PlannedMaintenances(BaseModel):
             self.close_planned_maintenance(pm.id, "timer expiry for old PMs", "zino")
 
         self.last_run = now
-
-    def _start(self, state: "ZinoState", pm: PlannedMaintenance):
-        events = self._get_or_create_events(state, pm)
-        for event in events:
-            # get special handling of embryonic -> open transition first
-            state.events.commit(event)
-
-            event.state = EventState.IGNORED
-            state.events.commit(event)
-            pm.event_ids.append(event.id)
 
     def _check_event(self, state: "ZinoState", event: Event, now: datetime):
         if event.state in [EventState.IGNORED, EventState.CLOSED]:
@@ -164,50 +145,3 @@ class PlannedMaintenances(BaseModel):
                 event.add_log(f"entered into existing active PM event id {pm.id}")
                 state.events.commit(event)
                 pm.event_ids.append(event.id)
-
-    def _end(self, state: "ZinoState", pm: PlannedMaintenance):
-        for event_id in pm.event_ids:
-            event = state.events.checkout(event_id)
-            event.state = EventState.OPEN
-            state.events.commit(event)
-
-    def _get_or_create_events(self, state: "ZinoState", pm: PlannedMaintenance) -> list[Event]:
-        """Creates/gets events that are affected by the given starting planned
-        maintenance
-        """
-        if pm.type == "portstate":
-            return self._get_or_create_portstate_events(state, pm)
-        elif pm.type == "device":
-            return self._get_or_create_device_events(state, pm)
-        raise ValueError(f"Invalid state {pm.state}")
-
-    def _get_or_create_portstate_events(self, state: "ZinoState", pm: PlannedMaintenance) -> list[Event]:
-        events = []
-        deviceports = self._get_matching_ports(state, pm)
-        for device, port in deviceports:
-            event = state.events.get_or_create_event(device.name, port.ifindex, PortStateEvent)
-            event.ifindex = port.ifindex
-            events.append(event)
-        return events
-
-    def _get_matching_ports(self, state: "ZinoState", pm) -> list[tuple[DeviceState, Port]]:
-        ports = []
-        for device in state.devices.devices.values():
-            for port in device.ports.values():
-                if pm.matches_portstate(device, port):
-                    ports.append((device, port))
-        return ports
-
-    def _get_or_create_device_events(self, state: "ZinoState", pm: PlannedMaintenance) -> list[Event]:
-        events = []
-        # all devices that the pm should affect
-        devices = [device for device in state.devices.devices.values() if pm.matches_device(device)]
-        for device in devices:
-            reachability_event = state.events.get_or_create_event(device.name, None, ReachabilityEvent)
-            yellow_event = state.events.get_or_create_event(device.name, "yellow", AlarmEvent)
-            yellow_event.alarm_type = "yellow"
-            red_event = state.events.get_or_create_event(device.name, "red", AlarmEvent)
-            red_event.alarm_type = "red"
-            for event in (reachability_event, yellow_event, red_event):
-                events.append(event)
-        return events
