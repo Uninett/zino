@@ -144,4 +144,5 @@ class PlannedMaintenances(BaseModel):
                 event.state = EventState.IGNORED
                 event.add_log(f"entered into existing active PM event id {pm.id}")
                 state.events.commit(event)
-                pm.event_ids.append(event.id)
+                if event.id not in pm.event_ids:
+                    pm.event_ids.append(event.id)
