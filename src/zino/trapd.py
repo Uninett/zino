@@ -3,7 +3,7 @@ import asyncio
 import logging
 from dataclasses import dataclass, field
 from ipaddress import ip_address
-from typing import Any, List, NamedTuple, Optional, Protocol, Set
+from typing import Any, List, NamedTuple, Optional, Set
 
 from pysnmp.carrier.asyncio.dgram import udp
 from pysnmp.entity import config
@@ -54,7 +54,7 @@ class TrapMessage:
         return f"<Trap from {self.agent.device.name}: {variables}>"
 
 
-class TrapObserver(Protocol):
+class TrapObserver:
     """Defines a valid protocol for SNMP trap observers.
 
     A trap observer that directly subclasses this protocol can expect to be automatically registered by Zino as an
