@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Dict, Literal, Optional, Protocol
 
 from pydantic.main import BaseModel
 
-from zino.statemodels import Event, EventState, PlannedMaintenance
+from zino.statemodels import Event, EventState, MatchType, PlannedMaintenance
 
 if TYPE_CHECKING:
     from zino.state import ZinoState
@@ -39,7 +39,7 @@ class PlannedMaintenances(BaseModel):
         start_time: datetime,
         end_time: datetime,
         type: Literal["portstate", "device"],
-        match_type: Literal["regexp", "str", "exact", "intf-regexp"],
+        match_type: MatchType,
         match_expression: str,
         match_device: Optional[str],
     ) -> PlannedMaintenance:
