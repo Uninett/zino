@@ -370,12 +370,21 @@ class AlarmEvent(Event):
         return self.alarm_type
 
 
+class MatchType(StrEnum):
+    """The set of allowable BGP oper states"""
+
+    REGEXP = "regexp"
+    STR = "str"
+    EXACT = "exact"
+    INTF_REGEXP = "intf-regexp"
+
+
 class PlannedMaintenance(BaseModel):
     id: Optional[int] = None
     start_time: datetime.datetime
     end_time: datetime.datetime
     type: Literal["portstate", "device"]
-    match_type: Literal["regexp", "str", "exact", "intf-regexp"]
+    match_type: MatchType
     match_device: Optional[str]
     match_expression: str
     log: List[LogEntry] = []
