@@ -58,3 +58,20 @@ jobs:
           name: reports-${{ matrix.python-version }}
           path: |
             reports/**/*
+
+  upload-pr-number:
+    name: Save PR number in artifact
+    runs-on: ubuntu-latest
+    if: ${{ github.event.number && always() }}
+    env:
+      PR_NUMBER: ${{ github.event.number }}
+    steps:
+      - name: Make PR number file
+        run: |
+          mkdir -p ./pr
+          echo $PR_NUMBER > ./pr/pr_number
+      - name: Upload PR number file
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr_number
+          path: pr/
