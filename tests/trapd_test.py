@@ -10,7 +10,13 @@ import pytest_asyncio
 from zino.oid import OID
 from zino.state import ZinoState
 from zino.statemodels import DeviceState
-from zino.trapd import TrapMessage, TrapOriginator, TrapReceiver, TrapVarBind
+from zino.trapd import (
+    TrapMessage,
+    TrapObserver,
+    TrapOriginator,
+    TrapReceiver,
+    TrapVarBind,
+)
 
 OID_COLD_START = ".1.3.6.1.6.3.1.1.5.1"
 OID_SYSNAME_0 = ".1.3.6.1.2.1.1.5.0"
@@ -48,6 +54,14 @@ class TestTrapReceiver:
             value=("FAKE-MIB", "fakeTrap"),
         )
         assert not TrapReceiver._verify_trap(trap)
+
+    @pytest.mark.asyncio
+    async def test_when_trap_observer_wants_no_traps_auto_subscribe_should_ignore_it(self, localhost_receiver):
+        class MockObserver(TrapObserver):
+            WANTED_TRAPS = set()
+
+        localhost_receiver.auto_subscribe_observers()
+        assert not any(isinstance(observer, MockObserver) for observer in localhost_receiver._observers.values())
 
 
 @pytest.mark.skipif(not shutil.which("snmptrap"), reason="Cannot find snmptrap command line program")
