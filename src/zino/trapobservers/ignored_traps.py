@@ -16,7 +16,6 @@ class IgnoreTraps(TrapObserver):
         ("BGP4-V2-MIB-JUNIPER", "jnxBgpM2BackwardTransition"),
         ("SNMPv2-MIB", "authenticationFailure"),
         ("CISCOTRAP-MIB", "tcpConnectionClose"),
-        ("BGP4-V2-MIB-JUNIPER", "jnxBgpM2BackwardTransition"),
     }
 
     def handle_trap(self, trap: TrapMessage) -> Optional[bool]:
