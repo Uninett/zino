@@ -2,6 +2,7 @@ import asyncio
 import ipaddress
 import logging
 import shutil
+from collections import Counter
 from unittest.mock import Mock, patch
 
 import pytest
@@ -62,6 +63,24 @@ class TestTrapReceiver:
 
         localhost_receiver.auto_subscribe_observers()
         assert not any(isinstance(observer, MockObserver) for observer in localhost_receiver._observers.values())
+
+    @pytest.mark.asyncio
+    async def test_when_called_multiple_times_auto_subscribe_should_not_add_duplicates(self, localhost_receiver):
+        """The same observer class should not be subscribed more than once for the same trap"""
+
+        class MockObserver(TrapObserver):
+            WANTED_TRAPS = {("MOCK-MIB", "mockTrap")}
+
+        localhost_receiver.auto_subscribe_observers()
+        localhost_receiver.auto_subscribe_observers()
+
+        type_counts = Counter(
+            (trap, type(observer))
+            for trap, observers in localhost_receiver._observers.items()
+            for observer in observers
+        )
+        dupes = {ident: count for ident, count in type_counts.items() if count > 1}
+        assert not dupes
 
 
 @pytest.mark.skipif(not shutil.which("snmptrap"), reason="Cannot find snmptrap command line program")

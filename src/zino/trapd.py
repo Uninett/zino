@@ -100,12 +100,17 @@ class TrapReceiver:
         self.snmp_engine = get_new_snmp_engine()
         self._communities = set()
         self._observers: dict[TrapType, List[TrapObserver]] = {}
+        self._auto_subscribed_observers = set()
 
     def auto_subscribe_observers(self):
         """Automatically subscribes all loaded TrapObserver subclasses to this trap receiver"""
         for observer_class in TrapObserver.__subclasses__():
             if not observer_class.WANTED_TRAPS:
                 continue
+            if observer_class in self._auto_subscribed_observers:
+                continue
+            else:
+                self._auto_subscribed_observers.add(observer_class)
             observer_instance = observer_class(self.state, self.loop)
             self.observe(observer_instance, *observer_instance.WANTED_TRAPS)
 
