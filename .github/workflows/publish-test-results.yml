@@ -1,4 +1,4 @@
-name: Publish test results
+name: Publish test and coverage results
 
 on:
   workflow_run:
@@ -8,10 +8,9 @@ on:
 
 jobs:
   publish-test-results:
-    name: "Publish test results"
+    name: "Publish test and coverage results"
     runs-on: ubuntu-latest
-    if: github.event.workflow_run.conclusion != 'skipped' && github.repository_owner == 'Uninett'
-
+    if: github.event.workflow_run.conclusion != 'skipped'
 
     steps:
       - name: Download and Extract Artifacts
@@ -35,3 +34,10 @@ jobs:
           commit: ${{ github.event.workflow_run.head_sha }}
           check_name: "Test results"
           files: artifacts/**/*-results.xml
+
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
