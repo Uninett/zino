@@ -7,7 +7,7 @@ from zino.statemodels import (
     EventState,
     MatchType,
     PortStateEvent,
-    PortstateMaintenance,
+    PortStateMaintenance,
     ReachabilityEvent,
 )
 
@@ -93,8 +93,8 @@ class TestMatchesPortstate:
 
 
 @pytest.fixture
-def portstate_pm(request, device, port) -> PortstateMaintenance:
-    return PortstateMaintenance(
+def portstate_pm(request, device, port) -> PortStateMaintenance:
+    return PortStateMaintenance(
         start_time=datetime.datetime.now() - datetime.timedelta(days=1),
         end_time=datetime.datetime.now() + datetime.timedelta(days=1),
         match_type=request.param,
@@ -104,10 +104,10 @@ def portstate_pm(request, device, port) -> PortstateMaintenance:
 
 
 @pytest.fixture
-def matching_portstate_pm(device, port) -> PortstateMaintenance:
-    with patch("zino.statemodels.PortstateMaintenance.matches_portstate") as mock:
+def matching_portstate_pm(device, port) -> PortStateMaintenance:
+    with patch("zino.statemodels.PortStateMaintenance.matches_portstate") as mock:
         mock.return_value = True
-        yield PortstateMaintenance(
+        yield PortStateMaintenance(
             start_time=datetime.datetime.now() - datetime.timedelta(days=1),
             end_time=datetime.datetime.now() + datetime.timedelta(days=1),
             match_type="str",
@@ -117,10 +117,10 @@ def matching_portstate_pm(device, port) -> PortstateMaintenance:
 
 
 @pytest.fixture
-def nonmatching_portstate_pm(device, port) -> PortstateMaintenance:
-    with patch("zino.statemodels.PortstateMaintenance.matches_portstate") as mock:
+def nonmatching_portstate_pm(device, port) -> PortStateMaintenance:
+    with patch("zino.statemodels.PortStateMaintenance.matches_portstate") as mock:
         mock.return_value = False
-        yield PortstateMaintenance(
+        yield PortStateMaintenance(
             start_time=datetime.datetime.now() - datetime.timedelta(days=1),
             end_time=datetime.datetime.now() + datetime.timedelta(days=1),
             match_type="str",

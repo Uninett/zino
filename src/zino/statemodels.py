@@ -476,7 +476,7 @@ class DeviceMaintenance(PlannedMaintenance):
         return events
 
 
-class PortstateMaintenance(PlannedMaintenance):
+class PortStateMaintenance(PlannedMaintenance):
     type: Literal["device"] = "portstate"
 
     def matches_event(self, event: Event, state: "ZinoState") -> bool:
