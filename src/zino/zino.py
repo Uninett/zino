@@ -152,29 +152,27 @@ def switch_to_user(username: str):
 
 
 def reschedule_dump_state_on_commit(new_event: Event, old_event: Optional[Event] = None) -> None:
-    """Observer that reschedules the state dumper job whenever an event is committed and there's more than `max_wait`
-    time until the next scheduled state dump.
+    """Observer that reschedules the state dumper job whenever an event is committed and there's
+    more than `MINIMUM_STATE_DUMP_INTERVAL` time until the next scheduled state dump.
     """
-    scheduler = get_scheduler()
-    job = scheduler.get_job(job_id=STATE_DUMP_JOB_ID)
-    next_run = datetime.now(tz=tzlocal.get_localzone()) + MINIMUM_STATE_DUMP_INTERVAL
-    if job.next_run_time > next_run:
-        _log.debug(
-            "event %s committed, rescheduling state dump from %s to %s", new_event.id, job.next_run_time, next_run
-        )
-        job.modify(next_run_time=next_run)
+
+    reschedule_dump_state(f"event {new_event.id} committed")
 
 
 def reschedule_dump_state_on_pm_change() -> None:
     """Observer that reschedules the state dumper job whenever the planned maintenance
-    dict is changed and there's more than `max_wait` time until the next scheduled
+    dict is changed and there's more than `MINIMUM_STATE_DUMP_INTERVAL` time until the next scheduled
     state dump.
     """
+    reschedule_dump_state("planned maintenances changed")
+
+
+def reschedule_dump_state(log_msg: str) -> None:
     scheduler = get_scheduler()
     job = scheduler.get_job(job_id=STATE_DUMP_JOB_ID)
     next_run = datetime.now(tz=tzlocal.get_localzone()) + MINIMUM_STATE_DUMP_INTERVAL
     if job.next_run_time > next_run:
-        _log.debug("planned maintenances changed, rescheduling state dump from %s to %s", job.next_run_time, next_run)
+        _log.debug("%s, Rescheduling state dump from %s to %s", log_msg, job.next_run_time, next_run)
         job.modify(next_run_time=next_run)
 
 
