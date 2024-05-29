@@ -81,8 +81,9 @@ class LinkTrapObserver(TrapObserver):
             event.port = port.ifdescr
             event.ifindex = port.ifindex
             port.state = new_state
-            event.polladdr = device.address
-            event.priority = device.priority
+            if polldev := self.polldevs.get(device.name):
+                event.polladdr = polldev.address
+                event.priority = polldev.priority
             event.descr = port.ifalias  # or value received from trap? see ldescr from legacy Zino
 
             # TODO: If there is internal flapping state, log it in the event and clear internal state
