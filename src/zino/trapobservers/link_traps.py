@@ -1,7 +1,8 @@
 """This module implements link trap handling"""
 
 import logging
-from typing import Optional
+import re
+from typing import Optional, Tuple
 
 from zino.statemodels import DeviceState, Port
 from zino.trapd import TrapMessage, TrapObserver
@@ -39,5 +40,80 @@ class LinkTrapObserver(TrapObserver):
         """This method is called when a linkUp or linkDown trap is received, and updates event state accordingly -
         including the logic for handling flapping states.
         """
+        if self.is_port_ignored_by_patterns(device, port.ifdescr):
+            return
 
-        _logger.debug("handle_link_transition: device=%r port=%r is_up=%r", device, port, is_up)
+        # At this point, legacy Zino would ignore so-called "insignificant" interfaces.  As mentioned in the
+        # LinkStateTask docstring, this concept has deliberately not been ported to Zino 2.
+
+        _logger.debug(
+            "%s: intf %s ix %d link%s%s",
+            device.name,
+            port.ifdescr,
+            port.ifindex,
+            "Up" if is_up else "Down",
+            f", {reason}" if reason else "",
+        )
+
+        if self.is_port_ignored_by_rules(device, port):
+            return
+
+        index = (device.name, port.ifindex)
+        self.update_interface_flapping_score(index)
+
+        if self.is_interface_flapping(index):
+            # TODO: if event doesn't exist, create it
+            # TODO: Record new number of flaps in event
+            # TODO: When flapcount modulo 100 is zero, log a message with flapping stats
+            pass
+        else:
+            # TODO: Create an event to log the trap message anyway, setting flap state to stable and clearing
+            #  internal flap state
+            # TODO: Poll single interface immediately to verify state change
+            # TODO: Schedule another single interface poll in two minutes
+            pass
+
+    def is_port_ignored_by_patterns(self, device: DeviceState, ifdescr: str) -> bool:
+        if watch_pattern := self.get_watch_pattern(device):
+            if not re.match(watch_pattern, ifdescr):
+                return True
+
+        if ignore_pattern := self.get_ignore_pattern(device):
+            if re.match(ignore_pattern, ifdescr):
+                return True
+
+        return False
+
+    def is_port_ignored_by_rules(self, device: DeviceState, port: Port) -> bool:
+        """ignoreTrap in Zino 1 is described thus:
+
+        Should we ignore this trap message?
+        If there's an open case for this router port, no.
+        If received right after reload, yes.
+        If state reported is the same as the one we have recorded,
+        and a new trap does not reoccur within 5 minutes, yes.
+        Otherwise, don't ignore the trap message.
+        """
+        return False  # stub implementation
+
+    def update_interface_flapping_score(self, index: Tuple[str, int]) -> bool:
+        """Updates the running flapping score for a given port"""
+        pass  # stub implementation, see Zino 1 `proc intfFlap`
+
+    def is_interface_flapping(self, index: Tuple[str, int]) -> bool:
+        """Determines if a given port is flapping"""
+        return False  # stub implementation, see Zino 1 `proc flapping`
+
+    def get_watch_pattern(self, device: DeviceState) -> Optional[str]:
+        from zino.state import polldevs
+
+        if device.name not in polldevs:
+            return None
+        return polldevs[device.name].watchpat
+
+    def get_ignore_pattern(self, device: DeviceState) -> Optional[str]:
+        from zino.state import polldevs
+
+        if device.name not in polldevs:
+            return None
+        return polldevs[device.name].ignorepat
