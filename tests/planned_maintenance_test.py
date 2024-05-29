@@ -7,26 +7,22 @@ from zino.planned_maintenance import PlannedMaintenances
 from zino.state import ZinoState
 from zino.statemodels import (
     AlarmEvent,
+    DeviceMaintenance,
     EventState,
     Port,
     PortStateEvent,
+    PortstateMaintenance,
     ReachabilityEvent,
 )
 
 
 class TestGetPlannedMaintenances:
     def test_get_started_planned_maintenances(self, pms, active_pm, ended_pm, old_pm):
-        started_pms = pms.get_started_planned_maintenances(now=datetime.now())
-        assert active_pm in started_pms
-        assert ended_pm not in started_pms
-        assert old_pm not in started_pms
-
-    def test_get_started_planned_maintenances_with_last_run(self, pms, active_pm, ended_pm, old_pm):
         pms.last_run = datetime.now() - timedelta(hours=1)
         recent_pm = pms.create_planned_maintenance(
             start_time=datetime.now() - timedelta(minutes=1),
             end_time=datetime.now() + timedelta(days=1),
-            type="device",
+            pm_class=DeviceMaintenance,
             match_type="str",
             match_expression="hello",
             match_device="device",
@@ -38,12 +34,6 @@ class TestGetPlannedMaintenances:
         assert old_pm not in started_pms
 
     def test_get_ended_planned_maintenances(self, pms, active_pm, ended_pm, old_pm):
-        ended_pms = pms.get_ended_planned_maintenances(now=datetime.now())
-        assert ended_pm in ended_pms
-        assert old_pm in ended_pms
-        assert active_pm not in ended_pms
-
-    def test_get_ended_planned_maintenances_with_last_run(self, pms, active_pm, ended_pm, old_pm):
         pms.last_run = datetime.now() - timedelta(hours=1)
         ended_pms = pms.get_ended_planned_maintenances(now=datetime.now())
         assert ended_pm in ended_pms
@@ -79,7 +69,7 @@ class TestClosePlannedMaintenance:
 
 
 class TestPeriodic:
-    def test_events_matching_active_device_pm_are_set_in_ignore(self, state, active_pm):
+    def test_events_matching_active_device_pm_are_set_to_ignored(self, state, active_pm):
         device = state.devices.get("device")
         state.planned_maintenances.periodic(state)
         reachability_event = state.events.get(device.name, None, ReachabilityEvent)
@@ -89,7 +79,7 @@ class TestPeriodic:
         red_alarm_event = state.events.get(device.name, "red", AlarmEvent)
         assert red_alarm_event.state == EventState.IGNORED
 
-    def test_events_matching_active_portstate_pm_are_set_in_ignore(self, state, active_portstate_pm):
+    def test_events_matching_active_portstate_pm_are_set_to_ignored(self, state, active_portstate_pm):
         device = state.devices.get("device")
         port = Port(ifindex=1, ifdescr="port")
         device.ports[port.ifindex] = port
@@ -142,7 +132,7 @@ def active_pm(pms):
     return pms.create_planned_maintenance(
         start_time=datetime.now() - timedelta(days=1),
         end_time=datetime.now() + timedelta(days=1),
-        type="device",
+        pm_class=DeviceMaintenance,
         match_type="exact",
         match_expression="device",
         match_device="device",
@@ -154,7 +144,7 @@ def active_portstate_pm(pms):
     return pms.create_planned_maintenance(
         start_time=datetime.now() - timedelta(days=1),
         end_time=datetime.now() + timedelta(days=1),
-        type="portstate",
+        pm_class=PortstateMaintenance,
         match_type="regexp",
         match_expression="port",
         match_device="device",
@@ -166,7 +156,7 @@ def ended_pm(pms):
     return pms.create_planned_maintenance(
         start_time=datetime.now() - timedelta(days=1),
         end_time=datetime.now() - timedelta(minutes=10),
-        type="device",
+        pm_class=DeviceMaintenance,
         match_type="exact",
         match_expression="device",
         match_device="device",
@@ -178,7 +168,7 @@ def old_pm(pms):
     return pms.create_planned_maintenance(
         start_time=datetime.now() - timedelta(days=100),
         end_time=datetime.now() - timedelta(days=99),
-        type="device",
+        pm_class=DeviceMaintenance,
         match_type="exact",
         match_expression="device",
         match_device="device",
