@@ -2,9 +2,11 @@
 
 import logging
 import re
+from datetime import datetime, timedelta
 from typing import Optional, Tuple
 
-from zino.statemodels import DeviceState, Port
+import zino.time
+from zino.statemodels import DeviceState, InterfaceState, Port, PortStateEvent
 from zino.trapd import TrapMessage, TrapObserver
 
 _logger = logging.getLogger(__name__)
@@ -15,6 +17,10 @@ class LinkTrapObserver(TrapObserver):
         ("IF-MIB", "linkUp"),
         ("IF-MIB", "linkDown"),
     }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._last_same_trap: dict[Tuple[str, int], datetime] = {}
 
     def handle_trap(self, trap: TrapMessage) -> Optional[bool]:
         _logger.debug("%s: %s (vars: %s)", trap.agent.device.name, trap.name, ", ".join(trap.variables))
@@ -55,7 +61,7 @@ class LinkTrapObserver(TrapObserver):
             f", {reason}" if reason else "",
         )
 
-        if self.is_port_ignored_by_rules(device, port):
+        if self.is_port_ignored_by_policy(device, port, is_up):
             return
 
         index = (device.name, port.ifindex)
@@ -84,17 +90,56 @@ class LinkTrapObserver(TrapObserver):
 
         return False
 
-    def is_port_ignored_by_rules(self, device: DeviceState, port: Port) -> bool:
-        """ignoreTrap in Zino 1 is described thus:
+    def is_port_ignored_by_policy(self, device: DeviceState, port: Port, is_up: bool) -> bool:
+        """Verifies that a link trap should be ignored, according to internal policies.
 
-        Should we ignore this trap message?
-        If there's an open case for this router port, no.
-        If received right after reload, yes.
-        If state reported is the same as the one we have recorded,
-        and a new trap does not reoccur within 5 minutes, yes.
-        Otherwise, don't ignore the trap message.
+        As commented in the original Zino 1 implementation:
+
+        > Should we ignore this trap message?
+        > If there's an open case for this router port, no.
+        > If received right after reload, yes.
+        > If state reported is the same as the one we have recorded,
+        > and a new trap does not reoccur within 5 minutes, yes.
+        > Otherwise, don't ignore the trap message.
         """
-        return False  # stub implementation
+        now = zino.time.now()
+
+        # If there is an open case for router/port, do not ignore
+        if self.state.events.get(device.name, subindex=port.ifindex, event_class=PortStateEvent):
+            return False
+
+        # If we don't know that the device restarted recently, do not ignore
+        if not device.boot_time:
+            _logger.info("Oops! Do not know restart time for %s", device.name)
+            return False
+
+        if not port.state:
+            port.state = InterfaceState.UNKNOWN
+
+        if now - device.boot_time > timedelta(minutes=5):
+            # Do not ignore traps indicating different state than known
+            current_state = InterfaceState.UP if is_up else InterfaceState.DOWN
+            if port.state != current_state:
+                return False
+
+            # Do not ignore successive traps within a 5 minute interval indicating same state as previously known
+            index = (device.name, port.ifindex)
+            if last_same_trap := self._last_same_trap.get(index):
+                if now - last_same_trap < timedelta(minutes=5):
+                    self._last_same_trap[index] = now
+                    return False
+            self._last_same_trap[index] = now
+
+        # Ignoring traps the first 5 minutes after restart
+        _logger.info(
+            "Ignored %s trap for %s ix %s (state %s), restarted %s",
+            "Up" if is_up else "Down",
+            device.name,
+            port.ifindex,
+            port.state,
+            device.boot_time.astimezone(),
+        )
+        return True
 
     def update_interface_flapping_score(self, index: Tuple[str, int]) -> bool:
         """Updates the running flapping score for a given port"""
