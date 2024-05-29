@@ -111,7 +111,7 @@ class PlannedMaintenances(BaseModel):
         for observer in self._observers:
             observer()
 
-    def periodic(self, state: "ZinoState"):
+    def update_pm_states(self, state: "ZinoState"):
         now = datetime.now()
 
         # Initiate PM once it becomes active
@@ -120,7 +120,8 @@ class PlannedMaintenances(BaseModel):
 
         # Make sure all events that match a PM is ignored
         for event in state.events.events.values():
-            self._check_event(state, event, now)
+            if event.state not in [EventState.IGNORED, EventState.CLOSED]:
+                self._ignore_event_if_it_has_active_planned_maintenance(state, event, now)
 
         # Set events matching ended PMs to open
         for ended_pm in self.get_ended_planned_maintenances(now=now):
@@ -133,10 +134,7 @@ class PlannedMaintenances(BaseModel):
 
         self.last_run = now
 
-    def _check_event(self, state: "ZinoState", event: Event, now: datetime):
-        if event.state in [EventState.IGNORED, EventState.CLOSED]:
-            return
-
+    def _ignore_event_if_it_has_active_planned_maintenance(self, state: "ZinoState", event: Event, now: datetime):
         active_pms = self.get_active_planned_maintenances(now)
         for pm in active_pms:
             if pm.matches_event(event, state):

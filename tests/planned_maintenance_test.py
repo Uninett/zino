@@ -76,10 +76,10 @@ class TestClosePlannedMaintenance:
         assert observer.observe.called
 
 
-class TestPeriodic:
+class TestUpdatePmStates:
     def test_events_matching_active_device_pm_are_set_to_ignored(self, state, active_pm):
         device = state.devices.get("device")
-        state.planned_maintenances.periodic(state)
+        state.planned_maintenances.update_pm_states(state)
         reachability_event = state.events.get(device.name, None, ReachabilityEvent)
         assert reachability_event.state == EventState.IGNORED
         yellow_alarm_event = state.events.get(device.name, "yellow", AlarmEvent)
@@ -91,7 +91,7 @@ class TestPeriodic:
         device = state.devices.get("device")
         port = Port(ifindex=1, ifdescr="port")
         device.ports[port.ifindex] = port
-        state.planned_maintenances.periodic(state)
+        state.planned_maintenances.update_pm_states(state)
         event = state.events.get(device.name, port.ifindex, PortStateEvent)
         assert event.state == EventState.IGNORED
 
@@ -104,12 +104,12 @@ class TestPeriodic:
         state.events.commit(reachability_event)
         ended_pm.event_ids.append(reachability_event.id)
 
-        state.planned_maintenances.periodic(state)
+        state.planned_maintenances.update_pm_states(state)
         assert reachability_event.state == EventState.OPEN
 
     def test_old_pms_are_deleted(self, state, old_pm):
         assert old_pm.id in state.planned_maintenances.planned_maintenances
-        state.planned_maintenances.periodic(state)
+        state.planned_maintenances.update_pm_states(state)
         assert old_pm.id not in state.planned_maintenances.planned_maintenances
 
     def test_event_opened_after_pm_was_initiated_is_set_to_ignored(self, state, active_pm):
@@ -119,7 +119,7 @@ class TestPeriodic:
         state.events.commit(event)
         # Set last run to be after start time so PM is not treated as if it just started
         state.planned_maintenances.last_run = active_pm.start_time + timedelta(hours=1)
-        state.planned_maintenances.periodic(state)
+        state.planned_maintenances.update_pm_states(state)
         assert state.events.checkout(event.id).state == EventState.IGNORED
 
 
