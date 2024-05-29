@@ -67,17 +67,37 @@ class LinkTrapObserver(TrapObserver):
         index = (device.name, port.ifindex)
         self.update_interface_flapping_score(index)
 
+        new_state = InterfaceState.UP if is_up else InterfaceState.DOWN
+
         if self.is_interface_flapping(index):
             # TODO: if event doesn't exist, create it
             # TODO: Record new number of flaps in event
             # TODO: When flapcount modulo 100 is zero, log a message with flapping stats
             pass
         else:
-            # TODO: Create an event to log the trap message anyway, setting flap state to stable and clearing
-            #  internal flap state
+            event = self.state.events.get_or_create_event(device.name, port.ifindex, PortStateEvent)
+
+            event.portstate = new_state
+            event.port = port.ifdescr
+            event.ifindex = port.ifindex
+            port.state = new_state
+            event.polladdr = device.address
+            event.priority = device.priority
+            event.descr = port.ifalias  # or value received from trap? see ldescr from legacy Zino
+
+            # TODO: If there is internal flapping state, log it in the event and clear internal state
+            # TODO: Set final flapcount in event
+
+            msg = f'{device.name}: intf "{port.ifdescr}" ix {port.ifindex} link{new_state.capitalize()}'
+            if reason:
+                # TODO: Add reason attribute to event
+                msg = f'{msg}, "{reason}"'
+            _logger.info(msg)
+            event.add_log(msg)
+            self.state.events.commit(event)
+
             # TODO: Poll single interface immediately to verify state change
             # TODO: Schedule another single interface poll in two minutes
-            pass
 
     def is_port_ignored_by_patterns(self, device: DeviceState, ifdescr: str) -> bool:
         if watch_pattern := self.get_watch_pattern(device):
