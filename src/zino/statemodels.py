@@ -318,6 +318,7 @@ class PortStateEvent(Event):
     ifindex: Optional[int] = None
     portstate: Optional[InterfaceState] = None
     descr: Optional[str] = None
+    reason: Optional[str] = None
 
     @property
     def subindex(self) -> SubIndex:

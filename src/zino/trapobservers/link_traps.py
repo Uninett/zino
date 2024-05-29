@@ -75,7 +75,7 @@ class LinkTrapObserver(TrapObserver):
             # TODO: When flapcount modulo 100 is zero, log a message with flapping stats
             pass
         else:
-            event = self.state.events.get_or_create_event(device.name, port.ifindex, PortStateEvent)
+            event: PortStateEvent = self.state.events.get_or_create_event(device.name, port.ifindex, PortStateEvent)
 
             event.portstate = new_state
             event.port = port.ifdescr
@@ -90,7 +90,7 @@ class LinkTrapObserver(TrapObserver):
 
             msg = f'{device.name}: intf "{port.ifdescr}" ix {port.ifindex} link{new_state.capitalize()}'
             if reason:
-                # TODO: Add reason attribute to event
+                event.reason = reason
                 msg = f'{msg}, "{reason}"'
             _logger.info(msg)
             event.add_log(msg)
