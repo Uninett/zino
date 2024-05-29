@@ -379,11 +379,16 @@ class MatchType(StrEnum):
     INTF_REGEXP = "intf-regexp"
 
 
+class PmType(StrEnum):
+    PORTSTATE = "portstate"
+    DEVICE = "device"
+
+
 class PlannedMaintenance(BaseModel):
     id: Optional[int] = None
     start_time: datetime.datetime
     end_time: datetime.datetime
-    type: Literal["portstate", "device"]
+    type: PmType
     match_type: MatchType
     match_device: Optional[str]
     match_expression: str
@@ -437,7 +442,7 @@ class PlannedMaintenance(BaseModel):
 
 
 class DeviceMaintenance(PlannedMaintenance):
-    type: Literal["device"] = "device"
+    type: PmType = PmType.DEVICE
 
     def matches_event(self, event: Event, state: "ZinoState") -> bool:
         """Returns true if `event` will be affected by this planned maintenance"""
@@ -477,7 +482,7 @@ class DeviceMaintenance(PlannedMaintenance):
 
 
 class PortStateMaintenance(PlannedMaintenance):
-    type: Literal["portstate"] = "portstate"
+    type: PmType = PmType.PORTSTATE
 
     def matches_event(self, event: Event, state: "ZinoState") -> bool:
         """Returns true if `event` will be affected by this planned maintenance"""
