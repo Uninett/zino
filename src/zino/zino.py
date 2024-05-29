@@ -20,6 +20,9 @@ from zino.scheduler import get_scheduler, load_and_schedule_polldevs
 from zino.statemodels import Event
 from zino.trapd import TrapReceiver
 
+# ensure all our desired trap observers are loaded.  They will not be explicitly referenced here, hence the noqa tag
+from zino.trapobservers import ignored_traps  # noqa
+
 STATE_DUMP_JOB_ID = "zino.dump_state"
 # Never try to dump state more often than this:
 MINIMUM_STATE_DUMP_INTERVAL = timedelta(seconds=10)
@@ -44,6 +47,8 @@ def init_event_loop(args: argparse.Namespace, loop: Optional[AbstractEventLoop] 
         trap_receiver = TrapReceiver(port=args.trap_port, loop=loop, state=state.state)
         trap_receiver.add_community("public")
         trap_receiver.add_community("secret")
+        trap_receiver.auto_subscribe_observers()
+
         try:
             loop.run_until_complete(trap_receiver.open())
         except PermissionError:

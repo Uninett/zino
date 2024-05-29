@@ -3,7 +3,7 @@ import asyncio
 import logging
 from dataclasses import dataclass, field
 from ipaddress import ip_address
-from typing import Any, List, NamedTuple, Optional, Protocol, Set
+from typing import Any, List, NamedTuple, Optional, Set
 
 from pysnmp.carrier.asyncio.dgram import udp
 from pysnmp.entity import config
@@ -17,15 +17,6 @@ from zino.state import ZinoState
 from zino.statemodels import DeviceState, IPAddress
 
 TrapType = tuple[str, str]  # A mib name and a corresponding trap symbolic name
-# These are spammy traps observed in Uninett, and we don't care about them:
-IGNORED_TRAPS: Set[TrapType] = {
-    ("BGP4-MIB", "bgpBackwardTransition"),
-    ("BGP4-MIB", "bgpBackwardTransNotification"),
-    ("BGP4-V2-MIB-JUNIPER", "jnxBgpM2BackwardTransition"),
-    ("SNMPv2-MIB", "authenticationFailure"),
-    ("CISCOTRAP-MIB", "tcpConnectionClose"),
-    ("BGP4-V2-MIB-JUNIPER", "jnxBgpM2BackwardTransition"),
-}
 _logger = logging.getLogger(__name__)
 
 
@@ -63,10 +54,20 @@ class TrapMessage:
         return f"<Trap from {self.agent.device.name}: {variables}>"
 
 
-class TrapObserver(Protocol):
-    """Defines a valid protocol for Trap observer functions"""
+class TrapObserver:
+    """Defines a valid protocol for SNMP trap observers.
 
-    def __call__(self, trap: TrapMessage, loop: Optional[asyncio.AbstractEventLoop] = None) -> Optional[bool]:
+    A trap observer that directly subclasses this protocol can expect to be automatically registered by Zino as an
+    observer for any trap it declares in its `WANTED_TRAPS` attribute.
+    """
+
+    WANTED_TRAPS: Set[TrapType] = set()
+
+    def __init__(self, state: ZinoState, loop: Optional[asyncio.AbstractEventLoop] = None):
+        self.state = state
+        self.loop = loop if loop else asyncio.get_event_loop()
+
+    def handle_trap(self, trap: TrapMessage) -> Optional[bool]:
         """A trap observer receives a trap message and an optional event loop reference.  The event loop reference
         may be useful if the observer needs to run async actions as part of its trap processing.  If the trap
         observer returns a true-ish value, the trap dispatcher will offer the same trap to more subscribers.  If a
@@ -99,8 +100,19 @@ class TrapReceiver:
         self.snmp_engine = get_new_snmp_engine()
         self._communities = set()
         self._observers: dict[TrapType, List[TrapObserver]] = {}
+        self._auto_subscribed_observers = set()
 
-        self.observe(ignore_trap, *IGNORED_TRAPS)
+    def auto_subscribe_observers(self):
+        """Automatically subscribes all loaded TrapObserver subclasses to this trap receiver"""
+        for observer_class in TrapObserver.__subclasses__():
+            if not observer_class.WANTED_TRAPS:
+                continue
+            if observer_class in self._auto_subscribed_observers:
+                continue
+            else:
+                self._auto_subscribed_observers.add(observer_class)
+            observer_instance = observer_class(self.state, self.loop)
+            self.observe(observer_instance, *observer_instance.WANTED_TRAPS)
 
     def observe(self, subscriber: TrapObserver, *trap_types: List[TrapType]):
         """Adds a trap subscriber to the receiver"""
@@ -195,7 +207,7 @@ class TrapReceiver:
 
         for observer in observers:
             try:
-                if not observer(trap, self.loop):
+                if not observer.handle_trap(trap):
                     return
             except Exception:  # noqa
                 _logger.exception("Unhandled exception in trap observer %r", observer)
@@ -214,8 +226,3 @@ class TrapReceiver:
             controller = view.MibViewController(engine.getMibBuilder())
         mib, label, instance = controller.getNodeLocation(object_name)
         return mib, label, OID(instance) if instance else None
-
-
-def ignore_trap(trap: TrapMessage, loop: Optional[asyncio.AbstractEventLoop] = None) -> Optional[bool]:
-    """Trap observer that just ignores incoming traps"""
-    return False

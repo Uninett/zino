@@ -2,6 +2,7 @@ import asyncio
 import ipaddress
 import logging
 import shutil
+from collections import Counter
 from unittest.mock import Mock, patch
 
 import pytest
@@ -10,7 +11,13 @@ import pytest_asyncio
 from zino.oid import OID
 from zino.state import ZinoState
 from zino.statemodels import DeviceState
-from zino.trapd import TrapMessage, TrapOriginator, TrapReceiver, TrapVarBind
+from zino.trapd import (
+    TrapMessage,
+    TrapObserver,
+    TrapOriginator,
+    TrapReceiver,
+    TrapVarBind,
+)
 
 OID_COLD_START = ".1.3.6.1.6.3.1.1.5.1"
 OID_SYSNAME_0 = ".1.3.6.1.2.1.1.5.0"
@@ -49,6 +56,32 @@ class TestTrapReceiver:
         )
         assert not TrapReceiver._verify_trap(trap)
 
+    @pytest.mark.asyncio
+    async def test_when_trap_observer_wants_no_traps_auto_subscribe_should_ignore_it(self, localhost_receiver):
+        class MockObserver(TrapObserver):
+            WANTED_TRAPS = set()
+
+        localhost_receiver.auto_subscribe_observers()
+        assert not any(isinstance(observer, MockObserver) for observer in localhost_receiver._observers.values())
+
+    @pytest.mark.asyncio
+    async def test_when_called_multiple_times_auto_subscribe_should_not_add_duplicates(self, localhost_receiver):
+        """The same observer class should not be subscribed more than once for the same trap"""
+
+        class MockObserver(TrapObserver):
+            WANTED_TRAPS = {("MOCK-MIB", "mockTrap")}
+
+        localhost_receiver.auto_subscribe_observers()
+        localhost_receiver.auto_subscribe_observers()
+
+        type_counts = Counter(
+            (trap, type(observer))
+            for trap, observers in localhost_receiver._observers.items()
+            for observer in observers
+        )
+        dupes = {ident: count for ident, count in type_counts.items() if count > 1}
+        assert not dupes
+
 
 @pytest.mark.skipif(not shutil.which("snmptrap"), reason="Cannot find snmptrap command line program")
 class TestTrapReceiverExternally:
@@ -77,12 +110,12 @@ class TestTrapReceiverExternally:
         observer = Mock()
         localhost_receiver.observe(observer, ("SNMPv2-MIB", "coldStart"))
         await send_trap_externally(OID_COLD_START, OID_SYSNAME_0, "s", "'MockDevice'")
-        assert observer.called
+        assert observer.handle_trap.called
 
     @pytest.mark.asyncio
     async def test_when_observer_raises_unhandled_exception_it_should_log_it(self, localhost_receiver, caplog):
         crashing_observer = Mock()
-        crashing_observer.side_effect = ValueError("mocked exception")
+        crashing_observer.handle_trap.side_effect = ValueError("mocked exception")
         localhost_receiver.observe(crashing_observer, ("SNMPv2-MIB", "coldStart"))
 
         with caplog.at_level(logging.INFO):
@@ -91,8 +124,11 @@ class TestTrapReceiverExternally:
             assert "mocked exception" in caplog.text
 
     @pytest.mark.asyncio
-    async def test_when_trap_from_ignore_list_is_received_it_should_be_ignored(self, localhost_receiver):
+    async def test_when_early_observer_returns_false_it_should_not_call_later_observers(self, localhost_receiver):
+        early_observer = Mock()
+        early_observer.handle_trap.return_value = False
         late_observer = Mock()
+        localhost_receiver.observe(early_observer, ("BGP4-MIB", "bgpBackwardTransition"))
         localhost_receiver.observe(late_observer, ("BGP4-MIB", "bgpBackwardTransition"))
         bgp_backward_transition_trap = [
             ".1.3.6.1.2.1.15.7.2",
@@ -107,7 +143,8 @@ class TestTrapReceiverExternally:
             "2",
         ]
         await send_trap_externally(*bgp_backward_transition_trap)
-        assert not late_observer.called
+        assert early_observer.handle_trap.called
+        assert not late_observer.handle_trap.called
 
     @pytest.mark.asyncio
     async def test_when_conversion_of_varbind_to_python_object_fails_it_should_set_value_to_none(
