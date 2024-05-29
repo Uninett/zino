@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Dict, Literal, Optional, Protocol
+from typing import TYPE_CHECKING, Dict, Optional, Protocol
 
 from pydantic.main import BaseModel
 
@@ -38,7 +38,7 @@ class PlannedMaintenances(BaseModel):
         self,
         start_time: datetime,
         end_time: datetime,
-        type: Literal["portstate", "device"],
+        pm_class: type[PlannedMaintenance],
         match_type: MatchType,
         match_expression: str,
         match_device: Optional[str],
@@ -47,11 +47,10 @@ class PlannedMaintenances(BaseModel):
         returns it
         """
         pm_id = self.get_next_available_pm_id()
-        pm = PlannedMaintenance(
+        pm = pm_class(
             id=pm_id,
             start_time=start_time,
             end_time=end_time,
-            type=type,
             match_type=match_type,
             match_expression=match_expression,
             match_device=match_device,
