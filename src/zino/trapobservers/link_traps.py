@@ -170,15 +170,11 @@ class LinkTrapObserver(TrapObserver):
         return False  # stub implementation, see Zino 1 `proc flapping`
 
     def get_watch_pattern(self, device: DeviceState) -> Optional[str]:
-        from zino.state import polldevs
-
-        if device.name not in polldevs:
+        if device.name not in self.polldevs:
             return None
-        return polldevs[device.name].watchpat
+        return self.polldevs[device.name].watchpat
 
     def get_ignore_pattern(self, device: DeviceState) -> Optional[str]:
-        from zino.state import polldevs
-
-        if device.name not in polldevs:
+        if device.name not in self.polldevs:
             return None
-        return polldevs[device.name].ignorepat
+        return self.polldevs[device.name].ignorepat
