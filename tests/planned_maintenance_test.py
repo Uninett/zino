@@ -11,7 +11,7 @@ from zino.statemodels import (
     EventState,
     Port,
     PortStateEvent,
-    PortstateMaintenance,
+    PortStateMaintenance,
     ReachabilityEvent,
 )
 
@@ -144,7 +144,7 @@ def active_portstate_pm(pms):
     return pms.create_planned_maintenance(
         start_time=datetime.now() - timedelta(days=1),
         end_time=datetime.now() + timedelta(days=1),
-        pm_class=PortstateMaintenance,
+        pm_class=PortStateMaintenance,
         match_type="regexp",
         match_expression="port",
         match_device="device",
