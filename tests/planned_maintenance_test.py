@@ -16,6 +16,14 @@ from zino.statemodels import (
 )
 
 
+def test_should_start_with_no_planned_maintenances(pms):
+    assert len(pms) == 0
+
+
+def test_pm_should_be_gettable_by_id(pms, active_pm):
+    assert pms[active_pm.id] == active_pm
+
+
 class TestGetPlannedMaintenances:
     def test_get_started_planned_maintenances(self, pms, active_pm, ended_pm, old_pm):
         pms.last_run = datetime.now() - timedelta(hours=1)
