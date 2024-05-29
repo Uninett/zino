@@ -106,6 +106,26 @@ class TestZinoRescheduleDumpStateOnCommit:
             assert not mock_job.modify.called
 
 
+class TestZinoRescheduleDumpStateOnPmChange:
+    def test_when_more_than_10_seconds_remains_until_next_dump_it_should_reschedule(self):
+        scheduler = get_scheduler()
+        mock_job = Mock(next_run_time=now() + timedelta(minutes=5))
+
+        with patch.object(scheduler, "get_job") as get_job:
+            get_job.return_value = mock_job
+            zino.reschedule_dump_state_on_pm_change()
+            assert mock_job.modify.called
+
+    def test_when_less_than_10_seconds_remains_until_next_dump_it_should_not_reschedule(self):
+        scheduler = get_scheduler()
+        mock_job = Mock(next_run_time=now() + timedelta(seconds=5))
+
+        with patch.object(scheduler, "get_job") as get_job:
+            get_job.return_value = mock_job
+            zino.reschedule_dump_state_on_pm_change()
+            assert not mock_job.modify.called
+
+
 class TestSwitchUser:
     def test_when_switching_to_current_user_it_should_succeed(self):
         username = getpass.getuser()
