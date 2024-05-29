@@ -390,57 +390,6 @@ class PlannedMaintenance(BaseModel):
     log: List[LogEntry] = []
     event_ids: List[int] = []
 
-    def add_log(self, message: str) -> LogEntry:
-        entry = LogEntry(message=message)
-        self.log.append(entry)
-        return entry
-
-    def matches_event(self, event: Event, state: "ZinoState") -> bool:
-        """Returns true if `event` will be affected by this planned maintenance"""
-        device = state.devices[event.router]
-        if self.type == "portstate" and event.type == "portstate":
-            port = device.ports[event.ifindex]
-            return self.matches_portstate(device, port)
-        elif self.type == "device" and event.type in ["reachability", "alarm"]:
-            return self.matches_device(device)
-        else:
-            return False
-
-    def matches_portstate(self, device: DeviceState, port: Port) -> bool:
-        """Returns true if PortstateEvents related to `port` on `device`
-        would be affected by this planned maintenance
-        """
-        if self.type != "portstate":
-            return False
-
-        if self.match_type == "regexp":
-            return self._regex_match(self.match_expression, port.ifdescr)
-        elif self.match_type == "str":
-            return self._string_match(self.match_expression, port.ifdescr)
-        elif self.match_type == "intf-regexp":
-            if self._regex_match(self.match_device, device.name):
-                return self._regex_match(self.match_expression, port.ifdescr)
-            else:
-                return False
-        else:
-            return False
-
-    def matches_device(self, device: DeviceState) -> bool:
-        """Returns true if ReachabilityEvents and AlarmEvents related to `device`
-        would be affected by this planned maintenance
-        """
-        if self.type != "device":
-            return False
-
-        if self.match_type == "regexp":
-            return self._regex_match(self.match_expression, device.name)
-        elif self.match_type == "str":
-            return self._string_match(self.match_expression, device.name)
-        elif self.match_type == "exact":
-            return self.match_expression == device.name
-        else:
-            return False
-
     def start(self, state: "ZinoState"):
         events = self._get_or_create_events(state)
         for event in events:
@@ -450,52 +399,26 @@ class PlannedMaintenance(BaseModel):
             state.events.commit(event)
             self.event_ids.append(event.id)
 
-    def _get_or_create_events(self, state: "ZinoState") -> list[Event]:
-        """Creates/gets events that are affected by the given starting planned
-        maintenance
-        """
-        if self.type == "portstate":
-            return self._get_or_create_portstate_events(state)
-        elif self.type == "device":
-            return self._get_or_create_device_events(state)
-        raise ValueError(f"Invalid state {self.state}")
-
-    def _get_or_create_portstate_events(self, state: "ZinoState") -> list[Event]:
-        events = []
-        deviceports = self._get_matching_ports(state)
-        for device, port in deviceports:
-            event = state.events.get_or_create_event(device.name, port.ifindex, PortStateEvent)
-            event.ifindex = port.ifindex
-            events.append(event)
-        return events
-
-    def _get_matching_ports(self, state: "ZinoState") -> list[tuple[DeviceState, Port]]:
-        ports = []
-        for device in state.devices.devices.values():
-            for port in device.ports.values():
-                if self.matches_portstate(device, port):
-                    ports.append((device, port))
-        return ports
-
-    def _get_or_create_device_events(self, state: "ZinoState") -> list[Event]:
-        events = []
-        # all devices that the pm should affect
-        devices = [device for device in state.devices.devices.values() if self.matches_device(device)]
-        for device in devices:
-            reachability_event = state.events.get_or_create_event(device.name, None, ReachabilityEvent)
-            yellow_event = state.events.get_or_create_event(device.name, "yellow", AlarmEvent)
-            yellow_event.alarm_type = "yellow"
-            red_event = state.events.get_or_create_event(device.name, "red", AlarmEvent)
-            red_event.alarm_type = "red"
-            for event in (reachability_event, yellow_event, red_event):
-                events.append(event)
-        return events
-
     def end(self, state: "ZinoState"):
         for event_id in self.event_ids:
             event = state.events.checkout(event_id)
             event.state = EventState.OPEN
             state.events.commit(event)
+
+    def add_log(self, message: str) -> LogEntry:
+        entry = LogEntry(message=message)
+        self.log.append(entry)
+        return entry
+
+    def matches_event(self, event: Event, state: "ZinoState") -> bool:
+        """Returns true if `event` will be affected by this planned maintenance"""
+        raise NotImplementedError
+
+    def _get_or_create_events(self, state: "ZinoState") -> list[Event]:
+        """Creates/gets events that are affected by the given starting planned
+        maintenance
+        """
+        raise NotImplementedError()
 
     @staticmethod
     def _string_match(pattern: str, string: str) -> bool:
@@ -511,3 +434,85 @@ class PlannedMaintenance(BaseModel):
         """
         compiled_pattern = re.compile(pattern)
         return bool(compiled_pattern.match(string))
+
+
+class DeviceMaintenance(PlannedMaintenance):
+    type: Literal["device"] = "device"
+
+    def matches_event(self, event: Event, state: "ZinoState") -> bool:
+        """Returns true if `event` will be affected by this planned maintenance"""
+        if event.type not in ["reachability", "alarm"]:
+            return False
+        device = state.devices[event.router]
+        return self.matches_device(device)
+
+    def matches_device(self, device: DeviceState) -> bool:
+        """Returns true if ReachabilityEvents and AlarmEvents related to `device`
+        would be affected by this planned maintenance
+        """
+        if self.match_type == "regexp":
+            return self._regex_match(self.match_expression, device.name)
+        if self.match_type == "str":
+            return self._string_match(self.match_expression, device.name)
+        if self.match_type == "exact":
+            return self.match_expression == device.name
+        return False
+
+    def _get_or_create_events(self, state: "ZinoState") -> list[Event]:
+        """Creates/gets events that are affected by the given starting planned
+        maintenance
+        """
+        events = []
+        # all devices that the pm should affect
+        devices = [device for device in state.devices.devices.values() if self.matches_device(device)]
+        for device in devices:
+            reachability_event = state.events.get_or_create_event(device.name, None, ReachabilityEvent)
+            yellow_event = state.events.get_or_create_event(device.name, "yellow", AlarmEvent)
+            yellow_event.alarm_type = "yellow"
+            red_event = state.events.get_or_create_event(device.name, "red", AlarmEvent)
+            red_event.alarm_type = "red"
+            for event in (reachability_event, yellow_event, red_event):
+                events.append(event)
+        return events
+
+
+class PortstateMaintenance(PlannedMaintenance):
+    type: Literal["device"] = "portstate"
+
+    def matches_event(self, event: Event, state: "ZinoState") -> bool:
+        """Returns true if `event` will be affected by this planned maintenance"""
+        if event.type != "portstate":
+            return False
+        device = state.devices[event.router]
+        port = device.ports[event.ifindex]
+        return self.matches_portstate(device, port)
+
+    def matches_portstate(self, device: DeviceState, port: Port) -> bool:
+        """Returns true if PortstateEvents related to `port` on `device`
+        would be affected by this planned maintenance
+        """
+        if self.match_type == "regexp":
+            return self._regex_match(self.match_expression, port.ifdescr)
+        if self.match_type == "str":
+            return self._string_match(self.match_expression, port.ifdescr)
+        if self.match_type == "intf-regexp":
+            if self._regex_match(self.match_device, device.name):
+                return self._regex_match(self.match_expression, port.ifdescr)
+        return False
+
+    def _get_or_create_events(self, state: "ZinoState") -> list[Event]:
+        events = []
+        deviceports = self._get_matching_ports(state)
+        for device, port in deviceports:
+            event = state.events.get_or_create_event(device.name, port.ifindex, PortStateEvent)
+            event.ifindex = port.ifindex
+            events.append(event)
+        return events
+
+    def _get_matching_ports(self, state: "ZinoState") -> list[tuple[DeviceState, Port]]:
+        ports = []
+        for device in state.devices.devices.values():
+            for port in device.ports.values():
+                if self.matches_portstate(device, port):
+                    ports.append((device, port))
+        return ports
