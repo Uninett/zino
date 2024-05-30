@@ -39,7 +39,7 @@ def main():
     # Polldevs by command line argument will override config file entry
     if args.polldevs:
         state.config.polling.file = args.polldevs.name
-    state.state = state.ZinoState.load_state_from_file() or state.ZinoState()
+    state.state = state.ZinoState.load_state_from_file(state.config.persistence.file) or state.ZinoState()
     init_event_loop(args)
 
 
@@ -79,6 +79,7 @@ def init_event_loop(args: argparse.Namespace, loop: Optional[AbstractEventLoop] 
     scheduler.add_job(
         func=state.state.dump_state_to_file,
         trigger="interval",
+        args=(state.config.persistence.file,),
         id=STATE_DUMP_JOB_ID,
         minutes=state.config.persistence.period,
     )
