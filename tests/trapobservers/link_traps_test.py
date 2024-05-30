@@ -92,6 +92,15 @@ class TestLinkTrapObserver:
         localhost.boot_time = now() - timedelta(minutes=2)
         assert observer.is_port_ignored_by_policy(localhost, localhost.ports[1], is_up=False)
 
+    def test_when_link_trap_is_redundant_policy_should_ignore_trap(self, state_with_localhost_with_port):
+        observer = LinkTrapObserver(state=state_with_localhost_with_port, polldevs=Mock())
+        localhost = state_with_localhost_with_port.devices.devices["localhost"]
+        port = localhost.ports[1]
+        port.state = InterfaceState.DOWN
+        assert observer.is_port_ignored_by_policy(
+            localhost, localhost.ports[1], is_up=False
+        ), "did not ignore redundant linkDown trap"
+
 
 @pytest.fixture
 def state_with_localhost_with_port(state_with_localhost):
