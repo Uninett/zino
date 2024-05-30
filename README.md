@@ -190,6 +190,18 @@ Zino will check `polldevs.cf` for changes on a scheduled interval while it's
 running, so any changes made while Zino is running should be picked up without
 requiring a restart of the process.
 
+### Configuring other settings
+
+Other settings can be also configured in a separate [TOML](https://toml.io/en/) file,
+which defaults to `zino.toml` in the current working directory, but a different file
+can be specified using the `--config-file` command line option.
+
+See the [zino.toml.example](./zino.toml.example) file for the settings that can be
+configured and their default values.
+
+Zino does not currently check `zino.toml` for changes on a scheduled interval while
+it's running, so Zino needs to be restarted for changes to take effect.
+
 ### Configuring API users
 
 Zino 2 reimplements the text-based (vaguely SMTP-esque) API protocol from Zino
