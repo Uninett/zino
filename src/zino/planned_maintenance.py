@@ -64,7 +64,6 @@ class PlannedMaintenances(BaseModel):
         # See `close` function in Zino 1.0 `pm.tcl`
         pm = self.planned_maintenances.get(id, None)
         if not pm:
-            # TODO figure out if this is enough
             return
         pm.add_log(f"PM closed by {user}: {reason}")
         del self.planned_maintenances[id]
