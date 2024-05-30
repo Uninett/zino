@@ -20,7 +20,6 @@ from zino.time import now
 _log = logging.getLogger(__name__)
 
 EVENT_EXPIRY = timedelta(hours=8)
-EVENT_DUMP_DIR = "old-events"
 
 
 class EventIndex(NamedTuple):
@@ -166,10 +165,13 @@ class Events(BaseModel):
 
     def _delete(self, event: Event):
         """Removes a closed event from the events dict and notifies all observers"""
+        from zino.state import config
+
         if event.state != EventState.CLOSED:
             return
 
-        event.dump_event_to_file(dir_name=f"{EVENT_DUMP_DIR}/{now().year}-{now().month}/{now().day}")
+        base_dir = config.archiving.old_events_dir
+        event.dump_event_to_file(dir_name=f"{base_dir}/{now().year}-{now().month}/{now().day}")
         index = EventIndex(event.router, event.subindex, type(event))
         if self._closed_events_by_index.get(index) and event.id == self._closed_events_by_index[index].id:
             del self._closed_events_by_index[index]

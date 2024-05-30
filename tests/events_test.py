@@ -159,7 +159,7 @@ class TestEvents:
         event.set_state(EventState.CLOSED)
         events.commit(event)
         event.updated = now() - timedelta(days=1)
-        with patch("zino.events.EVENT_DUMP_DIR", tmp_path):
+        with patch("zino.config.models.EVENT_DUMP_DIR", tmp_path):
             events.delete_expired_events()
         assert event.id not in events.events.keys()
 
@@ -172,7 +172,7 @@ class TestEvents:
         events.commit(event)
         assert events.get_closed_event(*index), "event wasn't added to closed index in the first place"
         event.updated = now() - timedelta(days=1)
-        with patch("zino.events.EVENT_DUMP_DIR", tmp_path):
+        with patch("zino.config.models.EVENT_DUMP_DIR", tmp_path):
             events.delete_expired_events()
         assert not events.get_closed_event(*index)
 
@@ -181,7 +181,7 @@ class TestEvents:
         event = events.get_or_create_event("foobar", None, ReachabilityEvent)
         event.set_state(EventState.CLOSED)
         events.commit(event)
-        with patch("zino.events.EVENT_DUMP_DIR", tmp_path):
+        with patch("zino.config.models.EVENT_DUMP_DIR", tmp_path):
             events.delete_expired_events()
         assert event.id in events.events.keys()
 
@@ -189,7 +189,7 @@ class TestEvents:
         events = Events()
         event = events.get_or_create_event("foobar", None, ReachabilityEvent)
         events.commit(event)
-        with patch("zino.events.EVENT_DUMP_DIR", tmp_path):
+        with patch("zino.config.models.EVENT_DUMP_DIR", tmp_path):
             events.delete_expired_events()
         assert event.id in events.events.keys()
 
@@ -229,7 +229,7 @@ class TestEvents:
             observer.called = True
 
         events.add_event_observer(observer)
-        with patch("zino.events.EVENT_DUMP_DIR", tmp_path):
+        with patch("zino.config.models.EVENT_DUMP_DIR", tmp_path):
             events._delete(event)
         assert observer.called
 
