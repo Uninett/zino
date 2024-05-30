@@ -126,7 +126,7 @@ class PlannedMaintenances(BaseModel):
         for ended_pm in self.get_ended_planned_maintenances(now=now):
             ended_pm.end(state)
 
-        # Delete events that have been closed for a certain amount of time
+        # Delete PMs that ended a certain amount of time ago
         old_pms = self.get_old_planned_maintenances(now)
         for pm in old_pms:
             self.close_planned_maintenance(pm.id, "timer expiry for old PMs", "zino")
