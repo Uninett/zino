@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Zino 2 is a full rewrite of the original Tcl-based Zino state monitor.  This
 changelog only details changes from Zino 2 on and out.
 
+This project uses [*towncrier*](https://towncrier.readthedocs.io/) and the changes for the upcoming release can be found in <https://github.com/Uninett/zino/tree/master/changelog.d/>.
+
+<!-- towncrier release notes start -->
+
 ## [2.0.0-alpha.2] - 2024-04-09
 
 ### Added

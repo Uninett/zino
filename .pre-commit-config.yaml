@@ -7,6 +7,7 @@ repos:
       - id: trailing-whitespace
       - id: mixed-line-ending
       - id: end-of-file-fixer
+        exclude: &exclude_pattern '^changelog.d/'
       - id: debug-statements
   - repo: https://github.com/pycqa/isort
     rev: 5.12.0
@@ -21,3 +22,9 @@ repos:
     rev: v0.1.13
     hooks:
       - id: ruff
+  - repo: https://github.com/twisted/towncrier
+    rev: 23.11.0
+    hooks:
+      - id: towncrier-check
+        files: $changelog\.d/
+        args: [--compare-with origin/master]
