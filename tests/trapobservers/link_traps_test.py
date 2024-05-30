@@ -3,6 +3,7 @@ from unittest.mock import Mock
 
 import pytest
 
+from zino.config.models import PollDevice
 from zino.statemodels import InterfaceState, Port, PortStateEvent
 from zino.time import now
 from zino.trapobservers.link_traps import LinkTrapObserver
@@ -32,6 +33,46 @@ class TestLinkTrapObserver:
         assert state_with_localhost_with_port.events.get(
             "localhost", 1, PortStateEvent
         ), "no portstate event was created"
+
+    @pytest.mark.asyncio
+    async def test_when_port_does_not_match_watch_pattern_it_should_ignore_link_traps(
+        self, state_with_localhost_with_port, localhost_receiver
+    ):
+        assert not state_with_localhost_with_port.events.get(
+            "localhost", 1, PortStateEvent
+        ), "initial state should be empty"
+        localhost_config = PollDevice(name="localhost", address="127.0.0.1", watchpat="foo.*")
+        localhost_receiver.polldevs["localhost"] = localhost_config
+
+        observer = LinkTrapObserver(
+            state=localhost_receiver.state, polldevs=localhost_receiver.polldevs, loop=localhost_receiver.loop
+        )
+        localhost_receiver.observe(observer, *LinkTrapObserver.WANTED_TRAPS)
+        await trapd_test.send_trap_externally(OID_LINKDOWN, OID_IFINDEX, "i", "1", OID_IFOPERSTATUS, "i", "2")
+
+        assert not state_with_localhost_with_port.events.get(
+            "localhost", 1, PortStateEvent
+        ), "linkDown for non-watched port was not ignored"
+
+    @pytest.mark.asyncio
+    async def test_when_port_matches_ignore_pattern_it_should_ignore_link_traps(
+        self, state_with_localhost_with_port, localhost_receiver
+    ):
+        assert not state_with_localhost_with_port.events.get(
+            "localhost", 1, PortStateEvent
+        ), "initial state should be empty"
+        localhost_config = PollDevice(name="localhost", address="127.0.0.1", ignorepat=".*eth0.*")
+        localhost_receiver.polldevs["localhost"] = localhost_config
+
+        observer = LinkTrapObserver(
+            state=localhost_receiver.state, polldevs=localhost_receiver.polldevs, loop=localhost_receiver.loop
+        )
+        localhost_receiver.observe(observer, *LinkTrapObserver.WANTED_TRAPS)
+        await trapd_test.send_trap_externally(OID_LINKDOWN, OID_IFINDEX, "i", "1", OID_IFOPERSTATUS, "i", "2")
+
+        assert not state_with_localhost_with_port.events.get(
+            "localhost", 1, PortStateEvent
+        ), "linkDown for non-watched port was not ignored"
 
     def test_when_event_exists_policy_should_not_ignore_trap(self, state_with_localhost_with_port):
         observer = LinkTrapObserver(state=state_with_localhost_with_port, polldevs=Mock())
