@@ -25,10 +25,10 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         id: cache
         with:
           path: ~/.cache/pip
@@ -38,7 +38,7 @@ jobs:
 
 
       - name: "Set up Python ${{ matrix.python-version }}"
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -51,17 +51,27 @@ jobs:
       - name: Test with tox
         run: tox
 
-      - name: "Upload coverage to Codecov"
-        if: github.repository_owner == 'Uninett'
-        uses: codecov/codecov-action@v4
-        with:
-          fail_ci_if_error: true
-          token: ${{ secrets.CODECOV_TOKEN }}
-
       - name: Upload test reports (${{ matrix.python-version }})
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: reports
+          name: reports-${{ matrix.python-version }}
           path: |
             reports/**/*
+
+  upload-pr-number:
+    name: Save PR number in artifact
+    runs-on: ubuntu-latest
+    if: ${{ github.event.number && always() }}
+    env:
+      PR_NUMBER: ${{ github.event.number }}
+    steps:
+      - name: Make PR number file
+        run: |
+          mkdir -p ./pr
+          echo $PR_NUMBER > ./pr/pr_number
+      - name: Upload PR number file
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr_number
+          path: pr/
