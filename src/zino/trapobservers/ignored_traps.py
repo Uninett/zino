@@ -1,4 +1,5 @@
 """This module implements a trap observer to ignore spammy traps"""
+
 import logging
 from typing import Optional, Set
 

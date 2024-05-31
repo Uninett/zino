@@ -1,4 +1,5 @@
 """This module implements custom logging of certain SNMP traps, but takes no other action"""
+
 import logging
 from typing import Optional
 
