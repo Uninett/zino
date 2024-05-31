@@ -1,0 +1,1 @@
+Ensure polling single interfaces works for ifindex=0

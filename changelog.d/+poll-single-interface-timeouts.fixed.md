@@ -1,0 +1,1 @@
+Ensure polling single interfaces does not crash in the event of timeout errors
