@@ -519,5 +519,4 @@ def regex_match(pattern: str, string: str) -> bool:
     """Matches `string` against regex expression `pattern`.
     Returns true if there is a match.
     """
-    compiled_pattern = re.compile(pattern)
-    return bool(compiled_pattern.match(string))
+    return bool(re.match(pattern, string))
