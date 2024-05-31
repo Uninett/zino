@@ -425,21 +425,6 @@ class PlannedMaintenance(BaseModel):
         """
         raise NotImplementedError
 
-    @staticmethod
-    def _string_match(pattern: str, string: str) -> bool:
-        """This should behave like tcl string match https://wiki.tcl-lang.org/page/string+match
-        Returns true if `string` matches `pattern`.
-        """
-        return fnmatch.fnmatch(string, pattern)
-
-    @staticmethod
-    def _regex_match(pattern: str, string: str) -> bool:
-        """Matches `string` against regex expression `pattern`.
-        Returns true if there is a match.
-        """
-        compiled_pattern = re.compile(pattern)
-        return bool(compiled_pattern.match(string))
-
 
 class DeviceMaintenance(PlannedMaintenance):
     type: PmType = PmType.DEVICE
@@ -456,9 +441,9 @@ class DeviceMaintenance(PlannedMaintenance):
         would be affected by this planned maintenance
         """
         if self.match_type == "regexp":
-            return self._regex_match(self.match_expression, device.name)
+            return regex_match(self.match_expression, device.name)
         if self.match_type == "str":
-            return self._string_match(self.match_expression, device.name)
+            return string_match(self.match_expression, device.name)
         if self.match_type == "exact":
             return self.match_expression == device.name
         return False
@@ -497,12 +482,12 @@ class PortStateMaintenance(PlannedMaintenance):
         would be affected by this planned maintenance
         """
         if self.match_type == "regexp":
-            return self._regex_match(self.match_expression, port.ifdescr)
+            return regex_match(self.match_expression, port.ifdescr)
         if self.match_type == "str":
-            return self._string_match(self.match_expression, port.ifdescr)
+            return string_match(self.match_expression, port.ifdescr)
         if self.match_type == "intf-regexp":
-            if self._regex_match(self.match_device, device.name):
-                return self._regex_match(self.match_expression, port.ifdescr)
+            if regex_match(self.match_device, device.name):
+                return regex_match(self.match_expression, port.ifdescr)
         return False
 
     def _get_or_create_events(self, state: "ZinoState") -> list[Event]:
@@ -521,3 +506,18 @@ class PortStateMaintenance(PlannedMaintenance):
                 if self.matches_portstate(device, port):
                     ports.append((device, port))
         return ports
+
+
+def string_match(pattern: str, string: str) -> bool:
+    """This should behave like tcl string match https://wiki.tcl-lang.org/page/string+match
+    Returns true if `string` matches `pattern`.
+    """
+    return fnmatch.fnmatch(string, pattern)
+
+
+def regex_match(pattern: str, string: str) -> bool:
+    """Matches `string` against regex expression `pattern`.
+    Returns true if there is a match.
+    """
+    compiled_pattern = re.compile(pattern)
+    return bool(compiled_pattern.match(string))
