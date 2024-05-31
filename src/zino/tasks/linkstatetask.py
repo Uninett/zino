@@ -63,8 +63,12 @@ class LinkStateTask(Task):
         poll_list = [
             ("IF-MIB", column, str(prev_ifindex)) if prev_ifindex else ("IF-MIB", column) for column in BASE_POLL_LIST
         ]
-        result = await self.snmp.getnext2(*poll_list)
-        self.sysuptime = await self._get_uptime()
+        try:
+            result = await self.snmp.getnext2(*poll_list)
+            self.sysuptime = await self._get_uptime()
+        except TimeoutError:
+            _logger.error("%s: timed out polling single interface %s", self.device.name, ifindex)
+            return
         self.device_state.set_boot_time_from_uptime(self.sysuptime)
         _logger.debug("poll_single_interface %s result: %r", self.device.name, result)
 
