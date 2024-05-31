@@ -18,8 +18,7 @@ PM_EXPIRY_TIME = timedelta(days=3)
 class PlannedMaintenanceObserver(Protocol):
     """Defines a valid protocol for planned maintenance observer functions"""
 
-    def __call__(self) -> None:
-        ...
+    def __call__(self) -> None: ...
 
 
 class PlannedMaintenances(BaseModel):

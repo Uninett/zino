@@ -1,4 +1,5 @@
 """Tests for functions that are unchanged in subclasses of PlannedMaintenance"""
+
 import datetime
 
 import pytest
