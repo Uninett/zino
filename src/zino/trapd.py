@@ -1,4 +1,5 @@
 """SNMP trap 'daemon' for Zino 2"""
+
 import asyncio
 import logging
 from dataclasses import dataclass, field

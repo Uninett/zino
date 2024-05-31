@@ -1,74 +1,51 @@
 ---
-#################################
-#################################
-## Super Linter GitHub Actions ##
-#################################
-#################################
-name: Lint Code Base
+# MegaLinter GitHub Action configuration file
+# More info at https://megalinter.io
+name: MegaLinter
+on: [push, pull_request]
 
-###########################################################
-# Start the job on pushes to master and all pull requests #
-###########################################################
-on:
-  push:
-    branches: master
-  pull_request:
-
-###############
-# Set the Job #
-###############
 jobs:
-  build:
-    # Name the Job
-    name: Lint Code Base
-    # Set the agent to run on
+  megalinter:
+    name: MegaLinter
     runs-on: ubuntu-latest
-
-    ############################################
-    # Grant status permission for MULTI_STATUS #
-    ############################################
     permissions:
-      contents: read
-      packages: read
-      statuses: write
-
-    ##################
-    # Load all steps #
-    ##################
+      # Give the linter write permission to comment on PRs (if PR is not from fork)
+      issues: write
+      pull-requests: write
     steps:
-      ##########################
-      # Checkout the code base #
-      ##########################
+      # Git Checkout
       - name: Checkout Code
         uses: actions/checkout@v3
         with:
-          # Full git history is needed to get a proper
-          # list of changed files within `super-linter`
+          token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
-
-      ################################
-      # Run Linter against code base #
-      ################################
-      - name: Lint Code Base with black and isort
-        uses: github/super-linter/slim@v5
+      # MegaLinter
+      - name: MegaLinter
+        id: ml
+        # You can override MegaLinter flavor used to have faster performances
+        # More info at https://megalinter.io/flavors/
+        uses: oxsecurity/megalinter/flavors/python@v7
         env:
-          VALIDATE_ALL_CODEBASE: false
-          DEFAULT_BRANCH: master
+          # All available variables are described in documentation
+          # https://megalinter.io/configuration/
+          ENABLE_LINTERS: PYTHON_BLACK,PYTHON_ISORT,PYTHON_RUFF
+          # Make workflow fail even on non blocking errors
+          FORMATTERS_DISABLE_ERRORS: false
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Add validation for other languages here or comment out all to validate all languages
-          VALIDATE_PYTHON_BLACK: true
-          VALIDATE_PYTHON_ISORT: true
+          # Validate whole codebase on pushes and only changes on pull requests
+          VALIDATE_ALL_CODEBASE: ${{ github.event_name == 'push'}}
           # Tell the linter the location of the configuration file (pyproject.toml)
           LINTER_RULES_PATH: .
           PYTHON_BLACK_CONFIG_FILE: pyproject.toml
           PYTHON_ISORT_CONFIG_FILE: pyproject.toml
-          # Exclude mibdumps files
+          PYTHON_RUFF_CONFIG_FILE: pyproject.toml
           FILTER_REGEX_EXCLUDE: .*src/zino/mibdumps/.*
-
-      ################################
-      # Run ruff against code base #
-      ################################
-      - name: Lint Code Base with ruff
-        uses: chartboost/ruff-action@v1
+      # Upload MegaLinter artifacts
+      - name: Archive production artifacts
+        if: success() || failure()
+        uses: actions/upload-artifact@v4
         with:
-          args: --exclude "mibdumps"
+          name: MegaLinter reports
+          path: |
+            megalinter-reports
+            mega-linter.log

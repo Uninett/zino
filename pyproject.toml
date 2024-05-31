@@ -91,6 +91,7 @@ exclude = '''
     | buck-out
     | build
     | dist
+    | src/zino/mibdumps
   )
 )
 '''

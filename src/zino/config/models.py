@@ -1,4 +1,5 @@
 """Zino configuration models"""
+
 from ipaddress import IPv4Address, IPv6Address
 from typing import Optional, Union
 
