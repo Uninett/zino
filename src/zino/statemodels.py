@@ -454,7 +454,7 @@ class DeviceMaintenance(PlannedMaintenance):
         """
         events = []
         # all devices that the pm should affect
-        devices = [device for device in state.devices.devices.values() if self.matches_device(device)]
+        devices = (device for device in state.devices.devices.values() if self.matches_device(device))
         for device in devices:
             reachability_event = state.events.get_or_create_event(device.name, None, ReachabilityEvent)
             yellow_event = state.events.get_or_create_event(device.name, "yellow", AlarmEvent)
