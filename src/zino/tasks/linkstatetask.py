@@ -135,18 +135,20 @@ class LinkStateTask(Task):
         event.add_log(log)
         self.state.events.commit(event)
 
-        self._schedule_verification_of_single_port(port.ifindex)
+        self.schedule_verification_of_single_port(port.ifindex)
 
-    def _schedule_verification_of_single_port(self, ifindex: int):
-        in_two_minutes = datetime.datetime.now() + datetime.timedelta(minutes=2)
-        job_name = f"{self.device.name}-verify-{ifindex}-state"
+    def schedule_verification_of_single_port(
+        self, ifindex: int, deadline: datetime.timedelta = datetime.timedelta(minutes=2), reason: str = "verify"
+    ):
+        """Schedules a verification of a single port at a given time in the future"""
+        when = datetime.datetime.now() + deadline
+        job_name = f"{self.device.name}-{reason}-{ifindex}-state"
         self._scheduler.add_job(
             func=self.poll_single_interface,
             args=(ifindex,),
             trigger="date",
-            run_date=in_two_minutes,
+            run_date=when,
             name=job_name,
-            id=job_name,
         )
 
     def _get_or_create_port(self, ifindex: int):
