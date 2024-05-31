@@ -1,2 +1,4 @@
 # Rerun black after upgrade to version 22.4.0 @johannaengland 22/05/2024
 e0ac8815008114743f6fb2d8a918005bb32dd94f
+# Rerun black for commits merged before black 22.4.0 pre-commit was merged @lunkwill42 31/05/2024
+85118701a98b71e1a1340674592c9d07cfb5c05d
