@@ -431,7 +431,7 @@ class DeviceMaintenance(PlannedMaintenance):
 
     def matches_event(self, event: Event, state: "ZinoState") -> bool:
         """Returns true if `event` will be affected by this planned maintenance"""
-        if event.type not in ["reachability", "alarm"]:
+        if not isinstance(event, (ReachabilityEvent, AlarmEvent)):
             return False
         device = state.devices[event.router]
         return self.matches_device(device)
