@@ -24,40 +24,65 @@ def test_pm_should_be_gettable_by_id(pms, active_pm):
     assert pms[active_pm.id] == active_pm
 
 
-class TestGetPlannedMaintenances:
-    def test_get_started_planned_maintenances(self, pms, active_pm, ended_pm, old_pm):
+class TestGetStartedPlannedMaintenances:
+    def test_should_return_pms_that_started_since_last_run(self, pms, recent_pm):
         pms.last_run = datetime.now() - timedelta(hours=1)
-        recent_pm = pms.create_planned_maintenance(
-            start_time=datetime.now() - timedelta(minutes=1),
-            end_time=datetime.now() + timedelta(days=1),
-            pm_class=DeviceMaintenance,
-            match_type="str",
-            match_expression="hello",
-            match_device="device",
-        )
         started_pms = pms.get_started_planned_maintenances(now=datetime.now())
         assert recent_pm in started_pms
-        assert active_pm not in started_pms
-        assert ended_pm not in started_pms
-        assert old_pm not in started_pms
 
-    def test_get_ended_planned_maintenances(self, pms, active_pm, ended_pm, old_pm):
+    def test_should_not_return_pms_that_started_before_last_run(self, pms, active_pm):
+        pms.last_run = datetime.now() - timedelta(hours=1)
+        started_pms = pms.get_started_planned_maintenances(now=datetime.now())
+        assert active_pm not in started_pms
+
+    def test_should_not_return_pms_that_have_not_started_yet(self, pms, not_started_pm):
+        pms.last_run = datetime.now() - timedelta(hours=1)
+        started_pms = pms.get_started_planned_maintenances(now=datetime.now())
+        assert not_started_pm not in started_pms
+
+
+class TestGetEndedPlannedMaintenances:
+    def test_should_return_pms_that_ended_after_last_run(self, pms, active_pm, ended_pm, old_pm):
         pms.last_run = datetime.now() - timedelta(hours=1)
         ended_pms = pms.get_ended_planned_maintenances(now=datetime.now())
         assert ended_pm in ended_pms
+
+    def test_should_not_return_pms_that_ended_before_last_run(self, pms, old_pm):
+        pms.last_run = datetime.now() - timedelta(hours=1)
+        ended_pms = pms.get_ended_planned_maintenances(now=datetime.now())
         assert old_pm not in ended_pms
+
+    def test_should_not_return_pms_that_have_not_ended(self, pms, active_pm):
+        pms.last_run = datetime.now() - timedelta(hours=1)
+        ended_pms = pms.get_ended_planned_maintenances(now=datetime.now())
         assert active_pm not in ended_pms
 
-    def test_get_active_planned_maintenances(self, pms, active_pm, ended_pm, old_pm):
+
+class TestGetActivePlannedMaintenances:
+    def test_should_return_active_pms(self, pms, active_pm):
         active_pms = pms.get_active_planned_maintenances(datetime.now())
         assert active_pm in active_pms
-        assert ended_pm not in active_pms
-        assert old_pm not in active_pms
 
-    def test_get_old_planned_maintenances(self, pms, active_pm, ended_pm, old_pm):
+    def test_should_not_return_ended_pms(self, pms, ended_pm):
+        active_pms = pms.get_active_planned_maintenances(datetime.now())
+        assert ended_pm not in active_pms
+
+    def test_should_not_return_pms_that_have_not_started_yet(self, pms, not_started_pm):
+        active_pms = pms.get_active_planned_maintenances(datetime.now())
+        assert not_started_pm not in active_pms
+
+
+class TestGetOldPlannedMaintenances:
+    def test_should_return_old_pms(self, pms, old_pm):
         old_pms = pms.get_old_planned_maintenances(now=datetime.now())
         assert old_pm in old_pms
+
+    def test_should_not_return_pms_that_have_not_ended_yet(self, pms, active_pm):
+        old_pms = pms.get_old_planned_maintenances(now=datetime.now())
         assert active_pm not in old_pms
+
+    def test_should_not_return_pms_that_ended_since_last_run(self, pms, ended_pm):
+        old_pms = pms.get_old_planned_maintenances(now=datetime.now())
         assert ended_pm not in old_pms
 
 
@@ -133,6 +158,30 @@ def state(pms):
     state = ZinoState()
     state.planned_maintenances = pms
     return state
+
+
+@pytest.fixture
+def not_started_pm(pms):
+    return pms.create_planned_maintenance(
+        start_time=datetime.now() + timedelta(days=1),
+        end_time=datetime.now() + timedelta(days=2),
+        pm_class=DeviceMaintenance,
+        match_type="exact",
+        match_expression="device",
+        match_device="device",
+    )
+
+
+@pytest.fixture
+def recent_pm(pms):
+    return pms.create_planned_maintenance(
+        start_time=datetime.now() - timedelta(minutes=1),
+        end_time=datetime.now() + timedelta(days=1),
+        pm_class=DeviceMaintenance,
+        match_type="str",
+        match_expression="hello",
+        match_device="device",
+    )
 
 
 @pytest.fixture
