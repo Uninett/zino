@@ -102,6 +102,14 @@ class TestBaseInterfaceRow:
         assert port.ifdescr == "2"
         assert port.ifalias == "from a famous"
 
+    @pytest.mark.asyncio
+    async def test_when_ifindex_is_1_poll_single_interface_should_not_crash(self, linkstatetask_with_one_link_down):
+        """Regression test.  poll_single_interface constructs a GET-NEXT request by asking for the set of next values
+        after ifindex-1 - but 0 indexes are illegal when encoding OIDs into tables.
+        """
+        target_index = 1
+        assert await linkstatetask_with_one_link_down.poll_single_interface(target_index) is None
+
 
 @pytest.fixture
 def linkstatetask_with_links_up(snmpsim, snmp_test_port):
