@@ -59,7 +59,10 @@ class LinkStateTask(Task):
 
     async def poll_single_interface(self, ifindex: int):
         """Polls and updates a single interface"""
-        poll_list = [("IF-MIB", column, str(ifindex - 1)) for column in BASE_POLL_LIST]
+        prev_ifindex = ifindex - 1
+        poll_list = [
+            ("IF-MIB", column, str(prev_ifindex)) if prev_ifindex else ("IF-MIB", column) for column in BASE_POLL_LIST
+        ]
         result = await self.snmp.getnext2(*poll_list)
         self.sysuptime = await self._get_uptime()
         self.device_state.set_boot_time_from_uptime(self.sysuptime)
