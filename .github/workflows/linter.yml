@@ -50,7 +50,7 @@ jobs:
       # Run Linter against code base #
       ################################
       - name: Lint Code Base with black and isort
-        uses: github/super-linter/slim@v5
+        uses: github/super-linter/slim@v6
         env:
           VALIDATE_ALL_CODEBASE: false
           DEFAULT_BRANCH: master
