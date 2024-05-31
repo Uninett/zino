@@ -423,7 +423,7 @@ class PlannedMaintenance(BaseModel):
         """Creates/gets events that are affected by the given starting planned
         maintenance
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
     @staticmethod
     def _string_match(pattern: str, string: str) -> bool:
