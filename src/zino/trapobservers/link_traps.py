@@ -7,6 +7,7 @@ from typing import Optional, Tuple
 
 import zino.time
 from zino.statemodels import DeviceState, InterfaceState, Port, PortStateEvent
+from zino.tasks.linkstatetask import LinkStateTask
 from zino.trapd import TrapMessage, TrapObserver
 
 _logger = logging.getLogger(__name__)
@@ -104,8 +105,11 @@ class LinkTrapObserver(TrapObserver):
             event.add_log(msg)
             self.state.events.commit(event)
 
-            # TODO: Poll single interface immediately to verify state change
-            # TODO: Schedule another single interface poll in two minutes
+            poll = LinkStateTask(device=polldev, state=self.state)
+            poll.schedule_verification_of_single_port(port.ifindex, deadline=timedelta(seconds=0), reason="trap-verify")
+            poll.schedule_verification_of_single_port(
+                port.ifindex, deadline=timedelta(minutes=2), reason="trap-verify-2"
+            )
 
     def is_port_ignored_by_patterns(self, device: DeviceState, ifdescr: str) -> bool:
         if watch_pattern := self.get_watch_pattern(device):
