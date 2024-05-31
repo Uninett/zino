@@ -66,7 +66,7 @@ class TestClosePlannedMaintenance:
         pms.close_planned_maintenance(old_pm.id, "test", "test")
         assert old_pm.id not in pms.planned_maintenances
 
-    def test_should_not_raise_exception_if_no_matching_pm(self, pms, old_pm):
+    def test_when_there_are_no_matching_pms_it_should_not_raise_exception(self, pms, old_pm):
         assert pms.close_planned_maintenance(pms.get_next_available_pm_id(), "test", "test") is None
 
     def test_should_call_observers_after_closing_pm(self, pms, old_pm):
@@ -77,7 +77,7 @@ class TestClosePlannedMaintenance:
 
 
 class TestUpdatePmStates:
-    def test_events_matching_active_device_pm_are_set_to_ignored(self, state, active_pm):
+    def test_events_matching_active_device_pm_should_be_set_to_ignored(self, state, active_pm):
         device = state.devices.get("device")
         state.planned_maintenances.update_pm_states(state)
         reachability_event = state.events.get(device.name, None, ReachabilityEvent)
@@ -87,7 +87,7 @@ class TestUpdatePmStates:
         red_alarm_event = state.events.get(device.name, "red", AlarmEvent)
         assert red_alarm_event.state == EventState.IGNORED
 
-    def test_events_matching_active_portstate_pm_are_set_to_ignored(self, state, active_portstate_pm):
+    def test_events_matching_active_portstate_pm_should_be_set_to_ignored(self, state, active_portstate_pm):
         device = state.devices.get("device")
         port = Port(ifindex=1, ifdescr="port")
         device.ports[port.ifindex] = port
@@ -95,7 +95,7 @@ class TestUpdatePmStates:
         event = state.events.get(device.name, port.ifindex, PortStateEvent)
         assert event.state == EventState.IGNORED
 
-    def test_events_affected_by_pm_get_opened_after_pm_ends(self, state, ended_pm):
+    def test_when_pm_ends_its_affected_events_should_be_opened(self, state, ended_pm):
         device = state.devices.get("device")
 
         # Create event and register it as affected by PM
@@ -107,12 +107,12 @@ class TestUpdatePmStates:
         state.planned_maintenances.update_pm_states(state)
         assert reachability_event.state == EventState.OPEN
 
-    def test_old_pms_are_deleted(self, state, old_pm):
+    def test_old_pms_should_be_deleted(self, state, old_pm):
         assert old_pm.id in state.planned_maintenances.planned_maintenances
         state.planned_maintenances.update_pm_states(state)
         assert old_pm.id not in state.planned_maintenances.planned_maintenances
 
-    def test_event_opened_after_pm_was_initiated_is_set_to_ignored(self, state, active_pm):
+    def test_event_opened_after_pm_was_initiated_should_be_set_to_ignored(self, state, active_pm):
         device = state.devices.get("device")
         event = state.events.create_event(device.name, None, ReachabilityEvent)
         event.state = EventState.OPEN
