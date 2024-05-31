@@ -5,6 +5,7 @@ import fnmatch
 import logging
 import pathlib
 import re
+from collections.abc import Generator
 from enum import Enum
 from ipaddress import IPv4Address, IPv6Address
 from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Union
@@ -492,20 +493,17 @@ class PortStateMaintenance(PlannedMaintenance):
 
     def _get_or_create_events(self, state: "ZinoState") -> list[Event]:
         events = []
-        deviceports = self._get_matching_ports(state)
-        for device, port in deviceports:
+        for device, port in self._get_matching_ports(state):
             event = state.events.get_or_create_event(device.name, port.ifindex, PortStateEvent)
             event.ifindex = port.ifindex
             events.append(event)
         return events
 
-    def _get_matching_ports(self, state: "ZinoState") -> list[tuple[DeviceState, Port]]:
-        ports = []
+    def _get_matching_ports(self, state: "ZinoState") -> Generator[tuple[DeviceState, Port], None, None]:
         for device in state.devices.devices.values():
             for port in device.ports.values():
                 if self.matches_portstate(device, port):
-                    ports.append((device, port))
-        return ports
+                    yield (device, port)
 
 
 def string_match(pattern: str, string: str) -> bool:
