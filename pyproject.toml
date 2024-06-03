@@ -114,6 +114,8 @@ exclude_also = [
     "\\.\\.\\.",
     # Don't complain about lines excluded unless type checking
     "if TYPE_CHECKING:",
+    # We don't need tests to cover unimplementedness
+    "raise NotImplementedError",
 ]
 
 
