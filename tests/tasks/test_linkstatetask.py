@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 
 from zino.config.models import PollDevice
@@ -101,6 +103,20 @@ class TestBaseInterfaceRow:
         assert port.state == InterfaceState.DOWN
         assert port.ifdescr == "2"
         assert port.ifalias == "from a famous"
+
+    @pytest.mark.asyncio
+    async def test_when_ifindex_is_1_poll_single_interface_should_not_crash(self, linkstatetask_with_one_link_down):
+        """Regression test.  poll_single_interface constructs a GET-NEXT request by asking for the set of next values
+        after ifindex-1 - but 0 indexes are illegal when encoding OIDs into tables.
+        """
+        target_index = 1
+        assert await linkstatetask_with_one_link_down.poll_single_interface(target_index) is None
+
+    @pytest.mark.asyncio
+    async def test_when_timeout_occurs_poll_single_interface_should_not_crash(self, linkstatetask_with_one_link_down):
+        with patch.object(linkstatetask_with_one_link_down.snmp, "getnext2") as mock_getnext2:
+            mock_getnext2.side_effect = TimeoutError
+            assert await linkstatetask_with_one_link_down.poll_single_interface(42) is None
 
 
 @pytest.fixture
