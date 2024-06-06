@@ -7,7 +7,13 @@ from typing import Optional
 
 import zino.time
 from zino.flaps import PortIndex
-from zino.statemodels import DeviceState, InterfaceState, Port, PortStateEvent
+from zino.statemodels import (
+    DeviceState,
+    FlapState,
+    InterfaceState,
+    Port,
+    PortStateEvent,
+)
 from zino.tasks.linkstatetask import LinkStateTask
 from zino.trapd import TrapMessage, TrapObserver
 
@@ -82,10 +88,34 @@ class LinkTrapObserver(TrapObserver):
         new_state = InterfaceState.UP if is_up else InterfaceState.DOWN
 
         if self.state.flapping.is_flapping(index):
-            # TODO: if event doesn't exist, create it
+            if index not in self.state.flapping:
+                # Not previously known to be flapping -- open an event for it
+                event: PortStateEvent = self.state.events.get_or_create_event(device.name, port.ifindex, PortStateEvent)
+
+                event.portstate = new_state
+                event.port = port.ifdescr
+                event.ifindex = port.ifindex
+                port.state = new_state
+                event.flapstate = FlapState.FLAPPING
+                event.flaps = self.state.flapping.get_flap_count(index)
+                if polldev := self.polldevs.get(device.name):
+                    event.polladdr = polldev.address
+                    event.priority = polldev.priority
+                event.descr = port.ifalias
+                if reason:
+                    event.reason = reason
+
+                msg = (
+                    f'{device.name}: intf "{port.ifdescr}" ix {port.ifindex} ({port.ifalias}) flapping, '
+                    f"{event.flaps} flaps, penalty {self.state.flapping.get_flap_value(index):.2f}"
+                )
+                _logger.info(msg)
+                event.add_log(msg)
+                self.state.events.commit(event)
+                self.state.flapping.first_flap(index)
+
             # TODO: Record new number of flaps in event
             # TODO: When flapcount modulo 100 is zero, log a message with flapping stats
-            pass
         else:
             event: PortStateEvent = self.state.events.get_or_create_event(device.name, port.ifindex, PortStateEvent)
 
