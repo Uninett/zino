@@ -165,7 +165,7 @@ class LinkTrapObserver(TrapObserver):
 
     def update_interface_flapping_score(self, index: Tuple[str, int]) -> bool:
         """Updates the running flapping score for a given port"""
-        pass  # stub implementation, see Zino 1 `proc intfFlap`
+        return False  # stub implementation, see Zino 1 `proc intfFlap`
 
     def is_interface_flapping(self, index: Tuple[str, int]) -> bool:
         """Determines if a given port is flapping"""
