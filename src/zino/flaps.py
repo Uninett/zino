@@ -97,5 +97,17 @@ class FlappingStates(BaseModel):
         """Seems to answer whether there exists any flapping tracking stats for a port from before"""
         return interface in self.interfaces
 
+    def get_flap_count(self, interface: PortIndex) -> int:
+        """Returns the current flap count of an interface, or 0 if no flapping stats exist for it."""
+        if interface not in self.interfaces:
+            return 0
+        return self.interfaces[interface].flaps
+
+    def get_flap_value(self, interface: PortIndex) -> float:
+        """Returns the current flap value of an interface, or 0 if no flapping stats exist for it."""
+        if interface not in self.interfaces:
+            return 0
+        return self.interfaces[interface].hist_val
+
 
 # TODO: Implement a flap ager job that ages all flapping states every FLAP_DECR_INTERVAL seconds
