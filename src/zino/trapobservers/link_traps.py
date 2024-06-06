@@ -76,11 +76,11 @@ class LinkTrapObserver(TrapObserver):
             return
 
         index = (device.name, port.ifindex)
-        self.update_interface_flapping_score(index)
+        self.state.flapping.update_interface_flap(index)
 
         new_state = InterfaceState.UP if is_up else InterfaceState.DOWN
 
-        if self.is_interface_flapping(index):
+        if self.state.flapping.is_flapping(index):
             # TODO: if event doesn't exist, create it
             # TODO: Record new number of flaps in event
             # TODO: When flapcount modulo 100 is zero, log a message with flapping stats
@@ -175,14 +175,6 @@ class LinkTrapObserver(TrapObserver):
             device.boot_time.astimezone(),
         )
         return True
-
-    def update_interface_flapping_score(self, index: Tuple[str, int]) -> bool:
-        """Updates the running flapping score for a given port"""
-        return False  # stub implementation, see Zino 1 `proc intfFlap`
-
-    def is_interface_flapping(self, index: Tuple[str, int]) -> bool:
-        """Determines if a given port is flapping"""
-        return False  # stub implementation, see Zino 1 `proc flapping`
 
     def get_watch_pattern(self, device: DeviceState) -> Optional[str]:
         if device.name not in self.polldevs:
