@@ -3,9 +3,10 @@
 import logging
 import re
 from datetime import datetime, timedelta
-from typing import Optional, Tuple
+from typing import Optional
 
 import zino.time
+from zino.flaps import PortIndex
 from zino.statemodels import DeviceState, InterfaceState, Port, PortStateEvent
 from zino.tasks.linkstatetask import LinkStateTask
 from zino.trapd import TrapMessage, TrapObserver
@@ -25,7 +26,7 @@ class LinkTrapObserver(TrapObserver):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._last_same_trap: dict[Tuple[str, int], datetime] = {}
+        self._last_same_trap: dict[PortIndex, datetime] = {}
 
     def handle_trap(self, trap: TrapMessage) -> Optional[bool]:
         _logger.debug("%s: %s (vars: %s)", trap.agent.device.name, trap.name, ", ".join(trap.variables))
