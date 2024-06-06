@@ -319,12 +319,18 @@ class Event(BaseModel):
             statefile.write(self.model_dump_json(exclude_none=True, indent=2))
 
 
+class FlapState(StrEnum):
+    FLAPPING = "flapping"
+    STABLE = "stable"
+
+
 class PortStateEvent(Event):
     type: Literal["portstate"] = "portstate"
     port: Optional[str] = ""
     ifindex: Optional[int] = None
     portstate: Optional[InterfaceState] = None
     descr: Optional[str] = None
+    flapstate: Optional[FlapState] = None
     reason: Optional[str] = None
 
     @property
