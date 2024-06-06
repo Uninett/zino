@@ -10,6 +10,7 @@ from zino.statemodels import DeviceState, InterfaceState, Port, PortStateEvent
 from zino.trapd import TrapMessage, TrapObserver
 
 _logger = logging.getLogger(__name__)
+TRAP_WINDOW = timedelta(minutes=5)
 
 
 class LinkTrapObserver(TrapObserver):
@@ -137,16 +138,16 @@ class LinkTrapObserver(TrapObserver):
         if not port.state:
             port.state = InterfaceState.UNKNOWN
 
-        if now - device.boot_time > timedelta(minutes=5):
+        if now - device.boot_time > TRAP_WINDOW:
             # Do not ignore traps indicating different state than known
             current_state = InterfaceState.UP if is_up else InterfaceState.DOWN
             if port.state != current_state:
                 return False
 
-            # Do not ignore successive traps within a 5 minute interval indicating same state as previously known
+            # Do not ignore successive traps within a TRAP_WINDOW interval indicating same state as previously known
             index = (device.name, port.ifindex)
             if last_same_trap := self._last_same_trap.get(index):
-                if now - last_same_trap < timedelta(minutes=5):
+                if now - last_same_trap < TRAP_WINDOW:
                     self._last_same_trap[index] = now
                     return False
             self._last_same_trap[index] = now
