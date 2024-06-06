@@ -29,8 +29,14 @@ class LinkTrapObserver(TrapObserver):
         if "ifIndex" in trap.variables:
             ifindex = trap.variables.get("ifIndex").value
         else:
-            ifindex = -1
+            _logger.warning("%s: %s trap contained no ifIndex value, ignoring", trap.agent.device.name, trap.name)
+            return False
         port = trap.agent.device.ports.get(ifindex) if ifindex > 0 else None
+        if not port:
+            _logger.warning(
+                "%s: %s trap referenced unknown port (ix %s), ignoring", trap.agent.device.name, trap.name, ifindex
+            )
+            return False
 
         # TODO: The trap *might* contain an ifDescr value.  If present, Zino uses that for trap processing.
         #  Otherwise, it fetches ifDescr from its own state and uses that for trap processing.  Either way,
