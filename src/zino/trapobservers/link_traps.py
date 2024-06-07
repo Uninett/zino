@@ -88,9 +88,10 @@ class LinkTrapObserver(TrapObserver):
         new_state = InterfaceState.UP if is_up else InterfaceState.DOWN
 
         if self.state.flapping.is_flapping(index):
+            event: PortStateEvent = None
             if index not in self.state.flapping:
                 # Not previously known to be flapping -- open an event for it
-                event: PortStateEvent = self.state.events.get_or_create_event(device.name, port.ifindex, PortStateEvent)
+                event = self.state.events.get_or_create_event(device.name, port.ifindex, PortStateEvent)
 
                 event.portstate = new_state
                 event.port = port.ifdescr
@@ -111,10 +112,16 @@ class LinkTrapObserver(TrapObserver):
                 )
                 _logger.info(msg)
                 event.add_log(msg)
-                self.state.events.commit(event)
                 self.state.flapping.first_flap(index)
 
-            # TODO: Record new number of flaps in event
+            if not event:
+                event = self.state.events.get(device.name, port.ifindex, PortStateEvent)
+            event.flaps = self.state.flapping.get_flap_count(index)
+            # TODO: Discuss with Håvard E about the following line - Zino 1 does not commit this change.  Not
+            #  committing under Zino 2 would mean that the change gets lost.  However, committing during a storm of
+            #  flapping traps would trigger unnecessarily many client notifications.
+            self.state.events.commit(event)
+
             # TODO: When flapcount modulo 100 is zero, log a message with flapping stats
         else:
             event: PortStateEvent = self.state.events.get_or_create_event(device.name, port.ifindex, PortStateEvent)
