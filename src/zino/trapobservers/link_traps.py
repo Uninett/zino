@@ -122,7 +122,16 @@ class LinkTrapObserver(TrapObserver):
             #  flapping traps would trigger unnecessarily many client notifications.
             self.state.events.commit(event)
 
-            # TODO: When flapcount modulo 100 is zero, log a message with flapping stats
+            if self.state.flapping.get_flap_count(index) % 100 == 0:
+                _logger.info(
+                    '%s: intf "%s" ix %d (%s), %d flaps, penalty %5.2f',
+                    device.name,
+                    port.ifdescr,
+                    port.ifindex,
+                    port.ifalias,
+                    self.state.flapping.get_flap_count(index),
+                    self.state.flapping.get_flap_value(index),
+                )
         else:
             event: PortStateEvent = self.state.events.get_or_create_event(device.name, port.ifindex, PortStateEvent)
 
