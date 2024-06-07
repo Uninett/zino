@@ -125,7 +125,7 @@ class TestUpdatePmStates:
 
         # Create event and register it as affected by PM
         reachability_event = state.events.create_event(device.name, None, ReachabilityEvent)
-        reachability_event.state == EventState.IGNORED
+        reachability_event.state = EventState.IGNORED
         state.events.commit(reachability_event)
         ended_pm.event_ids.append(reachability_event.id)
 
