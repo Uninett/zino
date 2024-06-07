@@ -107,7 +107,7 @@ class TestZinoRescheduleDumpStateOnCommit:
 
 
 class TestZinoRescheduleDumpStateOnPmChange:
-    def test_when_more_than_10_seconds_remains_until_next_dump_it_should_reschedule(self):
+    def test_when_more_than_10_seconds_remain_until_next_dump_it_should_reschedule(self):
         scheduler = get_scheduler()
         mock_job = Mock(next_run_time=now() + timedelta(minutes=5))
 
@@ -116,7 +116,7 @@ class TestZinoRescheduleDumpStateOnPmChange:
             zino.reschedule_dump_state_on_pm_change()
             assert mock_job.modify.called
 
-    def test_when_less_than_10_seconds_remains_until_next_dump_it_should_not_reschedule(self):
+    def test_when_less_than_10_seconds_remain_until_next_dump_it_should_not_reschedule(self):
         scheduler = get_scheduler()
         mock_job = Mock(next_run_time=now() + timedelta(seconds=5))
 

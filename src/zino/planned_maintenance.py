@@ -116,7 +116,7 @@ class PlannedMaintenances(BaseModel):
         for started_pm in self.get_started_planned_maintenances(now=now):
             started_pm.start(state)
 
-        # Make sure all events that match a PM is ignored
+        # Make sure all events that match a PM are ignored
         for event in state.events.events.values():
             if event.state not in [EventState.IGNORED, EventState.CLOSED]:
                 self._ignore_event_if_it_has_active_planned_maintenance(state, event, now)
