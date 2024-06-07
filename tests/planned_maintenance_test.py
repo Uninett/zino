@@ -130,7 +130,7 @@ class TestUpdatePmStates:
         ended_pm.event_ids.append(reachability_event.id)
 
         state.planned_maintenances.update_pm_states(state)
-        assert reachability_event.state == EventState.OPEN
+        assert state.events.checkout(reachability_event.id).state == EventState.OPEN
 
     def test_old_pms_should_be_deleted(self, state, old_pm):
         assert old_pm.id in state.planned_maintenances.planned_maintenances
