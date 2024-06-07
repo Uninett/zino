@@ -1,4 +1,5 @@
 import datetime
+from typing import Iterator
 from unittest.mock import patch
 
 import pytest
@@ -87,7 +88,7 @@ def device_pm(request, device) -> DeviceMaintenance:
 
 
 @pytest.fixture
-def matching_device_pm(device, port) -> DeviceMaintenance:
+def matching_device_pm(device, port) -> Iterator[DeviceMaintenance]:
     with patch("zino.statemodels.DeviceMaintenance.matches_device") as mock:
         mock.return_value = True
         yield DeviceMaintenance(
@@ -100,7 +101,7 @@ def matching_device_pm(device, port) -> DeviceMaintenance:
 
 
 @pytest.fixture
-def nonmatching_device_pm(device, port) -> DeviceMaintenance:
+def nonmatching_device_pm(device, port) -> Iterator[DeviceMaintenance]:
     with patch("zino.statemodels.DeviceMaintenance.matches_device") as mock:
         mock.return_value = False
         yield DeviceMaintenance(

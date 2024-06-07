@@ -1,4 +1,5 @@
 import datetime
+from typing import Iterator
 from unittest.mock import patch
 
 import pytest
@@ -104,7 +105,7 @@ def portstate_pm(request, device, port) -> PortStateMaintenance:
 
 
 @pytest.fixture
-def matching_portstate_pm(device, port) -> PortStateMaintenance:
+def matching_portstate_pm(device, port) -> Iterator[PortStateMaintenance]:
     with patch("zino.statemodels.PortStateMaintenance.matches_portstate") as mock:
         mock.return_value = True
         yield PortStateMaintenance(
@@ -117,7 +118,7 @@ def matching_portstate_pm(device, port) -> PortStateMaintenance:
 
 
 @pytest.fixture
-def nonmatching_portstate_pm(device, port) -> PortStateMaintenance:
+def nonmatching_portstate_pm(device, port) -> Iterator[PortStateMaintenance]:
     with patch("zino.statemodels.PortStateMaintenance.matches_portstate") as mock:
         mock.return_value = False
         yield PortStateMaintenance(
