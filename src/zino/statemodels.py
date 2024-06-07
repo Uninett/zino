@@ -74,6 +74,7 @@ class InterfaceState(StrEnum):
     DORMANT = "dormant"
     NOT_PRESENT = "notPresent"
     LOWER_LAYER_DOWN = "lowerLayerDown"
+    FLAPPING = "flapping"  # Zino-specific
 
 
 class BFDSessState(StrEnum):
