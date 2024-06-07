@@ -144,7 +144,14 @@ class LinkTrapObserver(TrapObserver):
                 event.priority = polldev.priority
             event.descr = port.ifalias  # or value received from trap? see ldescr from legacy Zino
 
-            # TODO: If there is internal flapping state, log it in the event and clear internal state
+            if index in self.state.flapping:
+                event.flapstate = FlapState.STABLE
+                msg = f'{device.name}: intf "{port.ifdescr}" ix {port.ifindex} ({port.ifalias}) stopped flapping'
+                _logger.info(msg)
+                event.add_log(msg)
+                self.state.flapping.unflap(index)
+                port.state = InterfaceState.UP if is_up else InterfaceState.DOWN
+
             # TODO: Set final flapcount in event
 
             msg = f'{device.name}: intf "{port.ifdescr}" ix {port.ifindex} link{new_state.capitalize()}'
