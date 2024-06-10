@@ -372,7 +372,7 @@ class AlarmEvent(Event):
 
 
 class MatchType(StrEnum):
-    """The set of allowable BGP oper states"""
+    """The set of allowable match types for PlannedMaintenanc objects"""
 
     REGEXP = "regexp"
     STR = "str"
@@ -381,6 +381,8 @@ class MatchType(StrEnum):
 
 
 class PmType(StrEnum):
+    """The set of allowable types for PlannedMaintenance objects"""
+
     PORTSTATE = "portstate"
     DEVICE = "device"
 

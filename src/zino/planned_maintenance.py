@@ -60,7 +60,6 @@ class PlannedMaintenances(BaseModel):
 
     def close_planned_maintenance(self, id: int, reason: str, user: str) -> None:
         """Deletes planned maintenance with the given id"""
-        # See `close` function in Zino 1.0 `pm.tcl`
         pm = self.planned_maintenances.get(id, None)
         if not pm:
             return
@@ -110,6 +109,9 @@ class PlannedMaintenances(BaseModel):
             observer()
 
     def update_pm_states(self, state: "ZinoState"):
+        """This function starts and stops planned maintenances according to their
+        schedule and updates affected events
+        """
         now = datetime.now()
 
         # Initiate PM once it becomes active
