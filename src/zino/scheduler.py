@@ -10,7 +10,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from zino import state
 from zino.config.models import DEFAULT_INTERVAL_MINUTES, PollDevice
-from zino.config.polldevs import read_polldevs
+from zino.config.polldevs import InvalidConfiguration, read_polldevs
 from zino.tasks import run_all_tasks
 
 _log = logging.getLogger(__name__)
@@ -43,7 +43,12 @@ def load_polldevs(polldevs_conf: str) -> Tuple[Set, Set]:
 
     :returns: A tuple of (new_devices, deleted_devices)
     """
-    devices = {d.name: d for d in read_polldevs(polldevs_conf)}
+    try:
+        devices = {d.name: d for d in read_polldevs(polldevs_conf)}
+    except InvalidConfiguration as error:
+        _log.error(error)
+        return set(), set()
+
     new_devices = set(devices) - set(state.polldevs)
     deleted_devices = set(state.polldevs) - set(devices)
     if new_devices:
