@@ -119,9 +119,10 @@ class PlannedMaintenances(BaseModel):
             started_pm.start(state)
 
         # Make sure all events that match a PM are ignored
+        active_pms = self.get_active_planned_maintenances(now)
         for event in state.events.events.values():
             if event.state not in [EventState.IGNORED, EventState.CLOSED]:
-                self._ignore_event_if_it_has_active_planned_maintenance(state, event, now)
+                self._ignore_event_if_it_has_active_planned_maintenance(state, event, active_pms)
 
         # Set events matching ended PMs to open
         for ended_pm in self.get_ended_planned_maintenances(now=now):
@@ -134,8 +135,9 @@ class PlannedMaintenances(BaseModel):
 
         self.last_run = now
 
-    def _ignore_event_if_it_has_active_planned_maintenance(self, state: "ZinoState", event: Event, now: datetime):
-        active_pms = self.get_active_planned_maintenances(now)
+    def _ignore_event_if_it_has_active_planned_maintenance(
+        self, state: "ZinoState", event: Event, active_pms: list[PlannedMaintenance]
+    ):
         for pm in active_pms:
             if pm.matches_event(event, state):
                 event.state = EventState.IGNORED
