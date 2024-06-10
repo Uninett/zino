@@ -40,7 +40,7 @@ class TestReadConfSections:
         )
         result = list(_read_conf_sections(data))
         assert len(result) == 2
-        assert all(isinstance(i, dict) for i in result)
+        assert all(isinstance(block, dict) for lineno, block in result)
 
     def test_when_file_contains_comments_they_should_be_ignored(self):
         data = io.StringIO(
@@ -52,7 +52,7 @@ class TestReadConfSections:
             """
         )
         expected = {"name": "zaphod", "address": "127.0.0.1"}
-        result = list(_read_conf_sections(data))
+        result = list(block for lineno, block in _read_conf_sections(data))
         assert result == [expected]
 
     def test_when_file_contains_non_assignments_it_should_fail(self):
