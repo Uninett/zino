@@ -39,7 +39,10 @@ def read_polldevs(filename: str) -> Iterator[PollDevice]:
 
 
 def _read_conf_sections(filehandle: TextIO) -> Iterator[Tuple[int, dict]]:
-    """Reads individual configuration sections from `polldevs.cf`, yielding each one as a separate dict"""
+    """Reads and yields individual configuration sections from `polldevs.cf`.
+
+    Each yielded value is a two-tuple of the first line number of the section and the parsed section as a dict.
+    """
     section = {}
     first_line = None
     for lineno, line in enumerate(filehandle):
