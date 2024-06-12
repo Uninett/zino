@@ -1,5 +1,6 @@
 import logging
 
+from zino.snmp import NoSuchNameError
 from zino.statemodels import AlarmEvent, AlarmType
 from zino.tasks.task import Task
 
@@ -15,7 +16,7 @@ class JuniperAlarmTask(Task):
 
         try:
             yellow_alarm_count, red_alarm_count = await self._get_juniper_alarms()
-        except TypeError:
+        except (TypeError, NoSuchNameError):
             return
 
         if not self.device_state.alarms:
@@ -39,6 +40,11 @@ class JuniperAlarmTask(Task):
             yellow_alarm_count = yellow_alarm_count.value
         if red_alarm_count:
             red_alarm_count = red_alarm_count.value
+
+        if (not yellow_alarm_count and not isinstance(yellow_alarm_count, int)) and (
+            not red_alarm_count and not isinstance(red_alarm_count, int)
+        ):
+            raise NoSuchNameError
 
         if not isinstance(yellow_alarm_count, int) or not isinstance(red_alarm_count, int):
             _logger.error(

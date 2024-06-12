@@ -1,3 +1,5 @@
+import logging
+
 import pytest
 
 from zino.config.models import PollDevice
@@ -22,7 +24,29 @@ class TestJuniperalarmTask:
         assert device_state.alarms is None
 
     @pytest.mark.asyncio
-    async def test_task_does_nothing_for_non_int_result(self, snmp_test_port):
+    async def test_task_does_nothing_for_no_result(self, caplog, snmp_test_port):
+        device = PollDevice(
+            name="buick.lab.example.org",
+            address="127.0.0.1",
+            community="cisco-bgp",  # Use some non juniper router
+            port=snmp_test_port,
+        )
+        state = ZinoState()
+        task = JuniperAlarmTask(device, state)
+        device_state = task.state.devices.get(device_name=task.device.name)
+        device_state.enterprise_id = 2636
+
+        with caplog.at_level(logging.DEBUG):
+            await task.run()
+
+        assert device_state.alarms is None
+        assert (
+            f"Device {task.device.name} returns alarm count not of type int. Yellow alarm count: type <class 'str'>. Red alarm count: type <class 'str'>."
+            not in caplog.text
+        )
+
+    @pytest.mark.asyncio
+    async def test_task_logs_error_for_non_int_result(self, caplog, snmp_test_port):
         device = PollDevice(
             name="buick.lab.example.org",
             address="127.0.0.1",
@@ -33,9 +57,15 @@ class TestJuniperalarmTask:
         task = JuniperAlarmTask(device, state)
         device_state = task.state.devices.get(device_name=task.device.name)
         device_state.enterprise_id = 2636
-        await task.run()
+        with caplog.at_level(logging.DEBUG):
+            await task.run()
 
         assert device_state.alarms is None
+        assert (
+            f"Device {task.device.name} returns alarm count not of type int. Yellow alarm count: type <class 'int'>. Red alarm count: type <class 'str'>."
+            in caplog.text
+        )
+        assert "Yellow alarm count: value 0. Red alarm count: value 'buick'." in caplog.text
 
     @pytest.mark.asyncio
     async def test_task_saves_alarm_count_in_device_state(self, juniper_alarm_task):
