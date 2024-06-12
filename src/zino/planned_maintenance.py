@@ -40,7 +40,7 @@ class PlannedMaintenances(BaseModel):
         pm_class: type[PlannedMaintenance],
         match_type: MatchType,
         match_expression: str,
-        match_device: Optional[str],
+        match_device: Optional[str] = None,
     ) -> PlannedMaintenance:
         """Creates a planned maintenance, adds it to the planned_maintenances dict and
         returns it
