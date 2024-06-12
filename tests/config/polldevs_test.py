@@ -25,7 +25,6 @@ class TestReadPolldevs:
 
 
 class TestReadInvalidPolldevs:
-
     def test_should_raise_exception(self, invalid_polldevs_conf):
         with pytest.raises(InvalidConfiguration):
             list(read_polldevs(invalid_polldevs_conf))
@@ -39,6 +38,16 @@ class TestReadInvalidPolldevs:
         with pytest.raises(InvalidConfiguration) as e:
             list(read_polldevs(invalid_polldevs_conf))
         assert "2" in str(e.value)
+
+    def test_exception_should_include_device_name_on_missing_address(self, missing_device_address_polldevs_conf):
+        with pytest.raises(InvalidConfiguration) as e:
+            list(read_polldevs(missing_device_address_polldevs_conf))
+        assert "example-gw" in str(e.value)
+
+    def test_exception_should_include_missing_attribute_on_missing_address(self, missing_device_address_polldevs_conf):
+        with pytest.raises(InvalidConfiguration) as e:
+            list(read_polldevs(missing_device_address_polldevs_conf))
+        assert "Field required ('address')" in str(e.value)
 
 
 class TestReadConfSections:
@@ -98,3 +107,21 @@ class TestParseDefaults:
         section = {"default value1": "foobar", "default value2": "cromulent", "value3": "zaphod"}
         expected = {"value1": "foobar", "value2": "cromulent"}
         assert _parse_defaults(section) == expected
+
+
+@pytest.fixture
+def missing_device_address_polldevs_conf(tmp_path):
+    name = tmp_path.joinpath("polldevs.cf")
+    with open(name, "w") as conf:
+        conf.write(
+            """# polldevs test config
+            default interval: 5
+            default community: foobar
+            default domain: uninett.no
+            default statistics: yes
+            default hcounters: yes
+
+            name: example-gw
+            """
+        )
+    yield name
