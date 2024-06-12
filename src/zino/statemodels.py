@@ -393,7 +393,7 @@ class PlannedMaintenance(BaseModel):
     end_time: datetime.datetime
     type: PmType
     match_type: MatchType
-    match_device: Optional[str]
+    match_device: Optional[str] = None
     match_expression: str
     log: List[LogEntry] = []
     event_ids: List[int] = []
