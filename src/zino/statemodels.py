@@ -418,6 +418,13 @@ class PlannedMaintenance(BaseModel):
         self.log.append(entry)
         return entry
 
+    def details(self):
+        detail_str = f"{self.id} {self.start_time} {self.end_time} {self.type} {self.match_type}"
+        if self.match_type == MatchType.INTF_REGEXP:
+            detail_str += f" {self.match_device}"
+        detail_str += f" {self.match_expression}"
+        return detail_str
+
     def matches_event(self, event: Event, state: "ZinoState") -> bool:
         """Returns true if `event` will be affected by this planned maintenance"""
         raise NotImplementedError
