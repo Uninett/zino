@@ -24,6 +24,23 @@ class TestReadPolldevs:
         assert all(device.domain == "uninett.no" for device in result)
 
 
+class TestReadInvalidPolldevs:
+
+    def test_should_raise_exception(self, invalid_polldevs_conf):
+        with pytest.raises(InvalidConfiguration):
+            list(read_polldevs(invalid_polldevs_conf))
+
+    def test_should_have_filename_in_exception(self, invalid_polldevs_conf):
+        with pytest.raises(InvalidConfiguration) as e:
+            list(read_polldevs(invalid_polldevs_conf))
+        assert "polldevs.cf" in str(e.value)
+
+    def test_should_have_line_number_in_exception(self, invalid_polldevs_conf):
+        with pytest.raises(InvalidConfiguration) as e:
+            list(read_polldevs(invalid_polldevs_conf))
+        assert "2" in str(e.value)
+
+
 class TestReadConfSections:
     def test_when_file_is_empty_it_should_return_nothing(self):
         data = io.StringIO("")
