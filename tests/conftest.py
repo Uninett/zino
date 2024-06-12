@@ -63,6 +63,18 @@ def polldevs_conf_with_no_routers(tmp_path):
     yield name
 
 
+@pytest.fixture
+def invalid_polldevs_conf(tmp_path):
+    name = tmp_path.joinpath("polldevs.cf")
+    with open(name, "w") as conf:
+        conf.write(
+            """# polldevs test config
+            lalala
+            """
+        )
+    yield name
+
+
 @pytest.fixture(scope="session")
 def event_loop():
     """Redefine pytest-asyncio's event_loop fixture to have a session scope"""
