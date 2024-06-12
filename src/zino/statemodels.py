@@ -429,6 +429,10 @@ class PlannedMaintenance(BaseModel):
         """Returns true if `event` will be affected by this planned maintenance"""
         raise NotImplementedError
 
+    def get_matching_ports_or_devices(self, state: "ZinoState") -> Generator[str, None, None]:
+        """Yields strings describing each port or device matching this pm"""
+        raise NotImplementedError
+
     def _get_or_create_events(self, state: "ZinoState") -> list[Event]:
         """Creates/gets events that are affected by the given starting planned
         maintenance
@@ -458,14 +462,18 @@ class DeviceMaintenance(PlannedMaintenance):
             return self.match_expression == device.name
         return False
 
+    def get_matching_ports_or_devices(self, state: "ZinoState") -> Generator[str, None, None]:
+        """Yields strings describing each port or device matching this pm"""
+        for device in self._get_matching_devices(state):
+            yield device.name
+
     def _get_or_create_events(self, state: "ZinoState") -> list[Event]:
         """Creates/gets events that are affected by the given starting planned
         maintenance
         """
         events = []
         # all devices that the pm should affect
-        devices = (device for device in state.devices.devices.values() if self.matches_device(device))
-        for device in devices:
+        for device in self._get_matching_devices(state):
             reachability_event = state.events.get_or_create_event(device.name, None, ReachabilityEvent)
             yellow_event = state.events.get_or_create_event(device.name, "yellow", AlarmEvent)
             yellow_event.alarm_type = "yellow"
@@ -474,6 +482,11 @@ class DeviceMaintenance(PlannedMaintenance):
             for event in (reachability_event, yellow_event, red_event):
                 events.append(event)
         return events
+
+    def _get_matching_devices(self, state: "ZinoState") -> Generator[tuple[DeviceState], None, None]:
+        for device in state.devices.devices.values():
+            if self.matches_device(device):
+                yield device
 
 
 class PortStateMaintenance(PlannedMaintenance):
@@ -499,6 +512,11 @@ class PortStateMaintenance(PlannedMaintenance):
             if regex_match(self.match_device, device.name):
                 return regex_match(self.match_expression, port.ifdescr)
         return False
+
+    def get_matching_ports_or_devices(self, state: "ZinoState") -> Generator[str, None, None]:
+        """Yields strings describing each port or device matching this pm"""
+        for _, port in self._get_matching_ports(state):
+            yield port.ifdescr
 
     def _get_or_create_events(self, state: "ZinoState") -> list[Event]:
         events = []
