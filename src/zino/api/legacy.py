@@ -34,6 +34,8 @@ def requires_authentication(func: Callable) -> Callable:
 class Zino1BaseServerProtocol(asyncio.Protocol):
     """Base implementation of the Zino 1 protocol, with a basic command dispatcher for subclasses to utilize."""
 
+    HAS_SUBCOMMANDS: tuple[str] = tuple()
+
     def __init__(
         self,
         server: Optional["ZinoServer"] = None,
@@ -120,9 +122,14 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         return self._dispatch_command(*args)
 
     def _dispatch_command(self, command, *args):
-        responder = self._get_responder(command)
+        commands = [command]
+        if command in self.HAS_SUBCOMMANDS and args:
+            commands.append(args[0])
+            # Remove subcommand from args
+            args = args[1:]
+        responder = self._get_responder(*commands)
         if not responder:
-            return self._respond_error(f'unknown command: "{command}"')
+            return self._respond_error(f'unknown command: "{" ".join(commands)}"')
 
         if getattr(responder, "requires_authentication", False) and not self.is_authenticated:
             return self._respond_error("Not authenticated")
@@ -136,7 +143,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
             _logger.debug("client %s sent %r, ignoring garbage args at end: %r", self.peer_name, args, garbage_args)
             args = args[: len(required_args)]
 
-        self._current_task = asyncio.create_task(self._run_async_responder(command, responder, *args))
+        self._current_task = asyncio.create_task(self._run_async_responder(" ".join(commands), responder, *args))
         return self._current_task
 
     async def _run_async_responder(self, command: str, responder: Callable, *args):
@@ -149,11 +156,13 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         finally:
             self._current_task = None
 
-    def _get_responder(self, command: str):
-        if not command.isalpha():
-            return
-
-        func = getattr(self, f"do_{command.lower()}", None)
+    def _get_responder(self, *commands):
+        command_string = "do"
+        for command in commands:
+            if not command.isalpha():
+                return
+            command_string += f"_{command.lower()}"
+        func = getattr(self, command_string, None)
         if callable(func):
             return func
 
