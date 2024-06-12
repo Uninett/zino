@@ -1,10 +1,17 @@
 import logging
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Dict, Optional, Protocol
+from typing import TYPE_CHECKING, Dict, Optional, Protocol, Union
 
 from pydantic.main import BaseModel
 
-from zino.statemodels import Event, EventState, MatchType, PlannedMaintenance
+from zino.statemodels import (
+    DeviceMaintenance,
+    Event,
+    EventState,
+    MatchType,
+    PlannedMaintenance,
+    PortStateMaintenance,
+)
 
 if TYPE_CHECKING:
     from zino.state import ZinoState
@@ -22,7 +29,7 @@ class PlannedMaintenanceObserver(Protocol):
 
 
 class PlannedMaintenances(BaseModel):
-    planned_maintenances: Dict[int, PlannedMaintenance] = {}
+    planned_maintenances: Dict[int, Union[DeviceMaintenance, PortStateMaintenance]] = {}
     last_pm_id: int = 0
     last_run: Optional[datetime] = datetime.fromtimestamp(0)
     _observers: list[PlannedMaintenanceObserver] = []
