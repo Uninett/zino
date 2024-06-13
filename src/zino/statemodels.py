@@ -1,16 +1,22 @@
 """Basic data models for keeping/serializing/deserializing Zino state"""
 
 import datetime
+import fnmatch
 import logging
 import pathlib
+import re
+from collections.abc import Generator
 from enum import Enum
 from ipaddress import IPv4Address, IPv6Address
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, Field
 
 from zino.compat import StrEnum
 from zino.time import now
+
+if TYPE_CHECKING:
+    from zino.state import ZinoState
 
 IPAddress = Union[IPv4Address, IPv6Address]
 AlarmType = Literal["yellow", "red"]
@@ -363,3 +369,154 @@ class AlarmEvent(Event):
     @property
     def subindex(self) -> SubIndex:
         return self.alarm_type
+
+
+class MatchType(StrEnum):
+    """The set of allowable match types for PlannedMaintenanc objects"""
+
+    REGEXP = "regexp"
+    STR = "str"
+    EXACT = "exact"
+    INTF_REGEXP = "intf-regexp"
+
+
+class PmType(StrEnum):
+    """The set of allowable types for PlannedMaintenance objects"""
+
+    PORTSTATE = "portstate"
+    DEVICE = "device"
+
+
+class PlannedMaintenance(BaseModel):
+    id: Optional[int] = None
+    start_time: datetime.datetime
+    end_time: datetime.datetime
+    type: PmType
+    match_type: MatchType
+    match_device: Optional[str]
+    match_expression: str
+    log: List[LogEntry] = []
+    event_ids: List[int] = []
+
+    def start(self, state: "ZinoState"):
+        events = self._get_or_create_events(state)
+        for event in events:
+            # get special handling of embryonic -> open transition first
+            state.events.commit(event)
+            event.state = EventState.IGNORED
+            state.events.commit(event)
+            self.event_ids.append(event.id)
+
+    def end(self, state: "ZinoState"):
+        for event_id in self.event_ids:
+            event = state.events.checkout(event_id)
+            event.state = EventState.OPEN
+            state.events.commit(event)
+
+    def add_log(self, message: str) -> LogEntry:
+        entry = LogEntry(message=message)
+        self.log.append(entry)
+        return entry
+
+    def matches_event(self, event: Event, state: "ZinoState") -> bool:
+        """Returns true if `event` will be affected by this planned maintenance"""
+        raise NotImplementedError
+
+    def _get_or_create_events(self, state: "ZinoState") -> list[Event]:
+        """Creates/gets events that are affected by the given starting planned
+        maintenance
+        """
+        raise NotImplementedError
+
+
+class DeviceMaintenance(PlannedMaintenance):
+    type: PmType = PmType.DEVICE
+
+    def matches_event(self, event: Event, state: "ZinoState") -> bool:
+        """Returns true if `event` will be affected by this planned maintenance"""
+        if not isinstance(event, (ReachabilityEvent, AlarmEvent)):
+            return False
+        device = state.devices[event.router]
+        return self.matches_device(device)
+
+    def matches_device(self, device: DeviceState) -> bool:
+        """Returns true if ReachabilityEvents and AlarmEvents related to `device`
+        would be affected by this planned maintenance
+        """
+        if self.match_type == "regexp":
+            return regex_match(self.match_expression, device.name)
+        if self.match_type == "str":
+            return string_match(self.match_expression, device.name)
+        if self.match_type == "exact":
+            return self.match_expression == device.name
+        return False
+
+    def _get_or_create_events(self, state: "ZinoState") -> list[Event]:
+        """Creates/gets events that are affected by the given starting planned
+        maintenance
+        """
+        events = []
+        # all devices that the pm should affect
+        devices = (device for device in state.devices.devices.values() if self.matches_device(device))
+        for device in devices:
+            reachability_event = state.events.get_or_create_event(device.name, None, ReachabilityEvent)
+            yellow_event = state.events.get_or_create_event(device.name, "yellow", AlarmEvent)
+            yellow_event.alarm_type = "yellow"
+            red_event = state.events.get_or_create_event(device.name, "red", AlarmEvent)
+            red_event.alarm_type = "red"
+            for event in (reachability_event, yellow_event, red_event):
+                events.append(event)
+        return events
+
+
+class PortStateMaintenance(PlannedMaintenance):
+    type: PmType = PmType.PORTSTATE
+
+    def matches_event(self, event: Event, state: "ZinoState") -> bool:
+        """Returns true if `event` will be affected by this planned maintenance"""
+        if event.type != "portstate":
+            return False
+        device = state.devices[event.router]
+        port = device.ports[event.ifindex]
+        return self.matches_portstate(device, port)
+
+    def matches_portstate(self, device: DeviceState, port: Port) -> bool:
+        """Returns true if PortstateEvents related to `port` on `device`
+        would be affected by this planned maintenance
+        """
+        if self.match_type == "regexp":
+            return regex_match(self.match_expression, port.ifdescr)
+        if self.match_type == "str":
+            return string_match(self.match_expression, port.ifdescr)
+        if self.match_type == "intf-regexp":
+            if regex_match(self.match_device, device.name):
+                return regex_match(self.match_expression, port.ifdescr)
+        return False
+
+    def _get_or_create_events(self, state: "ZinoState") -> list[Event]:
+        events = []
+        for device, port in self._get_matching_ports(state):
+            event = state.events.get_or_create_event(device.name, port.ifindex, PortStateEvent)
+            event.ifindex = port.ifindex
+            events.append(event)
+        return events
+
+    def _get_matching_ports(self, state: "ZinoState") -> Generator[tuple[DeviceState, Port], None, None]:
+        for device in state.devices.devices.values():
+            for port in device.ports.values():
+                if self.matches_portstate(device, port):
+                    yield (device, port)
+
+
+def string_match(pattern: str, string: str) -> bool:
+    """This should behave like tcl string match https://wiki.tcl-lang.org/page/string+match
+    Returns true if `string` matches `pattern`.
+    """
+    return fnmatch.fnmatch(string, pattern)
+
+
+def regex_match(pattern: str, string: str) -> bool:
+    """Matches `string` against regex expression `pattern`.
+    Returns true if there is a match.
+    """
+    return bool(re.match(pattern, string))

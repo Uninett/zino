@@ -74,7 +74,17 @@ def init_event_loop(args: argparse.Namespace, loop: Optional[AbstractEventLoop] 
     scheduler.add_job(
         func=state.state.dump_state_to_file, trigger="interval", id=STATE_DUMP_JOB_ID, minutes=DEFAULT_INTERVAL_MINUTES
     )
+    # Schedule planned maintenance
+    scheduler.add_job(
+        func=state.state.planned_maintenances.update_pm_states,
+        trigger="interval",
+        args=(state.state,),
+        minutes=1,
+        next_run_time=datetime.now(),
+    )
+
     state.state.events.add_event_observer(reschedule_dump_state_on_commit)
+    state.state.planned_maintenances.add_pm_observer(reschedule_dump_state_on_pm_change)
 
     # Schedule removing events that have been closed for a certain time
     scheduler.add_job(
@@ -142,16 +152,27 @@ def switch_to_user(username: str):
 
 
 def reschedule_dump_state_on_commit(new_event: Event, old_event: Optional[Event] = None) -> None:
-    """Observer that reschedules the state dumper job whenever an event is committed and there's more than `max_wait`
-    time until the next scheduled state dump.
+    """Observer that reschedules the state dumper job whenever an event is committed and there's
+    more than `MINIMUM_STATE_DUMP_INTERVAL` time until the next scheduled state dump.
     """
+
+    reschedule_dump_state(f"event {new_event.id} committed")
+
+
+def reschedule_dump_state_on_pm_change() -> None:
+    """Observer that reschedules the state dumper job whenever the planned maintenance
+    dict is changed and there's more than `MINIMUM_STATE_DUMP_INTERVAL` time until the next scheduled
+    state dump.
+    """
+    reschedule_dump_state("planned maintenances changed")
+
+
+def reschedule_dump_state(log_msg: str) -> None:
     scheduler = get_scheduler()
     job = scheduler.get_job(job_id=STATE_DUMP_JOB_ID)
     next_run = datetime.now(tz=tzlocal.get_localzone()) + MINIMUM_STATE_DUMP_INTERVAL
     if job.next_run_time > next_run:
-        _log.debug(
-            "event %s committed, rescheduling state dump from %s to %s", new_event.id, job.next_run_time, next_run
-        )
+        _log.debug("%s, Rescheduling state dump from %s to %s", log_msg, job.next_run_time, next_run)
         job.modify(next_run_time=next_run)
 
 
