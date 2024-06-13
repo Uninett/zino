@@ -236,6 +236,23 @@ class TestZino1BaseServerProtocol:
 
         assert protocol not in server.active_clients
 
+    @pytest.mark.asyncio
+    async def test_subcommand_should_be_dispatched_if_command_with_support_of_subcommand_is_used(self):
+        args = []
+
+        class TestProtocol(Zino1BaseServerProtocol):
+            HAS_SUBCOMMANDS = ("testcommand",)
+
+            async def do_testcommand_subcommand(self, one, two):
+                args.extend((one, two))
+
+        protocol = TestProtocol()
+        fake_transport = Mock()
+        protocol.connection_made(fake_transport)
+        await protocol.message_received("testcommand subcommand foo bar")
+
+        assert args == ["foo", "bar"], "do_testcommand_subcommand() was apparently not called"
+
 
 class TestZino1ServerProtocolTranslateCaseIdToEvent:
     @pytest.mark.asyncio
