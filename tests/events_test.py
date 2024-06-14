@@ -134,7 +134,7 @@ class TestEvents:
         assert (now() - timedelta(minutes=1)) < event.updated < (now())
         assert event.updated != previous_updated
 
-    def test_delete_closed_events_should_delete_old_closed_event(self, tmp_path):
+    def test_delete_expired_events_should_delete_old_closed_event(self, tmp_path):
         events = Events()
         event = events.get_or_create_event("foobar", None, ReachabilityEvent)
         event.set_state(EventState.CLOSED)
@@ -144,7 +144,7 @@ class TestEvents:
             events.delete_expired_events()
         assert event.id not in events.events.keys()
 
-    def test_delete_closed_events_should_not_delete_just_closed_event(self, tmp_path):
+    def test_delete_expired_events_should_not_delete_just_closed_event(self, tmp_path):
         events = Events()
         event = events.get_or_create_event("foobar", None, ReachabilityEvent)
         event.set_state(EventState.CLOSED)
@@ -153,7 +153,7 @@ class TestEvents:
             events.delete_expired_events()
         assert event.id in events.events.keys()
 
-    def test_delete_closed_events_should_not_delete_open_event(self, tmp_path):
+    def test_delete_expired_events_should_not_delete_open_event(self, tmp_path):
         events = Events()
         event = events.get_or_create_event("foobar", None, ReachabilityEvent)
         events.commit(event)
