@@ -148,6 +148,16 @@ class TestUpdatePmStates:
         assert state.events.checkout(event.id).state == EventState.IGNORED
 
 
+def test_pms_should_be_parsed_as_correct_subclass_when_read_from_file(tmp_path, state, active_portstate_pm, active_pm):
+    dumpfile = tmp_path / "dump.json"
+    state.dump_state_to_file(dumpfile)
+    read_state = ZinoState.load_state_from_file(str(dumpfile))
+    read_device_pm = read_state.planned_maintenances[active_pm.id]
+    read_portstate_pm = read_state.planned_maintenances[active_portstate_pm.id]
+    assert isinstance(read_device_pm, DeviceMaintenance)
+    assert isinstance(read_portstate_pm, PortStateMaintenance)
+
+
 @pytest.fixture
 def pms():
     return PlannedMaintenances()

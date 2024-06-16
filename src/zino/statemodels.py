@@ -393,7 +393,7 @@ class PlannedMaintenance(BaseModel):
     end_time: datetime.datetime
     type: PmType
     match_type: MatchType
-    match_device: Optional[str]
+    match_device: Optional[str] = None
     match_expression: str
     log: List[LogEntry] = []
     event_ids: List[int] = []
@@ -430,7 +430,7 @@ class PlannedMaintenance(BaseModel):
 
 
 class DeviceMaintenance(PlannedMaintenance):
-    type: PmType = PmType.DEVICE
+    type: Literal[PmType.DEVICE] = PmType.DEVICE
 
     def matches_event(self, event: Event, state: "ZinoState") -> bool:
         """Returns true if `event` will be affected by this planned maintenance"""
@@ -470,7 +470,7 @@ class DeviceMaintenance(PlannedMaintenance):
 
 
 class PortStateMaintenance(PlannedMaintenance):
-    type: PmType = PmType.PORTSTATE
+    type: Literal[PmType.PORTSTATE] = PmType.PORTSTATE
 
     def matches_event(self, event: Event, state: "ZinoState") -> bool:
         """Returns true if `event` will be affected by this planned maintenance"""
