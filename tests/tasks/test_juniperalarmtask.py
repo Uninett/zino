@@ -130,6 +130,24 @@ class TestJuniperalarmTask:
         assert red_event.alarm_count == 2
 
     @pytest.mark.asyncio
+    async def test_task_creates_event_with_correct_log_on_initial_run(self, juniper_alarm_task):
+        task = juniper_alarm_task
+        device_state = task.state.devices.get(device_name=task.device.name)
+        device_state.enterprise_id = 2636
+        device_state.alarms = {
+            "yellow": 1,
+            "red": 0,
+        }
+
+        await task.run()
+
+        red_event = task.state.events.get(device_name=task.device.name, subindex="red", event_class=AlarmEvent)
+
+        assert red_event.log
+        log_messages = [log_entry.message for log_entry in red_event.log]
+        assert f"{juniper_alarm_task.device.name} red alarms went from 0 to 2" in log_messages
+
+    @pytest.mark.asyncio
     async def test_task_updates_alarm_events(self, juniper_alarm_task):
         task = juniper_alarm_task
         device_state = task.state.devices.get(device_name=task.device.name)
