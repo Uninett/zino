@@ -9,6 +9,7 @@ import inspect
 import logging
 import re
 import textwrap
+from datetime import datetime
 from functools import wraps
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, List, Optional, Union
@@ -17,7 +18,15 @@ from zino import version
 from zino.api import auth
 from zino.api.notify import Zino1NotificationProtocol
 from zino.state import ZinoState
-from zino.statemodels import ClosedEventError, Event, EventState
+from zino.statemodels import (
+    ClosedEventError,
+    DeviceMaintenance,
+    Event,
+    EventState,
+    MatchType,
+    PlannedMaintenance,
+    PortStateMaintenance,
+)
 
 if TYPE_CHECKING:
     from zino.api.server import ZinoServer
@@ -209,6 +218,8 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
 class Zino1ServerProtocol(Zino1BaseServerProtocol):
     """Implements the actual working subcommands of the Zino 1 legacy server protocol"""
 
+    HAS_SUBCOMMANDS: tuple[str] = "pm"
+
     async def do_user(self, user: str, response: str):
         """Implements the USER command"""
         if self.is_authenticated:
@@ -376,6 +387,123 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         _logger.info("Client %s tied to notification channel %s", self.peer_name, channel.peer_name)
 
         return self._respond_ok()
+
+    def _translate_pm_id_to_pm(responder: callable):  # noqa
+        """Decorates any command that works with planned maintenance adding verification of the
+        incoming pm_id argument and translation to an actual PlannedMaintenance object.
+        """
+
+        @wraps(responder)
+        def _verify(self, pm_id: Union[str, int], *args, **kwargs):
+            try:
+                pm_id = int(pm_id)
+                pm = self._state.planned_maintenances[pm_id]
+            except (ValueError, KeyError):
+                self._respond_error(f'pm "{pm_id}" does not exist')
+                response = asyncio.get_running_loop().create_future()
+                response.set_result(None)
+                return response
+            return responder(self, pm, *args, **kwargs)
+
+        return _verify
+
+    @requires_authentication
+    async def do_pm_add(self, from_t: Union[str, int], to_t: Union[str, int], pm_type: str, m_type: str, *args):
+        try:
+            start_time = datetime.fromtimestamp(int(from_t))
+        except ValueError:
+            return self._respond_error("illegal from_t (param 1), must be only digits")
+        try:
+            end_time = datetime.fromtimestamp(int(to_t))
+        except ValueError:
+            return self._respond_error("illegal to_t (param 2), must be only digits")
+
+        if end_time < start_time:
+            return self._respond_error("ending time is before starting time")
+        if start_time < datetime.now():
+            return self._respond_error("starting time is in the past")
+
+        try:
+            if pm_type == "device":
+                pm_class = DeviceMaintenance
+            elif pm_type == "portstate":
+                pm_class = PortStateMaintenance
+            else:
+                raise ValueError
+        except ValueError:
+            return self._respond_error(f"unknown PM event type: {pm_type}")
+
+        try:
+            match_type = MatchType(m_type)
+        except ValueError:
+            return self._respond_error(f"unknown match type: {m_type}")
+
+        if match_type == MatchType.INTF_REGEXP:
+            match_device = args[0]
+            match_expression = args[1]
+        else:
+            match_device = None
+            match_expression = args[0]
+
+        pm = self._state.planned_maintenances.create_planned_maintenance(
+            start_time,
+            end_time,
+            pm_class,
+            match_type,
+            match_expression,
+            match_device,
+        )
+        self._respond(200, f"PM id {pm.id} successfully added")
+
+    @requires_authentication
+    async def do_pm_list(self):
+        self._respond(300, "PM event ids follows, terminated with '.'")
+        for id in self._state.planned_maintenances.planned_maintenances.keys():
+            self._respond_raw(id)
+        self._respond_raw(".")
+
+    @requires_authentication
+    @_translate_pm_id_to_pm
+    async def do_pm_cancel(self, pm: PlannedMaintenance):
+        self._state.planned_maintenances.close_planned_maintenance(pm.id, "PM cancelled", self.user)
+        self._respond_ok()
+
+    @requires_authentication
+    @_translate_pm_id_to_pm
+    async def do_pm_details(self, pm: PlannedMaintenance):
+        self._respond_raw(type(pm))
+        self._respond(200, pm.details())
+
+    @requires_authentication
+    @_translate_pm_id_to_pm
+    async def do_pm_matching(self, pm: PlannedMaintenance):
+        self._respond(300, "Matching ports/devices follows, terminated with '.'")
+        for name in pm.get_matching_ports_or_devices(self._state):
+            self._respond_raw(name)
+        self._respond_raw(".")
+
+    @requires_authentication
+    @_translate_pm_id_to_pm
+    async def do_pm_addlog(self, pm: PlannedMaintenance):
+        self._respond(302, "please provide new PM log entry, terminate with '.'")
+        data = await self._read_multiline()
+        message = f"{self.user}\n" + "\n".join(line.strip() for line in data)
+        pm.add_log(message)
+        self._respond_ok()
+
+    @requires_authentication
+    @_translate_pm_id_to_pm
+    async def do_pm_log(self, pm: PlannedMaintenance):
+        self._respond(300, "log follows, terminated with '.'")
+        for log in pm.log:
+            self._respond_raw(log)
+        self._respond_raw(".")
+
+    async def do_pm_help(self):
+        if self.is_authenticated:
+            self._respond(200, "ADD LIST CANCEL DETAILS MATCHING ADDLOG LOG")
+        else:
+            self._respond(200, "(none allowed)")
 
 
 class ZinoTestProtocol(Zino1ServerProtocol):
