@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from zino.events import EventExistsError, Events
+from zino.events import EventExistsError, EventIndex, Events
 from zino.statemodels import Event, EventState, ReachabilityEvent
 from zino.time import now
 
@@ -134,7 +134,7 @@ class TestEvents:
         assert (now() - timedelta(minutes=1)) < event.updated < (now())
         assert event.updated != previous_updated
 
-    def test_delete_closed_events_should_delete_old_closed_event(self, tmp_path):
+    def test_delete_expired_events_should_delete_old_closed_event(self, tmp_path):
         events = Events()
         event = events.get_or_create_event("foobar", None, ReachabilityEvent)
         event.set_state(EventState.CLOSED)
@@ -144,7 +144,7 @@ class TestEvents:
             events.delete_expired_events()
         assert event.id not in events.events.keys()
 
-    def test_delete_closed_events_should_not_delete_just_closed_event(self, tmp_path):
+    def test_delete_expired_events_should_not_delete_newly_closed_event(self, tmp_path):
         events = Events()
         event = events.get_or_create_event("foobar", None, ReachabilityEvent)
         event.set_state(EventState.CLOSED)
@@ -153,7 +153,7 @@ class TestEvents:
             events.delete_expired_events()
         assert event.id in events.events.keys()
 
-    def test_delete_closed_events_should_not_delete_open_event(self, tmp_path):
+    def test_delete_expired_events_should_not_delete_open_event(self, tmp_path):
         events = Events()
         event = events.get_or_create_event("foobar", None, ReachabilityEvent)
         events.commit(event)
@@ -200,3 +200,26 @@ class TestEvents:
         with patch("zino.events.EVENT_DUMP_DIR", tmp_path):
             events._delete(event)
         assert observer.called
+
+    def test_delete_should_not_delete_open_event(self):
+        events = Events()
+        event = events.get_or_create_event("foobar", None, ReachabilityEvent)
+        event.set_state(EventState.OPEN)
+        events.commit(event)
+
+        events._delete(event)
+
+        index = EventIndex("foobar", None, ReachabilityEvent)
+        assert events._events_by_index.get(index)
+        assert events.events.get(event.id)
+
+    def test_delete_should_remove_closed_event_from_index_if_still_in_index(self):
+        events = Events()
+        event = events.get_or_create_event("foobar", None, ReachabilityEvent)
+        events.commit(event)
+        event.set_state(EventState.CLOSED)
+
+        events._delete(event)
+
+        index = EventIndex("foobar", None, ReachabilityEvent)
+        assert not events._events_by_index.get(index)
