@@ -123,7 +123,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
 
     def _dispatch_command(self, command, *args):
         commands = [command]
-        if command in self.HAS_SUBCOMMANDS and args:
+        if command.lower() in self.HAS_SUBCOMMANDS and args:
             commands.append(args[0])
             # Remove subcommand from args
             args = args[1:]
