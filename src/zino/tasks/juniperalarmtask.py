@@ -26,12 +26,16 @@ class JuniperAlarmTask(Task):
             }
 
         if self.device_state.alarms["yellow"] != yellow_alarm_count:
+            self.create_alarm_event(
+                color="yellow", old_alarm_count=self.device_state.alarms["yellow"], new_alarm_count=yellow_alarm_count
+            )
             self.device_state.alarms["yellow"] = yellow_alarm_count
-            self.create_alarm_event(color="yellow", alarm_count=yellow_alarm_count)
 
         if self.device_state.alarms["red"] != red_alarm_count:
+            self.create_alarm_event(
+                color="red", old_alarm_count=self.device_state.alarms["red"], new_alarm_count=red_alarm_count
+            )
             self.device_state.alarms["red"] = red_alarm_count
-            self.create_alarm_event(color="red", alarm_count=red_alarm_count)
 
     async def _get_juniper_alarms(self):
         yellow_alarm_count = await self.snmp.get("JUNIPER-ALARM-MIB", "jnxYellowAlarmCount", 0)
@@ -63,17 +67,16 @@ class JuniperAlarmTask(Task):
 
         return yellow_alarm_count, red_alarm_count
 
-    def create_alarm_event(self, color: AlarmType, alarm_count: int):
+    def create_alarm_event(self, color: AlarmType, old_alarm_count: int, new_alarm_count: int):
         alarm_event = self.state.events.get_or_create_event(
             device_name=self.device.name,
             subindex=color,
             event_class=AlarmEvent,
         )
 
-        old_alarm_count = alarm_event.alarm_count
-        log = f"alarms went from {old_alarm_count} to {alarm_count}"
+        log = f"alarms went from {old_alarm_count} to {new_alarm_count}"
         alarm_event.alarm_type = color
-        alarm_event.alarm_count = alarm_count
+        alarm_event.alarm_count = new_alarm_count
         alarm_event.add_log(f"{self.device.name} {color} {log}")
         alarm_event.polladdr = self.device.address
         alarm_event.priority = self.device.priority
