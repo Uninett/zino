@@ -56,6 +56,15 @@ class TestEvents:
 
         assert event2 == event1
 
+    def test_get_or_create_event_should_not_return_closed_event(self):
+        events = Events()
+        event1 = events.get_or_create_event("foobar", None, ReachabilityEvent)
+        event1.set_state(EventState.CLOSED)
+        events.commit(event1)
+        event2 = events.get_or_create_event("foobar", None, ReachabilityEvent)
+
+        assert event2 != event1
+
     def test_checkout_should_return_copy(self):
         events = Events()
         original_event = events.get_or_create_event("foobar", None, ReachabilityEvent)
