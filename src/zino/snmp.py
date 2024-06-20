@@ -142,7 +142,9 @@ class SNMP:
         except PysnmpMibNotFoundError as error:
             raise MibNotFoundError(error)
         self._raise_errors(error_indication, error_status, error_index, query)
-        return self._object_type_to_mib_object(var_binds[0])
+        result = var_binds[0]
+        self._raise_varbind_errors(result)
+        return self._object_type_to_mib_object(result)
 
     def _raise_errors(
         self,
