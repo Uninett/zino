@@ -2,12 +2,26 @@ import asyncio
 from unittest.mock import Mock, patch
 
 import pytest
-from pysnmp.hlapi.asyncio import Udp6TransportTarget, UdpTransportTarget
+from pysnmp.hlapi.asyncio import (
+    ObjectIdentity,
+    ObjectType,
+    Udp6TransportTarget,
+    UdpTransportTarget,
+)
 from pysnmp.proto import errind
+from pysnmp.proto.rfc1905 import EndOfMibView, NoSuchInstance, NoSuchObject
 
 from zino.config.models import PollDevice
 from zino.oid import OID
-from zino.snmp import SNMP, Identifier, MibNotFoundError, NoSuchNameError
+from zino.snmp import (
+    SNMP,
+    EndOfMibViewError,
+    Identifier,
+    MibNotFoundError,
+    NoSuchInstanceError,
+    NoSuchNameError,
+    NoSuchObjectError,
+)
 
 
 @pytest.fixture(scope="session")
@@ -241,3 +255,38 @@ class TestUdpTransportTarget:
 
     def test_when_device_address_is_ipv4_then_udp_transport_should_be_returned(self, snmp_client):
         assert isinstance(snmp_client.udp_transport_target, UdpTransportTarget)
+
+
+class TestVarBindErrors:
+    """
+    Test class for verifying the handling of varbind errors in SNMP commands.
+
+    This class contains tests that check if the correct exceptions are raised when
+    varbind errors (NoSuchObject, NoSuchInstance, EndOfMibView) are encountered
+    in the response to an SNMP command.
+    """
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "error, exception",
+        [
+            (NoSuchObject(""), NoSuchObjectError),
+            (NoSuchInstance(""), NoSuchInstanceError),
+            (EndOfMibView(""), EndOfMibViewError),
+        ],
+        ids=["NoSuchObject-NoSuchObjectError", "NoSuchInstance-NoSuchInstanceError", "EndOfMibView-EndOfMibViewError"],
+    )
+    async def test_get_should_raise_exception(self, error, exception, snmp_client, monkeypatch):
+        query = ("SNMPv2-MIB", "sysDescr", 0)
+        object_type = ObjectType(ObjectIdentity(*query), error)
+
+        mock_results = None, None, None, [object_type]
+        future = asyncio.Future()
+        future.set_result(mock_results)
+        get_mock = Mock(return_value=future)
+        monkeypatch.setattr("zino.snmp.getCmd", get_mock)
+
+        snmp_client._resolve_object(object_type)
+
+        with pytest.raises(exception):
+            await snmp_client.get(*query)
