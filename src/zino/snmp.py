@@ -75,7 +75,7 @@ class SnmpError(Exception):
     """Base class for SNMP, MIB and OID specific errors"""
 
 
-class ErrorIndication(Exception):
+class ErrorIndication(SnmpError):
     """Class for SNMP errors that occur locally,
     as opposed to being reported from a different SNMP entity.
     """
