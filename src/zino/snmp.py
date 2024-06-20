@@ -74,8 +74,6 @@ SparseWalkResponse = dict[OID, dict[str, Any]]
 class SnmpError(Exception):
     """Base class for SNMP, MIB and OID specific errors"""
 
-    pass
-
 
 class ErrorIndication(Exception):
     """Class for SNMP errors that occur locally,
@@ -86,8 +84,6 @@ class ErrorIndication(Exception):
 class MibNotFoundError(ErrorIndication):
     """Raised if a required MIB file could not be found"""
 
-    pass
-
 
 class ErrorStatus(SnmpError):
     """Raised if an SNMP entity includes a non-zero error status in its response PDU.
@@ -95,13 +91,9 @@ class ErrorStatus(SnmpError):
     This can either be used directly or subclassed for one of these specific errors.
     """
 
-    pass
-
 
 class NoSuchNameError(ErrorStatus):
     """Represents the "noSuchName" error. Raised if an object could not be found at an OID."""
-
-    pass
 
 
 class SNMP:
