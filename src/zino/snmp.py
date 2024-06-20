@@ -96,6 +96,22 @@ class NoSuchNameError(ErrorStatus):
     """Represents the "noSuchName" error. Raised if an object could not be found at an OID."""
 
 
+class VarBindError(SnmpError):
+    """Base class for errors carried in varbinds and not in the errorStatus or errorIndication fields"""
+
+
+class NoSuchObjectError(VarBindError):
+    """Raised if an object could not be found at an OID"""
+
+
+class NoSuchInstanceError(VarBindError):
+    """Raised if an instance could not be found at an OID"""
+
+
+class EndOfMibViewError(VarBindError):
+    """Raised if end of MIB view is encountered"""
+
+
 class SNMP:
     """Represents an SNMP management session for a single device"""
 
