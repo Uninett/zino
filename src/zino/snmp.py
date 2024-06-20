@@ -21,7 +21,7 @@ from pysnmp.hlapi.asyncio import (
     nextCmd,
 )
 from pysnmp.proto import errind
-from pysnmp.proto.rfc1905 import errorStatus
+from pysnmp.proto.rfc1905 import EndOfMibView, NoSuchInstance, NoSuchObject, errorStatus
 from pysnmp.smi import builder, view
 from pysnmp.smi.error import MibNotFoundError as PysnmpMibNotFoundError
 
@@ -168,6 +168,17 @@ class SNMP:
                 raise NoSuchNameError(f"Could not find object at {error_object.oid}")
             else:
                 raise ErrorStatus(f"SNMP operation failed with error {error_name} for {error_object.oid}")
+
+    def _raise_varbind_errors(self, object_type: ObjectType):
+        """Raises a relevant exception if an error has occurred in a varbind"""
+        oid = OID(str(object_type[0]))
+        value = object_type[1]
+        if isinstance(value, NoSuchObject):
+            raise NoSuchObjectError(f"Could not find object at {oid}")
+        if isinstance(value, NoSuchInstance):
+            raise NoSuchInstanceError(f"Could not find instance at {oid}")
+        if isinstance(value, EndOfMibView):
+            raise EndOfMibViewError("Reached end of MIB view")
 
     async def getnext(self, *oid: str) -> MibObject:
         """SNMP-GETNEXTs the given oid
