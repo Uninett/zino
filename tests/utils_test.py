@@ -1,8 +1,10 @@
+import socket
 from ipaddress import IPv4Address, IPv6Address
+from unittest.mock import patch
 
 import pytest
 
-from zino.utils import parse_ip
+from zino.utils import parse_ip, reverse_dns
 
 
 class TestParseIP:
@@ -43,3 +45,20 @@ class TestParseIP:
     def test_should_raise_error_if_invalid_colon_separated_string(self):
         with pytest.raises(ValueError):
             parse_ip(":thisis:just:randomstuff")
+
+
+class TestReverseDNS:
+    @patch("zino.utils.socket.gethostbyaddr")
+    def test_should_return_reverse_dns_for_valid_ip(self, mock_gethostbyaddr):
+        valid_ip = "8.8.8.8"
+        reverse_dns_value = "reverse.dns.example.com"
+        mock_gethostbyaddr.return_value = [reverse_dns_value, [], [valid_ip]]
+        result = reverse_dns(valid_ip)
+        assert result == reverse_dns_value
+
+    @patch("zino.utils.socket.gethostbyaddr")
+    def test_should_return_none_for_invalid_ip(self, mock_gethostbyaddr):
+        invalid_ip = "0.0.0.0"
+        mock_gethostbyaddr.side_effect = socket.herror
+        result = reverse_dns(invalid_ip)
+        assert result is None
