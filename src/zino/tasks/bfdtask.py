@@ -6,7 +6,7 @@ from zino.scheduler import get_scheduler
 from zino.snmp import SparseWalkResponse
 from zino.statemodels import BFDEvent, BFDSessState, BFDState, Port
 from zino.tasks.task import Task
-from zino.utils import parse_ip
+from zino.utils import parse_ip, reverse_dns
 
 _log = logging.getLogger(__name__)
 
@@ -75,6 +75,9 @@ class BFDTask(Task):
         event.bfdix = new_state.session_index
         event.bfddiscr = new_state.session_discr
         event.bfdaddr = new_state.session_addr
+
+        if event.bfdaddr:
+            event.neigh_rdns = reverse_dns(str(event.bfdaddr))
 
         log = f"changed BFD state to {new_state.session_state} on port {port.ifdescr} on device {self.device.name}"
         event.lastevent = log

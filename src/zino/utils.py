@@ -1,4 +1,6 @@
+import socket
 from ipaddress import ip_address
+from typing import Optional
 
 from pyasn1.type.univ import OctetString
 
@@ -25,3 +27,10 @@ def _parse_hexa_string_ip(ip: str) -> IPAddress:
 def _parse_colon_separated_ip(ip: str) -> IPAddress:
     """Parses IP addresses formatted with a colon symbol separating every octet, e.g. 7F:00:00:01"""
     return ip_address(bytes(OctetString(hexValue=ip.replace(":", ""))))
+
+
+def reverse_dns(ip: str) -> Optional[str]:
+    try:
+        return socket.gethostbyaddr(str(ip))[0]
+    except socket.herror:
+        return None
