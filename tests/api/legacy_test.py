@@ -1,3 +1,4 @@
+import re
 from io import BytesIO
 from unittest.mock import Mock, patch
 
@@ -15,6 +16,8 @@ from zino.api.server import ZinoServer
 from zino.config.models import PollDevice
 from zino.state import ZinoState
 from zino.statemodels import Event, EventState, ReachabilityEvent
+
+DEVICE_NAME = "example-gw.example.org"
 
 
 class TestZino1BaseServerProtocol:
@@ -679,6 +682,79 @@ class TestZino1TestProtocol:
         await protocol.do_multitest()
         assert b"302 " in buffered_fake_transport.data_buffer.getvalue()
         assert b"200 ok" in buffered_fake_transport.data_buffer.getvalue()
+
+
+class TestZino1TestProtocolFakeEventCommand:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "subindex,event_class",
+        [
+            ("yellow", "alarm"),
+            (123, "bfd"),
+            ("127.0.0.1", "bgp"),
+            (123, "portstate"),
+            ("None", "reachability"),
+        ],
+    )
+    async def test_fakevent_should_create_event(self, subindex, event_class):
+        protocol = ZinoTestProtocol()
+        fake_transport = Mock()
+        protocol.connection_made(fake_transport)
+        protocol.user = "foo"
+        fake_transport.write = Mock()
+        command = f"FAKEEVENT {DEVICE_NAME} {subindex} {event_class} ignored"
+        await protocol.message_received(command)
+
+        assert fake_transport.write.called
+        response = fake_transport.write.call_args[0][0].decode("utf-8")
+        assert response.startswith("200 ")
+
+        event_id = re.search(r"event created with id (?P<id>\d+)", response).group("id")
+        assert event_id
+        assert protocol._state.events.events.get(int(event_id), None)
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "subindex,event_class,event_state",
+        [
+            (123, "invalid-event-type", "ignored"),
+            ("blue", "alarm", "ignored"),
+            (123, "portstate", "invalid-state"),
+            ("abc", "portstate", "ignored"),
+            ("abc", "bgp", "ignored"),
+        ],
+    )
+    async def test_fakevent_should_fail_on_invalid_input(self, subindex, event_class, event_state):
+        protocol = ZinoTestProtocol()
+        fake_transport = Mock()
+        protocol.connection_made(fake_transport)
+        protocol.user = "foo"
+        fake_transport.write = Mock()
+        command = f"FAKEEVENT {DEVICE_NAME} {subindex} {event_class} {event_state}"
+        await protocol.message_received(command)
+
+        assert fake_transport.write.called
+        response = fake_transport.write.call_args[0][0].decode("utf-8")
+        assert response.startswith("500 ")
+
+    @pytest.mark.asyncio
+    async def test_fakevent_should_fail_if_event_with_given_index_exists_already(self):
+        protocol = ZinoTestProtocol()
+        fake_transport = Mock()
+        protocol.connection_made(fake_transport)
+        protocol.user = "foo"
+        fake_transport.write = Mock()
+
+        event = ReachabilityEvent(router=DEVICE_NAME, state=EventState.OPEN)
+        protocol._state.events.commit(event=event)
+
+        command = f"FAKEEVENT {DEVICE_NAME} None reachability open"
+        await protocol.message_received(command)
+
+        assert fake_transport.write.called
+        response = fake_transport.write.call_args[0][0].decode("utf-8")
+        assert response.startswith("500 ")
+        assert "An event with the given parameters already exists" in response
 
 
 def test_requires_authentication_should_set_function_attribute():
