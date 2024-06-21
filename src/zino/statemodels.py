@@ -350,6 +350,7 @@ class BFDEvent(Event):
     bfdix: Optional[int] = None
     bfddiscr: Optional[int] = None
     bfdaddr: Optional[IPAddress] = None
+    neigh_rdns: Optional[str] = None
 
     @property
     def subindex(self) -> SubIndex:
