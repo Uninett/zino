@@ -16,6 +16,8 @@ from zino.config.models import PollDevice
 from zino.state import ZinoState
 from zino.statemodels import Event, EventState, ReachabilityEvent
 
+DEVICE_NAME = "example-gw.example.org"
+
 
 class TestZino1BaseServerProtocol:
     def test_should_init_without_error(self):
@@ -250,7 +252,7 @@ class TestZino1ServerProtocolTranslateCaseIdToEvent:
 
         protocol = TestProtocol()
 
-        test_event = protocol._state.events.create_event("example-gw", None, ReachabilityEvent)
+        test_event = protocol._state.events.create_event(DEVICE_NAME, None, ReachabilityEvent)
         protocol._state.events.commit(test_event)
 
         fake_transport = Mock()
@@ -590,7 +592,7 @@ class TestZino1ServerProtocolCommunityCommand:
     async def test_should_output_community_for_router(self, authenticated_protocol):
         from zino.state import polldevs
 
-        router_name = "buick.lab.example.org"
+        router_name = DEVICE_NAME
         community = "public"
         device = PollDevice(
             name=router_name,
@@ -690,7 +692,7 @@ class TestZino1TestProtocolChangeStateCommand:
         protocol.user = "foo"
         fake_transport.write = Mock()
 
-        event = ReachabilityEvent(router="example-gw.example.org")
+        event = ReachabilityEvent(router=DEVICE_NAME)
         protocol._state.events.commit(event=event)
 
         command = f"CHANGESTATE {event.id} ignored"
@@ -742,9 +744,8 @@ class TestZino1TestProtocolChangeStateCommand:
         protocol.connection_made(fake_transport)
         protocol.user = "foo"
         fake_transport.write = Mock()
-        device_name = "example-gw.example.org"
 
-        event = ReachabilityEvent(router=device_name, state=EventState.CLOSED)
+        event = ReachabilityEvent(router=DEVICE_NAME, state=EventState.CLOSED)
         protocol._state.events.commit(event=event)
 
         command = f"CHANGESTATE {event.id} invalid-state"
@@ -762,9 +763,8 @@ class TestZino1TestProtocolChangeStateCommand:
         protocol.connection_made(fake_transport)
         protocol.user = "foo"
         fake_transport.write = Mock()
-        device_name = "example-gw.example.org"
 
-        event = ReachabilityEvent(router=device_name, state=EventState.CLOSED)
+        event = ReachabilityEvent(router=DEVICE_NAME, state=EventState.CLOSED)
         protocol._state.events.commit(event=event)
 
         command = f"CHANGESTATE {event.id} open"
