@@ -125,27 +125,26 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
 
         if not message:
             return
-        args = message.split(" ")
-        return self._dispatch_command(*args)
+        return self._dispatch_command(message)
 
-    def _dispatch_command(self, command, *args):
-        responder = self._get_responder(command)
+    def _dispatch_command(self, message: str):
+        responder, args = self._get_responder(message)
         if not responder:
-            return self._respond_error(f'unknown command: "{command}"')
+            return self._respond_error(f'unknown command: "{message}"')
 
-        if getattr(responder, "requires_authentication", False) and not self.is_authenticated:
+        if getattr(responder.function, "requires_authentication", False) and not self.is_authenticated:
             return self._respond_error("Not authenticated")
 
-        required_args = inspect.signature(responder).parameters
+        required_args = inspect.signature(responder.function).parameters
         if len(args) < len(required_args):
             arg_summary = " (" + ", ".join(required_args.keys()) + ")" if required_args else ""
-            return self._respond_error(f"{command} needs {len(required_args)} parameters{arg_summary}")
+            return self._respond_error(f"{responder.name} needs {len(required_args)} parameters{arg_summary}")
         elif len(args) > len(required_args):
             garbage_args = args[len(required_args) :]
             _logger.debug("client %s sent %r, ignoring garbage args at end: %r", self.peer_name, args, garbage_args)
             args = args[: len(required_args)]
 
-        self._current_task = asyncio.create_task(self._run_async_responder(command, responder, *args))
+        self._current_task = asyncio.create_task(self._run_async_responder(responder.name, responder.function, *args))
         return self._current_task
 
     async def _run_async_responder(self, command: str, responder: Callable, *args):
