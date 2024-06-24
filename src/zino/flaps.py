@@ -90,10 +90,9 @@ class FlappingStates(BaseModel):
 
     def is_flapping(self, interface: PortIndex) -> bool:
         if interface not in self.interfaces:
-            flap = FlappingState(hist_val=0)
-        else:
-            flap = self.interfaces[interface]
+            return False
 
+        flap = self.interfaces[interface]
         flap.age()
         if flap.hist_val < FLAP_MIN:
             return False
