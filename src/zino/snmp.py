@@ -21,7 +21,7 @@ from pysnmp.hlapi.asyncio import (
     nextCmd,
 )
 from pysnmp.proto import errind
-from pysnmp.proto.rfc1905 import errorStatus
+from pysnmp.proto.rfc1905 import EndOfMibView, NoSuchInstance, NoSuchObject, errorStatus
 from pysnmp.smi import builder, view
 from pysnmp.smi.error import MibNotFoundError as PysnmpMibNotFoundError
 
@@ -75,7 +75,7 @@ class SnmpError(Exception):
     """Base class for SNMP, MIB and OID specific errors"""
 
 
-class ErrorIndication(Exception):
+class ErrorIndication(SnmpError):
     """Class for SNMP errors that occur locally,
     as opposed to being reported from a different SNMP entity.
     """
@@ -94,6 +94,22 @@ class ErrorStatus(SnmpError):
 
 class NoSuchNameError(ErrorStatus):
     """Represents the "noSuchName" error. Raised if an object could not be found at an OID."""
+
+
+class VarBindError(SnmpError):
+    """Base class for errors carried in varbinds and not in the errorStatus or errorIndication fields"""
+
+
+class NoSuchObjectError(VarBindError):
+    """Raised if an object could not be found at an OID"""
+
+
+class NoSuchInstanceError(VarBindError):
+    """Raised if an instance could not be found at an OID"""
+
+
+class EndOfMibViewError(VarBindError):
+    """Raised if end of MIB view is encountered"""
 
 
 class SNMP:
@@ -126,7 +142,9 @@ class SNMP:
         except PysnmpMibNotFoundError as error:
             raise MibNotFoundError(error)
         self._raise_errors(error_indication, error_status, error_index, query)
-        return self._object_type_to_mib_object(var_binds[0])
+        result = var_binds[0]
+        self._raise_varbind_errors(result)
+        return self._object_type_to_mib_object(result)
 
     def _raise_errors(
         self,
@@ -152,6 +170,17 @@ class SNMP:
                 raise NoSuchNameError(f"Could not find object at {error_object.oid}")
             else:
                 raise ErrorStatus(f"SNMP operation failed with error {error_name} for {error_object.oid}")
+
+    def _raise_varbind_errors(self, object_type: ObjectType):
+        """Raises a relevant exception if an error has occurred in a varbind"""
+        oid = OID(str(object_type[0]))
+        value = object_type[1]
+        if isinstance(value, NoSuchObject):
+            raise NoSuchObjectError(f"Could not find object at {oid}")
+        if isinstance(value, NoSuchInstance):
+            raise NoSuchInstanceError(f"Could not find instance at {oid}")
+        if isinstance(value, EndOfMibView):
+            raise EndOfMibViewError("Reached end of MIB view")
 
     async def getnext(self, *oid: str) -> MibObject:
         """SNMP-GETNEXTs the given oid
