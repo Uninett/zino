@@ -25,6 +25,8 @@ from zino.statemodels import (
 )
 from zino.time import now
 
+DEVICE_NAME = "example-gw.example.org"
+
 
 class TestZino1BaseServerProtocol:
     def test_should_init_without_error(self):
@@ -890,6 +892,55 @@ class TestZino1ServerProtocolPmListCommand:
         pattern_string = r"\b{}\b"
         for id in pms.planned_maintenances:
             assert re.search(pattern_string.format(id), response), f"Expected response to contain id {id}"
+
+
+class TestZino1TestProtocolDeleteEventCommand:
+    @pytest.mark.asyncio
+    async def test_should_delete_open_event(self):
+        protocol = ZinoTestProtocol()
+        fake_transport = Mock()
+        protocol.connection_made(fake_transport)
+        protocol.user = "foo"
+        fake_transport.write = Mock()
+
+        event = ReachabilityEvent(router=DEVICE_NAME, state=EventState.OPEN)
+        protocol._state.events.commit(event=event)
+
+        command = f"DELETEEVENT {event.id}"
+        await protocol.message_received(command)
+
+        assert fake_transport.write.called
+        response = fake_transport.write.call_args[0][0].decode("utf-8")
+        assert response.startswith("200 ")
+        assert event.id not in protocol._state.events.events.keys()
+        assert not protocol._state.events.get(device_name=DEVICE_NAME, subindex=None, event_class=ReachabilityEvent)
+        assert not protocol._state.events.get_closed_event(
+            device_name=DEVICE_NAME, subindex=None, event_class=ReachabilityEvent
+        )
+
+    @pytest.mark.asyncio
+    async def test_should_delete_closed_event(self):
+        protocol = ZinoTestProtocol()
+        fake_transport = Mock()
+        protocol.connection_made(fake_transport)
+        protocol.user = "foo"
+        fake_transport.write = Mock()
+
+        event = ReachabilityEvent(router=DEVICE_NAME, state=EventState.CLOSED)
+        protocol._state.events.commit(event=event)
+
+        command = f"DELETEEVENT {event.id}"
+        await protocol.message_received(command)
+
+        assert fake_transport.write.called
+        response = fake_transport.write.call_args[0][0].decode("utf-8")
+        assert response.startswith("200 ")
+        assert response.startswith("200 ")
+        assert event.id not in protocol._state.events.events.keys()
+        assert not protocol._state.events.get(device_name=DEVICE_NAME, subindex=None, event_class=ReachabilityEvent)
+        assert not protocol._state.events.get_closed_event(
+            device_name=DEVICE_NAME, subindex=None, event_class=ReachabilityEvent
+        )
 
 
 def test_requires_authentication_should_set_function_attribute():
