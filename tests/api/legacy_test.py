@@ -164,7 +164,7 @@ class TestZino1BaseServerProtocol:
         result = protocol._get_all_responders()
         assert len(result) == 1
         assert "FOO" in result
-        assert callable(result["FOO"])
+        assert callable(result["FOO"].function)
 
     def test_when_command_has_too_few_args_then_an_error_response_should_be_sent(self):
         class TestProtocol(Zino1BaseServerProtocol):
@@ -197,7 +197,8 @@ class TestZino1BaseServerProtocol:
 
     def test_when_command_is_not_alphanumeric_then_get_responder_should_ignore_it(self):
         protocol = Zino1BaseServerProtocol()
-        assert protocol._get_responder("-340-405??#$") is None
+        responder, args = protocol._get_responder("-340-405??#$")
+        assert responder is None
 
     @pytest.mark.asyncio
     async def test_when_command_raises_unhandled_exception_then_error_response_should_be_sent(
@@ -338,8 +339,8 @@ class TestZino1ServerProtocolHelpCommand:
 
         all_unauthenticated_command_names = set(
             name
-            for name, func in protocol._get_all_responders().items()
-            if not getattr(func, "requires_authentication", False)
+            for name, responder in protocol._responders.items()
+            if not getattr(responder.function, "requires_authentication", False)
         )
         for command_name in all_unauthenticated_command_names:
             assert (
