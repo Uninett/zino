@@ -1,7 +1,8 @@
-import socket
+import asyncio
 from ipaddress import ip_address
 from typing import Optional
 
+import aiodns
 from pyasn1.type.univ import OctetString
 
 from zino.statemodels import IPAddress
@@ -29,8 +30,12 @@ def _parse_colon_separated_ip(ip: str) -> IPAddress:
     return ip_address(bytes(OctetString(hexValue=ip.replace(":", ""))))
 
 
-def reverse_dns(ip: str) -> Optional[str]:
+async def reverse_dns(ip: str) -> Optional[str]:
+    """Returns hostname for given IP address or None if reverse DNS lookup fails"""
+    loop = asyncio.get_event_loop()
+    resolver = aiodns.DNSResolver(loop=loop)
     try:
-        return socket.gethostbyaddr(str(ip))[0]
-    except socket.herror:
+        response = await resolver.gethostbyaddr(ip)
+        return response.name
+    except aiodns.error.DNSError:
         return None
