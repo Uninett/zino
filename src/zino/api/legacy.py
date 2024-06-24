@@ -235,13 +235,15 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         self.transport.close()
 
     async def do_help(self):
-        responders = self._get_all_responders()
-        if not self.is_authenticated:
-            responders = {
-                name: func for name, func in responders.items() if not getattr(func, "requires_authentication", False)
-            }
+        """Lists all available top-level API commands"""
+        eligible = (
+            responder.name
+            for responder in self._responders.values()
+            if " " not in responder.name
+            and (self.is_authenticated or not getattr(responder.function, "requires_authentication", False))
+        )
 
-        commands = " ".join(sorted(responders))
+        commands = " ".join(sorted(eligible))
         self._respond_multiline(200, ["commands are:"] + textwrap.wrap(commands, width=56))
 
     async def do_version(self):
