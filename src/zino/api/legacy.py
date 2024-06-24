@@ -392,3 +392,33 @@ class ZinoTestProtocol(Zino1ServerProtocol):
         that exceptions that go unhandled by a command responder is handled by the protocol engine.
         """
         1 / 0  # noqa
+
+    @requires_authentication
+    async def do_changestate(self, event_id: int, event_state: str):
+        """Implements an CHANGESTATE command that did not exist in the Zino 1 protocol. This is just used for testing
+        the frontend.
+        """
+        try:
+            event_id = int(event_id)
+        except ValueError:
+            return self._respond_error("The event id needs to be a number.")
+        events = self._state.events
+        event = events.events.get(event_id, None)
+        if not event:
+            return self._respond_error("No event with the given id could be found.")
+
+        try:
+            event_state = EventState(event_state)
+        except ValueError:
+            return self._respond_error(
+                f"Given event state {event_state} not in available event states: {[state.value for state in EventState]}"
+            )
+
+        try:
+            event.set_state(event_state)
+        except ClosedEventError:
+            return self._respond_error("Closed events cannot be reopened")
+
+        events.commit(event=event)
+
+        return self._respond_ok(f"event {event_id} changed to state {event_state}")
