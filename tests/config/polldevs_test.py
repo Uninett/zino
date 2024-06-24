@@ -24,6 +24,32 @@ class TestReadPolldevs:
         assert all(device.domain == "uninett.no" for device in result)
 
 
+class TestReadInvalidPolldevs:
+    def test_should_raise_exception(self, invalid_polldevs_conf):
+        with pytest.raises(InvalidConfiguration):
+            list(read_polldevs(invalid_polldevs_conf))
+
+    def test_should_have_filename_in_exception(self, invalid_polldevs_conf):
+        with pytest.raises(InvalidConfiguration) as e:
+            list(read_polldevs(invalid_polldevs_conf))
+        assert "polldevs.cf" in str(e.value)
+
+    def test_should_have_line_number_in_exception(self, invalid_polldevs_conf):
+        with pytest.raises(InvalidConfiguration) as e:
+            list(read_polldevs(invalid_polldevs_conf))
+        assert "2" in str(e.value)
+
+    def test_exception_should_include_device_name_on_missing_address(self, missing_device_address_polldevs_conf):
+        with pytest.raises(InvalidConfiguration) as e:
+            list(read_polldevs(missing_device_address_polldevs_conf))
+        assert "example-gw" in str(e.value)
+
+    def test_exception_should_include_missing_attribute_on_missing_address(self, missing_device_address_polldevs_conf):
+        with pytest.raises(InvalidConfiguration) as e:
+            list(read_polldevs(missing_device_address_polldevs_conf))
+        assert "Field required ('address')" in str(e.value)
+
+
 class TestReadConfSections:
     def test_when_file_is_empty_it_should_return_nothing(self):
         data = io.StringIO("")
@@ -40,7 +66,7 @@ class TestReadConfSections:
         )
         result = list(_read_conf_sections(data))
         assert len(result) == 2
-        assert all(isinstance(i, dict) for i in result)
+        assert all(isinstance(block, dict) for lineno, block in result)
 
     def test_when_file_contains_comments_they_should_be_ignored(self):
         data = io.StringIO(
@@ -52,7 +78,7 @@ class TestReadConfSections:
             """
         )
         expected = {"name": "zaphod", "address": "127.0.0.1"}
-        result = list(_read_conf_sections(data))
+        result = list(block for lineno, block in _read_conf_sections(data))
         assert result == [expected]
 
     def test_when_file_contains_non_assignments_it_should_fail(self):
@@ -81,3 +107,21 @@ class TestParseDefaults:
         section = {"default value1": "foobar", "default value2": "cromulent", "value3": "zaphod"}
         expected = {"value1": "foobar", "value2": "cromulent"}
         assert _parse_defaults(section) == expected
+
+
+@pytest.fixture
+def missing_device_address_polldevs_conf(tmp_path):
+    name = tmp_path.joinpath("polldevs.cf")
+    with open(name, "w") as conf:
+        conf.write(
+            """# polldevs test config
+            default interval: 5
+            default community: foobar
+            default domain: uninett.no
+            default statistics: yes
+            default hcounters: yes
+
+            name: example-gw
+            """
+        )
+    yield name

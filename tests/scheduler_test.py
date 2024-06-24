@@ -24,6 +24,20 @@ class TestLoadPolldevs:
         assert not new_devices
         assert len(deleted_devices) > 0
 
+    @patch("zino.state.polldevs", dict())
+    @patch("zino.state.state", ZinoState())
+    def test_should_return_no_new_or_deleted_devices_on_invalid_configuration(self, invalid_polldevs_conf):
+        new_devices, deleted_devices = scheduler.load_polldevs(invalid_polldevs_conf)
+        assert not new_devices
+        assert not deleted_devices
+
+    @patch("zino.state.polldevs", dict())
+    @patch("zino.state.state", ZinoState())
+    def test_should_log_error_on_invalid_configuration(self, caplog, invalid_polldevs_conf):
+        with caplog.at_level(logging.ERROR):
+            scheduler.load_polldevs(invalid_polldevs_conf)
+        assert "'lalala' is not a valid configuration line" in caplog.text
+
 
 class TestScheduleNewDevices:
     @patch("zino.state.polldevs", dict())
