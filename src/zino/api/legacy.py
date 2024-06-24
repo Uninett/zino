@@ -158,13 +158,16 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         finally:
             self._current_task = None
 
-    def _get_responder(self, command: str):
-        if not command.isalpha():
-            return
-
-        func = getattr(self, f"do_{command.lower()}", None)
-        if callable(func):
-            return func
+    def _get_responder(self, message: str) -> tuple[Optional[Responder], List[str]]:
+        matches = ((responder.pattern.match(message), responder) for responder in self._responders.values())
+        matches = ((match, responder) for match, responder in matches if match)
+        # for multiple matches, always match the longest command first:
+        matches = sorted(matches, key=lambda x: len(x[0].group("command")), reverse=True)
+        for match, responder in matches:
+            args = match.group("args")
+            args = args.split(" ") if args else []
+            return responder, args
+        return None, []
 
     def _get_all_responders(self) -> dict[str, Responder]:
         eligible = {
