@@ -11,7 +11,7 @@ import re
 import textwrap
 from functools import wraps
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, List, Optional, Union
+from typing import TYPE_CHECKING, Callable, List, NamedTuple, Optional, Union
 
 from zino import version
 from zino.api import auth
@@ -23,6 +23,14 @@ if TYPE_CHECKING:
     from zino.api.server import ZinoServer
 
 _logger = logging.getLogger(__name__)
+
+
+class Responder(NamedTuple):
+    """A record that maps a command "name" and a regexp pattern to a function"""
+
+    name: str
+    pattern: re.Pattern
+    function: Callable
 
 
 def requires_authentication(func: Callable) -> Callable:
@@ -157,12 +165,17 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         if callable(func):
             return func
 
-    def _get_all_responders(self) -> dict[str, Callable]:
+    def _get_all_responders(self) -> dict[str, Responder]:
         eligible = {
             name: getattr(self, name) for name in dir(self) if name.startswith("do_") and callable(getattr(self, name))
         }
-        commands = {name: re.sub(r"^do_", "", name).upper() for name in eligible}
-        return {commands[name]: responder for name, responder in eligible.items()}
+        commands = {name: re.sub(r"^do_", "", name).upper().replace("_", " ") for name in eligible}
+        return {
+            commands[name]: Responder(
+                commands[name], re.compile(rf"(?P<command>{commands[name]})\b\s*(?P<args>.*)", re.IGNORECASE), responder
+            )
+            for name, responder in eligible.items()
+        }
 
     def _read_multiline(self) -> asyncio.Future:
         """Sets the protocol in multline input mode and returns a Future that will trigger once multi-line input is
