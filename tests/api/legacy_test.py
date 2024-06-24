@@ -681,6 +681,101 @@ class TestZino1TestProtocol:
         assert b"200 ok" in buffered_fake_transport.data_buffer.getvalue()
 
 
+class TestZino1TestProtocolChangeStateCommand:
+    @pytest.mark.asyncio
+    async def test_should_change_state(self):
+        protocol = ZinoTestProtocol()
+        fake_transport = Mock()
+        protocol.connection_made(fake_transport)
+        protocol.user = "foo"
+        fake_transport.write = Mock()
+
+        event = ReachabilityEvent(router="example-gw.example.org")
+        protocol._state.events.commit(event=event)
+
+        command = f"CHANGESTATE {event.id} ignored"
+        await protocol.message_received(command)
+
+        assert fake_transport.write.called
+        response = fake_transport.write.call_args[0][0].decode("utf-8")
+        assert response.startswith("200 ")
+        assert event.state == EventState.IGNORED
+
+    @pytest.mark.asyncio
+    async def test_should_fail_on_non_int_event_id(self):
+        protocol = ZinoTestProtocol()
+        fake_transport = Mock()
+        protocol.connection_made(fake_transport)
+        protocol.user = "foo"
+        fake_transport.write = Mock()
+
+        command = "CHANGESTATE abc ignored"
+        await protocol.message_received(command)
+
+        assert fake_transport.write.called
+        response = fake_transport.write.call_args[0][0].decode("utf-8")
+        assert response.startswith("500 ")
+        assert "The event id needs to be a number." in response
+
+    @pytest.mark.asyncio
+    async def test_should_fail_on_non_existent_event(self):
+        protocol = ZinoTestProtocol()
+        fake_transport = Mock()
+        protocol.connection_made(fake_transport)
+        protocol.user = "foo"
+        fake_transport.write = Mock()
+
+        non_existent_id = protocol._state.events.last_event_id + 1
+
+        command = f"CHANGESTATE {non_existent_id} ignored"
+        await protocol.message_received(command)
+
+        assert fake_transport.write.called
+        response = fake_transport.write.call_args[0][0].decode("utf-8")
+        assert response.startswith("500 ")
+        assert "No event with the given id could be found." in response
+
+    @pytest.mark.asyncio
+    async def test_should_fail_if_event_state_is_invalid(self):
+        protocol = ZinoTestProtocol()
+        fake_transport = Mock()
+        protocol.connection_made(fake_transport)
+        protocol.user = "foo"
+        fake_transport.write = Mock()
+        device_name = "example-gw.example.org"
+
+        event = ReachabilityEvent(router=device_name, state=EventState.CLOSED)
+        protocol._state.events.commit(event=event)
+
+        command = f"CHANGESTATE {event.id} invalid-state"
+        await protocol.message_received(command)
+
+        assert fake_transport.write.called
+        response = fake_transport.write.call_args[0][0].decode("utf-8")
+        assert response.startswith("500 ")
+        assert "Given event state invalid-state not in available event states" in response
+
+    @pytest.mark.asyncio
+    async def test_should_fail_if_event_is_closed(self):
+        protocol = ZinoTestProtocol()
+        fake_transport = Mock()
+        protocol.connection_made(fake_transport)
+        protocol.user = "foo"
+        fake_transport.write = Mock()
+        device_name = "example-gw.example.org"
+
+        event = ReachabilityEvent(router=device_name, state=EventState.CLOSED)
+        protocol._state.events.commit(event=event)
+
+        command = f"CHANGESTATE {event.id} open"
+        await protocol.message_received(command)
+
+        assert fake_transport.write.called
+        response = fake_transport.write.call_args[0][0].decode("utf-8")
+        assert response.startswith("500 ")
+        assert "Closed events cannot be reopened" in response
+
+
 def test_requires_authentication_should_set_function_attribute():
     @requires_authentication
     def throwaway():
