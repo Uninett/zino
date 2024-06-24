@@ -64,6 +64,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         self._multiline_future: asyncio.Future = None
         self._multiline_buffer: List[str] = []
         self._authentication_challenge: Optional[str] = None
+        self._responders = self._get_all_responders()
 
         self._state = state if state is not None else ZinoState()
         self._secrets_file = secrets_file
