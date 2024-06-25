@@ -236,14 +236,14 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
 
     async def do_help(self):
         """Lists all available top-level API commands"""
-        eligible = (
-            responder.name
-            for responder in self._responders.values()
-            if " " not in responder.name
-            and (self.is_authenticated or not getattr(responder.function, "requires_authentication", False))
+        top_level_responders = (responder for responder in self._responders.values() if " " not in responder.name)
+        authorized_responders = (
+            responder
+            for responder in top_level_responders
+            if self.is_authenticated or not getattr(responder.function, "requires_authentication", False)
         )
 
-        commands = " ".join(sorted(eligible))
+        commands = " ".join(sorted(responder.name for responder in authorized_responders))
         self._respond_multiline(200, ["commands are:"] + textwrap.wrap(commands, width=56))
 
     async def do_version(self):
