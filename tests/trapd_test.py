@@ -6,11 +6,8 @@ from collections import Counter
 from unittest.mock import Mock, patch
 
 import pytest
-import pytest_asyncio
 
 from zino.oid import OID
-from zino.state import ZinoState
-from zino.statemodels import DeviceState
 from zino.trapd import (
     TrapMessage,
     TrapObserver,
@@ -165,26 +162,12 @@ class TestTrapReceiverExternally:
                 assert not mock_dispatch.called
 
 
-@pytest.fixture
-def state_with_localhost():
-    localhost = ipaddress.ip_address("127.0.0.1")
-    state = ZinoState()
-    state.devices.devices["localhost"] = DeviceState(name="localhost", addresses={localhost})
-    state.addresses[localhost] = "localhost"
-    yield state
-
-
-@pytest_asyncio.fixture
-async def localhost_receiver(state_with_localhost, event_loop) -> TrapReceiver:
-    """Yields a TrapReceiver instance with a standardized setup for running external tests on localhost"""
-    receiver = TrapReceiver(address="127.0.0.1", port=1162, loop=event_loop, state=state_with_localhost)
-    receiver.add_community("public")
-    await receiver.open()
-    yield receiver
-    receiver.close()
-
-
 async def send_trap_externally(*args: str):
+    """Uses the snmptrap command line program to send a trap to the local trap receiver test instance on port 1162.
+
+    :param args: The arguments to pass to the snmptrap command line program, see `man snmptrap` for details on the
+                 rather esoteric syntax.
+    """
     args = " ".join(args)
     proc = await asyncio.create_subprocess_shell(f"snmptrap -v 2c -c public localhost:1162 '' {args}")
     await proc.communicate()

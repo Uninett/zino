@@ -21,7 +21,7 @@ from zino.statemodels import Event
 from zino.trapd import TrapReceiver
 
 # ensure all our desired trap observers are loaded.  They will not be explicitly referenced here, hence the noqa tag
-from zino.trapobservers import ignored_traps, logged_traps  # noqa
+from zino.trapobservers import ignored_traps, link_traps, logged_traps  # noqa
 
 STATE_DUMP_JOB_ID = "zino.dump_state"
 # Never try to dump state more often than this:

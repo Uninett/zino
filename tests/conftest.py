@@ -1,10 +1,15 @@
 import asyncio
+import ipaddress
 import os
 from shutil import which
 
 import pytest
 import pytest_asyncio
 from retry import retry
+
+from zino.state import ZinoState
+from zino.statemodels import DeviceState
+from zino.trapd import TrapReceiver
 
 
 @pytest.fixture
@@ -129,6 +134,25 @@ def snmp_fixture_directory():
 @pytest.fixture(scope="session")
 def snmp_test_port():
     yield 1024
+
+
+@pytest.fixture
+def state_with_localhost():
+    localhost = ipaddress.ip_address("127.0.0.1")
+    state = ZinoState()
+    state.devices.devices["localhost"] = DeviceState(name="localhost", addresses={localhost})
+    state.addresses[localhost] = "localhost"
+    yield state
+
+
+@pytest_asyncio.fixture
+async def localhost_receiver(state_with_localhost, event_loop) -> TrapReceiver:
+    """Yields a TrapReceiver instance with a standardized setup for running external tests on localhost"""
+    receiver = TrapReceiver(address="127.0.0.1", port=1162, loop=event_loop, state=state_with_localhost)
+    receiver.add_community("public")
+    await receiver.open()
+    yield receiver
+    receiver.close()
 
 
 def _verify_localhost_snmp_response(port: int):

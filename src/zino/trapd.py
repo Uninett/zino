@@ -4,7 +4,7 @@ import asyncio
 import logging
 from dataclasses import dataclass, field
 from ipaddress import ip_address
-from typing import Any, List, NamedTuple, Optional, Set
+from typing import Any, Dict, List, NamedTuple, Optional, Set
 
 from pysnmp.carrier.asyncio.dgram import udp
 from pysnmp.entity import config
@@ -12,9 +12,10 @@ from pysnmp.entity.rfc3413 import ntfrcv
 from pysnmp.proto.rfc1902 import ObjectName
 from pysnmp.smi import view
 
+import zino.state
+from zino.config.models import PollDevice
 from zino.oid import OID
 from zino.snmp import _mib_value_to_python, get_new_snmp_engine
-from zino.state import ZinoState
 from zino.statemodels import DeviceState, IPAddress
 
 TrapType = tuple[str, str]  # A mib name and a corresponding trap symbolic name
@@ -64,8 +65,18 @@ class TrapObserver:
 
     WANTED_TRAPS: Set[TrapType] = set()
 
-    def __init__(self, state: ZinoState, loop: Optional[asyncio.AbstractEventLoop] = None):
+    def __init__(
+        self,
+        state: zino.state.ZinoState,
+        polldevs: Optional[Dict[str, PollDevice]] = None,
+        loop: Optional[asyncio.AbstractEventLoop] = None,
+    ):
+        """Initializes a new trap observer with a reference to Zino's state.
+
+        Optionally also receives a reference to the current polldevs configuration and the running event loop.
+        """
         self.state = state
+        self.polldevs: Dict[str, PollDevice] = polldevs or zino.state.polldevs
         self.loop = loop if loop else asyncio.get_event_loop()
 
     def handle_trap(self, trap: TrapMessage) -> Optional[bool]:
@@ -91,13 +102,15 @@ class TrapReceiver:
         address: str = "0.0.0.0",
         port: int = 162,
         loop: Optional[asyncio.AbstractEventLoop] = None,
-        state: Optional[ZinoState] = None,
+        state: Optional[zino.state.ZinoState] = None,
+        polldevs: Optional[Dict[str, PollDevice]] = None,
     ):
         self.transport: udp.UdpTransport = None
         self.address = address
         self.port = port
         self.loop = loop if loop else asyncio.get_event_loop()
-        self.state = state or ZinoState()
+        self.state = state or zino.state.ZinoState()
+        self.polldevs = polldevs if polldevs is not None else {}
         self.snmp_engine = get_new_snmp_engine()
         self._communities = set()
         self._observers: dict[TrapType, List[TrapObserver]] = {}
@@ -112,7 +125,7 @@ class TrapReceiver:
                 continue
             else:
                 self._auto_subscribed_observers.add(observer_class)
-            observer_instance = observer_class(self.state, self.loop)
+            observer_instance = observer_class(state=self.state, polldevs=self.polldevs, loop=self.loop)
             self.observe(observer_instance, *observer_instance.WANTED_TRAPS)
 
     def observe(self, subscriber: TrapObserver, *trap_types: List[TrapType]):
