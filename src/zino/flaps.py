@@ -54,7 +54,11 @@ class FlappingState(BaseModel):
         self.last_flap = now()
 
     def age(self):
-        """Ages the flapping state of a port"""
+        """Ages the flapping state of a port.
+
+        This should be idempotent, i.e. it is time dependent and can be called whenever one pleases to update the
+        flap statistics of a port.
+        """
         timestamp = now()
 
         last = self.last_age or self.last_flap
@@ -134,6 +138,7 @@ async def age_single_interface_flapping_state(
     polldev = polldevs.get(router)
     port = state.devices.get(router).ports.get(ifindex) if router in state.devices else None
     if flap.hist_val < FLAP_MIN:
+        # Flapping stats aged below threshold, interface is no longer considered flapping
         if state.flapping.was_flapping(index):
             if port:
                 msg = f'{router}: intf "{port.ifdescr}" ix {ifindex} stopped flapping (aging)'
@@ -146,16 +151,12 @@ async def age_single_interface_flapping_state(
             #       Either way, we need to clarify why closed events need to be updated (which sounds strange to me)
             events: List[PortStateEvent] = [state.events.get_or_create_event(router, ifindex, PortStateEvent)]
             for event in events:
-                # If we lack information, revisit later
-                if not polldev:
-                    continue
-                if not polldev.address:
-                    continue
-                if not polldev.priority:
-                    continue
-                if not port:
+                # If we don't have all the necessary information, revisit later (this could mean that this was called
+                # just after process startup, before config or state was properly loaded)
+                if not (polldev and polldev.address and polldev.priority and port):
                     continue
 
+                # Original Zino comment says: Hm, if this is a new event, we need to set "state" and "opened".
                 event.flapstate = FlapState.STABLE
                 event.flaps = state.flapping.get_flap_count(index)
                 event.port = port.ifdescr
