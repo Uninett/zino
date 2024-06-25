@@ -200,6 +200,18 @@ class TestZino1BaseServerProtocol:
         responder, args = protocol._get_responder("-340-405??#$")
         assert responder is None
 
+    def test_when_multiple_responders_match_then_get_responder_should_return_the_longest_name_match(self):
+        class TestProtocol(Zino1BaseServerProtocol):
+            async def do_foo(self):
+                pass
+
+            async def do_foo_bar(self):
+                pass
+
+        protocol = TestProtocol()
+        responder, args = protocol._get_responder("FOO BAR")
+        assert responder.name == "FOO BAR"
+
     @pytest.mark.asyncio
     async def test_when_command_raises_unhandled_exception_then_error_response_should_be_sent(
         self, buffered_fake_transport
