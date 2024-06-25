@@ -1,8 +1,14 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
 
 from zino.config.models import PollDevice
 from zino.snmp import SNMP
-from zino.state import ZinoState
+
+if TYPE_CHECKING:
+    from zino.state import ZinoState
+
 from zino.statemodels import DeviceState
 
 
