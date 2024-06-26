@@ -141,13 +141,13 @@ class LinkStateTask(Task):
         self, ifindex: int, deadline: datetime.timedelta = datetime.timedelta(minutes=2), reason: str = "verify"
     ):
         """Schedules a verification of a single port at a given time in the future"""
-        when = datetime.datetime.now() + deadline
+        verification_time = datetime.datetime.now() + deadline
         job_name = f"{self.device.name}-{reason}-{ifindex}-state"
         self._scheduler.add_job(
             func=self.poll_single_interface,
             args=(ifindex,),
             trigger="date",
-            run_date=when,
+            run_date=verification_time,
             name=job_name,
         )
 
