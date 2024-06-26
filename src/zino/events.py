@@ -39,6 +39,7 @@ class Events(BaseModel):
     events: Dict[int, Union[PortStateEvent, BGPEvent, BFDEvent, ReachabilityEvent, AlarmEvent, Event]] = {}
     last_event_id: int = 0
     _events_by_index: Dict[EventIndex, Event] = {}
+    _closed_events_by_index: Dict[EventIndex, Event] = {}
     _observers: list[EventObserver] = []
 
     def __init__(self, *args, **kwargs):
@@ -52,16 +53,22 @@ class Events(BaseModel):
         return len(self.events)
 
     def _rebuild_indexes(self):
-        """Rebuilds the event index from the current dict of events.
+        """Rebuilds the event indexes from the current dict of events.
 
         Mostly useful when this object was constructed from dumped data, of which the index isn't a part.
         """
         new_index: Dict[EventIndex, Event] = {}
+        new_closed_index: Dict[EventIndex, Event] = {}
+
         for event in self.events.values():
+            key = EventIndex(event.router, event.subindex, type(event))
             if event.state != EventState.CLOSED:
-                key = EventIndex(event.router, event.subindex, type(event))
                 new_index[key] = event
+            else:
+                new_closed_index[key] = event
+
         self._events_by_index = new_index
+        self._closed_events_by_index = new_closed_index
 
     def get_or_create_event(
         self,
@@ -114,6 +121,13 @@ class Events(BaseModel):
         index = EventIndex(device_name, subindex, event_class)
         return self._events_by_index.get(index)
 
+    def get_closed_event(
+        self, device_name: str, subindex: SubIndex, event_class: Type[EventType]
+    ) -> Optional[EventType]:
+        """Returns a closed event based on its identifiers, None if no match was found"""
+        index = EventIndex(device_name, subindex, event_class)
+        return self._closed_events_by_index.get(index)
+
     def checkout(self, event_id: int) -> Event:
         """Checks out a copy of an event that can be freely modified without being persisted"""
         return self[event_id].model_copy(deep=True)
@@ -139,10 +153,11 @@ class Events(BaseModel):
         index = EventIndex(event.router, event.subindex, type(event))
         self.events[event.id] = event
 
-        # If event is set to closed, remove it from index and set updated
+        # If event is set to closed, move it to the closed index and set updated
         if event.state == EventState.CLOSED:
             if self._events_by_index.get(index) and event.id == self._events_by_index[index].id:
                 del self._events_by_index[index]
+                self._closed_events_by_index[index] = event
             event.updated = now()
         else:
             self._events_by_index[index] = event
@@ -156,6 +171,8 @@ class Events(BaseModel):
 
         event.dump_event_to_file(dir_name=f"{EVENT_DUMP_DIR}/{now().year}-{now().month}/{now().day}")
         index = EventIndex(event.router, event.subindex, type(event))
+        if self._closed_events_by_index.get(index) and event.id == self._closed_events_by_index[index].id:
+            del self._closed_events_by_index[index]
         if self._events_by_index.get(index) and event.id == self._events_by_index[index].id:
             _log.info("Closed event %s was still in event index, removing it now", event.id)
             del self._events_by_index[index]
