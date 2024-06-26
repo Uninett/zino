@@ -148,10 +148,13 @@ async def age_single_interface_flapping_state(
                 msg = f"{router}: ix {ifindex} stopped flapping (aging)"
             _logger.info(msg)
 
-            # TODO: At this point, Zino 1 looks both for matching events that are closed and that are open.
-            #       Zino 2 doesn't index closed events, so we either need to implement that, or search for them.
-            #       Either way, we need to clarify why closed events need to be updated (which sounds strange to me)
-            events: List[PortStateEvent] = [state.events.get_or_create_event(router, ifindex, PortStateEvent)]
+            # An operator may have closed a flapping port event prematurely, so we may need to update both the closed
+            # event and an open event, following Zino 1 logic:
+            events: List[PortStateEvent] = []
+            if event := state.events.get_closed_event(router, ifindex, PortStateEvent):
+                events.append(event)
+            if event := state.events.get_or_create_event(router, ifindex, PortStateEvent):
+                events.append(event)
             for event in events:
                 # If we don't have all the necessary information, revisit later (this could mean that this was called
                 # just after process startup, before config or state was properly loaded)
