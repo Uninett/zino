@@ -14,6 +14,16 @@ class TestEvents:
         events = Events()
         assert len(events) == 0
 
+    def test_when_instance_is_created_it_should_rebuild_indexes(self):
+        open_event = ReachabilityEvent(id=1, router="bar", state=EventState.OPEN)
+        closed_event = ReachabilityEvent(id=2, router="qux", state=EventState.CLOSED)
+        events = Events(events={1: open_event, 2: closed_event})
+
+        assert len(events._events_by_index) == 1
+        assert len(events._closed_events_by_index) == 1
+        assert open_event in events._events_by_index.values()
+        assert closed_event in events._closed_events_by_index.values()
+
     def test_create_event_should_return_event(self):
         events = Events()
         event = events.create_event("foobar", None, ReachabilityEvent)
@@ -115,7 +125,7 @@ class TestEvents:
         events.commit(event)
         assert event.state == EventState.OPEN
 
-    def test_commit_should_remove_event_from_index_when_closing_event(self):
+    def test_commit_should_remove_event_from_open_index_when_closing_event(self):
         identifiers = "foobar", None, ReachabilityEvent
         events = Events()
         event = events.get_or_create_event(*identifiers)
@@ -123,6 +133,15 @@ class TestEvents:
         event.set_state(EventState.CLOSED)
         events.commit(event)
         assert not events.get(*identifiers)
+
+    def test_commit_should_add_event_to_closed_index_when_closing_event(self):
+        identifiers = "foobar", None, ReachabilityEvent
+        events = Events()
+        event = events.get_or_create_event(*identifiers)
+        events.commit(event)
+        event.set_state(EventState.CLOSED)
+        events.commit(event)
+        assert events.get_closed_event(*identifiers) == event
 
     def test_commit_should_set_updated_when_closing_event(self):
         identifiers = "foobar", None, ReachabilityEvent
@@ -143,6 +162,19 @@ class TestEvents:
         with patch("zino.events.EVENT_DUMP_DIR", tmp_path):
             events.delete_expired_events()
         assert event.id not in events.events.keys()
+
+    def test_delete_expired_events_should_remove_them_from_closed_index(self, tmp_path):
+        events = Events()
+        index = EventIndex("foobar", None, ReachabilityEvent)
+        event = events.get_or_create_event(*index)
+        events.commit(event)
+        event.set_state(EventState.CLOSED)
+        events.commit(event)
+        assert events.get_closed_event(*index), "event wasn't added to closed index in the first place"
+        event.updated = now() - timedelta(days=1)
+        with patch("zino.events.EVENT_DUMP_DIR", tmp_path):
+            events.delete_expired_events()
+        assert not events.get_closed_event(*index)
 
     def test_delete_expired_events_should_not_delete_newly_closed_event(self, tmp_path):
         events = Events()
