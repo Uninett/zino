@@ -8,7 +8,7 @@ import re
 from collections.abc import Generator
 from enum import Enum
 from ipaddress import IPv4Address, IPv6Address
-from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, TypeVar, Union
 
 from pydantic import BaseModel, Field
 
@@ -21,6 +21,7 @@ if TYPE_CHECKING:
 IPAddress = Union[IPv4Address, IPv6Address]
 AlarmType = Literal["yellow", "red"]
 SubIndex = Union[None, int, IPAddress, AlarmType]
+EventType = TypeVar("EventType", bound="Event")
 
 _logger = logging.getLogger(__name__)
 

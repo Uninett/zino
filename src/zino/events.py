@@ -10,6 +10,7 @@ from zino.statemodels import (
     BGPEvent,
     Event,
     EventState,
+    EventType,
     PortStateEvent,
     ReachabilityEvent,
     SubIndex,
@@ -66,8 +67,8 @@ class Events(BaseModel):
         self,
         device_name: str,
         subindex: SubIndex,
-        event_class: Type[Event],
-    ) -> Event:
+        event_class: Type[EventType],
+    ) -> EventType:
         """Creates and returns a new event for the given event identifiers, or, if an event matching this identifier
         already exists in the index, returns that.
 
@@ -88,7 +89,7 @@ class Events(BaseModel):
             event = self.get(device_name, subindex, event_class)
             return self.checkout(event.id)
 
-    def create_event(self, device_name: str, subindex: SubIndex, event_class: Type[Event]) -> Event:
+    def create_event(self, device_name: str, subindex: SubIndex, event_class: Type[EventType]) -> EventType:
         """Creates a new event for the given event identifiers. If an event already exists for this combination of
         identifiers, an EventExistsError is raised.
 
@@ -108,7 +109,7 @@ class Events(BaseModel):
         _log.debug("created embryonic event %r", event)
         return event
 
-    def get(self, device_name: str, subindex: SubIndex, event_class: Type[Event]) -> Event:
+    def get(self, device_name: str, subindex: SubIndex, event_class: Type[EventType]) -> Optional[EventType]:
         """Returns an event based on its identifiers, None if no match was found"""
         index = EventIndex(device_name, subindex, event_class)
         return self._events_by_index.get(index)
