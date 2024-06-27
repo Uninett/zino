@@ -16,7 +16,6 @@ import tzlocal
 from zino import state
 from zino.api.server import ZinoServer
 from zino.config import read_configuration
-from zino.config.models import DEFAULT_INTERVAL_MINUTES
 from zino.scheduler import get_scheduler, load_and_schedule_polldevs
 from zino.statemodels import Event
 from zino.trapd import TrapReceiver
@@ -75,9 +74,13 @@ def init_event_loop(args: argparse.Namespace, loop: Optional[AbstractEventLoop] 
         minutes=1,
         next_run_time=datetime.now(),
     )
-    # Schedule state dumping every DEFAULT_INTERVAL_MINUTES and reschedule whenever events are committed
+    # Schedule state dumping as often as configured in
+    # 'config.persistence.period' and reschedule whenever events are committed
     scheduler.add_job(
-        func=state.state.dump_state_to_file, trigger="interval", id=STATE_DUMP_JOB_ID, minutes=DEFAULT_INTERVAL_MINUTES
+        func=state.state.dump_state_to_file,
+        trigger="interval",
+        id=STATE_DUMP_JOB_ID,
+        minutes=state.config.persistence.period,
     )
     # Schedule planned maintenance
     scheduler.add_job(
