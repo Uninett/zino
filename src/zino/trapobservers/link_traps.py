@@ -49,10 +49,6 @@ class LinkTrapObserver(TrapObserver):
             )
             return False
 
-        # TODO: The trap *might* contain an ifDescr value.  If present, Zino uses that for trap processing.
-        #  Otherwise, it fetches ifDescr from its own state and uses that for trap processing.  Either way,
-        #  there seems to be some redundancy. We should document why, or change the behavior in Zino 2
-
         # The legacy Zino also looks for `locIfDescr` in the trap at this point, but this is an ancient
         # Cisco-specific variable we no longer see.  It might have been replaced by `cieIfOperStatusCause`,
         # but we have no more Cisco devices to test on, so this has been deliberately left out.
@@ -142,7 +138,7 @@ class LinkTrapObserver(TrapObserver):
             if polldev := self.polldevs.get(device.name):
                 event.polladdr = polldev.address
                 event.priority = polldev.priority
-            event.descr = port.ifalias  # or value received from trap? see ldescr from legacy Zino
+            event.descr = port.ifalias
 
             event.flaps = self.state.flapping.get_flap_count(index)
             if index in self.state.flapping:
