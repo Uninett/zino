@@ -6,6 +6,7 @@ import logging
 
 from zino.config.polldevs import read_polldevs
 from zino.snmp import SNMP
+from zino.state import config
 
 _log = logging.getLogger(__name__)
 
@@ -19,7 +20,7 @@ def main():
 
 
 async def run(args: argparse.Namespace):
-    devices = {d.name: d for d in read_polldevs("polldevs.cf")}
+    devices = {d.name: d for d in read_polldevs(config.polling.file)}
     device = devices[args.router]
 
     snmp = SNMP(device)
@@ -28,8 +29,8 @@ async def run(args: argparse.Namespace):
 
 
 def parse_args():
-    devicenames = [d.name for d in read_polldevs("polldevs.cf")]
-    parser = argparse.ArgumentParser(description="Fetch sysUptime from a device in polldevs.cf")
+    devicenames = [d.name for d in read_polldevs(config.polling.file)]
+    parser = argparse.ArgumentParser(description="Fetch sysUptime from a device in the pollfile")
     parser.add_argument("router", type=str, help="Zino router name", choices=devicenames)
     return parser.parse_args()
 
