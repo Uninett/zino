@@ -93,7 +93,7 @@ class TrapReceiver:
 
     A major difference to Zino 1 is that this receiver must explicitly be configured with SNMP community strings that
     will be accepted.  Zino 1 accepts traps with any community string, as long as their origin is any one of the
-    devices configured in `polldevs.cf`.  However, PySNMP places heavy emphasis on being standards compliant,
+    devices configured in the pollfile.  However, PySNMP places heavy emphasis on being standards compliant,
     and will not even pass on traps to our callbacks unless they match the authorization config for the SNMP engine.
     """
 
