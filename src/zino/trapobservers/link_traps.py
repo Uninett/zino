@@ -157,6 +157,9 @@ class LinkTrapObserver(TrapObserver):
             event.add_log(msg)
             self.state.events.commit(event)
 
+            if not polldev:
+                _logger.warning("No polldev config found for %s", device.name)
+                return
             poll = LinkStateTask(device=polldev, state=self.state)
             poll.schedule_verification_of_single_port(port.ifindex, deadline=FIRST_REVERIFICATION, reason="trap-verify")
             poll.schedule_verification_of_single_port(
