@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Callable, List, Optional, Union
 from zino import version
 from zino.api import auth
 from zino.api.notify import Zino1NotificationProtocol
+from zino.events import EventIndex
 from zino.state import ZinoState
 from zino.statemodels import ClosedEventError, Event, EventState
 
@@ -392,3 +393,19 @@ class ZinoTestProtocol(Zino1ServerProtocol):
         that exceptions that go unhandled by a command responder is handled by the protocol engine.
         """
         1 / 0  # noqa
+
+    @requires_authentication
+    @Zino1ServerProtocol._translate_case_id_to_event
+    async def do_deleteevent(self, event: Event):
+        """Implements an DELETEEVENT command that did not exist in the Zino 1 protocol. This is just used for testing
+        the frontend.
+        """
+        events = self._state.events
+
+        index = EventIndex(event.router, event.subindex, type(event))
+
+        if events._events_by_index.get(index) and event.id == events._events_by_index[index].id:
+            del events._events_by_index[index]
+        del events.events[event.id]
+
+        return self._respond_ok(f"event {event.id} deleted")
