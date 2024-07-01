@@ -11,13 +11,24 @@ import re
 import textwrap
 from functools import wraps
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, List, Optional, Union
+from typing import TYPE_CHECKING, Callable, List, Optional, Union, get_args
 
 from zino import version
 from zino.api import auth
 from zino.api.notify import Zino1NotificationProtocol
 from zino.state import ZinoState
-from zino.statemodels import ClosedEventError, Event, EventState
+from zino.statemodels import (
+    AlarmEvent,
+    AlarmType,
+    BFDEvent,
+    BGPEvent,
+    ClosedEventError,
+    Event,
+    EventState,
+    PortStateEvent,
+    ReachabilityEvent,
+)
+from zino.utils import parse_ip
 
 if TYPE_CHECKING:
     from zino.api.server import ZinoServer
@@ -392,3 +403,61 @@ class ZinoTestProtocol(Zino1ServerProtocol):
         that exceptions that go unhandled by a command responder is handled by the protocol engine.
         """
         1 / 0  # noqa
+
+    @requires_authentication
+    async def do_fakeevent(self, device_name: str, subindex: Optional[str], event_class_name: str, event_state: str):
+        """Implements an FAKEEVENT command that did not exist in the Zino 1 protocol. This is just used for testing the
+        frontend.
+        """
+        event_subclasses = {event_c.model_fields["type"].default: event_c for event_c in Event.__subclasses__()}
+        event_class_name = event_class_name.lower()
+
+        if event_class_name not in event_subclasses.keys():
+            return self._respond_error(
+                f"Given event class type not in available event class types: {event_subclasses.keys()}"
+            )
+
+        try:
+            event_state = EventState(event_state)
+        except ValueError:
+            return self._respond_error(
+                f"Given event state {event_state} not in available event states: {[state.value for state in EventState]}"
+            )
+
+        events = self._state.events
+        event_class = event_subclasses[event_class_name]
+
+        if event_class == AlarmEvent and subindex not in get_args(AlarmType):
+            return self._respond_error(
+                f"Given subindex {subindex} is not a valid alarm type. Valid alarm types: {get_args(AlarmType)}"
+            )
+        if event_class in [BFDEvent, PortStateEvent]:
+            try:
+                subindex = int(subindex)
+            except ValueError:
+                return self._respond_error(f"Given subindex {subindex} is not a number.")
+        if event_class == BGPEvent:
+            try:
+                subindex = parse_ip(subindex)
+            except ValueError:
+                return self._respond_error(f"Given subindex {subindex} is not an IP address.")
+        if event_class == ReachabilityEvent:
+            subindex = None
+
+        if events.get(device_name=device_name, subindex=subindex, event_class=event_class):
+            return self._respond_error("An event with the given parameters already exists.")
+
+        event = events.create_event(device_name=device_name, subindex=subindex, event_class=event_class)
+
+        if event_class == AlarmEvent:
+            event.alarm_type = subindex
+        if event_class in [BFDEvent, PortStateEvent]:
+            event.ifindex = subindex
+        if event_class == BGPEvent:
+            event.remote_addr = subindex
+
+        event.set_state(event_state)
+
+        events.commit(event=event)
+
+        return self._respond_ok(f"event created with id {event.id}")
