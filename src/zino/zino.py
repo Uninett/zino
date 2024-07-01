@@ -13,7 +13,7 @@ from typing import Optional
 
 import tzlocal
 
-from zino import state
+from zino import flaps, state
 from zino.api.server import ZinoServer
 from zino.config.models import DEFAULT_INTERVAL_MINUTES
 from zino.scheduler import get_scheduler, load_and_schedule_polldevs
@@ -82,7 +82,14 @@ def init_event_loop(args: argparse.Namespace, loop: Optional[AbstractEventLoop] 
         minutes=1,
         next_run_time=datetime.now(),
     )
-
+    # Schedule periodic flap statistics aging
+    scheduler.add_job(
+        func=flaps.age_flapping_states,
+        args=(state.state, state.polldevs),
+        trigger="interval",
+        seconds=flaps.FLAP_DECREMENT_INTERVAL_SECONDS,
+        next_run_time=datetime.now(),
+    )
     state.state.events.add_event_observer(reschedule_dump_state_on_commit)
     state.state.planned_maintenances.add_pm_observer(reschedule_dump_state_on_pm_change)
 
