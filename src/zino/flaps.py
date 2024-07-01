@@ -147,7 +147,7 @@ class FlappingStates(BaseModel):
 
 async def age_flapping_states(state: ZinoState, polldevs: dict[str, PollDevice]):
     """Ages all flapping states in the given ZinoState.  Should be called every FLAP_DECREMENT_INTERVAL_SECONDS."""
-    for index, flap in state.flapping.interfaces.items():
+    for index, flap in list(state.flapping.interfaces.items()):
         await age_single_interface_flapping_state(flap, index, state, polldevs)
 
 
