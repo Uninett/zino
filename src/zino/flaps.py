@@ -51,7 +51,7 @@ class FlappingState(BaseModel):
     flaps: int = 0
     last_age: Optional[datetime] = None
     flapped_above_threshold: bool = False
-    flapping: bool = False
+    in_active_flap_state: bool = False
 
     def update(self):
         """Updates flap stats for a single port.  Called when a link trap is processed."""
@@ -101,6 +101,11 @@ class FlappingStates(BaseModel):
         return self.interfaces.pop(interface)
 
     def is_flapping(self, interface: PortIndex) -> bool:
+        """Returns True if the current stats indicate that the interface has crossed the flapping threshold.
+
+        This is not the same as 'a flapping state has been declared', but is an indicator that such a state could
+        now be declared.
+        """
         if interface not in self.interfaces:
             return False
 

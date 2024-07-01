@@ -85,7 +85,7 @@ class LinkTrapObserver(TrapObserver):
 
         if self.state.flapping.is_flapping(index):
             event: PortStateEvent = None
-            if index not in self.state.flapping:
+            if not self.state.flapping.interfaces.get(index).in_active_flap_state:
                 # Not previously known to be flapping -- open an event for it
                 event = self.state.events.get_or_create_event(device.name, port.ifindex, PortStateEvent)
 
@@ -110,7 +110,8 @@ class LinkTrapObserver(TrapObserver):
                 event.add_log(msg)
                 self.state.events.commit(event)
 
-                self.state.flapping.first_flap(index)
+                if index in self.state.flapping.interfaces:
+                    self.state.flapping.interfaces[index].in_active_flap_state = True
 
             if not event:
                 event = self.state.events.get(device.name, port.ifindex, PortStateEvent)
