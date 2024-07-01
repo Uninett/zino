@@ -6,7 +6,7 @@ from zino.scheduler import get_scheduler
 from zino.snmp import SparseWalkResponse
 from zino.statemodels import BFDEvent, BFDSessState, BFDState, Port
 from zino.tasks.task import Task
-from zino.utils import parse_ip
+from zino.utils import parse_ip, reverse_dns
 
 _log = logging.getLogger(__name__)
 
@@ -38,34 +38,34 @@ class BFDTask(Task):
     async def run(self):
         if self.device_state.is_juniper:
             polled_state = await self._poll_juniper()
-            self._update_state_for_all_ports_juniper(polled_state)
+            await self._update_state_for_all_ports_juniper(polled_state)
         elif self.device_state.is_cisco:
             polled_state = await self._poll_cisco()
-            self._update_state_for_all_ports_cisco(polled_state)
+            await self._update_state_for_all_ports_cisco(polled_state)
 
-    def _update_state_for_all_ports_juniper(self, polled_state: DescrBFDStates):
+    async def _update_state_for_all_ports_juniper(self, polled_state: DescrBFDStates):
         for port in self.device_state.ports.values():
             new_state = polled_state.get(port.ifdescr)
             if new_state:
-                self._update_state(port, new_state)
+                await self._update_state(port, new_state)
 
-    def _update_state_for_all_ports_cisco(self, polled_state: IndexBFDStates):
+    async def _update_state_for_all_ports_cisco(self, polled_state: IndexBFDStates):
         for port in self.device_state.ports.values():
             new_state = polled_state.get(port.ifindex)
             if new_state:
-                self._update_state(port, new_state)
+                await self._update_state(port, new_state)
 
-    def _update_state(self, port: Port, new_state: BFDState):
+    async def _update_state(self, port: Port, new_state: BFDState):
         """Updates the BFD state for a port. Will create or update BFD events depending on the state changes"""
         if port.bfd_state:
             if port.bfd_state.session_state != new_state.session_state:
-                self._create_or_update_event(port, new_state)
+                await self._create_or_update_event(port, new_state)
         elif new_state.session_state != BFDSessState.UP:
-            self._create_or_update_event(port, new_state)
+            await self._create_or_update_event(port, new_state)
 
         port.bfd_state = new_state
 
-    def _create_or_update_event(self, port: Port, new_state: BFDState):
+    async def _create_or_update_event(self, port: Port, new_state: BFDState):
         event = self.state.events.get_or_create_event(self.device.name, port.ifindex, BFDEvent)
 
         event.ifindex = port.ifindex
@@ -75,6 +75,9 @@ class BFDTask(Task):
         event.bfdix = new_state.session_index
         event.bfddiscr = new_state.session_discr
         event.bfdaddr = new_state.session_addr
+
+        if event.bfdaddr:
+            event.neigh_rdns = await reverse_dns(str(event.bfdaddr))
 
         log = f"changed BFD state to {new_state.session_state} on port {port.ifdescr} on device {self.device.name}"
         event.lastevent = log
