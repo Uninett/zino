@@ -14,7 +14,6 @@ from typing_extensions import Annotated
 
 from zino.config.models import PollDevice
 from zino.statemodels import FlapState, InterfaceState, PortStateEvent
-from zino.tasks.linkstatetask import LinkStateTask
 
 if TYPE_CHECKING:
     from zino.state import ZinoState
@@ -199,6 +198,10 @@ async def age_single_interface_flapping_state(
 
             old_state = port.state
             port.state = InterfaceState.FLAPPING
+
+            # Local import to avoid circular import
+            from zino.tasks.linkstatetask import LinkStateTask
+
             poll = LinkStateTask(device=polldev, state=state)
             try:
                 await poll.poll_single_interface(ifindex)
