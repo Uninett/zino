@@ -75,6 +75,10 @@ class FlappingState(BaseModel):
         new_hist_val = self.hist_val ** (FLAP_DECREMENT**delta)
         self.hist_val = min(new_hist_val, FLAP_CEILING)
 
+    def is_below_threshold(self):
+        """Returns True if the current flap value is below the flapping threshold"""
+        return self.hist_val < FLAP_THRESHOLD
+
 
 class FlappingStates(BaseModel):
     """Contains all runtime stats for flapping states"""
@@ -82,6 +86,10 @@ class FlappingStates(BaseModel):
     interfaces: dict[PortIndex, FlappingState] = {}
 
     def update_interface_flap(self, interface: PortIndex):
+        """Updates the flapping stats for a port.
+
+        If the port is not already being tracked, it initializes the stats for it.
+        """
         if interface not in self.interfaces:
             self.first_flap(interface)
             return
@@ -90,6 +98,7 @@ class FlappingStates(BaseModel):
         flap.update()
 
     def first_flap(self, interface: PortIndex) -> FlappingState:
+        """Initializes flapping stats for a port the first time a link trap is received for it"""
         flap = FlappingState(
             hist_val=FLAP_INIT_VAL,
             flaps=1,
@@ -98,6 +107,7 @@ class FlappingStates(BaseModel):
         return flap
 
     def unflap(self, interface: PortIndex) -> FlappingState:
+        """Removes all flapping stats tracking for a port"""
         return self.interfaces.pop(interface)
 
     def is_flapping(self, interface: PortIndex) -> bool:
@@ -146,11 +156,12 @@ async def age_flapping_states(state: ZinoState, polldevs: dict[str, PollDevice])
 async def age_single_interface_flapping_state(
     flap: FlappingState, index: PortIndex, state: ZinoState, polldevs: dict[str, PollDevice]
 ) -> None:
+    """Ages a single interface's flapping state, and updates events if it is no longer flapping."""
     flap.age()
     router, ifindex = index
     polldev = polldevs.get(router)
     port = state.devices.get(router).ports.get(ifindex) if router in state.devices else None
-    if flap.hist_val < FLAP_MIN:
+    if flap.is_below_threshold():
         # Flapping stats aged below threshold, interface is no longer considered flapping
         if state.flapping.was_flapping(index):
             if port:
