@@ -9,7 +9,8 @@ import logging
 from datetime import datetime
 from typing import TYPE_CHECKING, List, Optional, Tuple
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, BeforeValidator, Field, PlainSerializer
+from typing_extensions import Annotated
 
 from zino.config.models import PollDevice
 from zino.statemodels import FlapState, InterfaceState, PortStateEvent
@@ -33,7 +34,12 @@ FLAP_DECREMENT_INTERVAL_SECONDS = 300
 
 DeviceName = str
 InterfaceIndex = int
-PortIndex = Tuple[DeviceName, InterfaceIndex]
+PortIndex = Annotated[
+    Tuple[DeviceName, InterfaceIndex],
+    # Apply customized Pydantic serializing logic to the tuple, which will be used as dict keys
+    PlainSerializer(lambda x: f"{x[0]}:{x[1]}", return_type=str, when_used="json"),
+    BeforeValidator(lambda x: x.split(":") if isinstance(x, str) else x),
+]
 
 
 class FlappingState(BaseModel):
