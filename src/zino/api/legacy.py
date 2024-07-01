@@ -11,7 +11,7 @@ import re
 import textwrap
 from functools import wraps
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, List, Optional, Union
+from typing import TYPE_CHECKING, Callable, List, NamedTuple, Optional, Union
 
 from zino import version
 from zino.api import auth
@@ -23,6 +23,14 @@ if TYPE_CHECKING:
     from zino.api.server import ZinoServer
 
 _logger = logging.getLogger(__name__)
+
+
+class Responder(NamedTuple):
+    """A record that maps a command "name" and a regexp pattern to a function"""
+
+    name: str
+    pattern: re.Pattern
+    function: Callable
 
 
 def requires_authentication(func: Callable) -> Callable:
@@ -56,6 +64,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         self._multiline_future: asyncio.Future = None
         self._multiline_buffer: List[str] = []
         self._authentication_challenge: Optional[str] = None
+        self._responders = self._get_all_responders()
 
         self._state = state if state is not None else ZinoState()
         self._secrets_file = secrets_file
@@ -116,27 +125,26 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
 
         if not message:
             return
-        args = message.split(" ")
-        return self._dispatch_command(*args)
+        return self._dispatch_command(message)
 
-    def _dispatch_command(self, command, *args):
-        responder = self._get_responder(command)
+    def _dispatch_command(self, message: str):
+        responder, args = self._get_responder(message)
         if not responder:
-            return self._respond_error(f'unknown command: "{command}"')
+            return self._respond_error(f'unknown command: "{message}"')
 
-        if getattr(responder, "requires_authentication", False) and not self.is_authenticated:
+        if getattr(responder.function, "requires_authentication", False) and not self.is_authenticated:
             return self._respond_error("Not authenticated")
 
-        required_args = inspect.signature(responder).parameters
+        required_args = inspect.signature(responder.function).parameters
         if len(args) < len(required_args):
             arg_summary = " (" + ", ".join(required_args.keys()) + ")" if required_args else ""
-            return self._respond_error(f"{command} needs {len(required_args)} parameters{arg_summary}")
+            return self._respond_error(f"{responder.name} needs {len(required_args)} parameters{arg_summary}")
         elif len(args) > len(required_args):
             garbage_args = args[len(required_args) :]
             _logger.debug("client %s sent %r, ignoring garbage args at end: %r", self.peer_name, args, garbage_args)
             args = args[: len(required_args)]
 
-        self._current_task = asyncio.create_task(self._run_async_responder(command, responder, *args))
+        self._current_task = asyncio.create_task(self._run_async_responder(responder.name, responder.function, *args))
         return self._current_task
 
     async def _run_async_responder(self, command: str, responder: Callable, *args):
@@ -149,20 +157,28 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         finally:
             self._current_task = None
 
-    def _get_responder(self, command: str):
-        if not command.isalpha():
-            return
+    def _get_responder(self, message: str) -> tuple[Optional[Responder], List[str]]:
+        matches = ((responder.pattern.match(message), responder) for responder in self._responders.values())
+        matches = ((match, responder) for match, responder in matches if match)
+        # for multiple matches, always match the longest command first:
+        matches = sorted(matches, key=lambda x: len(x[0].group("command")), reverse=True)
+        for match, responder in matches:
+            args = match.group("args")
+            args = args.split(" ") if args else []
+            return responder, args
+        return None, []
 
-        func = getattr(self, f"do_{command.lower()}", None)
-        if callable(func):
-            return func
-
-    def _get_all_responders(self) -> dict[str, Callable]:
+    def _get_all_responders(self) -> dict[str, Responder]:
         eligible = {
             name: getattr(self, name) for name in dir(self) if name.startswith("do_") and callable(getattr(self, name))
         }
-        commands = {name: re.sub(r"^do_", "", name).upper() for name in eligible}
-        return {commands[name]: responder for name, responder in eligible.items()}
+        commands = {name: re.sub(r"^do_", "", name).upper().replace("_", " ") for name in eligible}
+        return {
+            commands[name]: Responder(
+                commands[name], re.compile(rf"(?P<command>{commands[name]})\b\s*(?P<args>.*)", re.IGNORECASE), responder
+            )
+            for name, responder in eligible.items()
+        }
 
     def _read_multiline(self) -> asyncio.Future:
         """Sets the protocol in multline input mode and returns a Future that will trigger once multi-line input is
@@ -219,13 +235,15 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         self.transport.close()
 
     async def do_help(self):
-        responders = self._get_all_responders()
-        if not self.is_authenticated:
-            responders = {
-                name: func for name, func in responders.items() if not getattr(func, "requires_authentication", False)
-            }
+        """Lists all available top-level API commands"""
+        top_level_responders = (responder for responder in self._responders.values() if " " not in responder.name)
+        authorized_responders = (
+            responder
+            for responder in top_level_responders
+            if self.is_authenticated or not getattr(responder.function, "requires_authentication", False)
+        )
 
-        commands = " ".join(sorted(responders))
+        commands = " ".join(sorted(responder.name for responder in authorized_responders))
         self._respond_multiline(200, ["commands are:"] + textwrap.wrap(commands, width=56))
 
     async def do_version(self):
