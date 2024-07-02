@@ -195,12 +195,12 @@ def test_addresses_should_be_set_correctly(save_state_path):
 @pytest.fixture
 def save_state_path():
     this_directory = os.path.dirname(__file__)
-    state_file = os.path.join(this_directory, "tcl_fixtures", "zino1_state.tcl")
+    state_file = os.path.join(this_directory, "fixtures", "zino1_state.tcl")
     return state_file
 
 
 @pytest.fixture
 def invalid_event_save_state_path():
     this_directory = os.path.dirname(__file__)
-    state_file = os.path.join(this_directory, "tcl_fixtures", "zino1_state_invalid_event_attr.tcl")
+    state_file = os.path.join(this_directory, "fixtures", "zino1_state_invalid_event_attr.tcl")
     return state_file
