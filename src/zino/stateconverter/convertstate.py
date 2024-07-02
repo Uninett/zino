@@ -3,10 +3,34 @@ import logging
 
 from zino.state import ZinoState
 from zino.stateconverter.linedata import LineData, get_line_data
+from zino.statemodels import CISCO_ENTERPRISE_ID, JUNIPER_ENTERPRISE_ID
 
 
 def create_state(old_state_file: str) -> ZinoState:
-    pass
+    new_state = ZinoState()
+    old_state = load_state_to_dict(old_state_file)
+
+    # Set vendor state
+    for linedata in old_state["::isJuniper"]:
+        set_is_juniper(linedata, new_state)
+    for linedata in old_state["::isCisco"]:
+        set_is_cisco(linedata, new_state)
+
+    return new_state
+
+
+def set_is_cisco(linedata: LineData, state: ZinoState):
+    is_cisco = bool(int(linedata.value))
+    device = state.devices.get(linedata.identifiers[0])
+    if is_cisco:
+        device.enterprise_id = CISCO_ENTERPRISE_ID
+
+
+def set_is_juniper(linedata: LineData, state: ZinoState):
+    is_juniper = bool(int(linedata.value))
+    device = state.devices.get(linedata.identifiers[0])
+    if is_juniper:
+        device.enterprise_id = JUNIPER_ENTERPRISE_ID
 
 
 def load_state_to_dict(file: str) -> dict[str, list[LineData]]:
