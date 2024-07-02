@@ -42,6 +42,24 @@ def test_zino_should_not_crash_right_away(polldevs_conf_with_no_routers):
     )
 
 
+def test_zino_should_run_with_pollfile_name_in_config_file(polldevs_conf_with_no_routers, zino_non_default_conf):
+    """This tests that the main function runs Zino for at least 2 seconds when
+    the name of the pollfile is defined in the config file
+    """
+    seconds_to_run_for = 2
+    subprocess.check_call(
+        [
+            "zino",
+            "--stop-in",
+            str(seconds_to_run_for),
+            "--config-file",
+            str(zino_non_default_conf),
+            "--trap-port",
+            "1162",
+        ]
+    )
+
+
 def test_zino_argparser_works(polldevs_conf):
     parser = zino.parse_args(["--polldevs", str(polldevs_conf)])
     assert isinstance(parser, Namespace)

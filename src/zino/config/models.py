@@ -1,13 +1,26 @@
 """Zino configuration models"""
 
+import os.path
 from ipaddress import IPv4Address, IPv6Address
 from typing import Optional, Union
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
+from pydantic.functional_validators import AfterValidator
+from typing_extensions import Annotated
 
 DEFAULT_INTERVAL_MINUTES = 5
+STATE_FILENAME = "zino-state.json"
+EVENT_DUMP_DIR = "old-events"
 
 IPAddress = Union[IPv4Address, IPv6Address]
+
+
+def validate_file_exists(filename: str) -> str:
+    assert os.path.isfile(filename), f"File {filename} does not exist."
+    return filename
+
+
+ExistingFileName = Annotated[str, AfterValidator(validate_file_exists)]
 
 
 # config fields and default values from
@@ -30,3 +43,40 @@ class PollDevice(BaseModel):
     hcounters: bool = False
     do_bgp: bool = True
     port: int = 161
+
+
+class Archiving(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    old_events_dir: str = EVENT_DUMP_DIR
+
+
+class Authentication(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    file: ExistingFileName = "secrets"
+
+
+class Persistence(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    file: str = STATE_FILENAME
+    period: int = DEFAULT_INTERVAL_MINUTES
+
+
+class Polling(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    file: ExistingFileName = "polldevs.cf"
+    period: int = 1
+
+
+class Configuration(BaseModel):
+    """Class for keeping track of the configuration set by zino.toml"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    archiving: Archiving = Archiving()
+    authentication: Authentication = Authentication()
+    persistence: Persistence = Persistence()
+    polling: Polling = Polling()

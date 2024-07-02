@@ -1,0 +1,27 @@
+[archiving]
+# Path to directory where dumps of expired events are saved
+# default "old-events"
+old_events_dir = "old-events"
+
+[authentication]
+# Path to the file containing user accounts and secrets for the Zino API
+# default "secrets"
+file = "secrets"
+
+[persistence]
+# Path to where the persistent Zino state should be saved
+# default "zino-state.json"
+file = "zino-state.json"
+
+# How often the persistent Zino state should be saved, in minutes
+# default 5 min
+period = 5
+
+[polling]
+# Path to a pollfile, the list of routers to monitor and related configuration
+# default "polldevs.cf"
+file = "polldevs.cf"
+
+# How often the pollfile is read, in minutes
+# default 1 min
+period = 1

@@ -15,7 +15,8 @@ import tzlocal
 
 from zino import state
 from zino.api.server import ZinoServer
-from zino.config.models import DEFAULT_INTERVAL_MINUTES
+from zino.config import read_configuration
+from zino.config.models import validate_file_exists
 from zino.scheduler import get_scheduler, load_and_schedule_polldevs
 from zino.statemodels import Event
 from zino.trapd import TrapReceiver
@@ -35,7 +36,13 @@ def main():
         level=logging.INFO if not args.debug else logging.DEBUG,
         format="%(asctime)s - %(levelname)s - %(name)s (%(threadName)s) - %(message)s",
     )
-    state.state = state.ZinoState.load_state_from_file() or state.ZinoState()
+    state.config = read_configuration(args.config_file.name if args.config_file else None)
+    # Polldevs by command line argument will override config file entry
+    if args.polldevs:
+        state.config.polling.file = args.polldevs.name
+    else:
+        validate_file_exists(state.config.polling.file)
+    state.state = state.ZinoState.load_state_from_file(state.config.persistence.file) or state.ZinoState()
     init_event_loop(args)
 
 
@@ -66,13 +73,18 @@ def init_event_loop(args: argparse.Namespace, loop: Optional[AbstractEventLoop] 
     scheduler.add_job(
         func=load_and_schedule_polldevs,
         trigger="interval",
-        args=(args.polldevs.name,),
-        minutes=1,
+        args=(args.polldevs.name if args.polldevs else state.config.polling.file,),
+        minutes=state.config.polling.period,
         next_run_time=datetime.now(),
     )
-    # Schedule state dumping every DEFAULT_INTERVAL_MINUTES and reschedule whenever events are committed
+    # Schedule state dumping as often as configured in
+    # 'config.persistence.period' and reschedule whenever events are committed
     scheduler.add_job(
-        func=state.state.dump_state_to_file, trigger="interval", id=STATE_DUMP_JOB_ID, minutes=DEFAULT_INTERVAL_MINUTES
+        func=state.state.dump_state_to_file,
+        trigger="interval",
+        args=(state.config.persistence.file,),
+        id=STATE_DUMP_JOB_ID,
+        minutes=state.config.persistence.period,
     )
     # Schedule planned maintenance
     scheduler.add_job(
@@ -179,7 +191,18 @@ def reschedule_dump_state(log_msg: str) -> None:
 def parse_args(arguments=None):
     parser = argparse.ArgumentParser(description="Zino is not OpenView")
     parser.add_argument(
-        "--polldevs", type=argparse.FileType("r"), metavar="PATH", default="polldevs.cf", help="Path to polldevs.cf"
+        "--polldevs",
+        type=argparse.FileType("r"),
+        metavar="PATH",
+        required=False,
+        help="Path to the pollfile",
+    )
+    parser.add_argument(
+        "--config-file",
+        type=argparse.FileType("r"),
+        metavar="PATH",
+        required=False,
+        help="Path to zino configuration file",
     )
     parser.add_argument(
         "--debug", action="store_true", default=False, help="Set global log level to DEBUG. Very chatty!"
@@ -199,6 +222,8 @@ def parse_args(arguments=None):
     args = parser.parse_args(args=arguments)
     if args.polldevs:
         args.polldevs.close()  # don't leave this temporary file descriptor open
+    if args.config_file:
+        args.config_file.close()  # don't leave this temporary file descriptor open
     return args
 
 

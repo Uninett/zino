@@ -19,3 +19,4 @@ old-events/
 # avoid accidental commits of config and state files
 polldevs.cf
 zino-state.json
+zino.toml
