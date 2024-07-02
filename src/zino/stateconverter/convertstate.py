@@ -5,6 +5,7 @@ from collections import defaultdict
 from zino.state import ZinoState
 from zino.stateconverter.bfd_converter import set_bfd_state
 from zino.stateconverter.bgp_converter import set_bgp_state
+from zino.stateconverter.event_converter import set_event_state
 from zino.stateconverter.linedata import LineData, get_line_data
 from zino.stateconverter.utils import OldState
 from zino.statemodels import CISCO_ENTERPRISE_ID, JUNIPER_ENTERPRISE_ID
@@ -17,6 +18,7 @@ def create_state(old_state_file: str) -> ZinoState:
 
     set_bfd_state(old_state, new_state)
     set_bgp_state(old_state, new_state)
+    set_event_state(old_state, new_state)
 
     # Set vendor state
     for linedata in old_state["::isJuniper"]:
