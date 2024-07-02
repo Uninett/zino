@@ -1,5 +1,10 @@
+import ipaddress
+from asyncio import Future
 from datetime import timedelta
 
+import pytest
+
+from zino.config.models import PollDevice
 from zino.flaps import (
     FLAP_CEILING,
     FLAP_INIT_VAL,
@@ -7,7 +12,11 @@ from zino.flaps import (
     FLAP_THRESHOLD,
     FlappingState,
     FlappingStates,
+    age_single_interface_flapping_state,
 )
+from zino.state import ZinoState
+from zino.statemodels import Port
+from zino.tasks.linkstatetask import LinkStateTask
 from zino.time import now
 
 
@@ -135,3 +144,59 @@ class TestFlappingStates:
         flapping_states = FlappingStates()
 
         assert flapping_states.get_flap_value(1) == 0
+
+
+class TestAgeSingleInterfaceFlappingState:
+    @pytest.mark.asyncio
+    async def test_it_should_decrease_hist_val(self, state_with_flapstats, polldevs_dict):
+        port: Port = next(iter(state_with_flapstats.devices.devices["localhost"].ports.values()))
+        flapping_state = state_with_flapstats.flapping.interfaces[("localhost", port.ifindex)]
+        initial = flapping_state.hist_val
+
+        await age_single_interface_flapping_state(
+            flapping_state, ("localhost", port.ifindex), state=state_with_flapstats, polldevs=polldevs_dict
+        )
+        assert flapping_state.hist_val < initial
+
+    @pytest.mark.asyncio
+    async def test_when_flap_is_below_threshold_it_should_create_an_event(
+        self, monkeypatch, state_with_flapstats, polldevs_dict
+    ):
+        # Mock out any calls to poll_single_interface
+        future = Future()
+        future.set_result(None)
+        monkeypatch.setattr(LinkStateTask, "poll_single_interface", future)
+
+        # Arrange
+        port: Port = next(iter(state_with_flapstats.devices.devices["localhost"].ports.values()))
+        flapping_state = state_with_flapstats.flapping.interfaces[("localhost", port.ifindex)]
+        flapping_state.hist_val = FLAP_THRESHOLD
+
+        assert len(state_with_flapstats.events.events) == 0
+
+        await age_single_interface_flapping_state(
+            flapping_state, ("localhost", port.ifindex), state=state_with_flapstats, polldevs=polldevs_dict
+        )
+
+        assert len(state_with_flapstats.events.events) > 0
+
+
+@pytest.fixture
+def state_with_flapstats(state_with_localhost_with_port) -> ZinoState:
+    initial = FLAP_THRESHOLD * 2
+    port: Port = next(iter(state_with_localhost_with_port.devices.devices["localhost"].ports.values()))
+    last_change = now() - timedelta(minutes=1)
+    flapping_state = FlappingState(
+        hist_val=initial,
+        first_flap=last_change - timedelta(minutes=10),
+        last_flap=last_change,
+        last_age=last_change,
+    )
+    flapstates = FlappingStates(interfaces={("localhost", port.ifindex): flapping_state})
+    state_with_localhost_with_port.flapping = flapstates
+    return state_with_localhost_with_port
+
+
+@pytest.fixture
+def polldevs_dict(polldevs_conf_with_single_router) -> dict[str, PollDevice]:
+    return {"localhost": PollDevice(name="localhost", address=ipaddress.IPv4Address("127.0.0.1"))}
