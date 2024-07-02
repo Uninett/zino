@@ -182,6 +182,13 @@ def parse_args(arguments=None):
         "--polldevs", type=argparse.FileType("r"), metavar="PATH", default="polldevs.cf", help="Path to polldevs.cf"
     )
     parser.add_argument(
+        "--config-file",
+        type=argparse.FileType("r"),
+        metavar="PATH",
+        required=False,
+        help="Path to zino configuration file",
+    )
+    parser.add_argument(
         "--debug", action="store_true", default=False, help="Set global log level to DEBUG. Very chatty!"
     )
     parser.add_argument("--stop-in", type=int, default=None, help="Stop zino after N seconds.", metavar="N")
@@ -199,6 +206,8 @@ def parse_args(arguments=None):
     args = parser.parse_args(args=arguments)
     if args.polldevs:
         args.polldevs.close()  # don't leave this temporary file descriptor open
+    if args.config_file:
+        args.config_file.close()  # don't leave this temporary file descriptor open
     return args
 
 
