@@ -44,6 +44,10 @@ def create_state(old_state_file: str) -> ZinoState:
     for linedata in old_state["::AddrToRouter"]:
         set_addr_to_router(linedata, new_state)
 
+    # Load timestamps for when events were closed
+    for linedata in old_state["::EventCloseTimes"]:
+        set_event_close_times(linedata, new_state)
+
     return new_state
 
 
@@ -86,6 +90,13 @@ def set_addr_to_router(linedata: LineData, state: ZinoState):
         _log.error(f"Could not parse ip {ip_string}")
     device_name = linedata.value
     state.addresses[ip] = device_name
+
+
+def set_event_close_times(linedata: LineData, state: ZinoState):
+    """Records when event was closed, not currently supported in Zino2.
+    Might be supported in the future.
+    """
+    _log.info("EventCloseTimes is not supported")
 
 
 def get_parser():
