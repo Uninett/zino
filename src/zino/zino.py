@@ -16,6 +16,7 @@ import tzlocal
 from zino import state
 from zino.api.server import ZinoServer
 from zino.config import read_configuration
+from zino.config.models import validate_file_can_be_opened
 from zino.scheduler import get_scheduler, load_and_schedule_polldevs
 from zino.statemodels import Event
 from zino.trapd import TrapReceiver
@@ -39,6 +40,8 @@ def main():
     # Polldevs by command line argument will override config file entry
     if args.polldevs:
         state.config.polling.file = args.polldevs.name
+    else:
+        validate_file_can_be_opened(state.config.polling.file)
     state.state = state.ZinoState.load_state_from_file(state.config.persistence.file) or state.ZinoState()
     init_event_loop(args)
 
