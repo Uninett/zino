@@ -9,8 +9,10 @@ from zino.stateconverter.bgp_converter import set_bgp_state
 from zino.stateconverter.event_converter import set_event_state
 from zino.stateconverter.linedata import LineData
 from zino.stateconverter.port_converter import set_port_state
-from zino.stateconverter.utils import load_state_to_dict
+from zino.stateconverter.utils import load_state_to_dict, parse_ip
 from zino.statemodels import CISCO_ENTERPRISE_ID, JUNIPER_ENTERPRISE_ID, AlarmType
+
+_log = logging.getLogger(__name__)
 
 
 def create_state(old_state_file: str) -> ZinoState:
@@ -37,6 +39,10 @@ def create_state(old_state_file: str) -> ZinoState:
     # Load device boot time
     for linedata in old_state["::BootTime"]:
         set_boot_time(linedata, new_state)
+
+    # Load address to router mapping
+    for linedata in old_state["::AddrToRouter"]:
+        set_addr_to_router(linedata, new_state)
 
     return new_state
 
@@ -69,6 +75,17 @@ def set_boot_time(linedata: LineData, state: ZinoState):
     device = state.devices.get(linedata.identifiers[0])
     timestamp = int(linedata.value)
     device.boot_time = datetime.fromtimestamp(timestamp)
+
+
+def set_addr_to_router(linedata: LineData, state: ZinoState):
+    """Corresponds to ZinoState.addresses"""
+    ip_string = linedata.identifiers[0]
+    try:
+        ip = parse_ip(ip_string)
+    except ValueError:
+        _log.error(f"Could not parse ip {ip_string}")
+    device_name = linedata.value
+    state.addresses[ip] = device_name
 
 
 def get_parser():
