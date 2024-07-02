@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from zino.config.models import PollDevice
-from zino.statemodels import InterfaceState, Port, PortStateEvent
+from zino.statemodels import InterfaceState, PortStateEvent
 from zino.time import now
 from zino.trapobservers.link_traps import LinkTrapObserver
 
@@ -115,12 +115,3 @@ class TestLinkTrapObserver:
         with patch.object(observer, "handle_link_transition") as handle_link_transition:
             assert not observer.handle_trap(trap)
             assert not handle_link_transition.called, "handle_link_transition was called"
-
-
-@pytest.fixture
-def state_with_localhost_with_port(state_with_localhost):
-    port = Port(ifindex=1, ifdescr="eth0", state=InterfaceState.UP)
-    device = state_with_localhost.devices.devices["localhost"]
-    device.boot_time = now() - timedelta(minutes=10)
-    device.ports[port.ifindex] = port
-    yield state_with_localhost
