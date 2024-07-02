@@ -167,7 +167,7 @@ def _set_event_attrs(linedata: LineData, state: ZinoState, indices: EventIndices
     elif event_field == "alarm-type":
         event.alarm_type = linedata.value
     elif event_field == "Neigh-rDNS":
-        _log.info("Neigh-rDNS is not a supported event field")
+        event.neigh_rdns = linedata.value
     elif event_field in ["id", "type"]:
         # These are set via other means
         pass

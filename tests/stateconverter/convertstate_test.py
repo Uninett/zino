@@ -42,6 +42,7 @@ class TestEvents:
         assert event.router == "blaafjell-gw2"
         assert event.state == EventState.OPEN
         assert event.updated == datetime.fromtimestamp(1700400123)
+        assert event.neigh_rdns == "nissen.nordpolen.no"
 
     def test_alarm_event_should_be_created_correctly(self, save_state_path):
         state = create_state(save_state_path)
