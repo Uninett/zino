@@ -1,14 +1,18 @@
 import argparse
 import logging
+from collections import defaultdict
 
 from zino.state import ZinoState
 from zino.stateconverter.linedata import LineData, get_line_data
 from zino.statemodels import CISCO_ENTERPRISE_ID, JUNIPER_ENTERPRISE_ID
 
+OldState = defaultdict[str, list[LineData]]
+
 
 def create_state(old_state_file: str) -> ZinoState:
     new_state = ZinoState()
-    old_state = load_state_to_dict(old_state_file)
+    # Default to empty list so it does not crash if statedump doesnt contain every variable
+    old_state: OldState = defaultdict(list, load_state_to_dict(old_state_file))
 
     # Set vendor state
     for linedata in old_state["::isJuniper"]:
