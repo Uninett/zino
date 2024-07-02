@@ -4,9 +4,8 @@ from collections import defaultdict
 
 from zino.state import ZinoState
 from zino.stateconverter.linedata import LineData, get_line_data
+from zino.stateconverter.utils import OldState
 from zino.statemodels import CISCO_ENTERPRISE_ID, JUNIPER_ENTERPRISE_ID
-
-OldState = defaultdict[str, list[LineData]]
 
 
 def create_state(old_state_file: str) -> ZinoState:

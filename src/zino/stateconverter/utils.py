@@ -1,6 +1,10 @@
+from collections import defaultdict
 from ipaddress import ip_address
 
+from zino.stateconverter.linedata import LineData
 from zino.statemodels import IPAddress
+
+OldState = defaultdict[str, list[LineData]]
 
 
 def parse_ip(ip: str) -> IPAddress:
