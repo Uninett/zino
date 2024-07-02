@@ -9,6 +9,7 @@ from zino.stateconverter.bgp_converter import set_bgp_state
 from zino.stateconverter.event_converter import set_event_state
 from zino.stateconverter.flapping_converter import set_flapping_state
 from zino.stateconverter.linedata import LineData
+from zino.stateconverter.pm_converter import set_pm_state
 from zino.stateconverter.port_converter import set_port_state
 from zino.stateconverter.utils import load_state_to_dict, parse_ip
 from zino.statemodels import CISCO_ENTERPRISE_ID, JUNIPER_ENTERPRISE_ID, AlarmType
@@ -27,6 +28,7 @@ def create_state(old_state_file: str) -> ZinoState:
     set_event_state(old_state, new_state)
     set_port_state(old_state, new_state)
     set_flapping_state(old_state, new_state)
+    set_pm_state(old_state, new_state)
 
     # Set vendor state
     for linedata in old_state["::isJuniper"]:
