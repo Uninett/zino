@@ -1,6 +1,5 @@
 import argparse
 import logging
-from collections import defaultdict
 from datetime import datetime
 from typing import get_args
 
@@ -8,16 +7,17 @@ from zino.state import ZinoState
 from zino.stateconverter.bfd_converter import set_bfd_state
 from zino.stateconverter.bgp_converter import set_bgp_state
 from zino.stateconverter.event_converter import set_event_state
-from zino.stateconverter.linedata import LineData, get_line_data
+from zino.stateconverter.linedata import LineData
 from zino.stateconverter.port_converter import set_port_state
-from zino.stateconverter.utils import OldState
+from zino.stateconverter.utils import load_state_to_dict
 from zino.statemodels import CISCO_ENTERPRISE_ID, JUNIPER_ENTERPRISE_ID, AlarmType
 
 
 def create_state(old_state_file: str) -> ZinoState:
     new_state = ZinoState()
-    # Default to empty list so it does not crash if statedump doesnt contain every variable
-    old_state: OldState = defaultdict(list, load_state_to_dict(old_state_file))
+    # The returned dictionary defaults to empty list, so we dont need to check if the key exists
+    # or manually set default value to avoid crashing if a variable is missing in the state file
+    old_state = load_state_to_dict(old_state_file)
 
     set_bfd_state(old_state, new_state)
     set_bgp_state(old_state, new_state)
@@ -69,35 +69,6 @@ def set_boot_time(linedata: LineData, state: ZinoState):
     device = state.devices.get(linedata.identifiers[0])
     timestamp = int(linedata.value)
     device.boot_time = datetime.fromtimestamp(timestamp)
-
-
-def load_state_to_dict(file: str) -> dict[str, list[LineData]]:
-    state_dict = {}
-    lines = read_file_lines(file)
-    for line in lines:
-        # these lines do not contain any information
-        if not line.startswith("set"):
-            continue
-        linedata = get_line_data(line)
-        var_name = get_var_name(line)
-        if var_name not in state_dict:
-            state_dict[var_name] = []
-        state_dict[var_name].append(linedata)
-    return state_dict
-
-
-def get_var_name(line) -> str:
-    split_line = line.split()
-    var = split_line[1].split("(")[0]
-    if "::EventAttrs_" in var:
-        var = var.split("_")[0]
-    return var
-
-
-def read_file_lines(file: str):
-    with open(file, "r", encoding="latin-1") as state_file:
-        lines = state_file.read().splitlines()
-    return lines
 
 
 def get_parser():
