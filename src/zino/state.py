@@ -8,7 +8,7 @@ from typing import Dict, Optional
 
 from pydantic import BaseModel, Field
 
-from zino.config.models import IPAddress, PollDevice
+from zino.config.models import Configuration, IPAddress, PollDevice
 from zino.events import Events
 from zino.planned_maintenance import PlannedMaintenances
 from zino.statemodels import DeviceStates
@@ -21,6 +21,8 @@ polldevs: Dict[str, PollDevice] = {}
 
 # Global (sic) state
 state: "ZinoState" = None
+
+config: Configuration = Configuration()
 
 
 class ZinoState(BaseModel):
