@@ -1,6 +1,7 @@
 import argparse
 import logging
 from collections import defaultdict
+from typing import get_args
 
 from zino.state import ZinoState
 from zino.stateconverter.bfd_converter import set_bfd_state
@@ -9,7 +10,7 @@ from zino.stateconverter.event_converter import set_event_state
 from zino.stateconverter.linedata import LineData, get_line_data
 from zino.stateconverter.port_converter import set_port_state
 from zino.stateconverter.utils import OldState
-from zino.statemodels import CISCO_ENTERPRISE_ID, JUNIPER_ENTERPRISE_ID
+from zino.statemodels import CISCO_ENTERPRISE_ID, JUNIPER_ENTERPRISE_ID, AlarmType
 
 
 def create_state(old_state_file: str) -> ZinoState:
@@ -28,6 +29,10 @@ def create_state(old_state_file: str) -> ZinoState:
     for linedata in old_state["::isCisco"]:
         set_is_cisco(linedata, new_state)
 
+    # Load device alarm state
+    for linedata in old_state["::JNXalarms"]:
+        set_jnx_alarms(linedata, new_state)
+
     return new_state
 
 
@@ -43,6 +48,16 @@ def set_is_juniper(linedata: LineData, state: ZinoState):
     device = state.devices.get(linedata.identifiers[0])
     if is_juniper:
         device.enterprise_id = JUNIPER_ENTERPRISE_ID
+
+
+def set_jnx_alarms(linedata: LineData, state: ZinoState):
+    device = state.devices.get(linedata.identifiers[0])
+    alarm_type = linedata.identifiers[1]
+    assert alarm_type in get_args(AlarmType)
+    alarm_count = int(linedata.value)
+    if not device.alarms:
+        device.alarms = {}
+    device.alarms[alarm_type] = alarm_count
 
 
 def load_state_to_dict(file: str) -> dict[str, list[LineData]]:
