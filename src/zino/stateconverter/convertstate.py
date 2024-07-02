@@ -1,6 +1,7 @@
 import argparse
 import logging
 from collections import defaultdict
+from datetime import datetime
 from typing import get_args
 
 from zino.state import ZinoState
@@ -33,6 +34,10 @@ def create_state(old_state_file: str) -> ZinoState:
     for linedata in old_state["::JNXalarms"]:
         set_jnx_alarms(linedata, new_state)
 
+    # Load device boot time
+    for linedata in old_state["::BootTime"]:
+        set_boot_time(linedata, new_state)
+
     return new_state
 
 
@@ -58,6 +63,12 @@ def set_jnx_alarms(linedata: LineData, state: ZinoState):
     if not device.alarms:
         device.alarms = {}
     device.alarms[alarm_type] = alarm_count
+
+
+def set_boot_time(linedata: LineData, state: ZinoState):
+    device = state.devices.get(linedata.identifiers[0])
+    timestamp = int(linedata.value)
+    device.boot_time = datetime.fromtimestamp(timestamp)
 
 
 def load_state_to_dict(file: str) -> dict[str, list[LineData]]:
