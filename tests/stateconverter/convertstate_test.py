@@ -18,13 +18,13 @@ from zino.statemodels import (
 )
 
 
-def test_state_can_be_parsed_without_crashing(save_state_path):
+def test_state_should_be_parsed_without_crashing(save_state_path):
     state = create_state(save_state_path)
     assert state
 
 
 class TestEvents:
-    def test_bfd_event_is_created_correctly(self, save_state_path):
+    def test_bfd_event_should_be_created_correctly(self, save_state_path):
         state = create_state(save_state_path)
         event = state.events.checkout(200)
         assert isinstance(event, BFDEvent)
@@ -43,7 +43,7 @@ class TestEvents:
         assert event.state == EventState.OPEN
         assert event.updated == datetime.fromtimestamp(1700400123)
 
-    def test_alarm_event_is_created_correctly(self, save_state_path):
+    def test_alarm_event_should_be_created_correctly(self, save_state_path):
         state = create_state(save_state_path)
         event = state.events.checkout(146)
         assert isinstance(event, AlarmEvent)
@@ -60,7 +60,7 @@ class TestEvents:
         assert event.state == EventState.WAITING
         assert event.updated == datetime.fromtimestamp(1696257668)
 
-    def test_portstate_event_is_created_correctly(self, save_state_path):
+    def test_portstate_event_should_be_created_correctly(self, save_state_path):
         state = create_state(save_state_path)
         event = state.events.checkout(110)
         assert isinstance(event, PortStateEvent)
@@ -79,7 +79,7 @@ class TestEvents:
         assert event.state == EventState.IGNORED
         assert event.updated == datetime.fromtimestamp(1686257668)
 
-    def test_bgp_event_is_created_correctly(self, save_state_path):
+    def test_bgp_event_should_be_created_correctly(self, save_state_path):
         """Placeholder for when BGP is supported"""
         state = create_state(save_state_path)
         event = state.events.checkout(100)
@@ -106,7 +106,7 @@ class TestEvents:
         assert not hasattr(event, "invalid_attr")
 
 
-def test_jnx_alarms_are_set_correctly(save_state_path):
+def test_jnx_alarms_should_be_set_correctly(save_state_path):
     state = create_state(save_state_path)
     device = state.devices.get("whoville-gw1")
     assert device.alarms["yellow"] == 1
@@ -114,71 +114,71 @@ def test_jnx_alarms_are_set_correctly(save_state_path):
 
 
 class TestBFD:
-    def test_sess_addr_is_set_correctly(self, save_state_path):
+    def test_sess_addr_should_be_set_correctly(self, save_state_path):
         state = create_state(save_state_path)
         device = state.devices.get("blaafjell-gw2")
         device.ports[30].bfd_state.session_addr is None
 
-    def test_sess_discr_is_set_correctly(self, save_state_path):
+    def test_sess_discr_should_be_set_correctly(self, save_state_path):
         state = create_state(save_state_path)
         device = state.devices.get("blaafjell-gw2")
         device.ports[30].bfd_state.session_discr == 0
 
-    def test_sess_state_is_set_correctly(self, save_state_path):
+    def test_sess_state_should_be_set_correctly(self, save_state_path):
         state = create_state(save_state_path)
         device = state.devices.get("blaafjell-gw2")
         device.ports[30].bfd_state.session_state == BFDSessState.DOWN
 
 
 class TestVendor:
-    def test_juniper_devices_are_registered_as_juniper(self, save_state_path):
+    def test_juniper_device_should_be_registered_as_juniper(self, save_state_path):
         state = create_state(save_state_path)
         device = state.devices.get("juniper-gw1")
         assert device.is_juniper
 
-    def test_cisco_devices_are_registered_as_cisco(self, save_state_path):
+    def test_cisco_device_should_be_registered_as_cisco(self, save_state_path):
         state = create_state(save_state_path)
         device = state.devices.get("cisco-gw1")
         assert device.is_cisco
 
 
 class TestPort:
-    def test_portstate_is_set_correctly(self, save_state_path):
+    def test_portstate_should_be_set_correctly(self, save_state_path):
         state = create_state(save_state_path)
         device = state.devices.get("arkham-sw1")
         assert device.ports[150].state == InterfaceState.UP
 
-    def test_ifdescr_is_set_correctly(self, save_state_path):
+    def test_ifdescr_should_be_set_correctly(self, save_state_path):
         state = create_state(save_state_path)
         device = state.devices.get("arkham-sw1")
         assert device.ports[150].ifdescr == "ge-1/0/10"
 
-    def test_ifalias_is_set_correctly(self, save_state_path):
+    def test_ifalias_should_be_set_correctly(self, save_state_path):
         state = create_state(save_state_path)
         device = state.devices.get("arkham-sw1")
         assert device.ports[150].ifalias == "LACP-link, test.no-phy1"
 
 
 class TestBGP:
-    def test_uptime_is_set_correctly(self, save_state_path):
+    def test_uptime_should_be_set_correctly(self, save_state_path):
         state = create_state(save_state_path)
         device = state.devices.get("auroralane-gw1")
         ip = ip_address("3000:04AB:0554:0001:0000:0000:0000:00AA")
         assert device.bgp_peers[ip].uptime == 14000000
 
-    def test_admin_status_is_set_correctly(self, save_state_path):
+    def test_admin_status_should_be_set_correctly(self, save_state_path):
         state = create_state(save_state_path)
         device = state.devices.get("auroralane-gw1")
         ip = ip_address("3000:04AB:0554:0001:0000:0000:0000:00AA")
         assert device.bgp_peers[ip].admin_status == BGPAdminStatus.RUNNING
 
-    def test_oper_status_is_set_correctly(self, save_state_path):
+    def test_oper_status_should_be_set_correctly(self, save_state_path):
         state = create_state(save_state_path)
         device = state.devices.get("auroralane-gw1")
         ip = ip_address("3000:04AB:0554:0001:0000:0000:0000:00AA")
         assert device.bgp_peers[ip].oper_state == BGPOperState.ACTIVE
 
-    def test_peers_is_set_correctly(self, save_state_path):
+    def test_peers_should_be_set_correctly(self, save_state_path):
         state = create_state(save_state_path)
         device = state.devices.get("auroralane-gw1")
         ip = ip_address("3000:04AB:0554:0001:0000:0000:0000:00AA")
@@ -186,7 +186,7 @@ class TestBGP:
         assert len(device.bgp_peers) == 1
 
 
-def test_addresses_should_be_set(save_state_path):
+def test_addresses_should_be_set_correctly(save_state_path):
     state = create_state(save_state_path)
     ip = ip_address("175.46.88.27")
     assert state.addresses[ip] == "boot-gw1"
