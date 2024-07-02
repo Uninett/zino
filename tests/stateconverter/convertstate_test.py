@@ -193,6 +193,12 @@ def test_invalid_event_attribute_should_not_be_set(invalid_event_save_state_path
     assert not hasattr(event, "invalid_attr")
 
 
+def test_addresses_should_be_set(save_state_path):
+    state = create_state(save_state_path)
+    ip = ip_address("175.46.88.27")
+    assert state.addresses[ip] == "boot-gw1"
+
+
 @pytest.fixture
 def save_state_path():
     this_directory = os.path.dirname(__file__)
