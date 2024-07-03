@@ -1,0 +1,1 @@
+Index recently closed events to facilitate updating of prematurely closed flapping events
