@@ -105,9 +105,9 @@ class FlappingStates(BaseModel):
         self.interfaces[interface] = flap
         return flap
 
-    def unflap(self, interface: PortIndex) -> FlappingState:
-        """Removes all flapping stats tracking for a port"""
-        return self.interfaces.pop(interface)
+    def unflap(self, interface: PortIndex) -> Optional[FlappingState]:
+        """Removes all flapping stats tracking for a port, if they exist"""
+        return self.interfaces.pop(interface, None)
 
     def is_flapping(self, interface: PortIndex) -> bool:
         """Returns True if the current stats indicate that the interface has crossed the flapping threshold.
