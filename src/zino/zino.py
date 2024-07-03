@@ -36,12 +36,11 @@ def main():
         level=logging.INFO if not args.debug else logging.DEBUG,
         format="%(asctime)s - %(levelname)s - %(name)s (%(threadName)s) - %(message)s",
     )
-    state.config = read_configuration(args.config_file.name if args.config_file else None)
+    state.config = read_configuration(args.config_file)
     # Polldevs by command line argument will override config file entry
     if args.polldevs:
-        state.config.polling.file = args.polldevs.name
-    else:
-        validate_file_can_be_opened(state.config.polling.file)
+        state.config.polling.file = args.polldevs
+    validate_file_can_be_opened(state.config.polling.file)
     state.state = state.ZinoState.load_state_from_file(state.config.persistence.file) or state.ZinoState()
     init_event_loop(args)
 
@@ -192,15 +191,13 @@ def parse_args(arguments=None):
     parser = argparse.ArgumentParser(description="Zino is not OpenView")
     parser.add_argument(
         "--polldevs",
-        type=argparse.FileType("r"),
-        metavar="PATH",
+        type=str,
         required=False,
         help="Path to the pollfile",
     )
     parser.add_argument(
         "--config-file",
-        type=argparse.FileType("r"),
-        metavar="PATH",
+        type=str,
         required=False,
         help="Path to zino configuration file",
     )
@@ -220,10 +217,6 @@ def parse_args(arguments=None):
         "--user", metavar="USER", help="Switch to this user immediately after binding to privileged ports"
     )
     args = parser.parse_args(args=arguments)
-    if args.polldevs:
-        args.polldevs.close()  # don't leave this temporary file descriptor open
-    if args.config_file:
-        args.config_file.close()  # don't leave this temporary file descriptor open
     return args
 
 
