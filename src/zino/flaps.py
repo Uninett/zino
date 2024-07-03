@@ -78,6 +78,21 @@ class FlappingState(BaseModel):
         """Returns True if the current flap value is below the flapping threshold"""
         return self.hist_val < FLAP_THRESHOLD
 
+    def is_flapping(self) -> bool:
+        """Returns True if the current stats indicate that this interface has crossed the flapping threshold.
+
+        This is not the same as 'a flapping state has been declared', but is an indicator that such a state could
+        now be declared.
+        """
+        self.age()
+        if self.hist_val < FLAP_MIN:
+            return False
+        if self.hist_val > FLAP_THRESHOLD:
+            self.flapped_above_threshold = True
+        if self.flapped_above_threshold:
+            return True
+        return False
+
 
 class FlappingStates(BaseModel):
     """Contains all runtime stats for flapping states"""
@@ -118,15 +133,7 @@ class FlappingStates(BaseModel):
         if interface not in self.interfaces:
             return False
 
-        flap = self.interfaces[interface]
-        flap.age()
-        if flap.hist_val < FLAP_MIN:
-            return False
-        if flap.hist_val > FLAP_THRESHOLD:
-            flap.flapped_above_threshold = True
-        if flap.flapped_above_threshold:
-            return True
-        return False
+        return self.interfaces[interface].is_flapping()
 
     def was_flapping(self, interface: PortIndex) -> bool:
         """Seems to answer whether there exists any flapping tracking stats for a port from before"""
