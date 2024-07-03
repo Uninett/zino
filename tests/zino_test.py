@@ -60,6 +60,24 @@ def test_zino_should_run_with_pollfile_name_in_config_file(polldevs_conf_with_no
     )
 
 
+def test_zino_should_not_run_without_pollfile(tmp_path):
+    """This tests that the main function runs Zino for at least 2 seconds when
+    the name of the pollfile is defined in the config file
+    """
+    with patch("zino.config.models.POLLFILE", f"{tmp_path}/non-existent-pollfile.cf"):
+        seconds_to_run_for = 2
+        with pytest.raises(subprocess.CalledProcessError):
+            subprocess.check_call(
+                [
+                    "zino",
+                    "--stop-in",
+                    str(seconds_to_run_for),
+                    "--trap-port",
+                    "1162",
+                ]
+            )
+
+
 def test_zino_argparser_works(polldevs_conf):
     parser = zino.parse_args(["--polldevs", str(polldevs_conf)])
     assert isinstance(parser, Namespace)
