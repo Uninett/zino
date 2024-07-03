@@ -156,56 +156,63 @@ async def age_single_interface_flapping_state(
 ) -> None:
     """Ages a single interface's flapping state, and updates events if it is no longer flapping."""
     flap.age()
-    router, ifindex = index
-    polldev = polldevs.get(router)
-    port = state.devices.get(router).ports.get(ifindex) if router in state.devices else None
     if flap.is_below_threshold():
         # Flapping stats aged below threshold, interface is no longer considered flapping
         if state.flapping.was_flapping(index):
-            if port:
-                msg = f'{router}: intf "{port.ifdescr}" ix {ifindex} stopped flapping (aging)'
-            else:
-                msg = f"{router}: ix {ifindex} stopped flapping (aging)"
-            _logger.info(msg)
-
-            # An operator may have closed a flapping port event prematurely, so we may need to update both the closed
-            # event and an open event, following Zino 1 logic:
-            events: List[PortStateEvent] = []
-            if event := state.events.get_closed_event(router, ifindex, PortStateEvent):
-                events.append(event)
-            if event := state.events.get_or_create_event(router, ifindex, PortStateEvent):
-                events.append(event)
-            for event in events:
-                # If we don't have all the necessary information, revisit later (this could mean that this was called
-                # just after process startup, before config or state was properly loaded)
-                if not (polldev and polldev.address and polldev.priority and port):
-                    continue
-
-                # Original Zino comment says: Hm, if this is a new event, we need to set "state" and "opened".
-                event.flapstate = FlapState.STABLE
-                event.flaps = state.flapping.get_flap_count(index)
-                event.port = port.ifdescr
-                event.portstate = port.state
-                event.router = router
-                event.polladdr = polldev.address
-                event.priority = polldev.priority
-                event.ifindex = ifindex
-                event.descr = port.ifalias
-
-                event.add_log(msg)
-
-                state.events.commit(event)
-
-            old_state = port.state
-            port.state = InterfaceState.FLAPPING
-
-            # Local import to avoid circular import
-            from zino.tasks.linkstatetask import LinkStateTask
-
-            poll = LinkStateTask(device=polldev, state=state)
-            try:
-                await poll.poll_single_interface(ifindex)
-            except Exception:  # noqa
-                port.state = old_state
+            await stabilize_flapping_state(flap, index, state, polldevs)
 
         state.flapping.unflap(index)
+
+
+async def stabilize_flapping_state(
+    flap: FlappingState, index: PortIndex, state: ZinoState, polldevs: dict[str, PollDevice]
+):
+    """Updates port state and corresponding event to indicate things are now stable, for a port that has stopped
+    flapping.
+    """
+    router_name, ifindex = index
+    port = state.devices.get(router_name).ports.get(ifindex) if router_name in state.devices else None
+    if port:
+        msg = f'{router_name}: intf "{port.ifdescr}" ix {ifindex} stopped flapping (aging)'
+    else:
+        msg = f"{router_name}: ix {ifindex} stopped flapping (aging)"
+    _logger.info(msg)
+    # An operator may have closed a flapping port event prematurely, so we may need to update both the closed
+    # event and an open event, following Zino 1 logic:
+    events: List[PortStateEvent] = []
+    if event := state.events.get_closed_event(router_name, ifindex, PortStateEvent):
+        events.append(event)
+    if event := state.events.get_or_create_event(router_name, ifindex, PortStateEvent):
+        events.append(event)
+    polldev = polldevs.get(router_name)
+    for event in events:
+        # If we don't have all the necessary information, revisit later (this could mean that this was called
+        # just after process startup, before config or state was properly loaded)
+        if not (polldev and polldev.address and polldev.priority and port):
+            return
+
+        # Original Zino comment says: Hm, if this is a new event, we need to set "state" and "opened".
+        event.flapstate = FlapState.STABLE
+        event.flaps = flap.flaps
+        event.port = port.ifdescr
+        event.portstate = port.state
+        event.router = polldev.name
+        event.polladdr = polldev.address
+        event.priority = polldev.priority
+        event.ifindex = ifindex
+        event.descr = port.ifalias
+
+        event.add_log(msg)
+
+        state.events.commit(event)
+
+    # Local import to avoid circular import
+    from zino.tasks.linkstatetask import LinkStateTask
+
+    old_state = port.state
+    port.state = InterfaceState.FLAPPING
+    poll = LinkStateTask(device=polldev, state=state)
+    try:
+        await poll.poll_single_interface(ifindex)
+    except Exception:  # noqa
+        port.state = old_state
