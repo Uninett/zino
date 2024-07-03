@@ -99,17 +99,17 @@ class FlappingStates(BaseModel):
 
     interfaces: dict[PortIndex, FlappingState] = {}
 
-    def update_interface_flap(self, interface: PortIndex):
+    def update_interface_flap(self, interface: PortIndex) -> FlappingState:
         """Updates the flapping stats for a port.
 
         If the port is not already being tracked, it initializes the stats for it.
         """
         if interface not in self.interfaces:
-            self.first_flap(interface)
-            return
+            return self.first_flap(interface)
 
         flap = self.interfaces[interface]
         flap.update()
+        return flap
 
     def first_flap(self, interface: PortIndex) -> FlappingState:
         """Initializes flapping stats for a port the first time a link trap is received for it"""
