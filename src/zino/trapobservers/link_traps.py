@@ -79,93 +79,108 @@ class LinkTrapObserver(TrapObserver):
             return
 
         index = (device.name, port.ifindex)
-        self.state.flapping.update_interface_flap(index)
+        flap = self.state.flapping.update_interface_flap(index)
 
         new_state = InterfaceState.UP if is_up else InterfaceState.DOWN
 
-        if self.state.flapping.is_flapping(index):
-            event: PortStateEvent = None
-            if not self.state.flapping.interfaces.get(index).in_active_flap_state:
-                # Not previously known to be flapping -- open an event for it
-                event = self.state.events.get_or_create_event(device.name, port.ifindex, PortStateEvent)
-
-                event.portstate = new_state
-                event.port = port.ifdescr
-                event.ifindex = port.ifindex
-                port.state = new_state
-                event.flapstate = FlapState.FLAPPING
-                event.flaps = self.state.flapping.get_flap_count(index)
-                if polldev := self.polldevs.get(device.name):
-                    event.polladdr = polldev.address
-                    event.priority = polldev.priority
-                event.descr = port.ifalias
-                if reason:
-                    event.reason = reason
-
-                msg = (
-                    f'{device.name}: intf "{port.ifdescr}" ix {port.ifindex} ({port.ifalias}) flapping, '
-                    f"{event.flaps} flaps, penalty {self.state.flapping.get_flap_value(index):.2f}"
-                )
-                _logger.info(msg)
-                event.add_log(msg)
-                self.state.events.commit(event)
-
-                if index in self.state.flapping.interfaces:
-                    self.state.flapping.interfaces[index].in_active_flap_state = True
-
-            if not event:
+        if flap.is_flapping():
+            if not flap.in_active_flap_state:
+                event = self.get_flapping_event(device, index, new_state, port, reason)
+            else:
                 event = self.state.events.get(device.name, port.ifindex, PortStateEvent)
-            event.flaps = self.state.flapping.get_flap_count(index)
-            # Explicitly not committing the flap count change here, as committing during flap storms would cause
-            # a notification storm as well
 
-            if self.state.flapping.get_flap_count(index) % 100 == 0:
+            if event:
+                # Update the event flap count, but explicitly DO NOT commit the change here, as committing during
+                # flap storms would cause a notification storm as well
+                event.flaps = flap.flaps
+
+            if flap.flaps % 100 == 0:
                 _logger.info(
                     '%s: intf "%s" ix %d (%s), %d flaps, penalty %5.2f',
                     device.name,
                     port.ifdescr,
                     port.ifindex,
                     port.ifalias,
-                    self.state.flapping.get_flap_count(index),
-                    self.state.flapping.get_flap_value(index),
+                    flap.flaps,
+                    flap.hist_val,
                 )
         else:
-            event: PortStateEvent = self.state.events.get_or_create_event(device.name, port.ifindex, PortStateEvent)
+            self.get_non_flapping_event(device, index, new_state, port, reason)
 
-            event.portstate = new_state
-            event.port = port.ifdescr
-            event.ifindex = port.ifindex
-            port.state = new_state
-            if polldev := self.polldevs.get(device.name):
-                event.polladdr = polldev.address
-                event.priority = polldev.priority
-            event.descr = port.ifalias
+    def get_flapping_event(
+        self, device: DeviceState, interface: PortIndex, new_state: InterfaceState, port: Port, reason: Optional[str]
+    ) -> PortStateEvent:
+        """Opens or returns an existing portstate event for a port that was not previously known to be flapping.
 
-            event.flaps = self.state.flapping.get_flap_count(index)
-            if index in self.state.flapping:
+        It also updates the flap state of the port to indicate it is currently in a flapping state.
+        """
+        event = self.open_portstate_event(device, new_state, port, reason)
+
+        flap = self.state.flapping.interfaces[interface]
+        event.flapstate = FlapState.FLAPPING
+        event.flaps = flap.flaps
+        msg = (
+            f'{device.name}: intf "{port.ifdescr}" ix {port.ifindex} ({port.ifalias}) flapping, '
+            f"{event.flaps} flaps, penalty {flap.hist_val:.2f}"
+        )
+        _logger.info(msg)
+        event.add_log(msg)
+        self.state.events.commit(event)
+        flap.in_active_flap_state = True
+        return event
+
+    def get_non_flapping_event(
+        self, device: DeviceState, interface: PortIndex, new_state: InterfaceState, port: Port, reason: Optional[str]
+    ) -> PortStateEvent:
+        """Opens or returns an existing portstate event for a port that isn't currently flapping.
+
+        It also removes the recorded flap stats for the port if was previously known to be in a flapping state.
+        """
+        event = self.open_portstate_event(device, new_state, port, reason)
+
+        if flap := self.state.flapping.interfaces.get(interface):
+            event.flaps = flap.flaps
+            if flap.in_active_flap_state:
                 event.flapstate = FlapState.STABLE
                 msg = f'{device.name}: intf "{port.ifdescr}" ix {port.ifindex} ({port.ifalias}) stopped flapping'
                 _logger.info(msg)
                 event.add_log(msg)
-                self.state.flapping.unflap(index)
-                port.state = InterfaceState.UP if is_up else InterfaceState.DOWN
+                self.state.flapping.unflap(interface)
 
-            msg = f'{device.name}: intf "{port.ifdescr}" ix {port.ifindex} link{new_state.capitalize()}'
-            if reason:
-                event.reason = reason
-                msg = f'{msg}, "{reason}"'
-            _logger.info(msg)
-            event.add_log(msg)
-            self.state.events.commit(event)
+        msg = f'{device.name}: intf "{port.ifdescr}" ix {port.ifindex} link{new_state.capitalize()}'
+        if reason:
+            msg = f'{msg}, "{reason}"'
+        _logger.info(msg)
+        event.add_log(msg)
+        self.state.events.commit(event)
 
-            if not polldev:
-                _logger.warning("No polldev config found for %s", device.name)
-                return
+        if polldev := self.polldevs.get(device.name):
             poll = LinkStateTask(device=polldev, state=self.state)
             poll.schedule_verification_of_single_port(port.ifindex, deadline=FIRST_REVERIFICATION, reason="trap-verify")
             poll.schedule_verification_of_single_port(
                 port.ifindex, deadline=SECOND_REVERIFICATION, reason="trap-verify-2"
             )
+        else:
+            _logger.warning("No polldev config found for %s", device.name)
+
+        return event
+
+    def open_portstate_event(
+        self, device: DeviceState, new_state: InterfaceState, port: Port, reason: Optional[str]
+    ) -> PortStateEvent:
+        """Opens or returns an open port state event for the port referenced in an incoming trap message"""
+        event = self.state.events.get_or_create_event(device.name, port.ifindex, PortStateEvent)
+        event.portstate = new_state
+        event.port = port.ifdescr
+        event.ifindex = port.ifindex
+        port.state = new_state
+        if polldev := self.polldevs.get(device.name):
+            event.polladdr = polldev.address
+            event.priority = polldev.priority
+        event.descr = port.ifalias
+        if reason:
+            event.reason = reason
+        return event
 
     def is_port_ignored_by_patterns(self, device: DeviceState, ifdescr: str) -> bool:
         if watch_pattern := self.get_watch_pattern(device):
