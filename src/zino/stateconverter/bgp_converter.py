@@ -35,14 +35,13 @@ def _get_bgp_sessions(old_state: OldState) -> dict[BGPDevicePeerIndex, BGPPeerSe
     bgp_data = _group_bgp_data_by_index(old_state)
     bgp_sessions = dict()
     for index, data in bgp_data.items():
-        try:
-            uptime = int(data["::bgpPeerUpTime"])
-            admin_status = BGPAdminStatus(data["::bgpPeerAdminState"])
-            oper_state = BGPOperState(data["::bgpPeerOperState"])
-        except KeyError as e:
-            _log.error(f"Missing BGP data for index {index}: {str(e)}")
-            continue
-        session = BGPPeerSession(uptime=uptime, admin_status=admin_status, oper_state=oper_state)
+        session = BGPPeerSession()
+        if uptime := data.get("::bgpPeerUpTime", 0):
+            session.uptime = int(uptime)
+        if admin_status := data.get("::bgpPeerAdminState"):
+            session.admin_status = BGPAdminStatus(admin_status)
+        if oper_state := data.get("::bgpPeerOperState"):
+            session.oper_state = BGPOperState(oper_state)
         bgp_sessions[index] = session
     return bgp_sessions
 
