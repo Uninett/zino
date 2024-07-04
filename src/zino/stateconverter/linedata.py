@@ -30,7 +30,7 @@ def get_identifiers(line: str) -> tuple[str, ...]:
     # removes everything after the identifiers
     split_line = split_line.split(")")[0]
     identifiers = split_line.split(",")
-    if line.startswith("set ::EventAttrs_"):
+    if line.startswith("set ::EventAttrs_") or line.startswith("set ::pm::event_"):
         # remove everything before the event ID starts
         event_line = line.split("_")[1]
         # remove everything after event ID

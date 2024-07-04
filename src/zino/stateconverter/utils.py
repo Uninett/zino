@@ -34,7 +34,7 @@ def load_state_to_dict(file: str) -> OldState:
 def _get_var_name(line) -> str:
     split_line = line.split()
     var = split_line[1].split("(")[0]
-    if "::EventAttrs_" in var:
+    if "::EventAttrs_" in var or "::pm::event_" in var:
         var = var.split("_")[0]
     return var
 
