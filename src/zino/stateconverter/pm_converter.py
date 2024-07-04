@@ -22,9 +22,7 @@ PM_CLASS_MAPPING = {
 
 
 def set_pm_state(old_state: OldState, new_state: ZinoState):
-    _set_pm_event_attrs(old_state, new_state)
-    for linedata in old_state["::pm::pm_events"]:
-        _set_pm_events(linedata, new_state)
+    _set_pm_events(old_state, new_state)
     for linedata in old_state["::pm::lastid"]:
         _set_last_id(linedata, new_state)
     for linedata in old_state["::pm::lasttime"]:
@@ -42,27 +40,18 @@ def _set_last_time(linedata: LineData, state: ZinoState):
     state.planned_maintenances.last_run = datetime.fromtimestamp(timestamp)
 
 
-def _set_pm_events(linedata: LineData, state: ZinoState):
-    """Registers events affected by planned maintenance"""
-    pm_id = int(linedata.identifiers[0])
-    try:
-        pm = state.planned_maintenances[pm_id]
-    except KeyError:
-        _log.error(f"Could not find planned maintenance with id {pm_id}")
-        return
-    pm.event_ids = [int(id) for id in linedata.value.split()]
-
-
-def _set_pm_event_attrs(old_state: OldState, new_state: ZinoState):
-    """Created PlannedMaintenance objects from pm_event attributes"""
+def _set_pm_events(old_state: OldState, new_state: ZinoState):
+    """Registers PlannedMaintenance objects"""
     pm_data = _group_pm_attrs_by_id(old_state)
+    event_mapping = _get_events_affected_by_pms(old_state)
     for id, attrs in pm_data.items():
         try:
             pm = _create_pm(attrs)
-            pm.id = id
-            new_state.planned_maintenances.planned_maintenances[id] = pm
         except ValueError as e:
             _log.error(f"Error setting pm_event attribute: {str(e)}")
+        pm.event_ids = event_mapping.get(id, [])
+        pm.id = id
+        new_state.planned_maintenances.planned_maintenances[id] = pm
 
 
 def _create_pm(attrs: dict[str, str]) -> PlannedMaintenance:
@@ -107,3 +96,13 @@ def _group_pm_attrs_by_id(old_state: OldState) -> dict[int, dict[str, str]]:
             return_dict[pm_id] = dict()
         return_dict[pm_id][pm_attr] = linedata.value
     return return_dict
+
+
+def _get_events_affected_by_pms(old_state: OldState) -> dict[int, list[int]]:
+    """Returns a mapping of pm ID to list of event IDs affected by that PM"""
+    pm_to_events = dict()
+    for linedata in old_state["::pm::pm_events"]:
+        pm_id = pm_id = int(linedata.identifiers[0])
+        event_ids = [int(id) for id in linedata.value.split()]
+        pm_to_events[pm_id] = event_ids
+    return pm_to_events
