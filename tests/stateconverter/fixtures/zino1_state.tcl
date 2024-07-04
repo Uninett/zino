@@ -96,7 +96,7 @@ set ::portToIfDescr(arkham-sw1,150) "ge-1/0/10"
 set ::portToLocIfDescr(arkham-sw1,150) "LACP-link, test.no-phy1"
 set ::bgpPeerAdminState(auroralane-gw1,30:00:04:AB:05:54:00:01:00:00:00:00:00:00:00:AA) "running"
 set ::bgpPeerOperState(auroralane-gw1,30:00:04:AB:05:54:00:01:00:00:00:00:00:00:00:AA) "active"
-set ::bgpPeerUpTime(auroralane-gw1,30:00:04:AB:05:54:00:01:00:00:00:00:00:00:00:AA) "14000000
+set ::bgpPeerUpTime(auroralane-gw1,30:00:04:AB:05:54:00:01:00:00:00:00:00:00:00:AA) "14000000"
 set ::bgpPeers(auroralane-gw1) "30:00:04:AB:05:54:00:01:00:00:00:00:00:00:00:AA"
 set ::isJuniper(juniper-gw1) "1"
 set ::isCisco(juniper-gw1) "0"
