@@ -108,9 +108,9 @@ class Port(BaseModel):
 class BGPPeerSession(BaseModel):
     """Keeps a BGP peer session"""
 
-    uptime: int
-    admin_status: BGPAdminStatus
-    oper_state: BGPOperState
+    uptime: Optional[int] = 0
+    admin_status: Optional[BGPAdminStatus] = None
+    oper_state: Optional[BGPOperState] = None
 
 
 class DeviceState(BaseModel):
