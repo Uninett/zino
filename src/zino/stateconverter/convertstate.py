@@ -92,6 +92,7 @@ def set_addr_to_router(linedata: LineData, state: ZinoState):
         ip = parse_ip(ip_string)
     except ValueError:
         _log.error(f"Could not parse ip {ip_string}")
+        return
     device_name = linedata.value
     state.addresses[ip] = device_name
 
