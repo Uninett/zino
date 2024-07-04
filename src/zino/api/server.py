@@ -27,7 +27,7 @@ class ZinoServer:
         self.notification_channels: dict[str, Zino1NotificationProtocol] = {}
         self.notify_server = self.api_server = None
 
-    def serve(self, address: str = "127.0.0.1"):
+    def serve(self, address: str = "0.0.0.0"):
         """Sets up the two asyncio servers to serve in tandem 'forever'"""
         api_coroutine = self._loop.create_server(
             lambda: ZinoTestProtocol(server=self, state=self.state), address, self.API_PORT
