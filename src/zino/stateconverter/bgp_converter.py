@@ -51,6 +51,7 @@ def _group_bgp_data_by_index(old_state: OldState) -> dict[BGPDevicePeerIndex, di
             except ValueError:
                 # There is a bug in zino1 statedump where invalid IPv6 addresses are dumped
                 _log.error(f"Could not parse ip {linedata.identifiers[1]}")
+                continue
             device_name = linedata.identifiers[0]
             index = BGPDevicePeerIndex(device_name, ip)
             if index not in return_dict:
