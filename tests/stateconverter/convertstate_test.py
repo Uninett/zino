@@ -14,7 +14,9 @@ from zino.statemodels import (
     BGPOperState,
     EventState,
     InterfaceState,
+    MatchType,
     PortStateEvent,
+    PortStateMaintenance,
 )
 
 
@@ -185,6 +187,29 @@ class TestBGP:
         ip = ip_address("3000:04AB:0554:0001:0000:0000:0000:00AA")
         assert ip in device.bgp_peers
         assert len(device.bgp_peers) == 1
+
+
+class TestPM:
+    def test_pm_should_be_created_correctly(self, save_state_path):
+        state = create_state(save_state_path)
+        pm = state.planned_maintenances[3188]
+        assert isinstance(pm, PortStateMaintenance)
+        assert pm.type == "portstate"
+        assert pm.start_time == datetime.fromtimestamp(1720021526)
+        assert pm.end_time == datetime.fromtimestamp(1720025126)
+        assert pm.match_type == MatchType.INTF_REGEXP
+        assert pm.match_expression == "ge-1/0/10"
+        assert pm.match_device == "blaafjell-gw2"
+        assert pm.event_ids == [110]
+        assert len(pm.log) == 1
+
+    def test_last_pm_id_should_be_set_correctly(self, save_state_path):
+        state = create_state(save_state_path)
+        assert state.planned_maintenances.last_pm_id == 3188
+
+    def test_last_run_should_be_set_correctly(self, save_state_path):
+        state = create_state(save_state_path)
+        assert state.planned_maintenances.last_run == datetime.fromtimestamp(1720018082)
 
 
 def test_addresses_should_be_set_correctly(save_state_path):

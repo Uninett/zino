@@ -2,12 +2,6 @@ global ::AddrToRouter
 set ::AddrToRouter(175.46.88.27) "boot-gw1"
 global ::BootTime
 set ::BootTime(boot-gw1) "1705257668"
-global ::pm::lastid
-set ::pm::lastid "500"
-global ::pm::lasttime
-set ::pm::lasttime "1706257668"
-global ::pm::pm_events
-set ::pm::pm_events(0) "1200 1300"
 global ::EventAttrs_100
 set ::EventAttrs_100(bgpAS) "running"
 set ::EventAttrs_100(bgpOS) "down"
@@ -102,3 +96,19 @@ set ::isJuniper(juniper-gw1) "1"
 set ::isCisco(juniper-gw1) "0"
 set ::isJuniper(cisco-gw1) "0"
 set ::isCisco(cisco-gw1) "1"
+global ::pm::event_3188
+set ::pm::event_3188(endtime) "1720025126"
+set ::pm::event_3188(match_dev) "blaafjell-gw2"
+set ::pm::event_3188(match_expr) "ge-1/0/10"
+set ::pm::event_3188(match_type) "intf-regexp"
+set ::pm::event_3188(starttime) "1720021526"
+set ::pm::event_3188(type) "portstate"
+set ::pm::event_3188(log) "{1720021529 logmessage}"
+global ::pm::events
+set ::pm::events(3188) "1"
+global ::pm::lastid
+set ::pm::lastid "3188"
+global ::pm::lasttime
+set ::pm::lasttime "1720018082"
+global ::pm::pm_events
+set ::pm::pm_events(3188) "110"
