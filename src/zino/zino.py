@@ -12,11 +12,11 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 import tzlocal
+from pydantic import ValidationError
 
 from zino import state
 from zino.api.server import ZinoServer
-from zino.config import read_configuration
-from zino.config.models import validate_file_can_be_opened
+from zino.config import InvalidConfigurationError, read_configuration
 from zino.scheduler import get_scheduler, load_and_schedule_polldevs
 from zino.statemodels import Event
 from zino.trapd import TrapReceiver
@@ -27,6 +27,7 @@ from zino.trapobservers import ignored_traps, link_traps, logged_traps  # noqa
 STATE_DUMP_JOB_ID = "zino.dump_state"
 # Never try to dump state more often than this:
 MINIMUM_STATE_DUMP_INTERVAL = timedelta(seconds=10)
+DEFAULT_CONFIG_FILE = "zino.toml"
 _log = logging.getLogger("zino")
 
 
@@ -36,11 +37,21 @@ def main():
         level=logging.INFO if not args.debug else logging.DEBUG,
         format="%(asctime)s - %(levelname)s - %(name)s (%(threadName)s) - %(message)s",
     )
-    state.config = read_configuration(args.config_file, args.polldevs)
-    # Polldevs by command line argument will override config file entry
-    if args.polldevs:
-        state.config.polling.file = args.polldevs
-    validate_file_can_be_opened(state.config.polling.file)
+    try:
+        state.config = read_configuration(args.config_file or DEFAULT_CONFIG_FILE, args.polldevs)
+    except OSError:
+        if args.config_file:
+            print(f"No config file with the name {args.config_name} found.")
+            sys.exit(1)
+    except InvalidConfigurationError:
+        print(f"Configuration file with the name {args.config_name or DEFAULT_CONFIG_FILE} is invalid TOML.")
+        sys.exit(1)
+    except ValidationError:
+        print(
+            f"Configuration file with the name {args.config_name or DEFAULT_CONFIG_FILE} has invalid values or misspelled keys. Check the zino.toml.example file."
+        )
+        sys.exit(1)
+
     state.state = state.ZinoState.load_state_from_file(state.config.persistence.file) or state.ZinoState()
     init_event_loop(args)
 
