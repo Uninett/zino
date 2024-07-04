@@ -1,5 +1,5 @@
 import logging
-from typing import NamedTuple
+from typing import Generator, NamedTuple
 
 from zino.state import ZinoState
 from zino.stateconverter.utils import OldState, parse_ip
@@ -16,8 +16,7 @@ def set_bgp_state(
     BGP session data defined in `temp_sessions`. If errors occur for one peer,
     the error is logged and the peer is discarded before the next peer is processed.
     """
-    sessions = _get_bgp_sessions(old_state)
-    for index, session in sessions.items():
+    for index, session in _get_bgp_sessions(old_state):
         device_name, peer_ip = index
         device = new_state.devices.get(device_name)
         device.bgp_peers[peer_ip] = session
@@ -30,20 +29,16 @@ class BGPDevicePeerIndex(NamedTuple):
     ip: IPAddress
 
 
-def _get_bgp_sessions(old_state: OldState) -> dict[BGPDevicePeerIndex, BGPPeerSession]:
+def _get_bgp_sessions(old_state: OldState) -> Generator[tuple[BGPDevicePeerIndex, BGPPeerSession], None, None]:
     """Parses old state for BGP sessions and maps them to the correct device and peer IP"""
     bgp_data = _group_bgp_data_by_index(old_state)
-    bgp_sessions = dict()
     for index, data in bgp_data.items():
-        session = BGPPeerSession()
-        if uptime := data.get("::bgpPeerUpTime", 0):
-            session.uptime = int(uptime)
-        if admin_status := data.get("::bgpPeerAdminState"):
-            session.admin_status = BGPAdminStatus(admin_status)
-        if oper_state := data.get("::bgpPeerOperState"):
-            session.oper_state = BGPOperState(oper_state)
-        bgp_sessions[index] = session
-    return bgp_sessions
+        bgp_session = BGPPeerSession(
+            uptime=int(data.get("::bgpPeerUpTime", 0)),
+            admin_status=BGPAdminStatus(data.get("::bgpPeerAdminState")) if "::bgpPeerAdminState" in data else None,
+            oper_state=BGPOperState(data.get("::bgpPeerOperState")) if "::bgpPeerOperState" in data else None,
+        )
+        yield index, bgp_session
 
 
 def _group_bgp_data_by_index(old_state: OldState) -> dict[BGPDevicePeerIndex, dict[str, str]]:
