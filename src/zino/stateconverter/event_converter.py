@@ -57,8 +57,16 @@ def _get_event_index(line: LineData) -> tuple[int, EventIndex]:
     of event_id, event_index
     """
     event_id = int(line.identifiers[0])
-    device, subindex, event_type = tuple(line.value.split(","))
-    subindex = _parse_subindex(subindex)
+
+    index_components = line.value.split(",")
+    if len(index_components) not in [2, 3]:
+        raise ValueError(f"Invalid event index {line.value}")
+    device, *rest = index_components
+    # The last component should always be the event type
+    event_type = rest.pop() if rest else None
+    # If anything is left, it should be the subindex
+    subindex = _parse_subindex(rest[0]) if rest else None
+
     event_index = EventIndex(device, subindex, event_name_to_type[event_type])
     return event_id, event_index
 
