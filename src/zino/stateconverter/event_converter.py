@@ -162,6 +162,8 @@ def _set_event_attrs(linedata: LineData, state: ZinoState, indices: EventIndices
         event.neigh_rdns = linedata.value
     elif event_field == "reachability":
         event.reachability = ReachabilityState(linedata.value)
+    elif event_field == "reason":
+        event.reason = linedata.value
     elif event_field in ["id", "type"]:
         # These are set via other means
         pass
