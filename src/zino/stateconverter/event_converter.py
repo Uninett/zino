@@ -18,6 +18,7 @@ from zino.statemodels import (
     InterfaceState,
     PortStateEvent,
     ReachabilityEvent,
+    ReachabilityState,
     SubIndex,
 )
 
@@ -159,6 +160,8 @@ def _set_event_attrs(linedata: LineData, state: ZinoState, indices: EventIndices
         event.alarm_type = linedata.value
     elif event_field == "Neigh-rDNS":
         event.neigh_rdns = linedata.value
+    elif event_field == "reachability":
+        event.reachability = ReachabilityState(linedata.value)
     elif event_field in ["id", "type"]:
         # These are set via other means
         pass
