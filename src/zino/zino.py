@@ -36,7 +36,7 @@ def main():
         level=logging.INFO if not args.debug else logging.DEBUG,
         format="%(asctime)s - %(levelname)s - %(name)s (%(threadName)s) - %(message)s",
     )
-    state.config = read_configuration(args.config_file)
+    state.config = read_configuration(args.config_file, args.polldevs)
     # Polldevs by command line argument will override config file entry
     if args.polldevs:
         state.config.polling.file = args.polldevs

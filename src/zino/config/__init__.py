@@ -12,7 +12,7 @@ class InvalidConfigurationError(Exception):
     """The configuration file is invalid toml"""
 
 
-def read_configuration(config_file_name: Optional[str] = None) -> Configuration:
+def read_configuration(config_file_name: Optional[str] = None, poll_file_name: Optional[str] = None) -> Configuration:
     """
     Reads and validates config toml file
 
@@ -32,6 +32,13 @@ def read_configuration(config_file_name: Optional[str] = None) -> Configuration:
             config_dict = load(cf)
         except TOMLDecodeError:
             raise InvalidConfigurationError
+
+    # Polldevs by command line argument will override config file entry
+    if poll_file_name:
+        if "polling" not in config_dict.keys():
+            config_dict["polling"] = {"file": poll_file_name}
+        else:
+            config_dict["polling"]["file"] = poll_file_name
 
     config = Configuration.model_validate(obj=config_dict, strict=True)
 
