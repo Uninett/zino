@@ -5,7 +5,7 @@ from typing import get_args
 from zino.events import EventIndex
 from zino.state import ZinoState
 from zino.stateconverter.linedata import LineData
-from zino.stateconverter.utils import OldState, parse_ip
+from zino.stateconverter.utils import OldState, parse_ip, parse_log_and_history
 from zino.statemodels import (
     AlarmEvent,
     AlarmType,
@@ -16,7 +16,6 @@ from zino.statemodels import (
     BGPOperState,
     EventState,
     InterfaceState,
-    LogEntry,
     PortStateEvent,
     ReachabilityEvent,
     SubIndex,
@@ -81,22 +80,6 @@ def _parse_subindex(subindex: str) -> SubIndex:
     raise ValueError(f"Invalid SubIndex: {subindex}")
 
 
-def _parse_log_and_history(line: str) -> list[LogEntry]:
-    return_list = []
-    entries = line.split("{")
-    for entry in entries:
-        if not entry:
-            # If just empty string caused by using .split()
-            continue
-        cleaned_entry = entry.replace("}", "")
-        cleaned_entry_split = cleaned_entry.split()
-        timestamp = cleaned_entry_split[0]
-        log_msg = " ".join(cleaned_entry_split[1:])
-        log_entry = LogEntry(timestamp=timestamp, message=log_msg)
-        return_list.append(log_entry)
-    return return_list
-
-
 def _set_event_attrs(linedata: LineData, state: ZinoState, indices: EventIndices):
     event_field = linedata.identifiers[0]
     event_id = int(linedata.identifiers[1])
@@ -110,7 +93,7 @@ def _set_event_attrs(linedata: LineData, state: ZinoState, indices: EventIndices
     if event_field == "priority":
         event.priority = int(linedata.value)
     elif event_field == "history":
-        event.history = _parse_log_and_history(linedata.value)
+        event.history = parse_log_and_history(linedata.value)
     elif event_field == "bgpOS":
         event.bgpos = BGPOperState(linedata.value)
     elif event_field == "bgpAS":
@@ -118,7 +101,7 @@ def _set_event_attrs(linedata: LineData, state: ZinoState, indices: EventIndices
     elif event_field == "lastevent":
         event.lastevent = linedata.value
     elif event_field == "log":
-        event.log = _parse_log_and_history(linedata.value)
+        event.log = parse_log_and_history(linedata.value)
     elif event_field == "polladdr":
         event.polladdr = parse_ip(linedata.value)
     elif event_field == "opened":
