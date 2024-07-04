@@ -81,13 +81,77 @@ def invalid_polldevs_conf(tmp_path):
 
 
 @pytest.fixture
-def zino_non_default_conf(tmp_path, polldevs_conf_with_no_routers):
+def secrets_file(tmp_path):
+    name = tmp_path / "secrets"
+    with open(name, "w") as conf:
+        conf.write("""user1 password123""")
+    yield name
+
+
+@pytest.fixture
+def zino_conf(tmp_path, polldevs_conf_with_no_routers, secrets_file):
     name = tmp_path / "zino.toml"
     with open(name, "w") as conf:
         conf.write(
             f"""
+            [authentication]
+            file = "{tmp_path}/secrets"
             [polling]
             file = "{tmp_path}/polldevs-empty.cf"
+            """
+        )
+    yield name
+
+
+@pytest.fixture
+def zino_conf_with_non_existent_pollfile(tmp_path, secrets_file):
+    name = tmp_path / "zino-no-pollfile.toml"
+    with open(name, "w") as conf:
+        conf.write(
+            f"""
+            [authentication]
+            file = "{tmp_path}/secrets"
+            [polling]
+            file = "{tmp_path}/non-existent-pollfile.cf"
+            """
+        )
+    yield name
+
+
+@pytest.fixture
+def invalid_zino_conf(tmp_path):
+    name = tmp_path / "invalid-zino.toml"
+    with open(name, "w") as conf:
+        conf.write(
+            """
+                [archiving]
+                old_events_dir = abc
+            """
+        )
+    yield name
+
+
+@pytest.fixture
+def invalid_values_zino_conf(tmp_path):
+    name = tmp_path / "invalid-config-values.toml"
+    with open(name, "w") as conf:
+        conf.write(
+            """
+                [archiving]
+                typo = "old-zino-events"
+            """
+        )
+    yield name
+
+
+@pytest.fixture
+def extra_keys_zino_conf(tmp_path):
+    name = tmp_path / "extra-keys.toml"
+    with open(name, "w") as conf:
+        conf.write(
+            """
+                [archiving]
+                old_events_dir = false
             """
         )
     yield name
