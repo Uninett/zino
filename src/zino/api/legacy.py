@@ -180,6 +180,9 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
             for name, responder in eligible.items()
         }
 
+    def _get_top_level_responders(self) -> dict[str, Responder]:
+        return {name: responder for name, responder in self._responders.items() if " " not in responder.name}
+
     def _read_multiline(self) -> asyncio.Future:
         """Sets the protocol in multline input mode and returns a Future that will trigger once multi-line input is
         complete.
@@ -236,10 +239,10 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
 
     async def do_help(self):
         """Lists all available top-level API commands"""
-        top_level_responders = (responder for responder in self._responders.values() if " " not in responder.name)
+        top_level_responders = self._get_top_level_responders()
         authorized_responders = (
             responder
-            for responder in top_level_responders
+            for responder in top_level_responders.values()
             if self.is_authenticated or not getattr(responder.function, "requires_authentication", False)
         )
 
