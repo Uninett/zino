@@ -360,12 +360,10 @@ class TestZino1ServerProtocolHelpCommand:
             ), f"{command_name} is not listed in HELP"
 
     @pytest.mark.asyncio
-    async def test_when_authenticated_help_is_issued_then_all__top_level_commands_should_be_listed(
-        self, authenticated_protocol
-    ):
+    async def test_when_authenticated_help_is_issued_then_all_commands_should_be_listed(self, authenticated_protocol):
         await authenticated_protocol.message_received("HELP")
 
-        all_command_names = set(authenticated_protocol._get_top_level_responders())
+        all_command_names = set(authenticated_protocol._get_all_responders())
         for command_name in all_command_names:
             assert (
                 command_name.encode() in authenticated_protocol.transport.data_buffer.getvalue()
