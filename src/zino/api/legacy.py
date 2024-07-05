@@ -420,6 +420,15 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         self._state.planned_maintenances.close_planned_maintenance(pm.id, "PM cancelled", self.user)
         self._respond_ok()
 
+    @requires_authentication
+    @_translate_pm_id_to_pm
+    async def do_pm_addlog(self, pm: PlannedMaintenance):
+        self._respond(302, "please provide new PM log entry, terminate with '.'")
+        data = await self._read_multiline()
+        message = f"{self.user}\n" + "\n".join(line.strip() for line in data)
+        pm.add_log(message)
+        self._respond_ok()
+
 
 class ZinoTestProtocol(Zino1ServerProtocol):
     """Extended Zino 1 server protocol with test commands added in"""
