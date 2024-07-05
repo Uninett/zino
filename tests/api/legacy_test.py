@@ -1,3 +1,5 @@
+import re
+from datetime import timedelta
 from io import BytesIO
 from unittest.mock import Mock, patch
 
@@ -14,7 +16,14 @@ from zino.api.legacy import (
 from zino.api.server import ZinoServer
 from zino.config.models import PollDevice
 from zino.state import ZinoState
-from zino.statemodels import Event, EventState, ReachabilityEvent
+from zino.statemodels import (
+    DeviceMaintenance,
+    Event,
+    EventState,
+    MatchType,
+    ReachabilityEvent,
+)
+from zino.time import now
 
 
 class TestZino1BaseServerProtocol:
@@ -694,6 +703,27 @@ class TestZino1TestProtocol:
         await protocol.do_multitest()
         assert b"302 " in buffered_fake_transport.data_buffer.getvalue()
         assert b"200 ok" in buffered_fake_transport.data_buffer.getvalue()
+
+
+class TestZino1ServerProtocolPmListCommand:
+    @pytest.mark.asyncio
+    async def test_when_authenticated_should_list_all_pm_ids(self, authenticated_protocol):
+        pms = authenticated_protocol._state.planned_maintenances
+        pms.create_planned_maintenance(
+            now() - timedelta(hours=1),
+            now() + timedelta(hours=1),
+            DeviceMaintenance,
+            MatchType.REGEXP,
+            "expr",
+        )
+        await authenticated_protocol.message_received("PM LIST")
+        response = authenticated_protocol.transport.data_buffer.getvalue().decode("utf-8")
+
+        assert re.search(r"\b300 \b", response), "Expected response to contain status code 300"
+
+        pattern_string = r"\b{}\b"
+        for id in pms.planned_maintenances:
+            assert re.search(pattern_string.format(id), response), f"Expected response to contain id {id}"
 
 
 def test_requires_authentication_should_set_function_attribute():
