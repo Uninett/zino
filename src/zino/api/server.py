@@ -2,7 +2,7 @@ import logging
 from asyncio import AbstractEventLoop
 from typing import Optional
 
-from zino.api.legacy import Zino1ServerProtocol, ZinoTestProtocol
+from zino.api.legacy import Zino1ServerProtocol
 from zino.api.notify import Zino1NotificationProtocol
 from zino.state import ZinoState
 from zino.statemodels import Event
@@ -30,7 +30,7 @@ class ZinoServer:
     def serve(self, address: str = "0.0.0.0"):
         """Sets up the two asyncio servers to serve in tandem 'forever'"""
         api_coroutine = self._loop.create_server(
-            lambda: ZinoTestProtocol(server=self, state=self.state), address, self.API_PORT
+            lambda: Zino1ServerProtocol(server=self, state=self.state), address, self.API_PORT
         )
         self.api_server = self._loop.run_until_complete(api_coroutine)
         _logger.info("Serving API on %r", self.api_server.sockets[0].getsockname())
