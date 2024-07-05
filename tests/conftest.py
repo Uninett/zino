@@ -95,9 +95,9 @@ def zino_conf(tmp_path, polldevs_conf_with_no_routers, secrets_file):
         conf.write(
             f"""
             [authentication]
-            file = "{tmp_path}/secrets"
+            file = "{secrets_file}"
             [polling]
-            file = "{tmp_path}/polldevs-empty.cf"
+            file = "{polldevs_conf_with_no_routers}"
             """
         )
     yield name
@@ -110,7 +110,7 @@ def zino_conf_with_non_existent_pollfile(tmp_path, secrets_file):
         conf.write(
             f"""
             [authentication]
-            file = "{tmp_path}/secrets"
+            file = "{secrets_file}"
             [polling]
             file = "{tmp_path}/non-existent-pollfile.cf"
             """
@@ -138,7 +138,7 @@ def invalid_values_zino_conf(tmp_path):
         conf.write(
             """
                 [archiving]
-                typo = "old-zino-events"
+                old_events_dir = false
             """
         )
     yield name
@@ -151,7 +151,7 @@ def extra_keys_zino_conf(tmp_path):
         conf.write(
             """
                 [archiving]
-                old_events_dir = false
+                typo = "old-zino-events"
             """
         )
     yield name

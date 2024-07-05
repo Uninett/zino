@@ -5,10 +5,15 @@ from zino.config import InvalidConfigurationError, read_configuration
 
 
 class TestReadConfiguration:
-    def test_returns_config_defined_in_file(self, zino_conf, tmp_path):
+    def test_returns_config_defined_in_file(self, zino_conf, polldevs_conf_with_no_routers):
         config = read_configuration(zino_conf)
         assert config
-        assert config.polling.file == f"{tmp_path}/polldevs-empty.cf"
+        assert config.polling.file == str(polldevs_conf_with_no_routers)
+
+    def test_pollfile_argument_overrides_pollfile_defined_in_file(self, zino_conf, polldevs_conf_with_single_router):
+        config = read_configuration(config_file_name=zino_conf, poll_file_name=str(polldevs_conf_with_single_router))
+        assert config
+        assert config.polling.file == str(polldevs_conf_with_single_router)
 
     def test_raises_error_on_file_not_found(self):
         with pytest.raises(OSError):
@@ -27,12 +32,13 @@ class TestReadConfiguration:
             read_configuration(extra_keys_zino_conf)
 
     def test_raises_error_on_pollfile_not_found(self, tmp_path):
-        name = tmp_path / "non-existent-pollfile.toml"
+        pollfile = "non-existent-pollfile.toml"
+        name = tmp_path / pollfile
         with open(name, "w") as conf:
             conf.write(
-                """
+                f"""
                 [polling]
-                file = "non-existent-pollfile.cf"
+                file = "{pollfile}"
                 """
             )
         with pytest.raises(ValidationError):
