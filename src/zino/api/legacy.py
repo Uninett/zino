@@ -388,6 +388,13 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
 
         return self._respond_ok()
 
+    @requires_authentication
+    async def do_pm_list(self):
+        self._respond(300, "PM event ids follows, terminated with '.'")
+        for id in self._state.planned_maintenances.planned_maintenances:
+            self._respond_raw(id)
+        self._respond_raw(".")
+
 
 class ZinoTestProtocol(Zino1ServerProtocol):
     """Extended Zino 1 server protocol with test commands added in"""
