@@ -6,11 +6,13 @@ from dataclasses import dataclass, field
 from ipaddress import ip_address
 from typing import Any, Dict, List, NamedTuple, Optional, Set
 
+from pyasn1.type.base import SimpleAsn1Type
 from pysnmp.carrier.asyncio.dgram import udp
 from pysnmp.entity import config
 from pysnmp.entity.rfc3413 import ntfrcv
 from pysnmp.proto.rfc1902 import ObjectName
 from pysnmp.smi import view
+from pysnmp.smi.rfc1902 import ObjectIdentity, ObjectType
 
 import zino.state
 from zino.config.models import PollDevice
@@ -183,7 +185,7 @@ class TrapReceiver:
         origin = TrapOriginator(address=sender_address, port=sender_port, device=router)
         trap = TrapMessage(agent=origin)
         for var, raw_value in var_binds:
-            mib, label, instance = self._resolve_object_name(var)
+            mib, label, instance, raw_value = self._resolve_varbind(var, raw_value)
             _logger.debug("(%r, %r, %s) = %s", mib, label, instance, raw_value.prettyPrint())
             try:
                 value = _mib_value_to_python(raw_value)
@@ -240,3 +242,18 @@ class TrapReceiver:
             controller = view.MibViewController(engine.getMibBuilder())
         mib, label, instance = controller.getNodeLocation(object_name)
         return mib, label, OID(instance) if instance else None
+
+    def _resolve_varbind(self, name: ObjectName, value: SimpleAsn1Type) -> tuple[str, str, OID, SimpleAsn1Type]:
+        """Resolves a varbind name and value to a MIB, label, instance, and value.  The value will be interpreted
+        according to the resolved MIB object.
+
+        Raises MibNotFoundError if the object's MIB cannot be resolved.
+        """
+        engine = self.snmp_engine
+        controller = engine.getUserContext("mibViewController")
+        if not controller:
+            controller = view.MibViewController(engine.getMibBuilder())
+
+        name, value = ObjectType(ObjectIdentity(name), value).resolveWithMib(controller)
+        mib, label, instance = name.getMibSymbol()
+        return mib, label, instance, value
