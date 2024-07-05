@@ -9,6 +9,7 @@ import inspect
 import logging
 import re
 import textwrap
+from datetime import datetime, timezone
 from functools import wraps
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, List, NamedTuple, Optional, Union
@@ -17,7 +18,16 @@ from zino import version
 from zino.api import auth
 from zino.api.notify import Zino1NotificationProtocol
 from zino.state import ZinoState, config
-from zino.statemodels import ClosedEventError, Event, EventState, PlannedMaintenance
+from zino.statemodels import (
+    ClosedEventError,
+    DeviceMaintenance,
+    Event,
+    EventState,
+    MatchType,
+    PlannedMaintenance,
+    PortStateMaintenance,
+)
+from zino.time import now
 
 if TYPE_CHECKING:
     from zino.api.server import ZinoServer
@@ -464,6 +474,56 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
     @_translate_pm_id_to_pm
     async def do_pm_details(self, pm: PlannedMaintenance):
         self._respond(200, pm.details())
+
+    @requires_authentication
+    async def do_pm_add(self, from_t: Union[str, int], to_t: Union[str, int], pm_type: str, m_type: str, *args: str):
+        try:
+            start_time = datetime.fromtimestamp(int(from_t), tz=timezone.utc)
+        except ValueError:
+            return self._respond_error("illegal from_t (param 1), must be only digits")
+        try:
+            end_time = datetime.fromtimestamp(int(to_t), tz=timezone.utc)
+        except ValueError:
+            return self._respond_error("illegal to_t (param 2), must be only digits")
+        if end_time < start_time:
+            return self._respond_error("ending time is before starting time")
+        if start_time < now():
+            return self._respond_error("starting time is in the past")
+
+        if pm_type == "device":
+            pm_class = DeviceMaintenance
+        elif pm_type == "portstate":
+            pm_class = PortStateMaintenance
+        else:
+            return self._respond_error(f"unknown PM event type: {pm_type}")
+
+        try:
+            match_type = MatchType(m_type)
+        except ValueError:
+            return self._respond_error(f"unknown match type: {m_type}")
+
+        if match_type == MatchType.INTF_REGEXP:
+            if len(args) < 2:
+                return self._respond_error(
+                    "{m_type} match type requires two extra arguments: match_device and match_expression"
+                )
+            match_device = args[0]
+            match_expression = args[1]
+        else:
+            if len(args) < 1:
+                return self._respond_error(f"{m_type} match type requires one extra argument: match_expression")
+            match_device = None
+            match_expression = args[0]
+
+        pm = self._state.planned_maintenances.create_planned_maintenance(
+            start_time,
+            end_time,
+            pm_class,
+            match_type,
+            match_expression,
+            match_device,
+        )
+        self._respond(200, f"PM id {pm.id} successfully added")
 
 
 class ZinoTestProtocol(Zino1ServerProtocol):
