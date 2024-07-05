@@ -388,6 +388,25 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
 
         return self._respond_ok()
 
+    def _translate_pm_id_to_pm(responder: callable):  # noqa
+        """Decorates any command that works with planned maintenance adding verification of the
+        incoming pm_id argument and translation to an actual PlannedMaintenance object.
+        """
+
+        @wraps(responder)
+        def _verify(self, pm_id: Union[str, int], *args, **kwargs):
+            try:
+                pm_id = int(pm_id)
+                pm = self._state.planned_maintenances[pm_id]
+            except (ValueError, KeyError):
+                self._respond_error(f'pm "{pm_id}" does not exist')
+                response = asyncio.get_running_loop().create_future()
+                response.set_result(None)
+                return response
+            return responder(self, pm, *args, **kwargs)
+
+        return _verify
+
     @requires_authentication
     async def do_pm_list(self):
         self._respond(300, "PM event ids follows, terminated with '.'")
