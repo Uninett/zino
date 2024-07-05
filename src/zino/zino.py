@@ -41,13 +41,13 @@ def main():
         state.config = read_configuration(args.config_file or DEFAULT_CONFIG_FILE, args.polldevs)
     except OSError:
         if args.config_file:
-            print(f"No config file with the name {args.config_name} found.")
+            _log.fatal(f"No config file with the name {args.config_file} found.")
             sys.exit(1)
     except InvalidConfigurationError:
-        print(f"Configuration file with the name {args.config_name or DEFAULT_CONFIG_FILE} is invalid TOML.")
+        print(f"Configuration file with the name {args.config_file or DEFAULT_CONFIG_FILE} is invalid TOML.")
         sys.exit(1)
     except ValidationError as e:
-        print(e)
+        _log.fatal(e)
         sys.exit(1)
 
     state.state = state.ZinoState.load_state_from_file(state.config.persistence.file) or state.ZinoState()
