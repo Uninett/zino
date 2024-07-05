@@ -50,12 +50,22 @@ class TrapMessage:
     agent: TrapOriginator
     mib: Optional[str] = None
     name: Optional[str] = None
-    variables: dict[str, TrapVarBind] = field(default_factory=dict)
+    variables: List[TrapVarBind] = field(default_factory=list)
 
     def __str__(self):
-        variables = [f"{v.mib}::{v.var}{v.instance or ''}={v.value or v.raw_value}" for v in self.variables.values()]
+        variables = [f"{v.mib}::{v.var}{v.instance or ''}={v.value or v.raw_value}" for v in self.variables]
         variables = ", ".join(variables)
         return f"<Trap from {self.agent.device.name}: {variables}>"
+
+    def __contains__(self, label) -> bool:
+        for var in self.variables:
+            if var.var == label:
+                return True
+        return False
+
+    def get_all(self, label: str) -> List[TrapVarBind]:
+        """Returns all contained variables with the given label"""
+        return [var for var in self.variables if var.var == label]
 
 
 class TrapObserver:
