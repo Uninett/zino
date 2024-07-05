@@ -194,6 +194,7 @@ class TrapReceiver:
         )
         origin = TrapOriginator(address=sender_address, port=sender_port, device=router)
         trap = TrapMessage(agent=origin)
+        snmp_trap_oid: ObjectName = None
         for var, raw_value in var_binds:
             mib, label, instance, raw_value = self._resolve_varbind(var, raw_value)
             _logger.debug("(%r, %r, %s) = %s", mib, label, instance, raw_value.prettyPrint())
@@ -201,24 +202,26 @@ class TrapReceiver:
                 value = _mib_value_to_python(raw_value)
             except Exception:  # noqa
                 value = None
-            trap.variables[label] = TrapVarBind(OID(var), mib, label, instance, raw_value, value)
+            trap.variables.append(TrapVarBind(OID(var), mib, label, instance, raw_value, value))
+            if label == "snmpTrapOID":
+                snmp_trap_oid = raw_value
 
         if not self._verify_trap(trap):
             return
 
         # TODO do some time calculations, but ask Håvard what the deal is with RestartTime vs. BootTime
 
-        trap.mib, trap.name, _ = self._resolve_object_name(trap.variables["snmpTrapOID"].raw_value)
+        trap.mib, trap.name, _ = self._resolve_object_name(snmp_trap_oid)
         self.dispatch_trap(trap)
 
     @staticmethod
     def _verify_trap(trap: TrapMessage) -> bool:
         device = trap.agent.device.name if trap.agent.device else "N/A"
-        if "snmpTrapOID" not in trap.variables:
+        if "snmpTrapOID" not in trap:
             _logger.error("Trap from %s did not contain a snmpTrapOID value, ignoring", device)
             return False
 
-        if "sysUpTime" not in trap.variables:
+        if "sysUpTime" not in trap:
             _logger.error("Trap from %s did not contain a sysUpTime value, ignoring", device)
             return False
 
