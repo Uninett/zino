@@ -6,6 +6,7 @@ import pytest
 from zino.config.models import PollDevice
 from zino.statemodels import InterfaceState, Port, PortStateEvent
 from zino.time import now
+from zino.trapd import TrapMessage
 from zino.trapobservers.link_traps import LinkTrapObserver
 
 from .. import trapd_test
@@ -103,7 +104,7 @@ class TestLinkTrapObserver:
 
     def test_when_link_trap_is_missing_ifindex_value_it_should_ignore_trap_early(self, state_with_localhost_with_port):
         observer = LinkTrapObserver(state=state_with_localhost_with_port, polldevs=Mock())
-        trap = Mock(variables={})
+        trap = TrapMessage(agent=Mock())
         with patch.object(observer, "handle_link_transition") as handle_link_transition:
             assert not observer.handle_trap(trap)
             assert not handle_link_transition.called, "handle_link_transition was called"
@@ -111,7 +112,7 @@ class TestLinkTrapObserver:
     def test_when_link_trap_refers_to_unknown_port_it_should_ignore_trap_early(self, state_with_localhost_with_port):
         observer = LinkTrapObserver(state=state_with_localhost_with_port, polldevs=Mock())
         localhost = state_with_localhost_with_port.devices.devices["localhost"]
-        trap = Mock(agent=Mock(device=localhost), variables={"ifIndex": Mock(value=99)})
+        trap = TrapMessage(agent=Mock(device=localhost), variables=[Mock(var="ifIndex", value=99)])
         with patch.object(observer, "handle_link_transition") as handle_link_transition:
             assert not observer.handle_trap(trap)
             assert not handle_link_transition.called, "handle_link_transition was called"

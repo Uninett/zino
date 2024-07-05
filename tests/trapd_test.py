@@ -30,26 +30,30 @@ class TestTrapReceiver:
     @pytest.mark.asyncio
     async def test_when_trap_lacks_trap_oid_it_should_be_ignored(self, localhost_receiver):
         trap = TrapMessage(agent=TrapOriginator(address=ipaddress.ip_address("127.0.0.1"), port=666))
-        trap.variables["sysUpTime"] = TrapVarBind(
-            oid=OID(".1.3.6.1.2.1.1.3.0"),
-            mib="SNMPv2-MIB",
-            var="sysUpTime",
-            instance=OID(".0"),
-            raw_value=None,
-            value=123,
+        trap.variables.append(
+            TrapVarBind(
+                oid=OID(".1.3.6.1.2.1.1.3.0"),
+                mib="SNMPv2-MIB",
+                var="sysUpTime",
+                instance=OID(".0"),
+                raw_value=None,
+                value=123,
+            )
         )
         assert not TrapReceiver._verify_trap(trap)
 
     @pytest.mark.asyncio
     async def test_when_trap_lacks_sysuptime_it_should_be_ignored(self, localhost_receiver):
         trap = TrapMessage(agent=TrapOriginator(address=ipaddress.ip_address("127.0.0.1"), port=666))
-        trap.variables["snmpTrapOID"] = TrapVarBind(
-            oid=OID(".1.3.6.1.6.3.1.1.4.1"),
-            mib="SNMPv2-MIB",
-            var="snmpTrapOID",
-            instance=None,
-            raw_value=OID(".1.1.1"),
-            value=("FAKE-MIB", "fakeTrap"),
+        trap.variables.append(
+            TrapVarBind(
+                oid=OID(".1.3.6.1.6.3.1.1.4.1"),
+                mib="SNMPv2-MIB",
+                var="snmpTrapOID",
+                instance=None,
+                raw_value=OID(".1.1.1"),
+                value=("FAKE-MIB", "fakeTrap"),
+            )
         )
         assert not TrapReceiver._verify_trap(trap)
 
@@ -152,7 +156,7 @@ class TestTrapReceiverExternally:
                 await send_trap_externally(OID_COLD_START, OID_SYSNAME_0, "s", "'MockDevice'")
                 assert mock_dispatch.called
                 trap = mock_dispatch.call_args.args[0]
-                assert all(var.value is None for var in trap.variables.values())
+                assert all(var.value is None for var in trap.variables)
 
     @pytest.mark.asyncio
     async def test_when_trap_verification_fails_it_should_not_dispatch_trap(self, localhost_receiver):
