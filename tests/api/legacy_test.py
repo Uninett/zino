@@ -341,7 +341,7 @@ class TestZino1ServerProtocolQuitCommand:
 
 class TestZino1ServerProtocolHelpCommand:
     @pytest.mark.asyncio
-    async def test_when_unauthenticated_help_is_issued_then_unauthenticated_commands_should_be_listed(
+    async def test_when_unauthenticated_help_is_issued_then_unauthenticated_top_level_commands_should_be_listed(
         self, buffered_fake_transport
     ):
         protocol = Zino1ServerProtocol()
@@ -351,7 +351,7 @@ class TestZino1ServerProtocolHelpCommand:
 
         all_unauthenticated_command_names = set(
             name
-            for name, responder in protocol._responders.items()
+            for name, responder in protocol._get_top_level_responders().items()
             if not getattr(responder.function, "requires_authentication", False)
         )
         for command_name in all_unauthenticated_command_names:
@@ -360,10 +360,12 @@ class TestZino1ServerProtocolHelpCommand:
             ), f"{command_name} is not listed in HELP"
 
     @pytest.mark.asyncio
-    async def test_when_authenticated_help_is_issued_then_all_commands_should_be_listed(self, authenticated_protocol):
+    async def test_when_authenticated_help_is_issued_then_all_top_level_commands_should_be_listed(
+        self, authenticated_protocol
+    ):
         await authenticated_protocol.message_received("HELP")
 
-        all_command_names = set(authenticated_protocol._get_all_responders())
+        all_command_names = set(authenticated_protocol._get_top_level_responders())
         for command_name in all_command_names:
             assert (
                 command_name.encode() in authenticated_protocol.transport.data_buffer.getvalue()
