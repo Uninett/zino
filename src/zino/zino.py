@@ -46,10 +46,8 @@ def main():
     except InvalidConfigurationError:
         print(f"Configuration file with the name {args.config_name or DEFAULT_CONFIG_FILE} is invalid TOML.")
         sys.exit(1)
-    except ValidationError:
-        print(
-            f"Configuration file with the name {args.config_name or DEFAULT_CONFIG_FILE} has invalid values or misspelled keys. Check the zino.toml.example file."
-        )
+    except ValidationError as e:
+        print(e)
         sys.exit(1)
 
     state.state = state.ZinoState.load_state_from_file(state.config.persistence.file) or state.ZinoState()
