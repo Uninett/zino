@@ -26,7 +26,7 @@ def test_zino_help_screen_should_not_crash():
     assert subprocess.check_call(["zino", "--help"]) == 0
 
 
-def test_zino_should_not_crash_right_away(polldevs_conf_with_no_routers):
+def test_zino_should_not_crash_right_away(polldevs_conf_with_no_routers, zino_conf):
     """This tests that the main function runs Zino for at least 2 seconds"""
     seconds_to_run_for = 2
     subprocess.check_call(
@@ -36,10 +36,68 @@ def test_zino_should_not_crash_right_away(polldevs_conf_with_no_routers):
             str(seconds_to_run_for),
             "--polldevs",
             str(polldevs_conf_with_no_routers),
+            "--config-file",
+            str(zino_conf),
             "--trap-port",
             "1162",
         ]
     )
+
+
+def test_zino_should_run_with_pollfile_name_in_config_file(polldevs_conf_with_no_routers, zino_conf):
+    """This tests that the main function runs Zino for at least 2 seconds when
+    the name of the pollfile is defined in the config file
+    """
+    seconds_to_run_for = 2
+    subprocess.check_call(
+        [
+            "zino",
+            "--stop-in",
+            str(seconds_to_run_for),
+            "--config-file",
+            str(zino_conf),
+            "--trap-port",
+            "1162",
+        ]
+    )
+
+
+def test_zino_should_not_run_without_pollfile(zino_conf_with_non_existent_pollfile):
+    """This tests that the main function does not Zino for at least 2 seconds when
+    the name of the pollfile is defined in the config file, but does not exist
+    """
+    with pytest.raises(subprocess.CalledProcessError):
+        seconds_to_run_for = 2
+        subprocess.check_call(
+            [
+                "zino",
+                "--stop-in",
+                str(seconds_to_run_for),
+                "--config-file",
+                str(zino_conf_with_non_existent_pollfile),
+                "--trap-port",
+                "1162",
+            ]
+        )
+
+
+def test_zino_should_not_run_with_invalid_conf_file(invalid_zino_conf):
+    """This tests that the main function does not Zino for at least 2 seconds when
+    the name of the pollfile is defined in the config file, but does not exist
+    """
+    with pytest.raises(subprocess.CalledProcessError):
+        seconds_to_run_for = 2
+        subprocess.check_call(
+            [
+                "zino",
+                "--stop-in",
+                str(seconds_to_run_for),
+                "--config-file",
+                str(invalid_zino_conf),
+                "--trap-port",
+                "1162",
+            ]
+        )
 
 
 def test_zino_argparser_works(polldevs_conf):

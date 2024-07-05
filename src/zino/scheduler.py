@@ -39,7 +39,7 @@ def get_scheduler() -> AsyncIOScheduler:
 
 
 def load_polldevs(polldevs_conf: str) -> Tuple[Set, Set]:
-    """Loads polldevs.cf into process state.
+    """Loads pollfile into process state.
 
     :returns: A tuple of (new_devices, deleted_devices)
     """
