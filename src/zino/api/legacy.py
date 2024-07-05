@@ -438,6 +438,11 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
                 self._respond_raw(line)
         self._respond_raw(".")
 
+    @requires_authentication
+    @_translate_pm_id_to_pm
+    async def do_pm_details(self, pm: PlannedMaintenance):
+        self._respond(200, pm.details())
+
 
 class ZinoTestProtocol(Zino1ServerProtocol):
     """Extended Zino 1 server protocol with test commands added in"""
