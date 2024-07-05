@@ -12,7 +12,7 @@ class InvalidConfigurationError(Exception):
     """The configuration file is invalid toml"""
 
 
-def read_configuration(config_file_name: Optional[str], poll_file_name: Optional[str] = None) -> Configuration:
+def read_configuration(config_file_name: str, poll_file_name: Optional[str] = None) -> Configuration:
     """
     Reads and validates config toml file
 
