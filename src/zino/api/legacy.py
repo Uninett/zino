@@ -17,7 +17,7 @@ from zino import version
 from zino.api import auth
 from zino.api.notify import Zino1NotificationProtocol
 from zino.state import ZinoState, config
-from zino.statemodels import ClosedEventError, Event, EventState
+from zino.statemodels import ClosedEventError, Event, EventState, PlannedMaintenance
 
 if TYPE_CHECKING:
     from zino.api.server import ZinoServer
@@ -413,6 +413,12 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         for id in self._state.planned_maintenances.planned_maintenances:
             self._respond_raw(id)
         self._respond_raw(".")
+
+    @requires_authentication
+    @_translate_pm_id_to_pm
+    async def do_pm_cancel(self, pm: PlannedMaintenance):
+        self._state.planned_maintenances.close_planned_maintenance(pm.id, "PM cancelled", self.user)
+        self._respond_ok()
 
 
 class ZinoTestProtocol(Zino1ServerProtocol):
