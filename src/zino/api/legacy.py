@@ -429,6 +429,15 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         pm.add_log(message)
         self._respond_ok()
 
+    @requires_authentication
+    @_translate_pm_id_to_pm
+    async def do_pm_log(self, pm: PlannedMaintenance):
+        self._respond(300, "log follows, terminated with '.'")
+        for log in pm.log:
+            for line in log.model_dump_legacy():
+                self._respond_raw(line)
+        self._respond_raw(".")
+
 
 class ZinoTestProtocol(Zino1ServerProtocol):
     """Extended Zino 1 server protocol with test commands added in"""
