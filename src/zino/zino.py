@@ -44,7 +44,7 @@ def main():
             _log.fatal(f"No config file with the name {args.config_file} found.")
             sys.exit(1)
     except InvalidConfigurationError:
-        print(f"Configuration file with the name {args.config_file or DEFAULT_CONFIG_FILE} is invalid TOML.")
+        _log.fatal(f"Configuration file with the name {args.config_file or DEFAULT_CONFIG_FILE} is invalid TOML.")
         sys.exit(1)
     except ValidationError as e:
         _log.fatal(e)
