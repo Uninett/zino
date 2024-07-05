@@ -428,6 +428,25 @@ class PlannedMaintenance(BaseModel):
         self.log.append(entry)
         return entry
 
+    def details(self) -> str:
+        """Returns a string with the details of the object.
+        Format from zino1: $id $from_t $to_t $type $match_type [$match_dev] $match_expr
+        """
+        details = [
+            str(int(attr.timestamp())) if isinstance(attr, datetime.datetime) else str(attr)
+            for attr in [
+                self.id,
+                self.start_time,
+                self.end_time,
+                self.type,
+                self.match_type,
+                self.match_device,
+                self.match_expression,
+            ]
+            if attr
+        ]
+        return " ".join(details)
+
     def matches_event(self, event: Event, state: "ZinoState") -> bool:
         """Returns true if `event` will be affected by this planned maintenance"""
         raise NotImplementedError
