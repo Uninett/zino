@@ -62,6 +62,11 @@ class TestSNMPRequestsResponseTypes:
         assert any(identifier == Identifier("IF-MIB", "ifAlias", OID(".1")) for identifier, _ in response)
 
     @pytest.mark.asyncio
+    async def test_when_mib_is_unkown_get2_should_raise_mibnotfounderror(self, snmp_client):
+        with pytest.raises(MibNotFoundError):
+            await snmp_client.get2(("FOOBAR-MIB", "ifName", 1), ("FOOBAR-MIB", "ifAlias", 1))
+
+    @pytest.mark.asyncio
     async def test_getnext(self, snmp_client):
         response = await snmp_client.getnext("SNMPv2-MIB", "sysUpTime")
         assert isinstance(response.oid, OID)
