@@ -135,11 +135,18 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         if getattr(responder.function, "requires_authentication", False) and not self.is_authenticated:
             return self._respond_error("Not authenticated")
 
-        required_args = inspect.signature(responder.function).parameters
+        required_args = {
+            name: param
+            for name, param in inspect.signature(responder.function).parameters.items()
+            if param.kind == param.POSITIONAL_OR_KEYWORD
+        }
+        has_variable_args = any(
+            param.kind == param.VAR_POSITIONAL for param in inspect.signature(responder.function).parameters.values()
+        )
         if len(args) < len(required_args):
             arg_summary = " (" + ", ".join(required_args.keys()) + ")" if required_args else ""
             return self._respond_error(f"{responder.name} needs {len(required_args)} parameters{arg_summary}")
-        elif len(args) > len(required_args):
+        elif not has_variable_args and len(args) > len(required_args):
             garbage_args = args[len(required_args) :]
             _logger.debug("client %s sent %r, ignoring garbage args at end: %r", self.peer_name, args, garbage_args)
             args = args[: len(required_args)]
