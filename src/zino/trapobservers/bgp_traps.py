@@ -69,20 +69,24 @@ class BgpTrapObserver(TrapObserver):
         _logger.info("%s BGP peer up: %s state %s", trap.agent.device.name, peer, state)
 
     def _pre_parse_trap(self, trap: TrapMessage) -> Tuple[IPAddress, BGPOperState]:
-        if "jnxBgpM2PeerLocalAddrType" not in trap.variables:
+        if "jnxBgpM2PeerLocalAddrType" not in trap:
             raise MissingRequiredTrapVariables()
 
         try:
-            remote_addr = bytes(trap.variables["jnxBgpM2PeerRemoteAddr"].raw_value)
+            remote_addr = bytes(trap.get_all("jnxBgpM2PeerRemoteAddr")[0].raw_value)
             peer = ip_address(remote_addr)
         except ValueError:
             raise ValueError(f"BGP transition trap received with invalid peer address: {remote_addr!r}")
+        except IndexError:
+            raise ValueError("BGP transition trap received without peer address")
 
         try:
-            raw_state = trap.variables["jnxBgpM2PeerState"].value
+            raw_state = trap.get_all("jnxBgpM2PeerState")[0].value
             state = BGPOperState(raw_state)
         except ValueError:
             raise ValueError(f"BGP transition trap received with invalid peer state: {raw_state}")
+        except IndexError:
+            raise ValueError("BGP transition trap received without peer state")
 
         return peer, state
 

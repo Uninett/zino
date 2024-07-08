@@ -27,7 +27,8 @@ class TestBgpTrapObserver:
         """jnxBgpM2PeerLocalAddrType is required to be present, according to legacy Zino"""
         device = backward_transition_trap.agent.device
         peer = next(iter(device.bgp_peers.keys()))
-        backward_transition_trap.variables.pop("jnxBgpM2PeerLocalAddrType")
+        addr_type = backward_transition_trap.get_all("jnxBgpM2PeerLocalAddrType")[0]
+        backward_transition_trap.variables.remove(addr_type)
 
         observer = BgpTrapObserver(state=Mock())
         observer.handle_trap(trap=backward_transition_trap)
@@ -38,9 +39,7 @@ class TestBgpTrapObserver:
     def test_when_trap_has_invalid_remote_addr_it_should_do_nothing(self, backward_transition_trap):
         device = backward_transition_trap.agent.device
         peer = next(iter(device.bgp_peers.keys()))
-        backward_transition_trap.variables["jnxBgpM2PeerRemoteAddr"] = Mock(
-            var="jnxBgpM2PeerLocalAddr", raw_value=b"INVALID"
-        )
+        backward_transition_trap.get_all("jnxBgpM2PeerRemoteAddr")[0].raw_value = b"INVALID"
 
         observer = BgpTrapObserver(state=Mock())
         observer.handle_trap(trap=backward_transition_trap)
@@ -51,7 +50,7 @@ class TestBgpTrapObserver:
     def test_when_trap_has_invalid_oper_state_it_should_do_nothing(self, backward_transition_trap):
         device = backward_transition_trap.agent.device
         peer = next(iter(device.bgp_peers.keys()))
-        backward_transition_trap.variables["jnxBgpM2PeerState"] = Mock(var="jnxBgpM2PeerState", value="INVALIDFOOBAR")
+        backward_transition_trap.get_all("jnxBgpM2PeerState")[0].value = "INVALIDFOOBAR"
 
         observer = BgpTrapObserver(state=Mock())
         observer.handle_trap(trap=backward_transition_trap)
@@ -67,10 +66,11 @@ class TestBgpTrapObserver:
             await observer.handle_trap(trap=established_trap)
             assert "BGP peer up" in caplog.text
 
-    def test_when_trap_is_unknown_it_should_pass_it_on(self, established_trap):
+    @pytest.mark.asyncio
+    async def test_when_trap_is_unknown_it_should_pass_it_on(self, established_trap):
         established_trap.name = "FOOBAR"
         observer = BgpTrapObserver(state=Mock())
-        assert observer.handle_trap(trap=established_trap)
+        assert await observer.handle_trap(trap=established_trap)
 
 
 @pytest.fixture
@@ -80,12 +80,12 @@ def backward_transition_trap(localhost_trap_originator) -> TrapMessage:
     localhost_trap_originator.device.bgp_peers = {peer: BGPPeerSession(oper_state=BGPOperState.ESTABLISHED)}
 
     trap = TrapMessage(agent=localhost_trap_originator, mib="BGP4-V2-MIB-JUNIPER", name="jnxBgpM2BackwardTransition")
-    trap.variables = {
-        "jnxBgpM2PeerLocalAddrType": Mock(var="jnxBgpM2PeerLocalAddrType", value=1),
-        "jnxBgpM2PeerRemoteAddrType": Mock(var="jnxBgpM2PeerLocalAddrType", value=1),
-        "jnxBgpM2PeerRemoteAddr": Mock(var="jnxBgpM2PeerLocalAddr", raw_value=peer.packed),
-        "jnxBgpM2PeerState": Mock(var="jnxBgpM2PeerState", value="active"),
-    }
+    trap.variables = [
+        Mock(var="jnxBgpM2PeerLocalAddrType", value=1),
+        Mock(var="jnxBgpM2PeerRemoteAddrType", value=1),
+        Mock(var="jnxBgpM2PeerRemoteAddr", raw_value=peer.packed),
+        Mock(var="jnxBgpM2PeerState", value="active"),
+    ]
     return trap
 
 
@@ -96,10 +96,10 @@ def established_trap(localhost_trap_originator) -> TrapMessage:
     localhost_trap_originator.device.bgp_peers = {peer: BGPPeerSession(oper_state=BGPOperState.ACTIVE)}
 
     trap = TrapMessage(agent=localhost_trap_originator, mib="BGP4-V2-MIB-JUNIPER", name="jnxBgpM2Established")
-    trap.variables = {
-        "jnxBgpM2PeerLocalAddrType": Mock(var="jnxBgpM2PeerLocalAddrType", value=1),
-        "jnxBgpM2PeerRemoteAddrType": Mock(var="jnxBgpM2PeerLocalAddrType", value=1),
-        "jnxBgpM2PeerRemoteAddr": Mock(var="jnxBgpM2PeerLocalAddr", raw_value=peer.packed),
-        "jnxBgpM2PeerState": Mock(var="jnxBgpM2PeerState", value="established"),
-    }
+    trap.variables = [
+        Mock(var="jnxBgpM2PeerLocalAddrType", value=1),
+        Mock(var="jnxBgpM2PeerRemoteAddrType", value=1),
+        Mock(var="jnxBgpM2PeerRemoteAddr", raw_value=peer.packed),
+        Mock(var="jnxBgpM2PeerState", value="established"),
+    ]
     return trap
