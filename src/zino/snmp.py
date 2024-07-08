@@ -146,6 +146,31 @@ class SNMP:
         self._raise_varbind_errors(result)
         return self._object_type_to_mib_object(result)
 
+    async def get2(self, *variables: Sequence[Union[str, int]]) -> list[SNMPVarBind]:
+        """SNMP-GETs multiple variables
+
+        Example usage:
+            get2(("SNMPv2-MIB", "sysUpTime", 0), ("SNMPv2-MIB", "sysDescr", 0))
+            get2(("1.3.6.1.2.1.1.3.0",))
+
+        :param variables: Values for defining OIDs. For detailed use see
+            https://github.com/pysnmp/pysnmp/blob/bc1fb3c39764f36c1b7c9551b52ef8246b9aea7c/pysnmp/smi/rfc1902.py#L35-L49
+        :return: A list of MibObject instances representing the resulting MIB variables
+        """
+        query = [self._oid_to_object_type(*var) for var in variables]
+        try:
+            error_indication, error_status, error_index, var_binds = await getCmd(
+                _get_engine(),
+                self.community_data,
+                self.udp_transport_target,
+                ContextData(),
+                *query,
+            )
+        except PysnmpMibNotFoundError as error:
+            raise MibNotFoundError(error)
+        self._raise_errors(error_indication, error_status, error_index, query)
+        return [_convert_varbind(*v) for v in var_binds]
+
     def _raise_errors(
         self,
         error_indication: Union[str, errind.ErrorIndication],
