@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Dict, Optional, Protocol, Union
 
 from pydantic.main import BaseModel
@@ -12,6 +12,7 @@ from zino.statemodels import (
     PlannedMaintenance,
     PortStateMaintenance,
 )
+from zino.time import now as utcnow
 
 if TYPE_CHECKING:
     from zino.state import ZinoState
@@ -31,7 +32,7 @@ class PlannedMaintenanceObserver(Protocol):
 class PlannedMaintenances(BaseModel):
     planned_maintenances: Dict[int, Union[DeviceMaintenance, PortStateMaintenance]] = {}
     last_pm_id: int = 0
-    last_run: Optional[datetime] = datetime.fromtimestamp(0)
+    last_run: Optional[datetime] = datetime.fromtimestamp(0, tz=timezone.utc)
     _observers: list[PlannedMaintenanceObserver] = []
 
     def __getitem__(self, item):
@@ -119,7 +120,7 @@ class PlannedMaintenances(BaseModel):
         """This function starts and stops planned maintenances according to their
         schedule and updates affected events
         """
-        now = datetime.now()
+        now = utcnow()
 
         # Initiate PM once it becomes active
         for started_pm in self.get_started_planned_maintenances(now=now):
