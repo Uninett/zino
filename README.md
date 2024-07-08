@@ -11,9 +11,7 @@ for the original Tcl-based Zino.  An incomplete list of features that have yet
 to be ported:
 
 - SNMP trap handling
-  - Incoming traps are only logged (except for a selected set of spammy traps
-    that are ignored)
-  - Since link traps aren't handled yet, there's no port flapping status
+  - Not all traps supported by Zino 1 have been implemented in Zino 2 yet.
   - No support for reading trap messages from a trap multiplexer like
     `straps`/`nmtrapd`.
 - Planned maintenance (the `PM` family of API commands)

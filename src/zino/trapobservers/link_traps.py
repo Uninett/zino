@@ -3,10 +3,17 @@
 import logging
 import re
 from datetime import datetime, timedelta
-from typing import Optional, Tuple
+from typing import Optional
 
 import zino.time
-from zino.statemodels import DeviceState, InterfaceState, Port, PortStateEvent
+from zino.flaps import PortIndex
+from zino.statemodels import (
+    DeviceState,
+    FlapState,
+    InterfaceState,
+    Port,
+    PortStateEvent,
+)
 from zino.tasks.linkstatetask import LinkStateTask
 from zino.trapd import TrapMessage, TrapObserver
 
@@ -25,7 +32,7 @@ class LinkTrapObserver(TrapObserver):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._last_same_trap: dict[Tuple[str, int], datetime] = {}
+        self._last_same_trap: dict[PortIndex, datetime] = {}
 
     async def handle_trap(self, trap: TrapMessage) -> Optional[bool]:
         _logger.debug("%s: %s (vars: %s)", trap.agent.device.name, trap.name, ", ".join(v.var for v in trap.variables))
@@ -41,10 +48,6 @@ class LinkTrapObserver(TrapObserver):
                 "%s: %s trap referenced unknown port (ix %s), ignoring", trap.agent.device.name, trap.name, ifindex
             )
             return False
-
-        # TODO: The trap *might* contain an ifDescr value.  If present, Zino uses that for trap processing.
-        #  Otherwise, it fetches ifDescr from its own state and uses that for trap processing.  Either way,
-        #  there seems to be some redundancy. We should document why, or change the behavior in Zino 2
 
         # The legacy Zino also looks for `locIfDescr` in the trap at this point, but this is an ancient
         # Cisco-specific variable we no longer see.  It might have been replaced by `cieIfOperStatusCause`,
@@ -76,43 +79,108 @@ class LinkTrapObserver(TrapObserver):
             return
 
         index = (device.name, port.ifindex)
-        self.update_interface_flapping_score(index)
+        flap = self.state.flapping.update_interface_flap(index)
 
         new_state = InterfaceState.UP if is_up else InterfaceState.DOWN
 
-        if self.is_interface_flapping(index):
-            # TODO: if event doesn't exist, create it
-            # TODO: Record new number of flaps in event
-            # TODO: When flapcount modulo 100 is zero, log a message with flapping stats
-            pass
+        if flap.is_flapping():
+            if not flap.in_active_flap_state:
+                event = self.update_flapping_event(device, index, new_state, port, reason)
+            else:
+                event = self.state.events.get(device.name, port.ifindex, PortStateEvent)
+
+            if event:
+                # Update the event flap count, but explicitly DO NOT commit the change here, as committing during
+                # flap storms would cause a notification storm as well
+                event.flaps = flap.flaps
+
+            if flap.flaps % 100 == 0:
+                _logger.info(
+                    '%s: intf "%s" ix %d (%s), %d flaps, penalty %5.2f',
+                    device.name,
+                    port.ifdescr,
+                    port.ifindex,
+                    port.ifalias,
+                    flap.flaps,
+                    flap.hist_val,
+                )
         else:
-            event: PortStateEvent = self.state.events.get_or_create_event(device.name, port.ifindex, PortStateEvent)
+            self.update_non_flapping_event(device, index, new_state, port, reason)
 
-            event.portstate = new_state
-            event.port = port.ifdescr
-            event.ifindex = port.ifindex
-            port.state = new_state
-            if polldev := self.polldevs.get(device.name):
-                event.polladdr = polldev.address
-                event.priority = polldev.priority
-            event.descr = port.ifalias  # or value received from trap? see ldescr from legacy Zino
+    def update_flapping_event(
+        self, device: DeviceState, interface: PortIndex, new_state: InterfaceState, port: Port, reason: Optional[str]
+    ) -> PortStateEvent:
+        """Opens or returns an existing portstate event for a port that was not previously known to be flapping.
 
-            # TODO: If there is internal flapping state, log it in the event and clear internal state
-            # TODO: Set final flapcount in event
+        It also updates the flap state of the port to indicate it is currently in a flapping state.
+        """
+        event = self.open_portstate_event(device, new_state, port, reason)
 
-            msg = f'{device.name}: intf "{port.ifdescr}" ix {port.ifindex} link{new_state.capitalize()}'
-            if reason:
-                event.reason = reason
-                msg = f'{msg}, "{reason}"'
-            _logger.info(msg)
-            event.add_log(msg)
-            self.state.events.commit(event)
+        flap = self.state.flapping.interfaces[interface]
+        event.flapstate = FlapState.FLAPPING
+        event.flaps = flap.flaps
+        msg = (
+            f'{device.name}: intf "{port.ifdescr}" ix {port.ifindex} ({port.ifalias}) flapping, '
+            f"{event.flaps} flaps, penalty {flap.hist_val:.2f}"
+        )
+        _logger.info(msg)
+        event.add_log(msg)
+        self.state.events.commit(event)
+        flap.in_active_flap_state = True
+        return event
 
+    def update_non_flapping_event(
+        self, device: DeviceState, interface: PortIndex, new_state: InterfaceState, port: Port, reason: Optional[str]
+    ) -> PortStateEvent:
+        """Opens or returns an existing portstate event for a port that isn't currently flapping.
+
+        It also removes the recorded flap stats for the port if was previously known to be in a flapping state.
+        """
+        event = self.open_portstate_event(device, new_state, port, reason)
+
+        if flap := self.state.flapping.interfaces.get(interface):
+            event.flaps = flap.flaps
+            if flap.in_active_flap_state:
+                event.flapstate = FlapState.STABLE
+                msg = f'{device.name}: intf "{port.ifdescr}" ix {port.ifindex} ({port.ifalias}) stopped flapping'
+                _logger.info(msg)
+                event.add_log(msg)
+                self.state.flapping.unflap(interface)
+
+        msg = f'{device.name}: intf "{port.ifdescr}" ix {port.ifindex} link{new_state.capitalize()}'
+        if reason:
+            msg = f'{msg}, "{reason}"'
+        _logger.info(msg)
+        event.add_log(msg)
+        self.state.events.commit(event)
+
+        if polldev := self.polldevs.get(device.name):
             poll = LinkStateTask(device=polldev, state=self.state)
             poll.schedule_verification_of_single_port(port.ifindex, deadline=FIRST_REVERIFICATION, reason="trap-verify")
             poll.schedule_verification_of_single_port(
                 port.ifindex, deadline=SECOND_REVERIFICATION, reason="trap-verify-2"
             )
+        else:
+            _logger.warning("No polldev config found for %s", device.name)
+
+        return event
+
+    def open_portstate_event(
+        self, device: DeviceState, new_state: InterfaceState, port: Port, reason: Optional[str]
+    ) -> PortStateEvent:
+        """Opens or returns an open port state event for the port referenced in an incoming trap message"""
+        event = self.state.events.get_or_create_event(device.name, port.ifindex, PortStateEvent)
+        event.portstate = new_state
+        event.port = port.ifdescr
+        event.ifindex = port.ifindex
+        port.state = new_state
+        if polldev := self.polldevs.get(device.name):
+            event.polladdr = polldev.address
+            event.priority = polldev.priority
+        event.descr = port.ifalias
+        if reason:
+            event.reason = reason
+        return event
 
     def is_port_ignored_by_patterns(self, device: DeviceState, ifdescr: str) -> bool:
         if watch_pattern := self.get_watch_pattern(device):
@@ -175,14 +243,6 @@ class LinkTrapObserver(TrapObserver):
             device.boot_time.astimezone(),
         )
         return True
-
-    def update_interface_flapping_score(self, index: Tuple[str, int]) -> bool:
-        """Updates the running flapping score for a given port"""
-        return False  # stub implementation, see Zino 1 `proc intfFlap`
-
-    def is_interface_flapping(self, index: Tuple[str, int]) -> bool:
-        """Determines if a given port is flapping"""
-        return False  # stub implementation, see Zino 1 `proc flapping`
 
     def get_watch_pattern(self, device: DeviceState) -> Optional[str]:
         if device.name not in self.polldevs:

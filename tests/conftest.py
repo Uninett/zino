@@ -1,6 +1,7 @@
 import asyncio
 import ipaddress
 import os
+from datetime import timedelta
 from shutil import which
 
 import pytest
@@ -8,7 +9,8 @@ import pytest_asyncio
 from retry import retry
 
 from zino.state import ZinoState
-from zino.statemodels import DeviceState
+from zino.statemodels import DeviceState, InterfaceState, Port
+from zino.time import now
 from zino.trapd import TrapReceiver
 
 
@@ -253,3 +255,12 @@ def _verify_localhost_snmp_response(port: int):
         ObjectType(ObjectIdentity("SNMPv2-MIB", "sysObjectID")),
     )
     return next(responses)
+
+
+@pytest.fixture
+def state_with_localhost_with_port(state_with_localhost):
+    port = Port(ifindex=1, ifdescr="eth0", state=InterfaceState.UP)
+    device = state_with_localhost.devices.devices["localhost"]
+    device.boot_time = now() - timedelta(minutes=10)
+    device.ports[port.ifindex] = port
+    yield state_with_localhost
