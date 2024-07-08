@@ -705,6 +705,32 @@ class TestZino1TestProtocol:
         assert b"200 ok" in buffered_fake_transport.data_buffer.getvalue()
 
 
+class TestZino1ServerProtocolPmCommand:
+    @pytest.mark.asyncio
+    async def test_it_should_always_return_a_500_error(self, authenticated_protocol):
+        await authenticated_protocol.message_received("PM")
+
+        assert b"500 " in authenticated_protocol.transport.data_buffer.getvalue()
+
+
+class TestZino1ServerProtocolPmHelpCommand:
+    @pytest.mark.asyncio
+    async def test_when_authenticated_pm_help_is_issued_then_all_pm_subcommands_should_be_listed(
+        self, authenticated_protocol
+    ):
+        await authenticated_protocol.message_received("PM HELP")
+
+        all_command_names = set(
+            responder.name.removeprefix("PM ")
+            for responder in authenticated_protocol._responders.values()
+            if responder.name.startswith("PM ")
+        )
+        for command_name in all_command_names:
+            assert (
+                command_name.encode() in authenticated_protocol.transport.data_buffer.getvalue()
+            ), f"{command_name} is not listed in PM HELP"
+
+
 class TestZino1ServerProtocolPmListCommand:
     @pytest.mark.asyncio
     async def test_when_authenticated_should_list_all_pm_ids(self, authenticated_protocol):

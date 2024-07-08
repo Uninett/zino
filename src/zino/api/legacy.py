@@ -408,6 +408,21 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         return _verify
 
     @requires_authentication
+    async def do_pm(self):
+        """Implements the top-level PM command.
+
+        In the original Zino, this has its own dispatcher, and calling it without arguments only results an error.
+        """
+        return self._respond_error("PM command requires a subcommand")
+
+    @requires_authentication
+    async def do_pm_help(self):
+        """Lists all available PM sub-commands"""
+        responders = (responder for name, responder in self._responders.items() if responder.name.startswith("PM "))
+        commands = " ".join(sorted(responder.name.removeprefix("PM ") for responder in responders))
+        self._respond_multiline(200, ["PM subcommands are:"] + textwrap.wrap(commands, width=56))
+
+    @requires_authentication
     async def do_pm_list(self):
         self._respond(300, "PM event ids follows, terminated with '.'")
         for id in self._state.planned_maintenances.planned_maintenances:
