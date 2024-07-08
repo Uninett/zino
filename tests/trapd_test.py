@@ -125,9 +125,13 @@ class TestTrapReceiverExternally:
             assert "mocked exception" in caplog.text
 
     @pytest.mark.asyncio
-    async def test_when_early_observer_returns_false_it_should_not_call_later_observers(self, localhost_receiver):
+    async def test_when_early_observer_returns_false_it_should_not_call_later_observers(
+        self, localhost_receiver, event_loop
+    ):
         early_observer = Mock()
-        early_observer.handle_trap.return_value = False
+        false_result = event_loop.create_future()
+        false_result.set_result(False)
+        early_observer.handle_trap.return_value = false_result
         late_observer = Mock()
         localhost_receiver.observe(early_observer, ("BGP4-MIB", "bgpBackwardTransition"))
         localhost_receiver.observe(late_observer, ("BGP4-MIB", "bgpBackwardTransition"))
