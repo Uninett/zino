@@ -102,19 +102,25 @@ class TestLinkTrapObserver:
             localhost, localhost.ports[1], is_up=False
         ), "did not ignore redundant linkDown trap"
 
-    def test_when_link_trap_is_missing_ifindex_value_it_should_ignore_trap_early(self, state_with_localhost_with_port):
+    @pytest.mark.asyncio
+    async def test_when_link_trap_is_missing_ifindex_value_it_should_ignore_trap_early(
+        self, state_with_localhost_with_port
+    ):
         observer = LinkTrapObserver(state=state_with_localhost_with_port, polldevs=Mock())
         trap = TrapMessage(agent=Mock())
         with patch.object(observer, "handle_link_transition") as handle_link_transition:
-            assert not observer.handle_trap(trap)
+            assert not await observer.handle_trap(trap)
             assert not handle_link_transition.called, "handle_link_transition was called"
 
-    def test_when_link_trap_refers_to_unknown_port_it_should_ignore_trap_early(self, state_with_localhost_with_port):
+    @pytest.mark.asyncio
+    async def test_when_link_trap_refers_to_unknown_port_it_should_ignore_trap_early(
+        self, state_with_localhost_with_port
+    ):
         observer = LinkTrapObserver(state=state_with_localhost_with_port, polldevs=Mock())
         localhost = state_with_localhost_with_port.devices.devices["localhost"]
         trap = TrapMessage(agent=Mock(device=localhost), variables=[Mock(var="ifIndex", value=99)])
         with patch.object(observer, "handle_link_transition") as handle_link_transition:
-            assert not observer.handle_trap(trap)
+            assert not await observer.handle_trap(trap)
             assert not handle_link_transition.called, "handle_link_transition was called"
 
 

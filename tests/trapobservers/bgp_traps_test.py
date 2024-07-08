@@ -10,12 +10,15 @@ from zino.trapobservers.bgp_traps import BgpTrapObserver
 
 
 class TestBgpTrapObserver:
-    def test_when_backward_transition_trap_is_received_it_should_change_bgp_peer_state(self, backward_transition_trap):
+    @pytest.mark.asyncio
+    async def test_when_backward_transition_trap_is_received_it_should_change_bgp_peer_state(
+        self, backward_transition_trap
+    ):
         device = backward_transition_trap.agent.device
         peer = next(iter(device.bgp_peers.keys()))
 
         observer = BgpTrapObserver(state=Mock())
-        observer.handle_trap(trap=backward_transition_trap)
+        await observer.handle_trap(trap=backward_transition_trap)
 
         assert len(device.bgp_peers) == 1
         assert device.bgp_peers[peer].oper_state == BGPOperState.ACTIVE
@@ -56,11 +59,12 @@ class TestBgpTrapObserver:
         assert len(device.bgp_peers) == 1
         assert device.bgp_peers[peer].oper_state == BGPOperState.ESTABLISHED
 
-    def test_when_established_trap_is_received_it_should_just_log_it(self, established_trap, caplog):
+    @pytest.mark.asyncio
+    async def test_when_established_trap_is_received_it_should_just_log_it(self, established_trap, caplog):
         """This requirement is disputed until Håvard E confirms it"""
         observer = BgpTrapObserver(state=Mock())
         with caplog.at_level(logging.INFO):
-            observer.handle_trap(trap=established_trap)
+            await observer.handle_trap(trap=established_trap)
             assert "BGP peer up" in caplog.text
 
     def test_when_trap_is_unknown_it_should_pass_it_on(self, established_trap):

@@ -14,6 +14,6 @@ class RestartTrapLogger(TrapObserver):
         ("SNMPv2-MIB", "warmStart"),
     }
 
-    def handle_trap(self, trap: TrapMessage) -> Optional[bool]:
+    async def handle_trap(self, trap: TrapMessage) -> Optional[bool]:
         _logger.info("%s: %s", trap.agent.device.name, trap.name)
         return False  # stop trap processing here

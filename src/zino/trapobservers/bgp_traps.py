@@ -34,7 +34,7 @@ class BgpTrapObserver(TrapObserver):
         ("BGP4-V2-MIB-JUNIPER", "jnxBgpM2Established"),
     }
 
-    def handle_trap(self, trap: TrapMessage) -> Optional[bool]:
+    async def handle_trap(self, trap: TrapMessage) -> Optional[bool]:
         try:
             peer, state = self._pre_parse_trap(trap)
         except MissingRequiredTrapVariables:
