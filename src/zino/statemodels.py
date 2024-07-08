@@ -8,7 +8,18 @@ import re
 from collections.abc import Generator
 from enum import Enum
 from ipaddress import IPv4Address, IPv6Address
-from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, TypeVar, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Iterator,
+    List,
+    Literal,
+    Optional,
+    Sequence,
+    TypeVar,
+    Union,
+)
 
 from pydantic import BaseModel, Field
 
@@ -457,6 +468,14 @@ class PlannedMaintenance(BaseModel):
         """
         raise NotImplementedError
 
+    def get_matching(self, state: "ZinoState") -> Iterator[Sequence[Union[str, int]]]:
+        """Returns a list of matching devices or ports from Zino state.
+
+        The number of elements of each sequence of the return value depends on the type of planned maintenance
+        objects, but each entry should be suitable to join on space and output to the legacy API.
+        """
+        raise NotImplementedError
+
 
 class DeviceMaintenance(PlannedMaintenance):
     type: Literal[PmType.DEVICE] = PmType.DEVICE
@@ -479,6 +498,15 @@ class DeviceMaintenance(PlannedMaintenance):
         if self.match_type == "exact":
             return self.match_expression == device.name
         return False
+
+    def get_matching(self, state: "ZinoState") -> Iterator[Sequence[Union[str, int]]]:
+        """Returns a list of matching devices from Zino state.
+
+        Each element is a sequence of (pm_id, "device", device_name)
+        """
+        for device in state.devices.devices.values():
+            if self.matches_device(device):
+                yield self.id, self.type, device.name
 
     def _get_or_create_events(self, state: "ZinoState") -> list[Event]:
         """Creates/gets events that are affected by the given starting planned
@@ -521,6 +549,16 @@ class PortStateMaintenance(PlannedMaintenance):
             if regex_match(self.match_device, device.name):
                 return regex_match(self.match_expression, port.ifdescr)
         return False
+
+    def get_matching(self, state: "ZinoState") -> Iterator[Sequence[Union[str, int]]]:
+        """Returns a list of matching devices from Zino state.
+
+        Each element is a sequence of (pm_id, "portstate", device_name, ifIndex, ifDescr, f"({ifAlias})")
+        """
+        for device in state.devices.devices.values():
+            for port in device.ports.values():
+                if self.matches_portstate(device, port):
+                    yield self.id, self.type, device.name, port.ifindex, port.ifdescr, f"({port.ifalias})"
 
     def _get_or_create_events(self, state: "ZinoState") -> list[Event]:
         events = []

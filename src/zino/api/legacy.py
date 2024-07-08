@@ -525,6 +525,16 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         )
         self._respond(200, f"PM id {pm.id} successfully added")
 
+    @requires_authentication
+    @_translate_pm_id_to_pm
+    async def do_pm_matching(self, pm: PlannedMaintenance):
+        matches = pm.get_matching(self._state)
+        self._respond(300, "Matching ports/devices follows, terminated with '.'")
+        for match in matches:
+            output = " ".join(str(i) for i in match)
+            self._respond_raw(output)
+        self._respond_raw(".")
+
 
 class ZinoTestProtocol(Zino1ServerProtocol):
     """Extended Zino 1 server protocol with test commands added in"""
