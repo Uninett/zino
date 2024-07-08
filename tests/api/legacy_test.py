@@ -676,6 +676,42 @@ class TestZino1ServerProtocolNtieCommand:
         assert mock_channel.tied_to is authenticated_protocol
 
 
+class TestZino1ServerProtocolPollrtrCommand:
+    @pytest.mark.asyncio
+    @patch("zino.state.polldevs", dict())
+    async def test_should_add_run_all_tasks_job(self, authenticated_protocol):
+        from zino.state import polldevs
+
+        router_name = "buick.lab.example.org"
+        community = "public"
+        device = PollDevice(
+            name=router_name,
+            address="127.0.0.1",
+            port=666,
+            community=community,
+        )
+        polldevs[device.name] = device
+
+        with patch("zino.api.legacy.get_scheduler") as get_scheduler:
+            mock_scheduler = Mock()
+            get_scheduler.return_value = mock_scheduler
+
+            await authenticated_protocol.message_received(f"POLLRTR {router_name}")
+
+        output = authenticated_protocol.transport.data_buffer.getvalue()
+        assert "200 ok\r\n".encode() in output
+        assert mock_scheduler.add_job.called
+
+    @pytest.mark.asyncio
+    @patch("zino.state.polldevs", dict())
+    async def test_should_output_error_response_for_unknown_router(self, authenticated_protocol):
+        unknown_router = "unknown.router.example.org"
+        await authenticated_protocol.message_received(f"POLLRTR {unknown_router}")
+
+        output = authenticated_protocol.transport.data_buffer.getvalue()
+        assert f"500 Router {unknown_router} unknown\r\n".encode() in output
+
+
 class TestZino1ServerProtocolPollintfCommand:
     @pytest.mark.asyncio
     @patch("zino.state.polldevs", dict())

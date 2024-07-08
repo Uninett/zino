@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Callable, List, NamedTuple, Optional, Union
 from zino import version
 from zino.api import auth
 from zino.api.notify import Zino1NotificationProtocol
+from zino.scheduler import get_scheduler
 from zino.state import ZinoState, config
 from zino.statemodels import (
     ClosedEventError,
@@ -27,6 +28,7 @@ from zino.statemodels import (
     PlannedMaintenance,
     PortStateMaintenance,
 )
+from zino.tasks import run_all_tasks
 from zino.tasks.linkstatetask import LinkStateTask
 from zino.time import now
 
@@ -403,6 +405,27 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         self.notification_channel = channel
         channel.tied_to = self
         _logger.info("Client %s tied to notification channel %s", self.peer_name, channel.peer_name)
+
+        return self._respond_ok()
+
+    @requires_authentication
+    async def do_pollrtr(self, router_name: str):
+        from zino.state import polldevs, state
+
+        device = polldevs.get(router_name, None)
+        if not device:
+            return self._respond_error(f"Router {router_name} unknown")
+
+        scheduler = get_scheduler()
+
+        job_name = f"{router_name}-api-triggered"
+        scheduler.add_job(
+            func=run_all_tasks,
+            trigger="date",
+            args=(device, state),
+            run_date=datetime.datetime.now(),
+            name=job_name,
+        )
 
         return self._respond_ok()
 
