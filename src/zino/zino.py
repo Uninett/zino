@@ -23,6 +23,7 @@ from zino.trapd import TrapReceiver
 
 # ensure all our desired trap observers are loaded.  They will not be explicitly referenced here, hence the noqa tag
 from zino.trapobservers import (  # noqa
+    bfd_traps,
     bgp_traps,
     ignored_traps,
     link_traps,
