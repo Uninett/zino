@@ -28,10 +28,10 @@ class LinkTrapObserver(TrapObserver):
         self._last_same_trap: dict[Tuple[str, int], datetime] = {}
 
     def handle_trap(self, trap: TrapMessage) -> Optional[bool]:
-        _logger.debug("%s: %s (vars: %s)", trap.agent.device.name, trap.name, ", ".join(trap.variables))
+        _logger.debug("%s: %s (vars: %s)", trap.agent.device.name, trap.name, ", ".join(v.var for v in trap.variables))
 
-        if "ifIndex" in trap.variables:
-            ifindex = trap.variables.get("ifIndex").value
+        if "ifIndex" in trap:
+            ifindex = trap.get_all("ifIndex")[0].value
         else:
             _logger.warning("%s: %s trap contained no ifIndex value, ignoring", trap.agent.device.name, trap.name)
             return False
