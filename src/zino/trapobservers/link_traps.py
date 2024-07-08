@@ -27,7 +27,7 @@ class LinkTrapObserver(TrapObserver):
         super().__init__(*args, **kwargs)
         self._last_same_trap: dict[Tuple[str, int], datetime] = {}
 
-    def handle_trap(self, trap: TrapMessage) -> Optional[bool]:
+    async def handle_trap(self, trap: TrapMessage) -> Optional[bool]:
         _logger.debug("%s: %s (vars: %s)", trap.agent.device.name, trap.name, ", ".join(v.var for v in trap.variables))
 
         if "ifIndex" in trap:

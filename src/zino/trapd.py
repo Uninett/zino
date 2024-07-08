@@ -91,7 +91,7 @@ class TrapObserver:
         self.polldevs: Dict[str, PollDevice] = polldevs or zino.state.polldevs
         self.loop = loop if loop else asyncio.get_event_loop()
 
-    def handle_trap(self, trap: TrapMessage) -> Optional[bool]:
+    async def handle_trap(self, trap: TrapMessage) -> Optional[bool]:
         """A trap observer receives a trap message and an optional event loop reference.  The event loop reference
         may be useful if the observer needs to run async actions as part of its trap processing.  If the trap
         observer returns a true-ish value, the trap dispatcher will offer the same trap to more subscribers.  If a
@@ -212,7 +212,7 @@ class TrapReceiver:
         # TODO do some time calculations, but ask Håvard what the deal is with RestartTime vs. BootTime
 
         trap.mib, trap.name, _ = self._resolve_object_name(snmp_trap_oid)
-        self.dispatch_trap(trap)
+        asyncio.ensure_future(self.dispatch_trap(trap))
 
     @staticmethod
     def _verify_trap(trap: TrapMessage) -> bool:
@@ -227,7 +227,7 @@ class TrapReceiver:
 
         return True
 
-    def dispatch_trap(self, trap: TrapMessage):
+    async def dispatch_trap(self, trap: TrapMessage):
         """Dispatches incoming trap messages according to internal subscriptions"""
         observers = self.get_observers_for((trap.mib, trap.name))
         if not observers:
@@ -236,7 +236,7 @@ class TrapReceiver:
 
         for observer in observers:
             try:
-                if not observer.handle_trap(trap):
+                if not await observer.handle_trap(trap):
                     return
             except Exception:  # noqa
                 _logger.exception("Unhandled exception in trap observer %r", observer)

@@ -19,5 +19,5 @@ class IgnoreTraps(TrapObserver):
         ("CISCOTRAP-MIB", "tcpConnectionClose"),
     }
 
-    def handle_trap(self, trap: TrapMessage) -> Optional[bool]:
+    async def handle_trap(self, trap: TrapMessage) -> Optional[bool]:
         return False  # Stop processing here!
