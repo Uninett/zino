@@ -28,6 +28,16 @@ class TestJuniper:
         state = result.get(device_port.ifdescr)
         assert state == bfd_state
 
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("task", ["juniper-bfd-up"], indirect=True)
+    async def test_when_single_index_is_given_then_poll_juniper_should_return_correct_ifdescr_to_state_mapping(
+        self, task, bfd_state, device_port
+    ):
+        result = await task._poll_juniper(session_index=bfd_state.session_index)
+        assert device_port.ifdescr in result
+        state = result.get(device_port.ifdescr)
+        assert state == bfd_state
+
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("task", ["juniper-bfd-up", "cisco-bfd-up"], indirect=True)
