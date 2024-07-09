@@ -9,6 +9,7 @@ import inspect
 import logging
 import re
 import textwrap
+from datetime import datetime, timezone
 from functools import wraps
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, List, NamedTuple, Optional, Union
@@ -17,7 +18,16 @@ from zino import version
 from zino.api import auth
 from zino.api.notify import Zino1NotificationProtocol
 from zino.state import ZinoState, config
-from zino.statemodels import ClosedEventError, Event, EventState
+from zino.statemodels import (
+    ClosedEventError,
+    DeviceMaintenance,
+    Event,
+    EventState,
+    MatchType,
+    PlannedMaintenance,
+    PortStateMaintenance,
+)
+from zino.time import now
 
 if TYPE_CHECKING:
     from zino.api.server import ZinoServer
@@ -135,11 +145,18 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         if getattr(responder.function, "requires_authentication", False) and not self.is_authenticated:
             return self._respond_error("Not authenticated")
 
-        required_args = inspect.signature(responder.function).parameters
+        required_args = {
+            name: param
+            for name, param in inspect.signature(responder.function).parameters.items()
+            if param.kind == param.POSITIONAL_OR_KEYWORD
+        }
+        has_variable_args = any(
+            param.kind == param.VAR_POSITIONAL for param in inspect.signature(responder.function).parameters.values()
+        )
         if len(args) < len(required_args):
             arg_summary = " (" + ", ".join(required_args.keys()) + ")" if required_args else ""
             return self._respond_error(f"{responder.name} needs {len(required_args)} parameters{arg_summary}")
-        elif len(args) > len(required_args):
+        elif not has_variable_args and len(args) > len(required_args):
             garbage_args = args[len(required_args) :]
             _logger.debug("client %s sent %r, ignoring garbage args at end: %r", self.peer_name, args, garbage_args)
             args = args[: len(required_args)]
@@ -387,6 +404,136 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         _logger.info("Client %s tied to notification channel %s", self.peer_name, channel.peer_name)
 
         return self._respond_ok()
+
+    def _translate_pm_id_to_pm(responder: callable):  # noqa
+        """Decorates any command that works with planned maintenance adding verification of the
+        incoming pm_id argument and translation to an actual PlannedMaintenance object.
+        """
+
+        @wraps(responder)
+        def _verify(self, pm_id: Union[str, int], *args, **kwargs):
+            try:
+                pm_id = int(pm_id)
+                pm = self._state.planned_maintenances[pm_id]
+            except (ValueError, KeyError):
+                self._respond_error(f'pm "{pm_id}" does not exist')
+                response = asyncio.get_running_loop().create_future()
+                response.set_result(None)
+                return response
+            return responder(self, pm, *args, **kwargs)
+
+        return _verify
+
+    @requires_authentication
+    async def do_pm(self):
+        """Implements the top-level PM command.
+
+        In the original Zino, this has its own dispatcher, and calling it without arguments only results an error.
+        """
+        return self._respond_error("PM command requires a subcommand")
+
+    @requires_authentication
+    async def do_pm_help(self):
+        """Lists all available PM sub-commands"""
+        responders = (responder for name, responder in self._responders.items() if responder.name.startswith("PM "))
+        commands = " ".join(sorted(responder.name.removeprefix("PM ") for responder in responders))
+        self._respond_multiline(200, ["PM subcommands are:"] + textwrap.wrap(commands, width=56))
+
+    @requires_authentication
+    async def do_pm_list(self):
+        self._respond(300, "PM event ids follows, terminated with '.'")
+        for id in self._state.planned_maintenances.planned_maintenances:
+            self._respond_raw(id)
+        self._respond_raw(".")
+
+    @requires_authentication
+    @_translate_pm_id_to_pm
+    async def do_pm_cancel(self, pm: PlannedMaintenance):
+        self._state.planned_maintenances.close_planned_maintenance(pm.id, "PM cancelled", self.user)
+        self._respond_ok()
+
+    @requires_authentication
+    @_translate_pm_id_to_pm
+    async def do_pm_addlog(self, pm: PlannedMaintenance):
+        self._respond(302, "please provide new PM log entry, terminate with '.'")
+        data = await self._read_multiline()
+        message = f"{self.user}\n" + "\n".join(line.strip() for line in data)
+        pm.add_log(message)
+        self._respond_ok()
+
+    @requires_authentication
+    @_translate_pm_id_to_pm
+    async def do_pm_log(self, pm: PlannedMaintenance):
+        self._respond(300, "log follows, terminated with '.'")
+        for log in pm.log:
+            for line in log.model_dump_legacy():
+                self._respond_raw(line)
+        self._respond_raw(".")
+
+    @requires_authentication
+    @_translate_pm_id_to_pm
+    async def do_pm_details(self, pm: PlannedMaintenance):
+        self._respond(200, pm.details())
+
+    @requires_authentication
+    async def do_pm_add(self, from_t: Union[str, int], to_t: Union[str, int], pm_type: str, m_type: str, *args: str):
+        try:
+            start_time = datetime.fromtimestamp(int(from_t), tz=timezone.utc)
+        except ValueError:
+            return self._respond_error("illegal from_t (param 1), must be only digits")
+        try:
+            end_time = datetime.fromtimestamp(int(to_t), tz=timezone.utc)
+        except ValueError:
+            return self._respond_error("illegal to_t (param 2), must be only digits")
+        if end_time < start_time:
+            return self._respond_error("ending time is before starting time")
+        if start_time < now():
+            return self._respond_error("starting time is in the past")
+
+        if pm_type == "device":
+            pm_class = DeviceMaintenance
+        elif pm_type == "portstate":
+            pm_class = PortStateMaintenance
+        else:
+            return self._respond_error(f"unknown PM event type: {pm_type}")
+
+        try:
+            match_type = MatchType(m_type)
+        except ValueError:
+            return self._respond_error(f"unknown match type: {m_type}")
+
+        if match_type == MatchType.INTF_REGEXP:
+            if len(args) < 2:
+                return self._respond_error(
+                    "{m_type} match type requires two extra arguments: match_device and match_expression"
+                )
+            match_device = args[0]
+            match_expression = args[1]
+        else:
+            if len(args) < 1:
+                return self._respond_error(f"{m_type} match type requires one extra argument: match_expression")
+            match_device = None
+            match_expression = args[0]
+
+        pm = self._state.planned_maintenances.create_planned_maintenance(
+            start_time,
+            end_time,
+            pm_class,
+            match_type,
+            match_expression,
+            match_device,
+        )
+        self._respond(200, f"PM id {pm.id} successfully added")
+
+    @requires_authentication
+    @_translate_pm_id_to_pm
+    async def do_pm_matching(self, pm: PlannedMaintenance):
+        matches = pm.get_matching(self._state)
+        self._respond(300, "Matching ports/devices follows, terminated with '.'")
+        for match in matches:
+            output = " ".join(str(i) for i in match)
+            self._respond_raw(output)
+        self._respond_raw(".")
 
 
 class ZinoTestProtocol(Zino1ServerProtocol):
