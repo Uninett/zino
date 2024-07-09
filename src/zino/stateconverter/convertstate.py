@@ -1,6 +1,6 @@
 import argparse
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import get_args
 
 from zino.state import ZinoState
@@ -82,7 +82,7 @@ def set_jnx_alarms(linedata: LineData, state: ZinoState):
 def set_boot_time(linedata: LineData, state: ZinoState):
     device = state.devices.get(linedata.identifiers[0])
     timestamp = int(linedata.value)
-    device.boot_time = datetime.fromtimestamp(timestamp)
+    device.boot_time = datetime.fromtimestamp(timestamp, tz=timezone.utc)
 
 
 def set_addr_to_router(linedata: LineData, state: ZinoState):

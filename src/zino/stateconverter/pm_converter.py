@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from zino.state import ZinoState
 from zino.stateconverter.linedata import LineData
@@ -37,7 +37,7 @@ def _set_last_id(linedata: LineData, state: ZinoState):
 def _set_last_time(linedata: LineData, state: ZinoState):
     """Sets timestamp for last time planned maintenance was run"""
     timestamp = int(linedata.value)
-    state.planned_maintenances.last_run = datetime.fromtimestamp(timestamp)
+    state.planned_maintenances.last_run = datetime.fromtimestamp(timestamp, tz=timezone.utc)
 
 
 def _set_pm_events(old_state: OldState, new_state: ZinoState):
@@ -62,8 +62,8 @@ def _create_pm(attrs: dict[str, str]) -> PlannedMaintenance:
         if required_attr not in attrs:
             raise ValueError(f"Required attribute '{required_attr}' not found in pm_event")
 
-    start_time = datetime.fromtimestamp(int(attrs["starttime"]))
-    end_time = datetime.fromtimestamp(int(attrs["endtime"]))
+    start_time = datetime.fromtimestamp(int(attrs["starttime"]), tz=timezone.utc)
+    end_time = datetime.fromtimestamp(int(attrs["endtime"]), tz=timezone.utc)
     match_type = MatchType(attrs["match_type"])
     match_expression = attrs["match_expr"]
     match_device = attrs.get("match_dev")

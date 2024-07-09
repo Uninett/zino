@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from ipaddress import ip_address
 
 import pytest
@@ -38,12 +38,12 @@ class TestEvents:
         assert len(event.history) == 1
         assert len(event.log) == 1
         assert event.lastevent == "changed from up to adminDown (poll)"
-        assert event.opened == datetime.fromtimestamp(1700400123)
+        assert event.opened == datetime.fromtimestamp(1700400123, tz=timezone.utc)
         assert event.polladdr == ip_address("93.150.77.115")
         assert event.priority == 100
         assert event.router == "blaafjell-gw2"
         assert event.state == EventState.OPEN
-        assert event.updated == datetime.fromtimestamp(1700400123)
+        assert event.updated == datetime.fromtimestamp(1700400123, tz=timezone.utc)
         assert event.neigh_rdns == "nissen.nordpolen.no"
 
     def test_alarm_event_should_be_created_correctly(self, save_state_path):
@@ -56,12 +56,12 @@ class TestEvents:
         assert len(event.history) == 2
         assert len(event.log) == 2
         assert event.lastevent == "alarms went from 0 to 1"
-        assert event.opened == datetime.fromtimestamp(1696257668)
+        assert event.opened == datetime.fromtimestamp(1696257668, tz=timezone.utc)
         assert event.polladdr == ip_address("176.53.125.80")
         assert event.priority == 300
         assert event.router == "whoville-gw1"
         assert event.state == EventState.WAITING
-        assert event.updated == datetime.fromtimestamp(1696257668)
+        assert event.updated == datetime.fromtimestamp(1696257668, tz=timezone.utc)
 
     def test_portstate_event_should_be_created_correctly(self, save_state_path):
         state = create_state(save_state_path)
@@ -73,14 +73,14 @@ class TestEvents:
         assert event.ac_down == timedelta(seconds=15000000)
         assert len(event.history) == 1
         assert len(event.log) == 1
-        assert event.opened == datetime.fromtimestamp(1686257668)
+        assert event.opened == datetime.fromtimestamp(1686257668, tz=timezone.utc)
         assert event.polladdr == ip_address("53.44.228.67")
         assert event.port == "ge-1/0/10"
         assert event.portstate == InterfaceState.UP
         assert event.priority == 100
         assert event.router == "arkham-sw1"
         assert event.state == EventState.IGNORED
-        assert event.updated == datetime.fromtimestamp(1686257668)
+        assert event.updated == datetime.fromtimestamp(1686257668, tz=timezone.utc)
 
     def test_bgp_event_should_be_created_correctly(self, save_state_path):
         """Placeholder for when BGP is supported"""
@@ -91,8 +91,8 @@ class TestEvents:
         assert event.router == "auroralane-gw1"
         assert event.state == EventState.WAITING
         assert event.polladdr == ip_address("219.188.192.78")
-        assert event.opened == datetime.fromtimestamp(1706257668)
-        assert event.updated == datetime.fromtimestamp(1706257668)
+        assert event.opened == datetime.fromtimestamp(1706257668, tz=timezone.utc)
+        assert event.updated == datetime.fromtimestamp(1706257668, tz=timezone.utc)
         assert event.priority == 100
         assert len(event.history) == 1
         assert len(event.log) == 1
@@ -195,8 +195,8 @@ class TestPM:
         pm = state.planned_maintenances[3188]
         assert isinstance(pm, PortStateMaintenance)
         assert pm.type == "portstate"
-        assert pm.start_time == datetime.fromtimestamp(1720021526)
-        assert pm.end_time == datetime.fromtimestamp(1720025126)
+        assert pm.start_time == datetime.fromtimestamp(1720021526, tz=timezone.utc)
+        assert pm.end_time == datetime.fromtimestamp(1720025126, tz=timezone.utc)
         assert pm.match_type == MatchType.INTF_REGEXP
         assert pm.match_expression == "ge-1/0/10"
         assert pm.match_device == "blaafjell-gw2"
@@ -209,7 +209,7 @@ class TestPM:
 
     def test_last_run_should_be_set_correctly(self, save_state_path):
         state = create_state(save_state_path)
-        assert state.planned_maintenances.last_run == datetime.fromtimestamp(1720018082)
+        assert state.planned_maintenances.last_run == datetime.fromtimestamp(1720018082, tz=timezone.utc)
 
 
 def test_addresses_should_be_set_correctly(save_state_path):
