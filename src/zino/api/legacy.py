@@ -410,7 +410,7 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
 
     @requires_authentication
     async def do_pollrtr(self, router_name: str):
-        from zino.state import polldevs, state
+        from zino.state import polldevs
 
         device = polldevs.get(router_name, None)
         if not device:
@@ -422,8 +422,8 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         scheduler.add_job(
             func=run_all_tasks,
             trigger="date",
-            args=(device, state),
-            run_date=datetime.datetime.now(),
+            args=(device, self._state),
+            run_date=datetime.now(),
             name=job_name,
         )
 
