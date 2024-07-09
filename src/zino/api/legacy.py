@@ -448,6 +448,22 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         )
         return self._respond_ok()
 
+    @requires_authentication
+    async def do_clearflap(self, router_name: str, ifindex: Union[str, int]):
+        """Implements a dummy CLEARFLAP command (for now)"""
+        from zino.state import polldevs
+
+        try:
+            _device = polldevs[router_name]
+        except KeyError:
+            return self._respond_error(f"Router {router_name} unknown")
+        try:
+            ifindex = abs(int(ifindex))
+        except ValueError:
+            return self._respond_error(f"{ifindex} is an invalid ifindex value")
+
+        return self._respond_ok("not implemented")
+
     def _translate_pm_id_to_pm(responder: callable):  # noqa
         """Decorates any command that works with planned maintenance adding verification of the
         incoming pm_id argument and translation to an actual PlannedMaintenance object.
