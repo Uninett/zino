@@ -766,6 +766,56 @@ class TestZino1ServerProtocolPollintfCommand:
         assert "500 foobar is an invalid ifindex value".encode() in output
 
 
+class TestZino1ServerProtocolClearflapCommand:
+    @pytest.mark.asyncio
+    @patch("zino.state.polldevs", dict())
+    async def test_it_should_respond_with_ok_but_not_implemented(self, authenticated_protocol):
+        from zino.state import polldevs
+
+        router_name = "buick.lab.example.org"
+        community = "public"
+        device = PollDevice(
+            name=router_name,
+            address="127.0.0.1",
+            port=666,
+            community=community,
+        )
+        polldevs[device.name] = device
+
+        await authenticated_protocol.message_received(f"CLEARFLAP {router_name} 1")
+
+        output = authenticated_protocol.transport.data_buffer.getvalue()
+        assert "200 not implemented".encode() in output
+
+    @pytest.mark.asyncio
+    @patch("zino.state.polldevs", dict())
+    async def test_it_should_output_error_response_for_unknown_router(self, authenticated_protocol):
+        unknown_router = "unknown.router.example.org"
+        await authenticated_protocol.message_received(f"CLEARFLAP {unknown_router} 1")
+
+        output = authenticated_protocol.transport.data_buffer.getvalue()
+        assert f"500 Router {unknown_router} unknown\r\n".encode() in output
+
+    @pytest.mark.asyncio
+    @patch("zino.state.polldevs", dict())
+    async def test_it_should_output_error_response_for_invalid_ifindex(self, authenticated_protocol):
+        from zino.state import polldevs
+
+        router_name = "buick.lab.example.org"
+        community = "public"
+        device = PollDevice(
+            name=router_name,
+            address="127.0.0.1",
+            port=666,
+            community=community,
+        )
+        polldevs[device.name] = device
+        await authenticated_protocol.message_received(f"CLEARFLAP {router_name} foobar")
+
+        output = authenticated_protocol.transport.data_buffer.getvalue()
+        assert "500 foobar is an invalid ifindex value".encode() in output
+
+
 class TestZino1TestProtocol:
     @pytest.mark.asyncio
     async def test_when_authenticated_then_authtest_should_respond_with_ok(self):
