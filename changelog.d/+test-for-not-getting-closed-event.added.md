@@ -1,1 +1,0 @@
-Added tests to show that one will not get closed events using get_or_create_event

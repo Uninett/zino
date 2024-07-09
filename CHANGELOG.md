@@ -12,6 +12,52 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) and the chang
 
 <!-- towncrier release notes start -->
 
+## [2.0.0-beta.1] - 2024-07-09
+
+
+### Removed
+
+- Remove test-only commands from API ([#286](https://github.com/Uninett/zino/issues/286))
+
+### Added
+
+- Add generic Zino config file ([#224](https://github.com/Uninett/zino/issues/224))
+- Add most important SNMP trap handlers
+  - Port basic link trap handling from Zino 1
+  - Add port flapping detection to link trap transition handlers, in accordance with Zino 1 ([#284](https://github.com/Uninett/zino/issues/284))
+  - Schedule re-verification of port states after link traps are received
+  - Handle incoming Juniper BGP traps ([#291](https://github.com/Uninett/zino/issues/291))
+  - Update BFD session information on incoming BFD session traps ([#305](https://github.com/Uninett/zino/issues/305))
+- Add planned maintenance feature ([#61](https://github.com/Uninett/zino/issues/61))
+  - Add the `PM` family of API commands to manipulate planned maintenance ([#298](https://github.com/Uninett/zino/issues/298))
+  - Add framework support for API "sub-commands", to support the `PM` set of commands. ([#274](https://github.com/Uninett/zino/issues/274))
+- Add `POLLRTR` API command ([#219](https://github.com/Uninett/zino/issues/219))
+- Add `POLLINTF` API command ([#300](https://github.com/Uninett/zino/issues/300))
+- Add a dummy `CLEARFLAP` API command in order not to crash older clients
+- Add `zinoconv` program for converting state from Zino 1 to Zino 2 ([#66](https://github.com/Uninett/zino/issues/66))
+- Add support for `neigh_rdns` attribute in BFD events. ([#199](https://github.com/Uninett/zino/issues/199))
+- Add more tests for event deletion ([#209](https://github.com/Uninett/zino/issues/209))
+- Fix log message on initial Juniper chassis alarm ([#213](https://github.com/Uninett/zino/issues/213))
+- Add towncrier to automatically produce changelog ([#218](https://github.com/Uninett/zino/issues/218))
+- Fully support multi-varbind SNMP-GET operations ([#303](https://github.com/Uninett/zino/issues/303))
+- Add tests to show that one will not get closed events using `get_or_create_event()`
+- Index recently closed events to facilitate updating of prematurely closed flapping events
+
+### Changed
+
+- Handle errors from changed SNMP interface in Juniper alarm task ([#212](https://github.com/Uninett/zino/issues/212))
+
+### Fixed
+
+- Improve error reporting, including line/block location, for `polldevs.cf` parsing errors ([#248](https://github.com/Uninett/zino/issues/248))
+- Properly handle Juniper devices without SNMP values for red/yellow alarm count ([#231](https://github.com/Uninett/zino/issues/231))
+- Properly handle "varbind" error values for SNMP v2 GET operations ([#261](https://github.com/Uninett/zino/issues/261))
+- API now listens to all interfaces, not just loopback ([#285](https://github.com/Uninett/zino/issues/285))
+- Resolve value types of incoming SNMP traps correctly ([#290](https://github.com/Uninett/zino/issues/290))
+- Ensure polling single interfaces does not crash in the event of timeout errors
+- Ensure polling single interfaces works for `ifindex=0`
+
+
 ## [2.0.0-alpha.2] - 2024-04-09
 
 ### Added

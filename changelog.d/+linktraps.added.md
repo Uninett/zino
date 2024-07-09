@@ -1,1 +1,0 @@
-Ported basic link trap handling from Zino 1
