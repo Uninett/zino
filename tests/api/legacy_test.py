@@ -676,6 +676,60 @@ class TestZino1ServerProtocolNtieCommand:
         assert mock_channel.tied_to is authenticated_protocol
 
 
+class TestZino1ServerProtocolPollintfCommand:
+    @pytest.mark.asyncio
+    @patch("zino.state.polldevs", dict())
+    async def test_should_call_poll_single_interface(self, authenticated_protocol):
+        from zino.state import polldevs
+
+        router_name = "buick.lab.example.org"
+        community = "public"
+        device = PollDevice(
+            name=router_name,
+            address="127.0.0.1",
+            port=666,
+            community=community,
+        )
+        polldevs[device.name] = device
+
+        with patch(
+            "zino.tasks.linkstatetask.LinkStateTask.schedule_verification_of_single_port", Mock()
+        ) as mock_schedule_verification:
+            await authenticated_protocol.message_received(f"POLLINTF {router_name} 1")
+
+        output = authenticated_protocol.transport.data_buffer.getvalue()
+        assert "200 ok\r\n".encode() in output
+        assert mock_schedule_verification.called
+
+    @pytest.mark.asyncio
+    @patch("zino.state.polldevs", dict())
+    async def test_should_output_error_response_for_unknown_router(self, authenticated_protocol):
+        unknown_router = "unknown.router.example.org"
+        await authenticated_protocol.message_received(f"POLLINTF {unknown_router} 1")
+
+        output = authenticated_protocol.transport.data_buffer.getvalue()
+        assert f"500 Router {unknown_router} unknown\r\n".encode() in output
+
+    @pytest.mark.asyncio
+    @patch("zino.state.polldevs", dict())
+    async def test_should_output_error_response_for_invalid_ifindex(self, authenticated_protocol):
+        from zino.state import polldevs
+
+        router_name = "buick.lab.example.org"
+        community = "public"
+        device = PollDevice(
+            name=router_name,
+            address="127.0.0.1",
+            port=666,
+            community=community,
+        )
+        polldevs[device.name] = device
+        await authenticated_protocol.message_received(f"POLLINTF {router_name} foobar")
+
+        output = authenticated_protocol.transport.data_buffer.getvalue()
+        assert "500 foobar is an invalid ifindex value".encode() in output
+
+
 class TestZino1TestProtocol:
     @pytest.mark.asyncio
     async def test_when_authenticated_then_authtest_should_respond_with_ok(self):

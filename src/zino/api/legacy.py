@@ -9,7 +9,7 @@ import inspect
 import logging
 import re
 import textwrap
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, List, NamedTuple, Optional, Union
@@ -27,6 +27,7 @@ from zino.statemodels import (
     PlannedMaintenance,
     PortStateMaintenance,
 )
+from zino.tasks.linkstatetask import LinkStateTask
 from zino.time import now
 
 if TYPE_CHECKING:
@@ -403,6 +404,25 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         channel.tied_to = self
         _logger.info("Client %s tied to notification channel %s", self.peer_name, channel.peer_name)
 
+        return self._respond_ok()
+
+    @requires_authentication
+    async def do_pollintf(self, router_name: str, ifindex: Union[str, int]):
+        from zino.state import polldevs
+
+        try:
+            device = polldevs[router_name]
+        except KeyError:
+            return self._respond_error(f"Router {router_name} unknown")
+        try:
+            ifindex = abs(int(ifindex))
+        except ValueError:
+            return self._respond_error(f"{ifindex} is an invalid ifindex value")
+
+        task = LinkStateTask(device, self._state)
+        task.schedule_verification_of_single_port(
+            ifindex=ifindex, deadline=timedelta(seconds=0), reason="api-triggered"
+        )
         return self._respond_ok()
 
     def _translate_pm_id_to_pm(responder: callable):  # noqa
