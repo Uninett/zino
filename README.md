@@ -10,13 +10,9 @@ This is still a work in progress, and is not yet a fully functional replacement
 for the original Tcl-based Zino.  An incomplete list of features that have yet
 to be ported:
 
-- SNMP trap handling
-  - Not all traps supported by Zino 1 have been implemented in Zino 2 yet.
-  - No support for reading trap messages from a trap multiplexer like
-    `straps`/`nmtrapd`.
-- Planned maintenance (the `PM` family of API commands)
-- Router and single-port poll triggering from the API (the `POLLRTR` and
-  `POLLINTF` API commands)
+- Not all SNMP traps are logged in the same detail as in Zino 1.
+- No support for reading trap messages from a trap multiplexer like
+  `straps`/`nmtrapd`.
 
 Development of Zino 2.0 is fully sponsored by [NORDUnet](https://nordu.net/),
 on behalf of the nordic NRENs.
