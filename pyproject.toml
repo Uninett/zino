@@ -129,7 +129,7 @@ start_string = "<!-- towncrier release notes start -->\n"
 underlines = ["", "", ""]
 title_format = "## [{version}] - {project_date}"
 issue_format = "[#{issue}](https://github.com/Uninett/zino/issues/{issue})"
-wrap = true
+wrap = false
 
 [[tool.towncrier.type]]
 directory = "security"
