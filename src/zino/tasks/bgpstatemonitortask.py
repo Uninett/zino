@@ -265,13 +265,13 @@ class BGPStateMonitorTask(Task):
             _logger.debug(f"Noted external reset for {self.device_state.name}: {data.peer_remote_address}")
         else:
             event = self.state.events.get(self.device.name, data.peer_remote_address, BGPEvent)
-            if event and event.bgpos != "established":
+            if event and event.bgpos != BGPOperState.ESTABLISHED:
                 self._bgp_external_reset(data)
                 _logger.debug(f"BGP session up for {self.device_state.name}: {data.peer_remote_address}")
 
     def _update_nonestablished_peer(self, data: BaseBGPRow, uptime: int):
         saved_bgp_peer_session = self.device_state.bgp_peers.get(data.peer_remote_address)
-        if data.peer_admin_status in ["stop", "halted"]:
+        if data.peer_admin_status in [BGPAdminStatus.STOP, BGPAdminStatus.HALTED]:
             if not saved_bgp_peer_session or saved_bgp_peer_session.admin_status != data.peer_admin_status:
                 self._bgp_admin_down(data)
                 _logger.debug(
@@ -286,7 +286,7 @@ class BGPStateMonitorTask(Task):
     ):
         if not saved_bgp_peer_session or saved_bgp_peer_session.admin_status != data.peer_admin_status:
             self._bgp_admin_up(data)
-        if not saved_bgp_peer_session or saved_bgp_peer_session.oper_state == "established":
+        if not saved_bgp_peer_session or saved_bgp_peer_session.oper_state == BGPOperState.ESTABLISHED:
             # First verify that we've been up longer than the required time before we flag it as an alert
             if uptime > TIME_BEFORE_OPER_DOWN_ALERT:
                 self._bgp_oper_down(data)
@@ -350,10 +350,10 @@ class BGPStateMonitorTask(Task):
     def _bgp_oper_down(self, data: BaseBGPRow):
         event = self.state.events.get_or_create_event(self.device.name, data.peer_remote_address, BGPEvent)
 
-        if event.bgpos == "down":
+        if event.bgpos == BGPOperState.DOWN:
             return
 
-        copied_data = replace(data, peer_state="down")
+        copied_data = replace(data, peer_state=BGPOperState.DOWN)
         event = self._update_bgp_event(event=event, data=copied_data, last_event="peer is down")
 
         log = (
