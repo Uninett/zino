@@ -1,5 +1,6 @@
 import logging
 from dataclasses import dataclass, replace
+from ipaddress import ip_address
 from typing import Iterable, Optional
 
 from zino.snmp import SparseWalkResponse
@@ -59,6 +60,14 @@ class BaseBGPRow:
     peer_remote_address: IPAddress
     peer_remote_as: int
     peer_fsm_established_time: int
+
+    def __post_init__(self):
+        """Coerces incoming values to expected types"""
+        self.peer_state = BGPOperState(self.peer_state)
+        self.peer_admin_status = BGPAdminStatus(self.peer_admin_status)
+        self.peer_remote_address = ip_address(self.peer_remote_address)
+        self.peer_remote_as = int(self.peer_remote_as)
+        self.peer_fsm_established_time = int(self.peer_fsm_established_time)
 
 
 class BGPStateMonitorTask(Task):

@@ -12,7 +12,7 @@ from zino.statemodels import (
     BGPPeerSession,
     BGPStyle,
 )
-from zino.tasks.bgpstatemonitortask import BGPStateMonitorTask
+from zino.tasks.bgpstatemonitortask import BaseBGPRow, BGPStateMonitorTask
 
 PEER_ADDRESS = IPv4Address("10.0.0.1")
 DEFAULT_REMOTE_AS = 20
@@ -281,6 +281,19 @@ class TestGetLocalAs:
     @pytest.mark.parametrize("task", ["public"], indirect=True)
     async def test_get_local_as_returns_none_for_non_existent_local_as_with_juniper_bgp_style(self, task):
         assert (await task._get_local_as(bgp_style=BGPStyle.JUNIPER)) is None
+
+
+class TestBaseBGPRow:
+    def test_when_input_is_valid_it_should_not_fail(self):
+        assert BaseBGPRow("active", "running", "10.0.42.0", 5, 0)
+
+    def test_when_peer_state_is_invalid_it_should_raise_an_error(self):
+        with pytest.raises(ValueError):
+            BaseBGPRow("invalid foobar", "running", "10.0.42.0", 5, 0)
+
+    def test_when_peer_admin_status_is_invalid_it_should_raise_an_error(self):
+        with pytest.raises(ValueError):
+            BaseBGPRow("active", "invalid flimflam", "10.0.42.0", 5, 0)
 
 
 @pytest.fixture
