@@ -179,8 +179,8 @@ class LinkStateTask(Task):
                 _logger.info(
                     "%s: changing desc for %s from %r to %r", self.device.name, data.index, port.ifalias, data.alias
                 )
-            else:
-                _logger.info("%s: setting desc for %s to %s", self.device.name, data.index, data.alias)
+            elif data.alias:
+                _logger.info("%s: setting desc for %r to %r", self.device.name, data.index, data.alias)
             port.ifalias = data.alias
 
 
