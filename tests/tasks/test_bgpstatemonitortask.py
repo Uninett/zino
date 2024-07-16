@@ -185,6 +185,26 @@ class TestBGPStateMonitorTask:
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
+        "task", ["general-bgp-oper-down", "cisco-bgp-oper-down", "juniper-bgp-oper-down"], indirect=True
+    )
+    async def test_oper_down_creates_serializable_event(self, task):
+        """Tests that an event created from a BGP state change should be serializable by Pydantic without warnings"""
+        # set initial state
+        task.device_state.bgp_peers = {
+            PEER_ADDRESS: BGPPeerSession(
+                uptime=DEFAULT_UPTIME, admin_status=BGPAdminStatus.START, oper_state=BGPOperState.ESTABLISHED
+            )
+        }
+        await task.run()
+        # check if state has been updated to reflect state defined in .snmprec
+        assert task.device_state.bgp_peers[PEER_ADDRESS].oper_state != BGPOperState.ESTABLISHED
+        # check that the correct event has been created
+        event = task.state.events.get(device_name=task.device.name, subindex=PEER_ADDRESS, event_class=BGPEvent)
+        assert event
+        assert event.model_dump_json(exclude_none=True, indent=2, warnings="error")
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
         "task",
         ["general-bgp-oper-down-short", "cisco-bgp-oper-down-short", "juniper-bgp-oper-down-short"],
         indirect=True,
