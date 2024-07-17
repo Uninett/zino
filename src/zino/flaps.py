@@ -6,7 +6,7 @@ Flapping is normally only tracked/updated based on incoming link traps.
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, List, Optional, Tuple
 
 from pydantic import BaseModel, BeforeValidator, Field, PlainSerializer
@@ -22,6 +22,7 @@ from zino.time import now
 
 _logger = logging.getLogger(__name__)
 
+IMMEDIATELY = timedelta(seconds=0)
 # Constants from Zino 1
 FLAP_THRESHOLD = 35
 FLAP_CEILING = 256
@@ -150,6 +151,23 @@ class FlappingStates(BaseModel):
         if interface not in self.interfaces:
             return 0
         return self.interfaces[interface].hist_val
+
+    def clear_flap(self, interface: PortIndex, user: str, state: ZinoState, polldev: PollDevice) -> None:
+        """Clears the internal flapping state for a port, if it exists, and also updates an existing portstate event"""
+        self._clear_flap_internal(interface, user, "Flapstate manually cleared", state=state)
+
+        router, ifindex = interface
+        try:
+            port = state.devices[router].ports[ifindex]
+        except KeyError:
+            return
+        port.state = InterfaceState.FLAPPING  # to get logged state change
+        from zino.tasks.linkstatetask import (
+            LinkStateTask,  # local import to avoid import cycles
+        )
+
+        poller = LinkStateTask(device=polldev, state=state)
+        poller.schedule_verification_of_single_port(ifindex, deadline=IMMEDIATELY, reason="clearflap")
 
     def _clear_flap_internal(self, interface: PortIndex, user: str, reason: str, state: ZinoState) -> None:
         """Clears the internal flapping state for a port, including its ongoing portstate event"""

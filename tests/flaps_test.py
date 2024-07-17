@@ -194,6 +194,43 @@ class TestFlappingStatesClearFlapInternal:
         assert event.flapstate == FlapState.FLAPPING  # still flapping!
 
 
+class TestFlappingStatesClearFlap:
+    def test_it_should_schedule_verification_of_single_port(
+        self,
+        state_with_flapstats_and_portstate_event,
+        polldevs_dict,
+        monkeypatch,
+    ):
+        state = state_with_flapstats_and_portstate_event
+        port: Port = next(iter(state.devices.devices["localhost"].ports.values()))
+        mock_schedule_verification_of_single_port = Mock()
+        monkeypatch.setattr(
+            LinkStateTask, "schedule_verification_of_single_port", mock_schedule_verification_of_single_port
+        )
+
+        state.flapping.clear_flap(("localhost", port.ifindex), "nobody", state, polldevs_dict["localhost"])
+
+        mock_schedule_verification_of_single_port.assert_called_once()
+        assert mock_schedule_verification_of_single_port.call_args[0][0] == port.ifindex
+
+    def test_when_port_does_not_exist_it_should_not_schedule_verification(
+        self,
+        state_with_flapstats_and_portstate_event,
+        polldevs_dict,
+        monkeypatch,
+    ):
+        state = state_with_flapstats_and_portstate_event
+        fake_ifindex = 999
+        mock_schedule_verification_of_single_port = Mock()
+        monkeypatch.setattr(
+            LinkStateTask, "schedule_verification_of_single_port", mock_schedule_verification_of_single_port
+        )
+
+        state.flapping.clear_flap(("localhost", fake_ifindex), "nobody", state, polldevs_dict["localhost"])
+
+        mock_schedule_verification_of_single_port.assert_not_called()
+
+
 @pytest.fixture
 def state_with_flapstats_and_portstate_event(state_with_flapstats) -> ZinoState:
     port: Port = next(iter(state_with_flapstats.devices.devices["localhost"].ports.values()))
@@ -381,5 +418,5 @@ def mocked_out_poll_single_interface(monkeypatch):
     """Monkey patches LinkStateTask.poll_single_interface to do essentially nothing"""
     future = Future()
     future.set_result(None)
-    monkeypatch.setattr(LinkStateTask, "poll_single_interface", future)
+    monkeypatch.setattr(LinkStateTask, "poll_single_interface", Mock(return_value=future))
     yield monkeypatch
