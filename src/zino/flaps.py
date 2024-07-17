@@ -151,6 +151,29 @@ class FlappingStates(BaseModel):
             return 0
         return self.interfaces[interface].hist_val
 
+    def _clear_flap_internal(self, interface: PortIndex, user: str, reason: str, state: ZinoState) -> None:
+        """Clears the internal flapping state for a port, including its ongoing portstate event"""
+        router, ifindex = interface
+        event = state.events.get(router, ifindex, PortStateEvent)
+        if not event or event.flapstate != FlapState.FLAPPING:
+            return
+
+        try:
+            port = state.devices[router].ports[ifindex]
+        except KeyError:
+            return
+
+        event = state.events.checkout(event.id)
+        event.add_history(f"{user}\n{reason}")
+        event.flapstate = FlapState.STABLE
+        event.flaps = self.get_flap_count((router, ifindex))
+        msg = f'{router}: intf "{port.ifdescr}" ix {port.ifindex}({port.ifalias}) {reason}'
+        _logger.info(msg)
+        event.add_log(msg)
+        state.events.commit(event)
+
+        self.unflap(interface)
+
 
 async def age_flapping_states(state: ZinoState, polldevs: dict[str, PollDevice]):
     """Ages all flapping states in the given ZinoState.  Should be called every FLAP_DECREMENT_INTERVAL_SECONDS."""
