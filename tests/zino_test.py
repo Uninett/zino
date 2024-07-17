@@ -87,6 +87,11 @@ def test_when_args_specified_config_file_does_not_exist_then_load_config_should_
         zino.load_config(args)
 
 
+def test_when_logging_config_is_invalid_then_apply_logging_config_should_exit():
+    with pytest.raises(SystemExit):
+        zino.apply_logging_config({"loggers": {"zino": {"level": "invalid"}}})
+
+
 def test_zino_should_not_run_with_invalid_conf_file(invalid_zino_conf):
     """This tests that the main function does not Zino for at least 2 seconds when
     the name of the pollfile is defined in the config file, but does not exist

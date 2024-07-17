@@ -4,12 +4,13 @@ import asyncio
 import errno
 import grp
 import logging
+import logging.config
 import os
 import pwd
 import sys
 from asyncio import AbstractEventLoop
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Any, Optional
 
 import tzlocal
 from pydantic import ValidationError
@@ -44,6 +45,7 @@ def main():
         format="%(asctime)s - %(levelname)s - %(name)s (%(threadName)s) - %(message)s",
     )
     state.config = load_config(args)
+    apply_logging_config(state.config.logging)
     state.state = state.ZinoState.load_state_from_file(state.config.persistence.file) or state.ZinoState()
     init_event_loop(args)
 
@@ -61,6 +63,15 @@ def load_config(args: argparse.Namespace) -> state.Configuration:
         sys.exit(1)
     except ValidationError as e:
         _log.fatal(e)
+        sys.exit(1)
+
+
+def apply_logging_config(logging_config: dict[str, Any]) -> None:
+    """Applies the logging configuration, exiting the process if there are config errors"""
+    try:
+        logging.config.dictConfig(logging_config)
+    except ValueError as error:
+        _log.fatal(f"Invalid logging configuration: {error}")
         sys.exit(1)
 
 
