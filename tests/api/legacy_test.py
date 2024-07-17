@@ -18,9 +18,14 @@ from zino.config.models import PollDevice
 from zino.state import ZinoState
 from zino.statemodels import (
     DeviceMaintenance,
+    DeviceState,
     Event,
     EventState,
+    FlapState,
+    InterfaceState,
     MatchType,
+    Port,
+    PortStateEvent,
     ReachabilityEvent,
 )
 from zino.time import now
@@ -769,7 +774,8 @@ class TestZino1ServerProtocolPollintfCommand:
 class TestZino1ServerProtocolClearflapCommand:
     @pytest.mark.asyncio
     @patch("zino.state.polldevs", dict())
-    async def test_it_should_respond_with_ok_but_not_implemented(self, authenticated_protocol):
+    async def test_it_should_set_event_flapstate_to_stable_and_respond_with_ok(self, authenticated_protocol):
+        # Arrange bigly
         from zino.state import polldevs
 
         router_name = "buick.lab.example.org"
@@ -782,10 +788,29 @@ class TestZino1ServerProtocolClearflapCommand:
         )
         polldevs[device.name] = device
 
+        device_state = DeviceState(name=router_name)
+        port = Port(ifindex=1, ifdescr="eth0", ifalias="Test port", state=InterfaceState.FLAPPING)
+        device_state.ports[port.ifindex] = port
+
+        state = authenticated_protocol._state
+        state.devices.devices[router_name] = device_state
+
+        event = state.events.create_event(router_name, 1, PortStateEvent)
+        event.ifindex = 1
+        event.flapstate = FlapState.FLAPPING
+        state.events.commit(event)
+
+        state.events.commit(event)
+
+        # Act
         await authenticated_protocol.message_received(f"CLEARFLAP {router_name} 1")
 
+        # Assert
         output = authenticated_protocol.transport.data_buffer.getvalue()
-        assert "200 not implemented".encode() in output
+        assert "200 ".encode() in output
+        updated_event = state.events.get(router_name, 1, PortStateEvent)
+        assert updated_event
+        assert updated_event.flapstate == FlapState.STABLE
 
     @pytest.mark.asyncio
     @patch("zino.state.polldevs", dict())
