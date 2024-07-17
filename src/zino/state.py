@@ -13,6 +13,7 @@ from zino.events import Events
 from zino.flaps import FlappingStates
 from zino.planned_maintenance import PlannedMaintenances
 from zino.statemodels import DeviceStates
+from zino.utils import log_time_spent
 
 _log = logging.getLogger(__name__)
 
@@ -34,6 +35,7 @@ class ZinoState(BaseModel):
     planned_maintenances: PlannedMaintenances = Field(default_factory=PlannedMaintenances)
     flapping: FlappingStates = Field(default_factory=FlappingStates)
 
+    @log_time_spent()
     def dump_state_to_file(self, filename: str):
         """Dumps the full state to a file in JSON format"""
         _log.debug("dumping state to %s", filename)
@@ -41,6 +43,7 @@ class ZinoState(BaseModel):
             statefile.write(self.model_dump_json(exclude_none=True, indent=2))
 
     @classmethod
+    @log_time_spent()
     def load_state_from_file(cls, filename: str) -> Optional["ZinoState"]:
         """Loads and returns a previously persisted ZinoState from a JSON file dump.
 

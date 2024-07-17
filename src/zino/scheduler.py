@@ -12,6 +12,7 @@ from zino import state
 from zino.config.models import DEFAULT_INTERVAL_MINUTES, PollDevice
 from zino.config.polldevs import InvalidConfiguration, read_polldevs
 from zino.tasks import run_all_tasks
+from zino.utils import log_time_spent
 
 _log = logging.getLogger(__name__)
 _scheduler = None
@@ -38,6 +39,7 @@ def get_scheduler() -> AsyncIOScheduler:
     return _scheduler
 
 
+@log_time_spent()
 def load_polldevs(polldevs_conf: str) -> Tuple[Set, Set]:
     """Loads pollfile into process state.
 
