@@ -1,0 +1,1 @@
+Custom logging configuration can now be applied in `zino.toml`
