@@ -151,6 +151,70 @@ class TestFlappingStates:
         assert flapping_states.get_flap_value(1) == 0
 
 
+class TestFlappingStatesClearFlapInternal:
+    def test_when_event_with_flapstate_exists_it_should_reset_it_to_stable(
+        self, state_with_flapstats_and_portstate_event
+    ):
+        state = state_with_flapstats_and_portstate_event
+        port: Port = next(iter(state.devices.devices["localhost"].ports.values()))
+
+        state.flapping._clear_flap_internal(
+            ("localhost", port.ifindex), "nobody", "Flapstate manually cleared", state=state
+        )
+
+        updated_event = state.events.get("localhost", port.ifindex, PortStateEvent)
+        assert updated_event
+        assert updated_event.flapstate == FlapState.STABLE
+
+    def test_when_event_does_not_exist_it_should_do_nothing(
+        self,
+        state_with_flapstats,
+    ):
+        state = state_with_flapstats
+        port: Port = next(iter(state.devices.devices["localhost"].ports.values()))
+
+        state.flapping._clear_flap_internal(
+            ("localhost", port.ifindex), "nobody", "Flapstate manually cleared", state=state
+        )
+
+        assert not state.events.get("localhost", port.ifindex, PortStateEvent)
+
+    def test_when_event_but_not_port_exists_it_should_do_nothing(self, state_with_flapstats_and_portstate_event):
+        state = state_with_flapstats_and_portstate_event
+        port: Port = next(iter(state.devices.devices["localhost"].ports.values()))
+        # Remove the port from device state for this test
+        del state.devices.devices["localhost"].ports[port.ifindex]
+
+        state.flapping._clear_flap_internal(
+            ("localhost", port.ifindex), "nobody", "Flapstate manually cleared", state=state
+        )
+
+        event = state.events.get("localhost", port.ifindex, PortStateEvent)
+        assert event
+        assert event.flapstate == FlapState.FLAPPING  # still flapping!
+
+
+@pytest.fixture
+def state_with_flapstats_and_portstate_event(state_with_flapstats) -> ZinoState:
+    port: Port = next(iter(state_with_flapstats.devices.devices["localhost"].ports.values()))
+    flapping_state = state_with_flapstats.flapping.interfaces[("localhost", port.ifindex)]
+    flapping_state.hist_val = FLAP_THRESHOLD
+
+    orig_event = state_with_flapstats.events.get_or_create_event("localhost", port.ifindex, PortStateEvent)
+    orig_event.flapstate = FlapState.FLAPPING
+    orig_event.flaps = 42
+    orig_event.port = port.ifdescr
+    orig_event.portstate = port.state
+    orig_event.router = "localhost"
+    orig_event.polladdr = "127.0.0.1"
+    orig_event.priority = 500
+    orig_event.ifindex = port.ifindex
+    orig_event.descr = port.ifalias
+
+    state_with_flapstats.events.commit(orig_event)
+    return state_with_flapstats
+
+
 class TestAgeSingleInterfaceFlappingState:
     @pytest.mark.asyncio
     async def test_it_should_decrease_hist_val(self, state_with_flapstats, polldevs_dict):
