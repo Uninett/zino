@@ -81,6 +81,12 @@ def test_zino_should_not_run_without_pollfile(zino_conf_with_non_existent_pollfi
         )
 
 
+def test_when_args_specified_config_file_does_not_exist_then_load_config_should_exit():
+    args = Mock(config_file="non_existent_file.toml")
+    with pytest.raises(SystemExit):
+        zino.load_config(args)
+
+
 def test_zino_should_not_run_with_invalid_conf_file(invalid_zino_conf):
     """This tests that the main function does not Zino for at least 2 seconds when
     the name of the pollfile is defined in the config file, but does not exist

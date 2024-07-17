@@ -43,8 +43,15 @@ def main():
         level=logging.INFO if not args.debug else logging.DEBUG,
         format="%(asctime)s - %(levelname)s - %(name)s (%(threadName)s) - %(message)s",
     )
+    state.config = load_config(args)
+    state.state = state.ZinoState.load_state_from_file(state.config.persistence.file) or state.ZinoState()
+    init_event_loop(args)
+
+
+def load_config(args: argparse.Namespace) -> state.Configuration:
+    """Loads the configuration file, exiting the process if there are config errors"""
     try:
-        state.config = read_configuration(args.config_file or DEFAULT_CONFIG_FILE, args.polldevs)
+        return read_configuration(args.config_file or DEFAULT_CONFIG_FILE, args.polldevs)
     except OSError:
         if args.config_file:
             _log.fatal(f"No config file with the name {args.config_file} found.")
@@ -55,9 +62,6 @@ def main():
     except ValidationError as e:
         _log.fatal(e)
         sys.exit(1)
-
-    state.state = state.ZinoState.load_state_from_file(state.config.persistence.file) or state.ZinoState()
-    init_event_loop(args)
 
 
 def init_event_loop(args: argparse.Namespace, loop: Optional[AbstractEventLoop] = None):
