@@ -239,7 +239,11 @@ def parse_args(arguments=None):
         help="Path to zino configuration file",
     )
     parser.add_argument(
-        "--debug", action="store_true", default=False, help="Set global log level to DEBUG. Very chatty!"
+        "--debug",
+        action="store_true",
+        default=False,
+        help="Set global log level to DEBUG. Very verbose! For more fine-grained control of logging configuration, it "
+        "is recommended to use the 'logging' section in the configuration file.",
     )
     parser.add_argument("--stop-in", type=int, default=None, help="Stop zino after N seconds.", metavar="N")
     parser.add_argument(
