@@ -1,6 +1,9 @@
 import asyncio
+import logging
+from functools import wraps
 from ipaddress import ip_address
-from typing import Optional
+from time import time
+from typing import Optional, Union
 
 import aiodns
 from pyasn1.type.univ import OctetString
@@ -39,3 +42,24 @@ async def reverse_dns(ip: str) -> Optional[str]:
         return response.name
     except aiodns.error.DNSError:
         return None
+
+
+def log_time_spent(logger: Union[logging.Logger, str] = __name__, level: int = logging.DEBUG):
+    """Decorator that logs the time taken for a function to execute.  Not suitable for use with async functions"""
+    if isinstance(logger, str):
+        logger = logging.getLogger(logger)
+
+    def actual_decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            start = time()
+            try:
+                result = func(*args, **kwargs)
+            finally:
+                end = time()
+                logger.log(level, "%s took %s seconds", func.__name__, end - start)
+            return result
+
+        return wrapper
+
+    return actual_decorator

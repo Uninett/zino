@@ -1,10 +1,11 @@
+import logging
 from ipaddress import IPv4Address, IPv6Address
 from unittest.mock import AsyncMock, MagicMock
 
 import aiodns
 import pytest
 
-from zino.utils import parse_ip, reverse_dns
+from zino.utils import log_time_spent, parse_ip, reverse_dns
 
 
 class TestParseIP:
@@ -76,6 +77,24 @@ class TestReverseDNS:
 
         result = await reverse_dns(invalid_ip)
         assert result is None
+
+
+class TestLogTimeSpent:
+    def test_when_logger_is_specified_it_should_log_time_spent_using_that_logger(self, caplog):
+        @log_time_spent(logger="test_logger", level=logging.DEBUG)
+        def test_function():
+            pass
+
+        with caplog.at_level(logging.DEBUG):
+            test_function()
+
+        assert any(
+            record.name == "test_logger"
+            and "took" in record.msg
+            and "seconds" in record.msg
+            and "test_function" in record.args
+            for record in caplog.records
+        )
 
 
 @pytest.fixture
