@@ -51,7 +51,7 @@ dev = [
     "pytest-timeout",
     "retry",
     "ruff",
-    "snmpsim",
+    "snmpsim<1.0",
     "towncrier",
     "tox<4",
     "twine",
