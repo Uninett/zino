@@ -451,11 +451,11 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
 
     @requires_authentication
     async def do_clearflap(self, router_name: str, ifindex: Union[str, int]):
-        """Implements a dummy CLEARFLAP command (for now)"""
+        """Clears the flapping state of an interface and its corresponding portstate event"""
         from zino.state import polldevs
 
         try:
-            _device = polldevs[router_name]
+            poll_device = polldevs[router_name]
         except KeyError:
             return self._respond_error(f"Router {router_name} unknown")
         try:
@@ -463,7 +463,9 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         except ValueError:
             return self._respond_error(f"{ifindex} is an invalid ifindex value")
 
-        return self._respond_ok("not implemented")
+        self._state.flapping.clear_flap((router_name, ifindex), self.user, self._state, poll_device)
+
+        return self._respond_ok()
 
     def _translate_pm_id_to_pm(responder: callable):  # noqa
         """Decorates any command that works with planned maintenance adding verification of the
