@@ -43,6 +43,13 @@ class TestEvent:
         assert "ac_down" not in attrs
         assert "ac-down" in attrs
 
+    def test_model_dump_simple_attrs_should_represent_timedeltas_as_number_of_seconds(self, fake_event):
+        """Legacy Zino protocol event attributes use dashes, not underscores in their names."""
+        fake_event.ac_down = datetime.timedelta(seconds=42)
+        attrs = fake_event.model_dump_simple_attrs()
+
+        assert attrs["ac-down"] == "42"
+
     def test_zinoify_value_when_value_is_enum_it_should_return_its_real_value(self):
         assert Event.zinoify_value(EventState.OPEN) == "open"
 

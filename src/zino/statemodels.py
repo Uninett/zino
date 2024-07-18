@@ -318,6 +318,8 @@ class Event(BaseModel):
             return str(value.value)
         if isinstance(value, datetime.datetime):
             return str(int(value.timestamp()))
+        if isinstance(value, datetime.timedelta):
+            return str(int(value.total_seconds()))
         return str(value)
 
     def get_changed_fields(self, other: "Event") -> List[str]:
