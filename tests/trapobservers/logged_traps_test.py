@@ -4,7 +4,7 @@ from unittest.mock import Mock
 import pytest
 
 from zino.trapd import TrapMessage
-from zino.trapobservers.logged_traps import RestartTrapLogger
+from zino.trapobservers.logged_traps import CiscoReloadTrapLogger, RestartTrapLogger
 
 
 class TestRestartTrapLogger:
@@ -18,3 +18,17 @@ class TestRestartTrapLogger:
         with caplog.at_level(logging.INFO):
             await observer.handle_trap(trap=trap)
             assert f"localhost: {trap_name}" in caplog.text
+
+
+class TestCiscoReloadTrapLogger:
+    @pytest.mark.asyncio
+    async def test_when_handle_trap_is_called_it_should_log_reload(
+        self,
+        caplog,
+        localhost_trap_originator,
+    ):
+        observer = CiscoReloadTrapLogger(state=Mock())
+        trap = TrapMessage(agent=localhost_trap_originator, mib="CISCOTRAP-MIB", name="reload")
+        with caplog.at_level(logging.INFO):
+            await observer.handle_trap(trap=trap)
+            assert "localhost: reload requested" in caplog.text

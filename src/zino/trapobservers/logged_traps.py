@@ -17,3 +17,13 @@ class RestartTrapLogger(TrapObserver):
     async def handle_trap(self, trap: TrapMessage) -> Optional[bool]:
         _logger.info("%s: %s", trap.agent.device.name, trap.name)
         return False  # stop trap processing here
+
+
+class CiscoReloadTrapLogger(TrapObserver):
+    WANTED_TRAPS = {
+        ("CISCOTRAP-MIB", "reload"),
+    }
+
+    async def handle_trap(self, trap: TrapMessage) -> Optional[bool]:
+        _logger.info("%s: reload requested", trap.agent.device.name)
+        return False  # stop trap processing here
