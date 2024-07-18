@@ -1,0 +1,1 @@
+Properly encode timedelta values as an integer number of seconds in the legacy API
