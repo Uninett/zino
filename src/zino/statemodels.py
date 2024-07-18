@@ -309,7 +309,7 @@ class Event(BaseModel):
         Pydantic can support that.
         """
         attrs = self.model_dump(mode="python", exclude={"log", "history"}, exclude_none=True)
-        return {attr: self.zinoify_value(value) for attr, value in attrs.items()}
+        return {attr.replace("_", "-"): self.zinoify_value(value) for attr, value in attrs.items()}
 
     @staticmethod
     def zinoify_value(value: Any) -> str:
