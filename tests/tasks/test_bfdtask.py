@@ -16,7 +16,7 @@ class TestJuniper:
             OID(f".{bfd_state.session_index}"),
             "up",
             bfd_state.session_discr,
-            "0x7f000001",
+            IPv4Address("127.0.0.1"),
         )
         assert state == bfd_state
 

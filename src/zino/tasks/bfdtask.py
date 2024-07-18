@@ -4,9 +4,9 @@ from typing import Dict, Sequence
 from zino.oid import OID
 from zino.scheduler import get_scheduler
 from zino.snmp import SparseWalkResponse
-from zino.statemodels import BFDEvent, BFDSessState, BFDState, Port
+from zino.statemodels import BFDEvent, BFDSessState, BFDState, IPAddress, Port
 from zino.tasks.task import Task
-from zino.utils import parse_ip, reverse_dns
+from zino.utils import reverse_dns
 
 _log = logging.getLogger(__name__)
 
@@ -142,19 +142,13 @@ class BFDTask(Task):
         row = {var.object: val for var, val in response}
         return {OID((session_index,)): row}
 
-    def _parse_row(self, index: OID, state: str, discr: int, addr: str) -> BFDState:
-        try:
-            ipaddr = parse_ip(addr)
-        except ValueError as e:
-            _log.error(f"Error converting addr {addr} to an IP address on device {self.device.name}: {e}")
-            ipaddr = None
-
+    def _parse_row(self, index: OID, state: str, discr: int, addr: IPAddress) -> BFDState:
         # convert from OID object to int
         session_index = int(index[0])
         bfd_state = BFDState(
             session_state=BFDSessState(state),
             session_index=session_index,
             session_discr=discr,
-            session_addr=ipaddr,
+            session_addr=addr,
         )
         return bfd_state
