@@ -27,3 +27,25 @@ class CiscoReloadTrapLogger(TrapObserver):
     async def handle_trap(self, trap: TrapMessage) -> Optional[bool]:
         _logger.info("%s: reload requested", trap.agent.device.name)
         return False  # stop trap processing here
+
+
+class CiscoConfigManEventLogger(TrapObserver):
+    WANTED_TRAPS = {
+        ("CISCO-CONFIG-MAN", "ciscoConfigManEvent"),
+    }
+
+    async def handle_trap(self, trap: TrapMessage) -> Optional[bool]:
+        _logger.info(
+            "%s: config-change: cmd-src %s conf-src %s dst %s",
+            trap.agent.device.name,
+            *[
+                trap.get_all(var)[0].value if var in trap else None
+                for var in (
+                    "ccmHistoryEventCommandSource",
+                    "ccmHistoryEventConfigSource",
+                    "ccmHistoryEventConfigDestination",
+                )
+            ],
+        )
+
+        return False  # stop trap processing here
