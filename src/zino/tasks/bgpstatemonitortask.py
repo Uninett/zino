@@ -46,9 +46,9 @@ LOCAL_AS_OBJECTS = {
 }
 BUGGY_REMOTE_ADDRESSES = [
     # Bug in JunOS -- info from IPv6 BGP sessions spill over
-    "0.0.0.0",
+    ip_address("0.0.0.0"),
     # Bug in earlier Cisco IOS, info from elsewhere (IPv6?) spills over
-    "32.1.7.0",
+    ip_address("32.1.7.0"),
 ]
 
 
