@@ -95,3 +95,20 @@ class CiscoPimTrapLogger(TrapObserver):
         )
 
         return False  # stop trap processing here
+
+
+class OspfIfConfigErrorLogger(TrapObserver):
+    """Logs all ospfIfConfigError trap variables prefixed by 'ospf*'"""
+
+    WANTED_TRAPS = {
+        ("OSPF-MIB", "ospfIfConfigError"),
+    }
+
+    async def handle_trap(self, trap: TrapMessage) -> Optional[bool]:
+        _logger.info("%s: trap %s", trap.agent.device.name, trap.get_all("snmpTrapOID")[0].value)
+
+        for var in trap.variables:
+            if var.var.startswith("ospf"):
+                _logger.info("%s: trap-var %s: %s", trap.agent.device.name, var.var, var.value)
+
+        return False  # stop trap processing here

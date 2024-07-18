@@ -1,13 +1,16 @@
 import logging
+from ipaddress import ip_address
 from unittest.mock import Mock
 
 import pytest
 
+from zino.oid import OID
 from zino.trapd import TrapMessage
 from zino.trapobservers.logged_traps import (
     CiscoConfigManEventLogger,
     CiscoPimTrapLogger,
     CiscoReloadTrapLogger,
+    OspfIfConfigErrorLogger,
     RestartTrapLogger,
 )
 
@@ -126,3 +129,30 @@ class TestCiscoPimTrapLogger:
         with caplog.at_level(logging.INFO):
             await observer.handle_trap(trap=trap)
             assert "PIM-invalid" not in caplog.text
+
+
+class TestOspfIfConfigErrorLogger:
+    @pytest.mark.asyncio
+    async def test_when_handle_trap_is_called_with_ospf_config_error_it_should_log_it_correctly(
+        self, caplog, localhost_trap_originator
+    ):
+        observer = OspfIfConfigErrorLogger(state=Mock())
+        snmp_trap_oid = OID(".1.3.6.1.2.1.14.16.2.4")
+        trap = TrapMessage(
+            agent=localhost_trap_originator,
+            mib="OSPF-MIB",
+            name="ospfIfConfigError",
+            variables=[
+                Mock(var="snmpTrapOID", value=snmp_trap_oid),
+                Mock(var="ospfRouterId", raw_value=b"\x0A\x00\x00\x01", value=ip_address("10.0.0.1")),
+                Mock(var="ospfIfIpAddress", raw_value=b"\xc0\xa8\x01\x01", value=ip_address("192.168.1.1")),
+                Mock(var="doesNotBelongValue", value="foobar"),
+            ],
+        )
+        with caplog.at_level(logging.INFO):
+            await observer.handle_trap(trap=trap)
+
+        assert f"localhost: trap {snmp_trap_oid}" in caplog.text
+        assert "localhost: trap-var ospfRouterId: 10.0.0.1" in caplog.text
+        assert "localhost: trap-var ospfIfIpAddress: 192.168.1.1" in caplog.text
+        assert "doesNotBelongValue" not in caplog.text
