@@ -5,6 +5,7 @@ import os
 import threading
 from collections import defaultdict
 from dataclasses import dataclass
+from ipaddress import ip_address
 from typing import Any, NamedTuple, Sequence, Tuple, Union
 
 from pyasn1.type import univ
@@ -509,7 +510,7 @@ def _mib_value_to_python(value: SupportedTypes) -> Union[str, int, OID]:
         value = int(value) if not value.namedValues else value.prettyPrint()
     elif isinstance(value, univ.OctetString):
         if type(value).__name__ in ("InetAddress", "IpAddress"):
-            value = value.prettyPrint()
+            value = ip_address(bytes(value))
         else:
             value = str(value)
     elif isinstance(value, (ObjectIdentity, univ.ObjectIdentifier)):
