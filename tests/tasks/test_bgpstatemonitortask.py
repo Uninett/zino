@@ -12,7 +12,7 @@ from zino.statemodels import (
     BGPPeerSession,
     BGPStyle,
 )
-from zino.tasks.bgpstatemonitortask import BGPStateMonitorTask
+from zino.tasks.bgpstatemonitortask import BaseBGPRow, BGPStateMonitorTask
 
 PEER_ADDRESS = IPv4Address("10.0.0.1")
 DEFAULT_REMOTE_AS = 20
@@ -185,6 +185,26 @@ class TestBGPStateMonitorTask:
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
+        "task", ["general-bgp-oper-down", "cisco-bgp-oper-down", "juniper-bgp-oper-down"], indirect=True
+    )
+    async def test_oper_down_creates_serializable_event(self, task):
+        """Tests that an event created from a BGP state change should be serializable by Pydantic without warnings"""
+        # set initial state
+        task.device_state.bgp_peers = {
+            PEER_ADDRESS: BGPPeerSession(
+                uptime=DEFAULT_UPTIME, admin_status=BGPAdminStatus.START, oper_state=BGPOperState.ESTABLISHED
+            )
+        }
+        await task.run()
+        # check if state has been updated to reflect state defined in .snmprec
+        assert task.device_state.bgp_peers[PEER_ADDRESS].oper_state != BGPOperState.ESTABLISHED
+        # check that the correct event has been created
+        event = task.state.events.get(device_name=task.device.name, subindex=PEER_ADDRESS, event_class=BGPEvent)
+        assert event
+        assert event.model_dump_json(exclude_none=True, indent=2, warnings="error")
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
         "task",
         ["general-bgp-oper-down-short", "cisco-bgp-oper-down-short", "juniper-bgp-oper-down-short"],
         indirect=True,
@@ -261,6 +281,19 @@ class TestGetLocalAs:
     @pytest.mark.parametrize("task", ["public"], indirect=True)
     async def test_get_local_as_returns_none_for_non_existent_local_as_with_juniper_bgp_style(self, task):
         assert (await task._get_local_as(bgp_style=BGPStyle.JUNIPER)) is None
+
+
+class TestBaseBGPRow:
+    def test_when_input_is_valid_it_should_not_fail(self):
+        assert BaseBGPRow("active", "running", "10.0.42.0", 5, 0)
+
+    def test_when_peer_state_is_invalid_it_should_raise_an_error(self):
+        with pytest.raises(ValueError):
+            BaseBGPRow("invalid foobar", "running", "10.0.42.0", 5, 0)
+
+    def test_when_peer_admin_status_is_invalid_it_should_raise_an_error(self):
+        with pytest.raises(ValueError):
+            BaseBGPRow("active", "invalid flimflam", "10.0.42.0", 5, 0)
 
 
 @pytest.fixture
