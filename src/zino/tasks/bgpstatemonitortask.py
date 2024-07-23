@@ -13,7 +13,6 @@ from zino.statemodels import (
     IPAddress,
 )
 from zino.tasks.task import Task
-from zino.utils import parse_ip
 
 _logger = logging.getLogger(__name__)
 
@@ -47,9 +46,9 @@ LOCAL_AS_OBJECTS = {
 }
 BUGGY_REMOTE_ADDRESSES = [
     # Bug in JunOS -- info from IPv6 BGP sessions spill over
-    "0.0.0.0",
+    ip_address("0.0.0.0"),
     # Bug in earlier Cisco IOS, info from elsewhere (IPv6?) spills over
-    "32.1.7.0",
+    ip_address("32.1.7.0"),
 ]
 
 
@@ -159,7 +158,7 @@ class BGPStateMonitorTask(Task):
             return None
 
         for oid, result in cisco_bgp_info.items():
-            result["cbgpPeer2RemoteAddr"] = oid
+            result["cbgpPeer2RemoteAddr"] = ip_address(oid)
 
         cisco_bgp_info = self._transform_variables_from_specific_to_general(
             bgp_info=cisco_bgp_info, bgp_style=BGPStyle.CISCO
@@ -227,18 +226,7 @@ class BGPStateMonitorTask(Task):
             _logger.info(f"router {self.device.name} misses BGP variables ({missing_variables})")
             return None
 
-        results = list()
-
-        # Fix up peer remote address and transform to BaseBGPRow
-        for result in generalized_bgp_info.values():
-            try:
-                result["peer_remote_address"] = parse_ip(result["peer_remote_address"])
-            except ValueError:
-                _logger.debug(f"{self.device_state.name}: Invalid peer_remote_address {result['peer_remote_address']}")
-            else:
-                results.append(BaseBGPRow(**result))
-
-        return results
+        return [BaseBGPRow(**result) for result in generalized_bgp_info.values()]
 
     def _update_single_bgp_entry(self, data: BaseBGPRow, local_as: int, uptime: int):
         if data.peer_remote_address in BUGGY_REMOTE_ADDRESSES:
