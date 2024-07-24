@@ -23,37 +23,39 @@ class TestBgpTrapObserver:
         assert len(device.bgp_peers) == 1
         assert device.bgp_peers[peer].oper_state == BGPOperState.ACTIVE
 
-    def test_when_trap_is_missing_required_varbinds_it_should_do_nothing(self, backward_transition_trap):
-        """jnxBgpM2PeerLocalAddrType is required to be present, according to legacy Zino"""
+    @pytest.mark.asyncio
+    async def test_when_trap_is_missing_required_varbinds_it_should_do_nothing(self, backward_transition_trap):
         device = backward_transition_trap.agent.device
         peer = next(iter(device.bgp_peers.keys()))
         addr_type = backward_transition_trap.get_all("jnxBgpM2PeerLocalAddrType")[0]
         backward_transition_trap.variables.remove(addr_type)
 
         observer = BgpTrapObserver(state=Mock())
-        observer.handle_trap(trap=backward_transition_trap)
+        await observer.handle_trap(trap=backward_transition_trap)
 
         assert len(device.bgp_peers) == 1
         assert device.bgp_peers[peer].oper_state == BGPOperState.ESTABLISHED
 
-    def test_when_trap_has_invalid_remote_addr_it_should_do_nothing(self, backward_transition_trap):
+    @pytest.mark.asyncio
+    async def test_when_trap_has_invalid_remote_addr_it_should_do_nothing(self, backward_transition_trap):
         device = backward_transition_trap.agent.device
         peer = next(iter(device.bgp_peers.keys()))
         backward_transition_trap.get_all("jnxBgpM2PeerRemoteAddr")[0].raw_value = b"INVALID"
 
         observer = BgpTrapObserver(state=Mock())
-        observer.handle_trap(trap=backward_transition_trap)
+        await observer.handle_trap(trap=backward_transition_trap)
 
         assert len(device.bgp_peers) == 1
         assert device.bgp_peers[peer].oper_state == BGPOperState.ESTABLISHED
 
-    def test_when_trap_has_invalid_oper_state_it_should_do_nothing(self, backward_transition_trap):
+    @pytest.mark.asyncio
+    async def test_when_trap_has_invalid_oper_state_it_should_do_nothing(self, backward_transition_trap):
         device = backward_transition_trap.agent.device
         peer = next(iter(device.bgp_peers.keys()))
         backward_transition_trap.get_all("jnxBgpM2PeerState")[0].value = "INVALIDFOOBAR"
 
         observer = BgpTrapObserver(state=Mock())
-        observer.handle_trap(trap=backward_transition_trap)
+        await observer.handle_trap(trap=backward_transition_trap)
 
         assert len(device.bgp_peers) == 1
         assert device.bgp_peers[peer].oper_state == BGPOperState.ESTABLISHED
