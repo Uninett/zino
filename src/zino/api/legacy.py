@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Callable, List, NamedTuple, Optional, Union
 from zino import version
 from zino.api import auth
 from zino.api.notify import Zino1NotificationProtocol
+from zino.config.models import PollDevice
 from zino.scheduler import get_scheduler
 from zino.state import ZinoState, config
 from zino.statemodels import (
@@ -61,6 +62,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         server: Optional["ZinoServer"] = None,
         state: Optional[ZinoState] = None,
         secrets_file: Optional[Union[Path, str]] = None,
+        polldevs: Optional[dict[str, PollDevice]] = None,
     ):
         """Initializes a protocol instance.
 
@@ -68,6 +70,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         :param state: An optional reference to a running Zino state that this server should be based on.  If omitted,
                       this protocol will create and work on an empty state object.
         :param secrets_file: An optional alternative path to the file containing users and their secrets.
+        :param polldevs: An optional instance of the polldevs dict.
         """
         self.server = server
         self.transport: Optional[asyncio.Transport] = None
@@ -82,6 +85,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
 
         self._state = state if state is not None else ZinoState()
         self._secrets_file = secrets_file or config.authentication.file
+        self._polldevs = polldevs or dict()
 
     @property
     def peer_name(self) -> Optional[str]:
@@ -387,10 +391,8 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
 
     @requires_authentication
     async def do_community(self, router_name: str):
-        from zino.state import polldevs
-
-        if router_name in polldevs:
-            device = polldevs[router_name]
+        if router_name in self._polldevs:
+            device = self._polldevs[router_name]
             self._respond(201, f"{device.community}")
         else:
             self._respond_error("router unknown")
@@ -411,9 +413,7 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
 
     @requires_authentication
     async def do_pollrtr(self, router_name: str):
-        from zino.state import polldevs
-
-        device = polldevs.get(router_name, None)
+        device = self._polldevs.get(router_name, None)
         if not device:
             return self._respond_error(f"Router {router_name} unknown")
 
@@ -432,10 +432,8 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
 
     @requires_authentication
     async def do_pollintf(self, router_name: str, ifindex: Union[str, int]):
-        from zino.state import polldevs
-
         try:
-            device = polldevs[router_name]
+            device = self._polldevs[router_name]
         except KeyError:
             return self._respond_error(f"Router {router_name} unknown")
         try:
@@ -452,10 +450,8 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
     @requires_authentication
     async def do_clearflap(self, router_name: str, ifindex: Union[str, int]):
         """Clears the flapping state of an interface and its corresponding portstate event"""
-        from zino.state import polldevs
-
         try:
-            poll_device = polldevs[router_name]
+            poll_device = self._polldevs[router_name]
         except KeyError:
             return self._respond_error(f"Router {router_name} unknown")
         try:
