@@ -31,15 +31,6 @@ class TestReadConfiguration:
         with pytest.raises(ValidationError):
             read_configuration(extra_keys_zino_conf)
 
-    def test_raises_error_on_pollfile_not_found(self, tmp_path):
-        pollfile = "non-existent-pollfile.toml"
-        name = tmp_path / pollfile
-        with open(name, "w") as conf:
-            conf.write(
-                f"""
-                [polling]
-                file = "{pollfile}"
-                """
-            )
+    def test_raises_error_on_pollfile_not_found(self, zino_conf_with_non_existent_pollfile):
         with pytest.raises(ValidationError):
-            read_configuration(name)
+            read_configuration(zino_conf_with_non_existent_pollfile)
