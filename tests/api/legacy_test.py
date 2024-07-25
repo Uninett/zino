@@ -635,10 +635,7 @@ class TestZino1ServerProtocolSetstateCommand:
 
 class TestZino1ServerProtocolCommunityCommand:
     @pytest.mark.asyncio
-    @patch("zino.state.polldevs", dict())
     async def test_should_output_community_for_router(self, authenticated_protocol):
-        from zino.state import polldevs
-
         router_name = "buick.lab.example.org"
         community = "public"
         device = PollDevice(
@@ -647,7 +644,8 @@ class TestZino1ServerProtocolCommunityCommand:
             port=666,
             community=community,
         )
-        polldevs[device.name] = device
+        polldevs = {device.name: device}
+        authenticated_protocol._polldevs = polldevs
 
         await authenticated_protocol.message_received(f"COMMUNITY {router_name}")
 
@@ -655,7 +653,6 @@ class TestZino1ServerProtocolCommunityCommand:
         assert f"201 {device.community}\r\n".encode() in output
 
     @pytest.mark.asyncio
-    @patch("zino.state.polldevs", dict())
     async def test_should_output_error_response_for_unknown_router(self, authenticated_protocol):
         await authenticated_protocol.message_received("COMMUNITY unknown.router.example.org")
 
@@ -703,10 +700,7 @@ class TestZino1ServerProtocolNtieCommand:
 
 class TestZino1ServerProtocolPollrtrCommand:
     @pytest.mark.asyncio
-    @patch("zino.state.polldevs", dict())
     async def test_should_add_run_all_tasks_job(self, authenticated_protocol):
-        from zino.state import polldevs
-
         router_name = "buick.lab.example.org"
         community = "public"
         device = PollDevice(
@@ -715,7 +709,8 @@ class TestZino1ServerProtocolPollrtrCommand:
             port=666,
             community=community,
         )
-        polldevs[device.name] = device
+        polldevs = {device.name: device}
+        authenticated_protocol._polldevs = polldevs
 
         with patch("zino.api.legacy.get_scheduler") as get_scheduler:
             mock_scheduler = Mock()
@@ -728,7 +723,6 @@ class TestZino1ServerProtocolPollrtrCommand:
         assert mock_scheduler.add_job.called
 
     @pytest.mark.asyncio
-    @patch("zino.state.polldevs", dict())
     async def test_should_output_error_response_for_unknown_router(self, authenticated_protocol):
         unknown_router = "unknown.router.example.org"
         await authenticated_protocol.message_received(f"POLLRTR {unknown_router}")
@@ -739,10 +733,7 @@ class TestZino1ServerProtocolPollrtrCommand:
 
 class TestZino1ServerProtocolPollintfCommand:
     @pytest.mark.asyncio
-    @patch("zino.state.polldevs", dict())
     async def test_should_call_poll_single_interface(self, authenticated_protocol):
-        from zino.state import polldevs
-
         router_name = "buick.lab.example.org"
         community = "public"
         device = PollDevice(
@@ -751,7 +742,8 @@ class TestZino1ServerProtocolPollintfCommand:
             port=666,
             community=community,
         )
-        polldevs[device.name] = device
+        polldevs = {device.name: device}
+        authenticated_protocol._polldevs = polldevs
 
         with patch(
             "zino.tasks.linkstatetask.LinkStateTask.schedule_verification_of_single_port", Mock()
@@ -763,7 +755,6 @@ class TestZino1ServerProtocolPollintfCommand:
         assert mock_schedule_verification.called
 
     @pytest.mark.asyncio
-    @patch("zino.state.polldevs", dict())
     async def test_should_output_error_response_for_unknown_router(self, authenticated_protocol):
         unknown_router = "unknown.router.example.org"
         await authenticated_protocol.message_received(f"POLLINTF {unknown_router} 1")
@@ -772,10 +763,7 @@ class TestZino1ServerProtocolPollintfCommand:
         assert f"500 Router {unknown_router} unknown\r\n".encode() in output
 
     @pytest.mark.asyncio
-    @patch("zino.state.polldevs", dict())
     async def test_should_output_error_response_for_invalid_ifindex(self, authenticated_protocol):
-        from zino.state import polldevs
-
         router_name = "buick.lab.example.org"
         community = "public"
         device = PollDevice(
@@ -784,7 +772,8 @@ class TestZino1ServerProtocolPollintfCommand:
             port=666,
             community=community,
         )
-        polldevs[device.name] = device
+        polldevs = {device.name: device}
+        authenticated_protocol._polldevs = polldevs
         await authenticated_protocol.message_received(f"POLLINTF {router_name} foobar")
 
         output = authenticated_protocol.transport.data_buffer.getvalue()
@@ -793,11 +782,8 @@ class TestZino1ServerProtocolPollintfCommand:
 
 class TestZino1ServerProtocolClearflapCommand:
     @pytest.mark.asyncio
-    @patch("zino.state.polldevs", dict())
     async def test_it_should_set_event_flapstate_to_stable_and_respond_with_ok(self, authenticated_protocol):
         # Arrange bigly
-        from zino.state import polldevs
-
         router_name = "buick.lab.example.org"
         community = "public"
         device = PollDevice(
@@ -806,7 +792,8 @@ class TestZino1ServerProtocolClearflapCommand:
             port=666,
             community=community,
         )
-        polldevs[device.name] = device
+        polldevs = {device.name: device}
+        authenticated_protocol._polldevs = polldevs
 
         device_state = DeviceState(name=router_name)
         port = Port(ifindex=1, ifdescr="eth0", ifalias="Test port", state=InterfaceState.FLAPPING)
@@ -831,7 +818,6 @@ class TestZino1ServerProtocolClearflapCommand:
         assert updated_event.flapstate == FlapState.STABLE
 
     @pytest.mark.asyncio
-    @patch("zino.state.polldevs", dict())
     async def test_it_should_output_error_response_for_unknown_router(self, authenticated_protocol):
         unknown_router = "unknown.router.example.org"
         await authenticated_protocol.message_received(f"CLEARFLAP {unknown_router} 1")
@@ -840,10 +826,7 @@ class TestZino1ServerProtocolClearflapCommand:
         assert f"500 Router {unknown_router} unknown\r\n".encode() in output
 
     @pytest.mark.asyncio
-    @patch("zino.state.polldevs", dict())
     async def test_it_should_output_error_response_for_invalid_ifindex(self, authenticated_protocol):
-        from zino.state import polldevs
-
         router_name = "buick.lab.example.org"
         community = "public"
         device = PollDevice(
@@ -852,7 +835,9 @@ class TestZino1ServerProtocolClearflapCommand:
             port=666,
             community=community,
         )
-        polldevs[device.name] = device
+        polldevs = {device.name: device}
+        authenticated_protocol._polldevs = polldevs
+
         await authenticated_protocol.message_received(f"CLEARFLAP {router_name} foobar")
 
         output = authenticated_protocol.transport.data_buffer.getvalue()
