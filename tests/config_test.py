@@ -16,7 +16,7 @@ class TestReadConfiguration:
         assert config.polling.file == str(polldevs_conf_with_single_router)
 
     def test_raises_error_on_file_not_found(self, tmp_path):
-        with pytest.raises(OSError):
+        with pytest.raises(FileNotFoundError):
             read_configuration(tmp_path / "non-existent-config.toml")
 
     def test_raises_error_on_invalid_toml_file(self, invalid_zino_conf):
@@ -24,13 +24,20 @@ class TestReadConfiguration:
             read_configuration(invalid_zino_conf)
 
     def test_raises_error_on_invalid_config_values(self, invalid_values_zino_conf):
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError) as excinfo:
             read_configuration(invalid_values_zino_conf)
 
+        assert "archiving.old_events_dir" in str(excinfo)
+
     def tests_raises_error_on_misspelled_key(self, extra_keys_zino_conf):
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError) as excinfo:
             read_configuration(extra_keys_zino_conf)
 
+        assert "Extra inputs are not permitted" in str(excinfo)
+
     def test_raises_error_on_pollfile_not_found(self, zino_conf_with_non_existent_pollfile):
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError) as excinfo:
             read_configuration(zino_conf_with_non_existent_pollfile)
+
+        assert "polling.file" in str(excinfo.value)
+        assert "non-existent-pollfile.cf doesn't exist or isn't readable" in str(excinfo.value)
