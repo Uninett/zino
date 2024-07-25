@@ -141,7 +141,7 @@ def init_event_loop(args: argparse.Namespace, loop: Optional[AbstractEventLoop] 
         minutes=30,
     )
 
-    server = ZinoServer(loop=loop, state=state.state)
+    server = ZinoServer(loop=loop, state=state.state, polldevs=state.polldevs)
     server.serve()
 
     if args.stop_in:
