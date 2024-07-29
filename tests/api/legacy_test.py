@@ -957,6 +957,27 @@ class TestZino1ServerProtocolPmAddLogCommand:
         )
 
 
+class TestZino1ServerProtocolPmLogCommand:
+    @pytest.mark.asyncio
+    async def test_should_output_pm_log(self, authenticated_protocol, active_device_pm):
+        planned_maintenances = authenticated_protocol._state.planned_maintenances.planned_maintenances
+        planned_maintenances[active_device_pm.id] = active_device_pm
+
+        active_device_pm.add_log("line one\nline two\nline three")
+        active_device_pm.add_log("another line one\nanother line two\nanother line")
+
+        await authenticated_protocol.message_received(f"PM LOG {active_device_pm.id}")
+
+        output: str = authenticated_protocol.transport.data_buffer.getvalue().decode()
+
+        output = output[output.find("300 log follows") :]
+        lines = output.splitlines()
+
+        assert len(lines) == 8
+        assert lines[-1] == "."
+        assert all(line[0].isdigit() or line.startswith(" ") for line in lines[:-1])
+
+
 class TestZino1ServerProtocolPmDetailsCommand:
     @pytest.mark.asyncio
     async def test_when_authenticated_should_output_device_pm_details(self, authenticated_protocol, active_device_pm):
