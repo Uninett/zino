@@ -910,6 +910,33 @@ class TestZino1ServerProtocolPmListCommand:
         ), f"Expected response to contain id {active_portstate_pm.id}"
 
 
+class TestZino1ServerProtocolPmCancelCommand:
+    @pytest.mark.asyncio
+    async def test_when_authenticated_should_cancel_pm(self, authenticated_protocol, active_device_pm):
+        planned_maintenances = authenticated_protocol._state.planned_maintenances.planned_maintenances
+        planned_maintenances[active_device_pm.id] = active_device_pm
+        await authenticated_protocol.message_received(f"PM CANCEL {active_device_pm.id}")
+        response = authenticated_protocol.transport.data_buffer.getvalue().decode("utf-8")
+
+        assert re.search(r"\b200 \b", response), "Expected response to contain status code 200"
+
+        assert active_device_pm.id not in planned_maintenances
+        log_messages = [log.message for log in active_device_pm.log]
+        assert f"PM closed by {authenticated_protocol.user}: PM cancelled" in log_messages
+
+    @pytest.mark.asyncio
+    async def test_when_authenticated_should_do_nothing_for_ended_pm(self, authenticated_protocol, ended_pm):
+        planned_maintenances = authenticated_protocol._state.planned_maintenances.planned_maintenances
+        await authenticated_protocol.message_received(f"PM CANCEL {ended_pm.id}")
+        response = authenticated_protocol.transport.data_buffer.getvalue().decode("utf-8")
+
+        assert re.search(r"\b200 \b", response), "Expected response to contain status code 200"
+
+        assert ended_pm.id not in planned_maintenances
+        log_messages = [log.message for log in ended_pm.log]
+        assert f"PM closed by {authenticated_protocol.user}: PM cancelled" not in log_messages
+
+
 class TestZino1ServerProtocolPmDetailsCommand:
     @pytest.mark.asyncio
     async def test_when_authenticated_should_output_device_pm_details(self, authenticated_protocol, active_device_pm):
