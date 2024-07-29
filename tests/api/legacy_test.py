@@ -910,6 +910,63 @@ class TestZino1ServerProtocolPmListCommand:
         ), f"Expected response to contain id {active_portstate_pm.id}"
 
 
+class TestZino1ServerProtocolPmDetailsCommand:
+    @pytest.mark.asyncio
+    async def test_when_authenticated_should_output_device_pm_details(self, authenticated_protocol, active_device_pm):
+        planned_maintenances = authenticated_protocol._state.planned_maintenances.planned_maintenances
+        planned_maintenances[active_device_pm.id] = active_device_pm
+        await authenticated_protocol.message_received(f"PM DETAILS {active_device_pm.id}")
+        response = authenticated_protocol.transport.data_buffer.getvalue().decode("utf-8")
+
+        assert re.search(r"\b200 \b", response), "Expected response to contain status code 200"
+
+        assert (
+            str(int(active_device_pm.start_time.timestamp())) in response
+        ), f"Expected response to contain start time {active_device_pm.start_time.timestamp()}"
+        assert (
+            str(int(active_device_pm.end_time.timestamp())) in response
+        ), f"Expected response to contain end time {active_device_pm.end_time.timestamp()}"
+        assert str(active_device_pm.id) in response, f"Expected response to contain id {active_device_pm.id}"
+        assert str(active_device_pm.type) in response, f"Expected response to contain type {active_device_pm.type}"
+        assert (
+            str(active_device_pm.match_type) in response
+        ), f"Expected response to contain match type {active_device_pm.match_type}"
+        assert (
+            active_device_pm.match_expression in response
+        ), f"Expected response to contain match expression {active_device_pm.match_expression}"
+
+    @pytest.mark.asyncio
+    async def test_when_authenticated_should_output_portstate_pm_details(
+        self, authenticated_protocol, active_portstate_pm
+    ):
+        planned_maintenances = authenticated_protocol._state.planned_maintenances.planned_maintenances
+        planned_maintenances[active_portstate_pm.id] = active_portstate_pm
+        await authenticated_protocol.message_received(f"PM DETAILS {active_portstate_pm.id}")
+        response = authenticated_protocol.transport.data_buffer.getvalue().decode("utf-8")
+
+        assert re.search(r"\b200 \b", response), "Expected response to contain status code 200"
+
+        assert (
+            str(int(active_portstate_pm.start_time.timestamp())) in response
+        ), f"Expected response to contain start time {active_portstate_pm.start_time.timestamp()}"
+        assert (
+            str(int(active_portstate_pm.end_time.timestamp())) in response
+        ), f"Expected response to contain end time {active_portstate_pm.end_time.timestamp()}"
+        assert str(active_portstate_pm.id) in response, f"Expected response to contain id {active_portstate_pm.id}"
+        assert (
+            str(active_portstate_pm.type) in response
+        ), f"Expected response to contain type {active_portstate_pm.type}"
+        assert (
+            str(active_portstate_pm.match_type) in response
+        ), f"Expected response to contain match type {active_portstate_pm.match_type}"
+        assert (
+            str(active_portstate_pm.match_device) in response
+        ), f"Expected response to contain match device {active_portstate_pm.match_device}"
+        assert (
+            active_portstate_pm.match_expression in response
+        ), f"Expected response to contain match expression {active_portstate_pm.match_expression}"
+
+
 def test_requires_authentication_should_set_function_attribute():
     @requires_authentication
     def throwaway():
