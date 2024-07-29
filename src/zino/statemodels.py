@@ -21,7 +21,7 @@ from typing import (
     Union,
 )
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from zino.compat import StrEnum
 from zino.time import now
@@ -413,13 +413,16 @@ class PmType(StrEnum):
 
 
 class PlannedMaintenance(BaseModel):
+    # Allow populating fields by name or alias
+    model_config = ConfigDict(populate_by_name=True)
+
     id: Optional[int] = None
-    start_time: datetime.datetime
-    end_time: datetime.datetime
+    start_time: datetime.datetime = Field(alias="starttime")
+    end_time: datetime.datetime = Field(alias="endtime")
     type: PmType
     match_type: MatchType
-    match_device: Optional[str] = None
-    match_expression: str
+    match_device: Optional[str] = Field(default=None, alias="match_dev")
+    match_expression: str = Field(alias="match_expr")
     log: List[LogEntry] = []
     event_ids: List[int] = []
 

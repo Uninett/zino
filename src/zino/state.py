@@ -40,7 +40,7 @@ class ZinoState(BaseModel):
         """Dumps the full state to a file in JSON format"""
         _log.debug("dumping state to %s", filename)
         with open(filename, "w") as statefile:
-            statefile.write(self.model_dump_json(exclude_none=True, indent=2))
+            statefile.write(self.model_dump_json(exclude_none=True, indent=2, by_alias=True))
 
     @classmethod
     @log_time_spent()
