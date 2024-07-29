@@ -159,6 +159,14 @@ def test_pms_should_be_parsed_as_correct_subclass_when_read_from_file(tmp_path, 
     assert isinstance(read_portstate_pm, PortStateMaintenance)
 
 
+def test_model_dump_of_pm_should_use_aliases(state, active_portstate_pm, active_pm):
+    state_dump = state.model_dump_json(exclude_none=True, indent=2, by_alias=True)
+    assert "starttime" in state_dump
+    assert "endtime" in state_dump
+    assert "match_dev" in state_dump
+    assert "match_expr" in state_dump
+
+
 @pytest.fixture
 def pms():
     return PlannedMaintenances()
