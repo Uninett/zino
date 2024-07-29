@@ -3,7 +3,6 @@ from unittest.mock import Mock
 
 import pytest
 
-from zino.planned_maintenance import PlannedMaintenances
 from zino.state import ZinoState
 from zino.statemodels import (
     AlarmEvent,
@@ -21,8 +20,8 @@ def test_should_start_with_no_planned_maintenances(pms):
     assert len(pms) == 0
 
 
-def test_pm_should_be_gettable_by_id(pms, active_pm):
-    assert pms[active_pm.id] == active_pm
+def test_pm_should_be_gettable_by_id(pms, active_device_pm):
+    assert pms[active_device_pm.id] == active_device_pm
 
 
 class TestGetStartedPlannedMaintenances:
@@ -31,10 +30,10 @@ class TestGetStartedPlannedMaintenances:
         started_pms = pms.get_started_planned_maintenances(now=now())
         assert recent_pm in started_pms
 
-    def test_should_not_return_pms_that_started_before_last_run(self, pms, active_pm):
+    def test_should_not_return_pms_that_started_before_last_run(self, pms, active_device_pm):
         pms.last_run = now() - timedelta(hours=1)
         started_pms = pms.get_started_planned_maintenances(now=now())
-        assert active_pm not in started_pms
+        assert active_device_pm not in started_pms
 
     def test_should_not_return_pms_that_have_not_started_yet(self, pms, not_started_pm):
         pms.last_run = now() - timedelta(hours=1)
@@ -43,7 +42,7 @@ class TestGetStartedPlannedMaintenances:
 
 
 class TestGetEndedPlannedMaintenances:
-    def test_should_return_pms_that_ended_after_last_run(self, pms, active_pm, ended_pm, old_pm):
+    def test_should_return_pms_that_ended_after_last_run(self, pms, active_device_pm, ended_pm, old_pm):
         pms.last_run = now() - timedelta(hours=1)
         ended_pms = pms.get_ended_planned_maintenances(now=now())
         assert ended_pm in ended_pms
@@ -53,16 +52,16 @@ class TestGetEndedPlannedMaintenances:
         ended_pms = pms.get_ended_planned_maintenances(now=now())
         assert old_pm not in ended_pms
 
-    def test_should_not_return_pms_that_have_not_ended(self, pms, active_pm):
+    def test_should_not_return_pms_that_have_not_ended(self, pms, active_device_pm):
         pms.last_run = now() - timedelta(hours=1)
         ended_pms = pms.get_ended_planned_maintenances(now=now())
-        assert active_pm not in ended_pms
+        assert active_device_pm not in ended_pms
 
 
 class TestGetActivePlannedMaintenances:
-    def test_should_return_active_pms(self, pms, active_pm):
+    def test_should_return_active_pms(self, pms, active_device_pm):
         active_pms = pms.get_active_planned_maintenances(now())
-        assert active_pm in active_pms
+        assert active_device_pm in active_pms
 
     def test_should_not_return_ended_pms(self, pms, ended_pm):
         active_pms = pms.get_active_planned_maintenances(now())
@@ -78,9 +77,9 @@ class TestGetOldPlannedMaintenances:
         old_pms = pms.get_old_planned_maintenances(now=now())
         assert old_pm in old_pms
 
-    def test_should_not_return_pms_that_have_not_ended_yet(self, pms, active_pm):
+    def test_should_not_return_pms_that_have_not_ended_yet(self, pms, active_device_pm):
         old_pms = pms.get_old_planned_maintenances(now=now())
-        assert active_pm not in old_pms
+        assert active_device_pm not in old_pms
 
     def test_should_not_return_pms_that_ended_since_last_run(self, pms, ended_pm):
         old_pms = pms.get_old_planned_maintenances(now=now())
@@ -103,7 +102,7 @@ class TestClosePlannedMaintenance:
 
 
 class TestUpdatePmStates:
-    def test_events_matching_active_device_pm_should_be_set_to_ignored(self, state, active_pm):
+    def test_events_matching_active_device_pm_should_be_set_to_ignored(self, state, active_device_pm):
         device = state.devices.get("device")
         state.planned_maintenances.update_pm_states(state)
         reachability_event = state.events.get(device.name, None, ReachabilityEvent)
@@ -138,38 +137,35 @@ class TestUpdatePmStates:
         state.planned_maintenances.update_pm_states(state)
         assert old_pm.id not in state.planned_maintenances.planned_maintenances
 
-    def test_event_opened_after_pm_was_initiated_should_be_set_to_ignored(self, state, active_pm):
+    def test_event_opened_after_pm_was_initiated_should_be_set_to_ignored(self, state, active_device_pm):
         device = state.devices.get("device")
         event = state.events.create_event(device.name, None, ReachabilityEvent)
         event.state = EventState.OPEN
         state.events.commit(event)
         # Set last run to be after start time so PM is not treated as if it just started
-        state.planned_maintenances.last_run = active_pm.start_time + timedelta(hours=1)
+        state.planned_maintenances.last_run = active_device_pm.start_time + timedelta(hours=1)
         state.planned_maintenances.update_pm_states(state)
         assert state.events.checkout(event.id).state == EventState.IGNORED
 
 
-def test_pms_should_be_parsed_as_correct_subclass_when_read_from_file(tmp_path, state, active_portstate_pm, active_pm):
+def test_pms_should_be_parsed_as_correct_subclass_when_read_from_file(
+    tmp_path, state, active_portstate_pm, active_device_pm
+):
     dumpfile = tmp_path / "dump.json"
     state.dump_state_to_file(dumpfile)
     read_state = ZinoState.load_state_from_file(str(dumpfile))
-    read_device_pm = read_state.planned_maintenances[active_pm.id]
+    read_device_pm = read_state.planned_maintenances[active_device_pm.id]
     read_portstate_pm = read_state.planned_maintenances[active_portstate_pm.id]
     assert isinstance(read_device_pm, DeviceMaintenance)
     assert isinstance(read_portstate_pm, PortStateMaintenance)
 
 
-def test_model_dump_of_pm_should_use_aliases(state, active_portstate_pm, active_pm):
+def test_model_dump_of_pm_should_use_aliases(state, active_portstate_pm, active_device_pm):
     state_dump = state.model_dump_json(exclude_none=True, indent=2, by_alias=True)
     assert "starttime" in state_dump
     assert "endtime" in state_dump
     assert "match_dev" in state_dump
     assert "match_expr" in state_dump
-
-
-@pytest.fixture
-def pms():
-    return PlannedMaintenances()
 
 
 @pytest.fixture
@@ -199,42 +195,6 @@ def recent_pm(pms):
         pm_class=DeviceMaintenance,
         match_type="str",
         match_expression="hello",
-        match_device="device",
-    )
-
-
-@pytest.fixture
-def active_pm(pms):
-    return pms.create_planned_maintenance(
-        start_time=now() - timedelta(days=1),
-        end_time=now() + timedelta(days=1),
-        pm_class=DeviceMaintenance,
-        match_type="exact",
-        match_expression="device",
-        match_device="device",
-    )
-
-
-@pytest.fixture
-def active_portstate_pm(pms):
-    return pms.create_planned_maintenance(
-        start_time=now() - timedelta(days=1),
-        end_time=now() + timedelta(days=1),
-        pm_class=PortStateMaintenance,
-        match_type="regexp",
-        match_expression="port",
-        match_device="device",
-    )
-
-
-@pytest.fixture
-def ended_pm(pms):
-    return pms.create_planned_maintenance(
-        start_time=now() - timedelta(days=1),
-        end_time=now() - timedelta(minutes=10),
-        pm_class=DeviceMaintenance,
-        match_type="exact",
-        match_expression="device",
         match_device="device",
     )
 
