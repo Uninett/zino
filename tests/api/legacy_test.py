@@ -1035,6 +1035,98 @@ class TestZino1ServerProtocolPmDetailsCommand:
         ), f"Expected response to contain match expression {active_portstate_pm.match_expression}"
 
 
+class TestZino1ServerProtocolPmMatchingCommand:
+    @pytest.mark.asyncio
+    async def test_when_authenticated_should_output_matching_devices(
+        self, authenticated_protocol, state_with_localhost, active_device_pm
+    ):
+        authenticated_protocol._state = state_with_localhost
+        active_device_pm.match_expression = "localhost"
+        planned_maintenances = authenticated_protocol._state.planned_maintenances.planned_maintenances
+        planned_maintenances[active_device_pm.id] = active_device_pm
+
+        await authenticated_protocol.message_received(f"PM MATCHING {active_device_pm.id}")
+
+        output: str = authenticated_protocol.transport.data_buffer.getvalue().decode()
+
+        output = output[output.find("300 Matching ports/devices follows") :]
+        lines = output.splitlines()
+
+        assert any(
+            str(active_device_pm.id) in line and active_device_pm.match_device in line and "localhost" in line
+            for line in lines
+        )
+
+    @pytest.mark.asyncio
+    async def test_when_authenticated_should_not_output_non_matching_devices(
+        self, authenticated_protocol, state_with_localhost, active_device_pm
+    ):
+        authenticated_protocol._state = state_with_localhost
+        active_device_pm.match_expression = "not_localhost"
+        planned_maintenances = authenticated_protocol._state.planned_maintenances.planned_maintenances
+        planned_maintenances[active_device_pm.id] = active_device_pm
+
+        await authenticated_protocol.message_received(f"PM MATCHING {active_device_pm.id}")
+
+        output: str = authenticated_protocol.transport.data_buffer.getvalue().decode()
+
+        output = output[output.find("300 Matching ports/devices follows") :]
+        lines = output.splitlines()
+
+        assert not any(
+            str(active_device_pm.id) in line and active_device_pm.match_device in line and "localhost" in line
+            for line in lines
+        )
+
+    @pytest.mark.asyncio
+    async def test_when_authenticated_should_output_matching_ports(
+        self, authenticated_protocol, state_with_localhost_with_port, active_portstate_pm
+    ):
+        authenticated_protocol._state = state_with_localhost_with_port
+        active_portstate_pm.match_expression = "eth0"
+        planned_maintenances = authenticated_protocol._state.planned_maintenances.planned_maintenances
+        planned_maintenances[active_portstate_pm.id] = active_portstate_pm
+
+        await authenticated_protocol.message_received(f"PM MATCHING {active_portstate_pm.id}")
+
+        output: str = authenticated_protocol.transport.data_buffer.getvalue().decode()
+
+        output = output[output.find("300 Matching ports/devices follows") :]
+        lines = output.splitlines()
+
+        assert any(
+            str(active_portstate_pm.id) in line
+            and active_portstate_pm.type in line
+            and "localhost" in line
+            and "eth0" in line
+            for line in lines
+        )
+
+    @pytest.mark.asyncio
+    async def test_when_authenticated_should_not_output_non_matching_ports(
+        self, authenticated_protocol, state_with_localhost_with_port, active_portstate_pm
+    ):
+        authenticated_protocol._state = state_with_localhost_with_port
+        active_portstate_pm.match_expression = "eth1"
+        planned_maintenances = authenticated_protocol._state.planned_maintenances.planned_maintenances
+        planned_maintenances[active_portstate_pm.id] = active_portstate_pm
+
+        await authenticated_protocol.message_received(f"PM MATCHING {active_portstate_pm.id}")
+
+        output: str = authenticated_protocol.transport.data_buffer.getvalue().decode()
+
+        output = output[output.find("300 Matching ports/devices follows") :]
+        lines = output.splitlines()
+
+        assert not any(
+            str(active_portstate_pm.id) in line
+            and active_portstate_pm.type in line
+            and "localhost" in line
+            and "eth0" in line
+            for line in lines
+        )
+
+
 def test_requires_authentication_should_set_function_attribute():
     @requires_authentication
     def throwaway():
