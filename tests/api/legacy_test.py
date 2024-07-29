@@ -937,6 +937,26 @@ class TestZino1ServerProtocolPmCancelCommand:
         assert f"PM closed by {authenticated_protocol.user}: PM cancelled" not in log_messages
 
 
+class TestZino1ServerProtocolPmAddLogCommand:
+    @pytest.mark.asyncio
+    async def test_should_add_log_entry_to_pm(self, authenticated_protocol, active_device_pm, event_loop):
+        planned_maintenances = authenticated_protocol._state.planned_maintenances.planned_maintenances
+        planned_maintenances[active_device_pm.id] = active_device_pm
+
+        def mock_multiline():
+            future = event_loop.create_future()
+            future.set_result(["one", "two"])
+            return future
+
+        with patch.object(authenticated_protocol, "_read_multiline", mock_multiline):
+            await authenticated_protocol.do_pm_addlog(active_device_pm.id)
+
+        assert any(
+            authenticated_protocol.user in log.message and "one" in log.message and "two" in log.message
+            for log in active_device_pm.log
+        )
+
+
 class TestZino1ServerProtocolPmDetailsCommand:
     @pytest.mark.asyncio
     async def test_when_authenticated_should_output_device_pm_details(self, authenticated_protocol, active_device_pm):
