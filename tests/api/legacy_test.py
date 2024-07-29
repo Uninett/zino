@@ -1,5 +1,4 @@
 import re
-from datetime import timedelta
 from io import BytesIO
 from ipaddress import IPv4Address
 from unittest.mock import Mock, patch
@@ -20,13 +19,10 @@ from zino.state import ZinoState
 from zino.statemodels import (
     BGPEvent,
     BGPOperState,
-    DeviceMaintenance,
     Event,
     EventState,
-    MatchType,
     ReachabilityEvent,
 )
-from zino.time import now
 
 
 class TestZino1BaseServerProtocol:
@@ -893,23 +889,25 @@ class TestZino1ServerProtocolPmHelpCommand:
 
 class TestZino1ServerProtocolPmListCommand:
     @pytest.mark.asyncio
-    async def test_when_authenticated_should_list_all_pm_ids(self, authenticated_protocol):
-        pms = authenticated_protocol._state.planned_maintenances
-        pms.create_planned_maintenance(
-            now() - timedelta(hours=1),
-            now() + timedelta(hours=1),
-            DeviceMaintenance,
-            MatchType.REGEXP,
-            "expr",
+    async def test_when_authenticated_should_list_all_pm_ids(
+        self, authenticated_protocol, active_device_pm, active_portstate_pm
+    ):
+        authenticated_protocol._state.planned_maintenances.planned_maintenances[active_device_pm.id] = active_device_pm
+        authenticated_protocol._state.planned_maintenances.planned_maintenances[active_portstate_pm.id] = (
+            active_portstate_pm
         )
+
         await authenticated_protocol.message_received("PM LIST")
         response = authenticated_protocol.transport.data_buffer.getvalue().decode("utf-8")
 
         assert re.search(r"\b300 \b", response), "Expected response to contain status code 300"
 
-        pattern_string = r"\b{}\b"
-        for id in pms.planned_maintenances:
-            assert re.search(pattern_string.format(id), response), f"Expected response to contain id {id}"
+        assert re.search(
+            rf"\b{active_device_pm.id}\b", response
+        ), f"Expected response to contain id {active_device_pm.id}"
+        assert re.search(
+            rf"\b{active_portstate_pm.id}\b", response
+        ), f"Expected response to contain id {active_portstate_pm.id}"
 
 
 def test_requires_authentication_should_set_function_attribute():

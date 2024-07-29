@@ -8,8 +8,15 @@ import pytest
 import pytest_asyncio
 from retry import retry
 
+from zino.planned_maintenance import PlannedMaintenances
 from zino.state import ZinoState
-from zino.statemodels import DeviceState, InterfaceState, Port
+from zino.statemodels import (
+    DeviceMaintenance,
+    DeviceState,
+    InterfaceState,
+    Port,
+    PortStateMaintenance,
+)
 from zino.time import now
 from zino.trapd import TrapReceiver
 
@@ -264,3 +271,44 @@ def state_with_localhost_with_port(state_with_localhost):
     device.boot_time = now() - timedelta(minutes=10)
     device.ports[port.ifindex] = port
     yield state_with_localhost
+
+
+@pytest.fixture
+def pms():
+    return PlannedMaintenances()
+
+
+@pytest.fixture
+def active_device_pm(pms):
+    return pms.create_planned_maintenance(
+        start_time=now() - timedelta(days=1),
+        end_time=now() + timedelta(days=1),
+        pm_class=DeviceMaintenance,
+        match_type="exact",
+        match_expression="device",
+        match_device="device",
+    )
+
+
+@pytest.fixture
+def active_portstate_pm(pms):
+    return pms.create_planned_maintenance(
+        start_time=now() - timedelta(days=1),
+        end_time=now() + timedelta(days=1),
+        pm_class=PortStateMaintenance,
+        match_type="regexp",
+        match_expression="port",
+        match_device="device",
+    )
+
+
+@pytest.fixture
+def ended_pm(pms):
+    return pms.create_planned_maintenance(
+        start_time=now() - timedelta(days=1),
+        end_time=now() - timedelta(minutes=10),
+        pm_class=DeviceMaintenance,
+        match_type="exact",
+        match_expression="device",
+        match_device="device",
+    )
