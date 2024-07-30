@@ -564,7 +564,7 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         if match_type == MatchType.INTF_REGEXP:
             if len(args) < 2:
                 return self._respond_error(
-                    "{m_type} match type requires two extra arguments: match_device and match_expression"
+                    f"{m_type} match type requires two extra arguments: match_device and match_expression"
                 )
             match_device = args[0]
             match_expression = args[1]
