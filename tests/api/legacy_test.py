@@ -1,4 +1,5 @@
 import re
+from datetime import timedelta
 from io import BytesIO
 from ipaddress import IPv4Address
 from unittest.mock import Mock, patch
@@ -21,8 +22,11 @@ from zino.statemodels import (
     BGPOperState,
     Event,
     EventState,
+    MatchType,
+    PmType,
     ReachabilityEvent,
 )
+from zino.time import now
 
 
 class TestZino1BaseServerProtocol:
@@ -1033,6 +1037,145 @@ class TestZino1ServerProtocolPmDetailsCommand:
         assert (
             active_portstate_pm.match_expression in response
         ), f"Expected response to contain match expression {active_portstate_pm.match_expression}"
+
+
+class TestZino1ServerProtocolPmAddCommand:
+    @pytest.mark.asyncio
+    async def test_when_authenticated_should_create_device_pm(self, authenticated_protocol):
+        planned_maintenances = authenticated_protocol._state.planned_maintenances.planned_maintenances
+        start_time = int((now() + timedelta(minutes=10)).timestamp())
+        end_time = int((now() + timedelta(hours=1)).timestamp())
+        pm_type = PmType.DEVICE
+        match_type = MatchType.EXACT
+        match_expression = "localhost"
+        await authenticated_protocol.message_received(
+            f"PM ADD {start_time} {end_time} {pm_type} {match_type} {match_expression}"
+        )
+        response = authenticated_protocol.transport.data_buffer.getvalue().decode("utf-8")
+
+        assert re.search(r"\b200 \b", response), "Expected response to contain status code 200"
+        pm_id = re.search(r"PM id (?P<pm_id>\d+) successfully added", response).group("pm_id")
+        assert pm_id, "Expected response to contain PM successfully added message"
+        assert planned_maintenances.get(int(pm_id), None)
+
+    @pytest.mark.asyncio
+    async def test_when_authenticated_should_create_portstate_pm(self, authenticated_protocol):
+        planned_maintenances = authenticated_protocol._state.planned_maintenances.planned_maintenances
+        start_time = int((now() + timedelta(minutes=10)).timestamp())
+        end_time = int((now() + timedelta(hours=1)).timestamp())
+        pm_type = PmType.PORTSTATE
+        match_type = MatchType.REGEXP
+        match_expression = "eth0"
+        await authenticated_protocol.message_received(
+            f"PM ADD {start_time} {end_time} {pm_type} {match_type} {match_expression}"
+        )
+        response = authenticated_protocol.transport.data_buffer.getvalue().decode("utf-8")
+
+        assert re.search(r"\b200 \b", response), "Expected response to contain status code 200"
+        pm_id = re.search(r"PM id (?P<pm_id>\d+) successfully added", response).group("pm_id")
+        assert pm_id, "Expected response to contain PM successfully added message"
+        assert planned_maintenances.get(int(pm_id), None)
+
+    @pytest.mark.asyncio
+    async def test_when_authenticated_should_create_portstate_pm_with_interface_regexp(self, authenticated_protocol):
+        planned_maintenances = authenticated_protocol._state.planned_maintenances.planned_maintenances
+        start_time = int((now() + timedelta(minutes=10)).timestamp())
+        end_time = int((now() + timedelta(hours=1)).timestamp())
+        pm_type = PmType.PORTSTATE
+        match_type = MatchType.INTF_REGEXP
+        match_expression = "eth0"
+        match_device = "localhost"
+        await authenticated_protocol.message_received(
+            f"PM ADD {start_time} {end_time} {pm_type} {match_type} {match_device} {match_expression}"
+        )
+        response = authenticated_protocol.transport.data_buffer.getvalue().decode("utf-8")
+
+        assert re.search(r"\b200 \b", response), "Expected response to contain status code 200"
+        pm_id = re.search(r"PM id (?P<pm_id>\d+) successfully added", response).group("pm_id")
+        assert pm_id, "Expected response to contain PM successfully added message"
+        assert planned_maintenances.get(int(pm_id), None)
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "start_time,end_time,pm_type,match_type,args,expected_error",
+        [
+            (
+                "abc",
+                int((now() + timedelta(hours=1)).timestamp()),
+                PmType.DEVICE,
+                MatchType.EXACT,
+                "localhost",
+                "illegal from_t (param 1), must be only digits",
+            ),
+            (
+                int((now() + timedelta(hours=1)).timestamp()),
+                "abc",
+                PmType.DEVICE,
+                MatchType.EXACT,
+                "localhost",
+                "illegal to_t (param 2), must be only digits",
+            ),
+            (
+                int((now() + timedelta(hours=1)).timestamp()),
+                int((now() + timedelta(minutes=10)).timestamp()),
+                PmType.DEVICE,
+                MatchType.EXACT,
+                "localhost",
+                "ending time is before starting time",
+            ),
+            (
+                int((now() - timedelta(hours=1)).timestamp()),
+                int((now() + timedelta(minutes=10)).timestamp()),
+                PmType.DEVICE,
+                MatchType.EXACT,
+                "localhost",
+                "starting time is in the past",
+            ),
+            (
+                int((now() + timedelta(minutes=10)).timestamp()),
+                int((now() + timedelta(hours=1)).timestamp()),
+                "unknown",
+                MatchType.EXACT,
+                "localhost",
+                "unknown PM event type: unknown",
+            ),
+            (
+                int((now() + timedelta(minutes=10)).timestamp()),
+                int((now() + timedelta(hours=1)).timestamp()),
+                PmType.DEVICE,
+                "unknown",
+                "localhost",
+                "unknown match type: unknown",
+            ),
+            (
+                int((now() + timedelta(minutes=10)).timestamp()),
+                int((now() + timedelta(hours=1)).timestamp()),
+                PmType.PORTSTATE,
+                MatchType.INTF_REGEXP,
+                "localhost",
+                f"{MatchType.INTF_REGEXP} match type requires two extra arguments: match_device and match_expression",
+            ),
+            (
+                int((now() + timedelta(minutes=10)).timestamp()),
+                int((now() + timedelta(hours=1)).timestamp()),
+                PmType.DEVICE,
+                MatchType.EXACT,
+                None,
+                f"{MatchType.EXACT} match type requires one extra argument: match_expression",
+            ),
+        ],
+    )
+    async def test_when_authenticated_should_not_create_pm_for_invalid_input(
+        self, start_time, end_time, pm_type, match_type, args, expected_error, authenticated_protocol
+    ):
+        message = f"PM ADD {start_time} {end_time} {pm_type} {match_type}"
+        if args:
+            message = message + " " + args
+        await authenticated_protocol.message_received(message)
+        response = authenticated_protocol.transport.data_buffer.getvalue().decode("utf-8")
+
+        assert re.search(r"\b500 \b", response), "Expected response to contain status code 500"
+        assert expected_error in response, f"Expected response to contain error message {expected_error}"
 
 
 class TestZino1ServerProtocolPmMatchingCommand:
