@@ -896,10 +896,9 @@ class TestZino1ServerProtocolPmListCommand:
     async def test_when_authenticated_should_list_all_pm_ids(
         self, authenticated_protocol, active_device_pm, active_portstate_pm
     ):
-        authenticated_protocol._state.planned_maintenances.planned_maintenances[active_device_pm.id] = active_device_pm
-        authenticated_protocol._state.planned_maintenances.planned_maintenances[active_portstate_pm.id] = (
-            active_portstate_pm
-        )
+        planned_maintenances = authenticated_protocol._state.planned_maintenances.planned_maintenances
+        planned_maintenances[active_device_pm.id] = active_device_pm
+        planned_maintenances[active_portstate_pm.id] = active_portstate_pm
 
         await authenticated_protocol.message_received("PM LIST")
         response = authenticated_protocol.transport.data_buffer.getvalue().decode("utf-8")
