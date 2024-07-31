@@ -308,7 +308,7 @@ class Event(BaseModel):
         serialization formats (one for JSON state dumps, one for the legacy Zino protocol), and it's not clear how
         Pydantic can support that.
         """
-        attrs = self.model_dump(mode="python", exclude={"log", "history"}, exclude_none=True)
+        attrs = self.model_dump(mode="python", exclude={"log", "history"}, exclude_none=True, by_alias=True)
         return {attr.replace("_", "-"): self.zinoify_value(value) for attr, value in attrs.items()}
 
     @staticmethod
@@ -355,12 +355,15 @@ class PortStateEvent(Event):
 
 
 class BGPEvent(Event):
+    # Allow populating fields by name or alias
+    model_config = ConfigDict(populate_by_name=True)
+
     type: Literal["bgp"] = "bgp"
     remote_addr: Optional[IPAddress] = None
-    remote_as: Optional[int] = None
+    remote_as: Optional[int] = Field(default=None, alias="remote-AS")
     peer_uptime: Optional[int] = None
-    bgpos: Optional[BGPOperState] = None
-    bgpas: Optional[BGPAdminStatus] = None
+    bgpos: Optional[BGPOperState] = Field(default=None, alias="bgpOS")
+    bgpas: Optional[BGPAdminStatus] = Field(default=None, alias="bgpAS")
 
     @property
     def subindex(self) -> SubIndex:
@@ -368,13 +371,16 @@ class BGPEvent(Event):
 
 
 class BFDEvent(Event):
+    # Allow populating fields by name or alias
+    model_config = ConfigDict(populate_by_name=True)
+
     type: Literal["bfd"] = "bfd"
     ifindex: Optional[int] = None
-    bfdstate: Optional[BFDSessState] = None
-    bfdix: Optional[int] = None
-    bfddiscr: Optional[int] = None
-    bfdaddr: Optional[IPAddress] = None
-    neigh_rdns: Optional[str] = None
+    bfdstate: Optional[BFDSessState] = Field(default=None, alias="bfdState")
+    bfdix: Optional[int] = Field(default=None, alias="bfdIx")
+    bfddiscr: Optional[int] = Field(default=None, alias="bfdDiscr")
+    bfdaddr: Optional[IPAddress] = Field(default=None, alias="bfdAddr")
+    neigh_rdns: Optional[str] = Field(default=None, alias="Neigh-rDNS")
 
     @property
     def subindex(self) -> SubIndex:
