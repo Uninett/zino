@@ -80,8 +80,8 @@ def init_state_for_devices(devices: Sequence[PollDevice]):
 
 async def load_and_schedule_polldevs(polldevs_conf: str):
     new_devices, deleted_devices, changed_devices = load_polldevs(polldevs_conf)
-    schedule_new_devices(new_devices)
-    deschedule_deleted_devices(deleted_devices)
+    deschedule_deleted_devices(deleted_devices | changed_devices)
+    schedule_new_devices(new_devices | changed_devices)
 
 
 def schedule_new_devices(new_devices: Sequence[str]):
@@ -89,7 +89,7 @@ def schedule_new_devices(new_devices: Sequence[str]):
     if not devices:
         return
 
-    _log.debug("Scheduling %s new devices", len(devices))
+    _log.debug("Scheduling %s new/changed devices", len(devices))
 
     scheduler = get_scheduler()
 
