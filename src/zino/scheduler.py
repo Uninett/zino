@@ -40,30 +40,35 @@ def get_scheduler() -> AsyncIOScheduler:
 
 
 @log_time_spent()
-def load_polldevs(polldevs_conf: str) -> Tuple[Set, Set]:
+def load_polldevs(polldevs_conf: str) -> Tuple[Set, Set, Set]:
     """Loads pollfile into process state.
 
-    :returns: A tuple of (new_devices, deleted_devices)
+    :returns: A tuple of (new_devices, deleted_devices, changed_devices)
     """
     try:
         devices = {d.name: d for d in read_polldevs(polldevs_conf)}
     except InvalidConfiguration as error:
         _log.error(error)
-        return set(), set()
+        return set(), set(), set()
 
     new_devices = set(devices) - set(state.polldevs)
     deleted_devices = set(state.polldevs) - set(devices)
+    overlap = set(state.polldevs) - deleted_devices
+    changed_devices = {device for device in overlap if devices[device] != state.polldevs[device]}
+
     if new_devices:
         _log.info("loaded new devices: %r", new_devices)
         init_state_for_devices((devices[d] for d in new_devices))
     if deleted_devices:
         _log.info("deleted devices: %r", deleted_devices)
+    if changed_devices:
+        _log.info("changed devices: %r", changed_devices)
 
     state.polldevs.update(devices)
     for device in deleted_devices:
         del state.polldevs[device]
 
-    return new_devices, deleted_devices
+    return new_devices, deleted_devices, changed_devices
 
 
 def init_state_for_devices(devices: Sequence[PollDevice]):
@@ -74,7 +79,7 @@ def init_state_for_devices(devices: Sequence[PollDevice]):
 
 
 async def load_and_schedule_polldevs(polldevs_conf: str):
-    new_devices, deleted_devices = load_polldevs(polldevs_conf)
+    new_devices, deleted_devices, changed_devices = load_polldevs(polldevs_conf)
     schedule_new_devices(new_devices)
     deschedule_deleted_devices(deleted_devices)
 
