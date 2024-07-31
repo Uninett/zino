@@ -1,6 +1,7 @@
 import re
 from datetime import timedelta
 from io import BytesIO
+from ipaddress import IPv4Address
 from unittest.mock import Mock, patch
 
 import pytest
@@ -17,6 +18,8 @@ from zino.api.server import ZinoServer
 from zino.config.models import PollDevice
 from zino.state import ZinoState
 from zino.statemodels import (
+    BGPEvent,
+    BGPOperState,
     DeviceMaintenance,
     Event,
     EventState,
@@ -445,6 +448,23 @@ class TestZino1ServerProtocolGetattrsCommand:
 
         output = authenticated_protocol.transport.data_buffer.getvalue().decode()
         assert "\r\n500 " in output
+
+    @pytest.mark.asyncio
+    async def test_should_output_correct_attrs_for_alias(self, authenticated_protocol):
+        state = authenticated_protocol._state
+        event1 = state.events.create_event("foo", IPv4Address("127.0.0.1"), BGPEvent)
+        event1.bgpos = BGPOperState.ESTABLISHED
+        event1.remote_as = 2
+        state.events.commit(event1)
+
+        await authenticated_protocol.message_received(f"GETATTRS {event1.id}")
+
+        output = authenticated_protocol.transport.data_buffer.getvalue().decode()
+        assert f"id: {event1.id}\r\n" in output
+        assert f"router: {event1.router}\r\n" in output
+        assert f"state: {event1.state.value}\r\n" in output
+        assert f"bgpOS: {event1.bgpos}\r\n" in output
+        assert f"remote-AS: {event1.remote_as}\r\n" in output
 
 
 class TestZino1ServerProtocolGethistCommand:
