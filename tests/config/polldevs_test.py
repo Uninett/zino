@@ -14,12 +14,12 @@ from zino.config.polldevs import (
 
 class TestReadPolldevs:
     def test_should_generate_two_polldevices_from_test_config(self, polldevs_conf):
-        result = list(read_polldevs(polldevs_conf))
+        result = read_polldevs(polldevs_conf)
         assert len(result) == 2
-        assert all(isinstance(device, PollDevice) for device in result)
+        assert all(isinstance(device, PollDevice) for device in result.values())
 
     def test_should_use_default_values_in_polldevices_generated_from_test_config(self, polldevs_conf):
-        result = list(read_polldevs(polldevs_conf))
+        result = read_polldevs(polldevs_conf).values()
         assert all(device.community == "foobar" for device in result)
         assert all(device.domain == "uninett.no" for device in result)
 
@@ -27,26 +27,26 @@ class TestReadPolldevs:
 class TestReadInvalidPolldevs:
     def test_should_raise_exception(self, invalid_polldevs_conf):
         with pytest.raises(InvalidConfiguration):
-            list(read_polldevs(invalid_polldevs_conf))
+            read_polldevs(invalid_polldevs_conf)
 
     def test_should_have_filename_in_exception(self, invalid_polldevs_conf):
         with pytest.raises(InvalidConfiguration) as e:
-            list(read_polldevs(invalid_polldevs_conf))
+            read_polldevs(invalid_polldevs_conf)
         assert "polldevs.cf" in str(e.value)
 
     def test_should_have_line_number_in_exception(self, invalid_polldevs_conf):
         with pytest.raises(InvalidConfiguration) as e:
-            list(read_polldevs(invalid_polldevs_conf))
+            read_polldevs(invalid_polldevs_conf)
         assert "2" in str(e.value)
 
     def test_exception_should_include_device_name_on_missing_address(self, missing_device_address_polldevs_conf):
         with pytest.raises(InvalidConfiguration) as e:
-            list(read_polldevs(missing_device_address_polldevs_conf))
+            read_polldevs(missing_device_address_polldevs_conf)
         assert "example-gw" in str(e.value)
 
     def test_exception_should_include_missing_attribute_on_missing_address(self, missing_device_address_polldevs_conf):
         with pytest.raises(InvalidConfiguration) as e:
-            list(read_polldevs(missing_device_address_polldevs_conf))
+            read_polldevs(missing_device_address_polldevs_conf)
         assert "Field required ('address')" in str(e.value)
 
 

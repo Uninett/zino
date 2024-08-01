@@ -46,7 +46,7 @@ def load_polldevs(polldevs_conf: str) -> Tuple[Set, Set, Set]:
     :returns: A tuple of (new_devices, deleted_devices, changed_devices)
     """
     try:
-        devices = {d.name: d for d in read_polldevs(polldevs_conf)}
+        devices = read_polldevs(polldevs_conf)
     except InvalidConfiguration as error:
         _log.error(error)
         return set(), set(), set()

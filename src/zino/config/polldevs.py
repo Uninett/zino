@@ -7,13 +7,16 @@ from pydantic import ValidationError
 from zino.config.models import PollDevice
 
 
-def read_polldevs(filename: str) -> Iterator[PollDevice]:
-    """Reads and parses the legacy `polldevs.cf` format, yielding a sequence of PollDevice objects.
+def read_polldevs(filename: str) -> dict[str, PollDevice]:
+    """
+    Reads and parses the legacy `polldevs.cf` format, returning a dictionary of device names and the associated
+    PollDevice object.
 
     This parser is slightly more lax than the original Tcl-based parser, in that it allows multiple empty lines or
     multiple spaces in value assignments.
     """
     defaults = {}
+    devices = {}
     try:
         with open(filename, "r") as devs:
             for lineno, section in _read_conf_sections(devs):
@@ -22,7 +25,8 @@ def read_polldevs(filename: str) -> Iterator[PollDevice]:
                     continue
 
                 try:
-                    yield PollDevice(**(defaults | section))
+                    device = PollDevice(**(defaults | section))
+                    devices[device.name] = device
                 except ValidationError as error:
                     first_error = error.errors()[0]
                     device_name = section.get("name", "N/A")
@@ -36,6 +40,8 @@ def read_polldevs(filename: str) -> Iterator[PollDevice]:
     except InvalidConfiguration as error:
         error.filename = filename
         raise
+
+    return devices
 
 
 def _read_conf_sections(filehandle: TextIO) -> Iterator[Tuple[int, dict]]:
