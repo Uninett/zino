@@ -102,23 +102,23 @@ class TestScheduleNewDevices:
         new_devices, _, _ = scheduler.load_polldevs(polldevs_conf)
         assert len(new_devices) > 0
 
-        scheduler.schedule_new_devices(new_devices)
+        scheduler.schedule_devices(new_devices)
         assert mocked_scheduler.add_job.called
 
     @patch("zino.state.polldevs", dict())
     def test_should_do_nothing_when_device_list_is_empty(self, mocked_scheduler):
-        scheduler.schedule_new_devices([])
+        scheduler.schedule_devices([])
         assert not mocked_scheduler.add_job.called
 
 
 def test_deschedule_deleted_devices_should_deschedule_jobs(mocked_scheduler):
-    scheduler.deschedule_deleted_devices(["test-gw"])
+    scheduler.deschedule_devices(["test-gw"])
     assert mocked_scheduler.remove_job.called
 
 
 def test_deschedule_deleted_devices_should_not_fail_on_not_found_job(mocked_scheduler_raising_error, caplog):
     with caplog.at_level(logging.DEBUG):
-        scheduler.deschedule_deleted_devices(["test-gw"])
+        scheduler.deschedule_devices(["test-gw"])
     assert mocked_scheduler_raising_error.remove_job.called
     assert "Job for device test-gw could not be found" in caplog.text
 

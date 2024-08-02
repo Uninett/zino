@@ -80,16 +80,16 @@ def init_state_for_devices(devices: Sequence[PollDevice]):
 
 async def load_and_schedule_polldevs(polldevs_conf: str):
     new_devices, deleted_devices, changed_devices = load_polldevs(polldevs_conf)
-    deschedule_deleted_devices(deleted_devices | changed_devices)
-    schedule_new_devices(new_devices | changed_devices)
+    deschedule_devices(deleted_devices | changed_devices)
+    schedule_devices(new_devices | changed_devices)
 
 
-def schedule_new_devices(new_devices: Sequence[str]):
-    devices = sorted((state.polldevs[name] for name in new_devices), key=operator.attrgetter("priority"), reverse=True)
+def schedule_devices(devices: Sequence[str]):
+    devices = sorted((state.polldevs[name] for name in devices), key=operator.attrgetter("priority"), reverse=True)
     if not devices:
         return
 
-    _log.debug("Scheduling %s new/changed devices", len(devices))
+    _log.debug("Scheduling %s devices", len(devices))
 
     scheduler = get_scheduler()
 
@@ -109,10 +109,10 @@ def schedule_new_devices(new_devices: Sequence[str]):
         )
 
 
-def deschedule_deleted_devices(deleted_devices: Sequence[str]):
-    """De-schedules recurring jobs for the deleted devices"""
+def deschedule_devices(devices: Sequence[str]):
+    """De-schedules recurring jobs for the given devices"""
     scheduler = get_scheduler()
-    for name in deleted_devices:
+    for name in devices:
         try:
             scheduler.remove_job(job_id=name)
         except JobLookupError:
