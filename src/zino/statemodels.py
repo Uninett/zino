@@ -504,11 +504,11 @@ class DeviceMaintenance(PlannedMaintenance):
         """Returns true if ReachabilityEvents and AlarmEvents related to `device`
         would be affected by this planned maintenance
         """
-        if self.match_type == "regexp":
+        if self.match_type == MatchType.REGEXP:
             return regex_match(self.match_expression, device.name)
-        if self.match_type == "str":
+        if self.match_type == MatchType.STR:
             return string_match(self.match_expression, device.name)
-        if self.match_type == "exact":
+        if self.match_type == MatchType.EXACT:
             return self.match_expression == device.name
         return False
 
@@ -554,11 +554,11 @@ class PortStateMaintenance(PlannedMaintenance):
         """Returns true if PortstateEvents related to `port` on `device`
         would be affected by this planned maintenance
         """
-        if self.match_type == "regexp":
+        if self.match_type == MatchType.REGEXP:
             return regex_match(self.match_expression, port.ifdescr)
-        if self.match_type == "str":
+        if self.match_type == MatchType.STR:
             return string_match(self.match_expression, port.ifdescr)
-        if self.match_type == "intf-regexp":
+        if self.match_type == MatchType.INTF_REGEXP:
             if regex_match(self.match_device, device.name):
                 return regex_match(self.match_expression, port.ifdescr)
         return False
