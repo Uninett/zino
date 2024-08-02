@@ -15,6 +15,7 @@ from zino.statemodels import (
     EventState,
     InterfaceState,
     MatchType,
+    PmType,
     PortStateEvent,
     PortStateMaintenance,
 )
@@ -194,7 +195,7 @@ class TestPM:
         state = create_state(save_state_path)
         pm = state.planned_maintenances[3188]
         assert isinstance(pm, PortStateMaintenance)
-        assert pm.type == "portstate"
+        assert pm.type == PmType.PORTSTATE
         assert pm.start_time == datetime.fromtimestamp(1720021526, tz=timezone.utc)
         assert pm.end_time == datetime.fromtimestamp(1720025126, tz=timezone.utc)
         assert pm.match_type == MatchType.INTF_REGEXP

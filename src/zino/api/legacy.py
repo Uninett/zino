@@ -26,6 +26,7 @@ from zino.statemodels import (
     EventState,
     MatchType,
     PlannedMaintenance,
+    PmType,
     PortStateMaintenance,
 )
 from zino.tasks import run_all_tasks
@@ -549,9 +550,9 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         if start_time < now():
             return self._respond_error("starting time is in the past")
 
-        if pm_type == "device":
+        if pm_type == PmType.DEVICE:
             pm_class = DeviceMaintenance
-        elif pm_type == "portstate":
+        elif pm_type == PmType.PORTSTATE:
             pm_class = PortStateMaintenance
         else:
             return self._respond_error(f"unknown PM event type: {pm_type}")

@@ -8,6 +8,7 @@ from zino.statemodels import (
     EventState,
     MatchType,
     PlannedMaintenance,
+    PmType,
     ReachabilityEvent,
 )
 
@@ -34,7 +35,7 @@ def pm() -> PlannedMaintenance:
     return PlannedMaintenance(
         start_time=datetime.datetime.now() - datetime.timedelta(days=1),
         end_time=datetime.datetime.now() + datetime.timedelta(days=1),
-        type="device",
+        type=PmType.DEVICE,
         match_type=MatchType.STR,
         match_expression="device",
         match_device=None,
