@@ -88,26 +88,26 @@ def device_pm(request, device) -> DeviceMaintenance:
 
 
 @pytest.fixture
-def matching_device_pm(device, port) -> Iterator[DeviceMaintenance]:
+def matching_device_pm(device) -> Iterator[DeviceMaintenance]:
     with patch("zino.statemodels.DeviceMaintenance.matches_device") as mock:
         mock.return_value = True
         yield DeviceMaintenance(
             start_time=datetime.datetime.now() - datetime.timedelta(days=1),
             end_time=datetime.datetime.now() + datetime.timedelta(days=1),
             match_type=MatchType.STR,
-            match_expression=port.ifdescr,
+            match_expression=device.name,
             match_device=None,
         )
 
 
 @pytest.fixture
-def nonmatching_device_pm(device, port) -> Iterator[DeviceMaintenance]:
+def nonmatching_device_pm(device) -> Iterator[DeviceMaintenance]:
     with patch("zino.statemodels.DeviceMaintenance.matches_device") as mock:
         mock.return_value = False
         yield DeviceMaintenance(
             start_time=datetime.datetime.now() - datetime.timedelta(days=1),
             end_time=datetime.datetime.now() + datetime.timedelta(days=1),
             match_type=MatchType.STR,
-            match_expression=port.ifdescr,
+            match_expression=device.name,
             match_device=None,
         )
