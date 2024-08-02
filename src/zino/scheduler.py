@@ -81,10 +81,11 @@ def init_state_for_devices(devices: Sequence[PollDevice]):
 async def load_and_schedule_polldevs(polldevs_conf: str):
     new_devices, deleted_devices, changed_devices, defaults = load_polldevs(polldevs_conf)
     deschedule_devices(deleted_devices | changed_devices)
-    schedule_devices(new_devices | changed_devices)
+    stagger_interval = defaults.get("interval", DEFAULT_INTERVAL_MINUTES)
+    schedule_devices(new_devices | changed_devices, int(stagger_interval))
 
 
-def schedule_devices(devices: Sequence[str]):
+def schedule_devices(devices: Sequence[str], stagger_interval: int = DEFAULT_INTERVAL_MINUTES):
     devices = sorted((state.polldevs[name] for name in devices), key=operator.attrgetter("priority"), reverse=True)
     if not devices:
         return
@@ -94,7 +95,7 @@ def schedule_devices(devices: Sequence[str]):
     scheduler = get_scheduler()
 
     # Spread poll jobs evenly across the entire default interval
-    stagger_factor = (DEFAULT_INTERVAL_MINUTES * 60) / len(devices)
+    stagger_factor = (stagger_interval * 60) / len(devices)
     for index, device in enumerate(devices):
         first_run_time = datetime.now() + timedelta(seconds=index * stagger_factor)
 
