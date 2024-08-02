@@ -12,16 +12,23 @@ class TestLoadPolldevs:
     @patch("zino.state.polldevs", dict())
     @patch("zino.state.state", ZinoState())
     def test_should_return_all_new_devices_on_first_run(self, polldevs_conf):
-        new_devices, deleted_devices, changed_devices = scheduler.load_polldevs(polldevs_conf)
+        new_devices, deleted_devices, changed_devices, _ = scheduler.load_polldevs(polldevs_conf)
         assert len(new_devices) > 0
         assert not deleted_devices
         assert not changed_devices
 
     @patch("zino.state.polldevs", dict())
     @patch("zino.state.state", ZinoState())
+    def test_should_return_defaults_on_first_run(self, polldevs_conf):
+        _, _, _, defaults = scheduler.load_polldevs(polldevs_conf)
+        assert len(defaults) > 0
+        assert "interval" in defaults
+
+    @patch("zino.state.polldevs", dict())
+    @patch("zino.state.state", ZinoState())
     def test_should_return_deleted_devices_on_second_run(self, polldevs_conf, polldevs_conf_with_single_router):
         scheduler.load_polldevs(polldevs_conf)
-        new_devices, deleted_devices, changed_devices = scheduler.load_polldevs(polldevs_conf_with_single_router)
+        new_devices, deleted_devices, changed_devices, _ = scheduler.load_polldevs(polldevs_conf_with_single_router)
         assert not new_devices
         assert len(deleted_devices) > 0
         assert not changed_devices
@@ -29,7 +36,7 @@ class TestLoadPolldevs:
     @patch("zino.state.polldevs", dict())
     @patch("zino.state.state", ZinoState())
     def test_should_return_no_new_or_deleted_devices_on_invalid_configuration(self, invalid_polldevs_conf):
-        new_devices, deleted_devices, changed_devices = scheduler.load_polldevs(invalid_polldevs_conf)
+        new_devices, deleted_devices, changed_devices, _ = scheduler.load_polldevs(invalid_polldevs_conf)
         assert not new_devices
         assert not deleted_devices
         assert not changed_devices
@@ -40,6 +47,30 @@ class TestLoadPolldevs:
         with caplog.at_level(logging.ERROR):
             scheduler.load_polldevs(invalid_polldevs_conf)
         assert "'lalala' is not a valid configuration line" in caplog.text
+
+    @patch("zino.state.polldevs", dict())
+    @patch("zino.state.state", ZinoState())
+    def test_should_return_changed_defaults(self, polldevs_conf, tmp_path):
+        polldevs_with_changed_defaults = tmp_path.joinpath("changed-defaults-polldevs.cf")
+        with open(polldevs_with_changed_defaults, "w") as conf:
+            conf.write(
+                """# polldevs test config
+                default interval: 10
+                default community: barfoo
+                default domain: uninett.no
+                default statistics: yes
+                default hcounters: yes
+
+                name: example-gw
+                address: 10.0.42.1
+
+                name: example-gw2
+                address: 10.0.43.1"""  # Lack of a new-line here is intentional to test the parser
+            )
+
+        _, _, _, defaults = scheduler.load_polldevs(polldevs_conf)
+        _, _, _, changed_defaults = scheduler.load_polldevs(polldevs_with_changed_defaults)
+        assert defaults != changed_defaults
 
     @patch("zino.state.polldevs", dict())
     @patch("zino.state.state", ZinoState())
@@ -62,7 +93,7 @@ class TestLoadPolldevs:
             )
 
         scheduler.load_polldevs(polldevs_conf)
-        new_devices, deleted_devices, changed_devices = scheduler.load_polldevs(polldevs_with_changed_defaults)
+        new_devices, deleted_devices, changed_devices, _ = scheduler.load_polldevs(polldevs_with_changed_defaults)
         assert not new_devices
         assert not deleted_devices
         assert changed_devices
@@ -89,7 +120,7 @@ class TestLoadPolldevs:
             )
 
         scheduler.load_polldevs(polldevs_conf)
-        new_devices, deleted_devices, changed_devices = scheduler.load_polldevs(polldevs_with_changed_defaults)
+        new_devices, deleted_devices, changed_devices, _ = scheduler.load_polldevs(polldevs_with_changed_defaults)
         assert not new_devices
         assert not deleted_devices
         assert changed_devices
@@ -99,7 +130,7 @@ class TestScheduleNewDevices:
     @patch("zino.state.polldevs", dict())
     @patch("zino.state.state", ZinoState())
     def test_should_schedule_jobs_for_new_devices(self, polldevs_conf, mocked_scheduler):
-        new_devices, _, _ = scheduler.load_polldevs(polldevs_conf)
+        new_devices, _, _, _ = scheduler.load_polldevs(polldevs_conf)
         assert len(new_devices) > 0
 
         scheduler.schedule_devices(new_devices)
