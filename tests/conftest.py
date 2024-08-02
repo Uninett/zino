@@ -267,7 +267,7 @@ def _verify_localhost_snmp_response(port: int):
 
 @pytest.fixture
 def state_with_localhost_with_port(state_with_localhost):
-    port = Port(ifindex=1, ifdescr="eth0", state=InterfaceState.UP)
+    port = Port(ifindex=1, ifalias="eth0", state=InterfaceState.UP)
     device = state_with_localhost.devices.devices["localhost"]
     device.boot_time = now() - timedelta(minutes=10)
     device.ports[port.ifindex] = port

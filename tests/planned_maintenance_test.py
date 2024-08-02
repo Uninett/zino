@@ -115,7 +115,7 @@ class TestUpdatePmStates:
 
     def test_events_matching_active_portstate_pm_should_be_set_to_ignored(self, state, active_portstate_pm):
         device = state.devices.get("device")
-        port = Port(ifindex=1, ifdescr="port")
+        port = Port(ifindex=1, ifdescr="port", ifalias="portalias")
         device.ports[port.ifindex] = port
         state.planned_maintenances.update_pm_states(state)
         event = state.events.get(device.name, port.ifindex, PortStateEvent)
