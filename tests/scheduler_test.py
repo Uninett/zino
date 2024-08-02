@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 from unittest.mock import Mock, patch
 
 import pytest
@@ -6,10 +7,14 @@ from apscheduler.jobstores.base import JobLookupError
 
 from zino import scheduler
 from zino.state import ZinoState
+from zino.time import now
+
+YESTERDAY = last_run_time = now() - timedelta(days=1)
 
 
 class TestLoadPolldevs:
     @patch("zino.state.polldevs", dict())
+    @patch("zino.state.pollfile_mtime", None)
     @patch("zino.state.state", ZinoState())
     def test_should_return_all_new_devices_on_first_run(self, polldevs_conf):
         new_devices, deleted_devices = scheduler.load_polldevs(polldevs_conf)
@@ -17,14 +22,20 @@ class TestLoadPolldevs:
         assert not deleted_devices
 
     @patch("zino.state.polldevs", dict())
+    @patch("zino.state.pollfile_mtime", None)
     @patch("zino.state.state", ZinoState())
     def test_should_return_deleted_devices_on_second_run(self, polldevs_conf, polldevs_conf_with_single_router):
         scheduler.load_polldevs(polldevs_conf)
-        new_devices, deleted_devices = scheduler.load_polldevs(polldevs_conf_with_single_router)
+
+        # This needs to be patched since the mtime of the two conf fixtures is the same
+        with patch("zino.state.pollfile_mtime", YESTERDAY):
+            new_devices, deleted_devices = scheduler.load_polldevs(polldevs_conf_with_single_router)
+
         assert not new_devices
         assert len(deleted_devices) > 0
 
     @patch("zino.state.polldevs", dict())
+    @patch("zino.state.pollfile_mtime", None)
     @patch("zino.state.state", ZinoState())
     def test_should_return_no_new_or_deleted_devices_on_invalid_configuration(self, invalid_polldevs_conf):
         new_devices, deleted_devices = scheduler.load_polldevs(invalid_polldevs_conf)
@@ -32,15 +43,42 @@ class TestLoadPolldevs:
         assert not deleted_devices
 
     @patch("zino.state.polldevs", dict())
+    @patch("zino.state.pollfile_mtime", None)
     @patch("zino.state.state", ZinoState())
     def test_should_log_error_on_invalid_configuration(self, caplog, invalid_polldevs_conf):
         with caplog.at_level(logging.ERROR):
             scheduler.load_polldevs(invalid_polldevs_conf)
         assert "'lalala' is not a valid configuration line" in caplog.text
 
+    @patch("zino.state.polldevs", dict())
+    @patch("zino.state.pollfile_mtime", None)
+    @patch("zino.state.state", ZinoState())
+    def test_should_return_no_new_or_deleted_devices_on_unchanged_configuration(self, polldevs_conf):
+        scheduler.load_polldevs(polldevs_conf)
+        new_devices, deleted_devices = scheduler.load_polldevs(polldevs_conf)
+        assert not new_devices
+        assert not deleted_devices
+
+    @patch("zino.state.polldevs", dict())
+    @patch("zino.state.pollfile_mtime", None)
+    @patch("zino.state.state", ZinoState())
+    def test_should_return_no_new_or_deleted_devices_on_non_existent_pollfile(self, tmp_path):
+        new_devices, deleted_devices = scheduler.load_polldevs(tmp_path / "non-existent-polldev.cf")
+        assert not new_devices
+        assert not deleted_devices
+
+    @patch("zino.state.polldevs", dict())
+    @patch("zino.state.pollfile_mtime", None)
+    @patch("zino.state.state", ZinoState())
+    def test_should_log_error_on_non_existent_pollfile(self, caplog, tmp_path):
+        with caplog.at_level(logging.ERROR):
+            scheduler.load_polldevs(tmp_path / "non-existent-polldev.cf")
+        assert "No such file or directory" in caplog.text
+
 
 class TestScheduleNewDevices:
     @patch("zino.state.polldevs", dict())
+    @patch("zino.state.pollfile_mtime", None)
     @patch("zino.state.state", ZinoState())
     def test_should_schedule_jobs_for_new_devices(self, polldevs_conf, mocked_scheduler):
         new_devices, _ = scheduler.load_polldevs(polldevs_conf)
