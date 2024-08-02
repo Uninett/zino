@@ -60,7 +60,7 @@ def load_polldevs(polldevs_conf: str) -> Tuple[Set, Set]:
 
     try:
         devices = {d.name: d for d in read_polldevs(polldevs_conf)}
-    except InvalidConfiguration as error:
+    except (InvalidConfiguration, OSError) as error:
         _log.error(error)
         return set(), set()
 
