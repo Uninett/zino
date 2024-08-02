@@ -555,12 +555,12 @@ class PortStateMaintenance(PlannedMaintenance):
         would be affected by this planned maintenance
         """
         if self.match_type == MatchType.REGEXP:
-            return regex_match(self.match_expression, port.ifdescr)
+            return regex_match(self.match_expression, port.ifalias)
         if self.match_type == MatchType.STR:
-            return string_match(self.match_expression, port.ifdescr)
+            return string_match(self.match_expression, port.ifalias)
         if self.match_type == MatchType.INTF_REGEXP:
             if regex_match(self.match_device, device.name):
-                return regex_match(self.match_expression, port.ifdescr)
+                return regex_match(self.match_expression, port.ifalias)
         return False
 
     def get_matching(self, state: "ZinoState") -> Iterator[Sequence[Union[str, int]]]:
