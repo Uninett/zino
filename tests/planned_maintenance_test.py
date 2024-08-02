@@ -8,6 +8,7 @@ from zino.statemodels import (
     AlarmEvent,
     DeviceMaintenance,
     EventState,
+    MatchType,
     Port,
     PortStateEvent,
     PortStateMaintenance,
@@ -181,7 +182,7 @@ def not_started_pm(pms):
         start_time=now() + timedelta(days=1),
         end_time=now() + timedelta(days=2),
         pm_class=DeviceMaintenance,
-        match_type="exact",
+        match_type=MatchType.EXACT,
         match_expression="device",
         match_device="device",
     )
@@ -193,7 +194,7 @@ def recent_pm(pms):
         start_time=now() - timedelta(minutes=1),
         end_time=now() + timedelta(days=1),
         pm_class=DeviceMaintenance,
-        match_type="str",
+        match_type=MatchType.STR,
         match_expression="hello",
         match_device="device",
     )
@@ -205,7 +206,7 @@ def old_pm(pms):
         start_time=now() - timedelta(days=100),
         end_time=now() - timedelta(days=99),
         pm_class=DeviceMaintenance,
-        match_type="exact",
+        match_type=MatchType.EXACT,
         match_expression="device",
         match_device="device",
     )

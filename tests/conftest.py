@@ -14,6 +14,7 @@ from zino.statemodels import (
     DeviceMaintenance,
     DeviceState,
     InterfaceState,
+    MatchType,
     Port,
     PortStateMaintenance,
 )
@@ -284,7 +285,7 @@ def active_device_pm(pms):
         start_time=now() - timedelta(days=1),
         end_time=now() + timedelta(days=1),
         pm_class=DeviceMaintenance,
-        match_type="exact",
+        match_type=MatchType.EXACT,
         match_expression="device",
         match_device="device",
     )
@@ -296,7 +297,7 @@ def active_portstate_pm(pms):
         start_time=now() - timedelta(days=1),
         end_time=now() + timedelta(days=1),
         pm_class=PortStateMaintenance,
-        match_type="regexp",
+        match_type=MatchType.REGEXP,
         match_expression="port",
         match_device="device",
     )
@@ -308,7 +309,7 @@ def ended_pm(pms):
         start_time=now() - timedelta(days=1),
         end_time=now() - timedelta(minutes=10),
         pm_class=DeviceMaintenance,
-        match_type="exact",
+        match_type=MatchType.EXACT,
         match_expression="device",
         match_device="device",
     )

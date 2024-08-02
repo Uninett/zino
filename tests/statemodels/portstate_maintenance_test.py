@@ -111,7 +111,7 @@ def matching_portstate_pm(device, port) -> Iterator[PortStateMaintenance]:
         yield PortStateMaintenance(
             start_time=datetime.datetime.now() - datetime.timedelta(days=1),
             end_time=datetime.datetime.now() + datetime.timedelta(days=1),
-            match_type="str",
+            match_type=MatchType.STR,
             match_expression=port.ifdescr,
             match_device=device.name,
         )
@@ -124,7 +124,7 @@ def nonmatching_portstate_pm(device, port) -> Iterator[PortStateMaintenance]:
         yield PortStateMaintenance(
             start_time=datetime.datetime.now() - datetime.timedelta(days=1),
             end_time=datetime.datetime.now() + datetime.timedelta(days=1),
-            match_type="str",
+            match_type=MatchType.STR,
             match_expression=port.ifdescr,
             match_device=device.name,
         )
