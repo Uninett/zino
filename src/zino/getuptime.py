@@ -20,7 +20,7 @@ def main():
 
 
 async def run(args: argparse.Namespace):
-    devices = read_polldevs(config.polling.file)
+    devices, _ = read_polldevs(config.polling.file)
     device = devices[args.router]
 
     snmp = SNMP(device)
@@ -29,7 +29,7 @@ async def run(args: argparse.Namespace):
 
 
 def parse_args():
-    devices = read_polldevs(config.polling.file)
+    devices, _ = read_polldevs(config.polling.file)
     parser = argparse.ArgumentParser(description="Fetch sysUptime from a device in the pollfile")
     parser.add_argument("router", type=str, help="Zino router name", choices=devices.keys())
     return parser.parse_args()

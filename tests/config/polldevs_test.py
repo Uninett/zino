@@ -14,14 +14,21 @@ from zino.config.polldevs import (
 
 class TestReadPolldevs:
     def test_should_generate_two_polldevices_from_test_config(self, polldevs_conf):
-        result = read_polldevs(polldevs_conf)
+        result, _ = read_polldevs(polldevs_conf)
         assert len(result) == 2
         assert all(isinstance(device, PollDevice) for device in result.values())
 
+    def test_should_return_default_values_from_test_config(self, polldevs_conf):
+        _, defaults = read_polldevs(polldevs_conf)
+        assert "community" in defaults
+        assert defaults["community"] == "foobar"
+        assert "domain" in defaults
+        assert defaults["domain"] == "uninett.no"
+
     def test_should_use_default_values_in_polldevices_generated_from_test_config(self, polldevs_conf):
-        result = read_polldevs(polldevs_conf).values()
-        assert all(device.community == "foobar" for device in result)
-        assert all(device.domain == "uninett.no" for device in result)
+        result, _ = read_polldevs(polldevs_conf)
+        assert all(device.community == "foobar" for device in result.values())
+        assert all(device.domain == "uninett.no" for device in result.values())
 
 
 class TestReadInvalidPolldevs:
