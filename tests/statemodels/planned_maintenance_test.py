@@ -4,7 +4,12 @@ import datetime
 
 import pytest
 
-from zino.statemodels import EventState, PlannedMaintenance, ReachabilityEvent
+from zino.statemodels import (
+    EventState,
+    MatchType,
+    PlannedMaintenance,
+    ReachabilityEvent,
+)
 
 
 class TestEnd:
@@ -30,7 +35,7 @@ def pm() -> PlannedMaintenance:
         start_time=datetime.datetime.now() - datetime.timedelta(days=1),
         end_time=datetime.datetime.now() + datetime.timedelta(days=1),
         type="device",
-        match_type="str",
+        match_type=MatchType.STR,
         match_expression="device",
         match_device=None,
     )

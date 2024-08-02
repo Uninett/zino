@@ -94,7 +94,7 @@ def matching_device_pm(device, port) -> Iterator[DeviceMaintenance]:
         yield DeviceMaintenance(
             start_time=datetime.datetime.now() - datetime.timedelta(days=1),
             end_time=datetime.datetime.now() + datetime.timedelta(days=1),
-            match_type="str",
+            match_type=MatchType.STR,
             match_expression=port.ifdescr,
             match_device=None,
         )
@@ -107,7 +107,7 @@ def nonmatching_device_pm(device, port) -> Iterator[DeviceMaintenance]:
         yield DeviceMaintenance(
             start_time=datetime.datetime.now() - datetime.timedelta(days=1),
             end_time=datetime.datetime.now() + datetime.timedelta(days=1),
-            match_type="str",
+            match_type=MatchType.STR,
             match_expression=port.ifdescr,
             match_device=None,
         )
