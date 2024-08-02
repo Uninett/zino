@@ -1,11 +1,13 @@
 import logging
+import os
+import stat
 from ipaddress import IPv4Address, IPv6Address
 from unittest.mock import AsyncMock, MagicMock
 
 import aiodns
 import pytest
 
-from zino.utils import log_time_spent, parse_ip, reverse_dns
+from zino.utils import file_is_world_readable, log_time_spent, parse_ip, reverse_dns
 
 
 class TestParseIP:
@@ -102,3 +104,16 @@ def mock_dnsresolver(monkeypatch) -> AsyncMock:
     mock_dnsresolver = AsyncMock()
     monkeypatch.setattr("zino.utils.aiodns.DNSResolver", lambda loop: mock_dnsresolver)
     return mock_dnsresolver
+
+
+class TestFileIsReadableByOthers:
+    def test_return_true_if_file_is_world_readable(self, secrets_file):
+        assert file_is_world_readable(secrets_file)
+
+    def test_return_if_file_is_only_readable_by_owner(self, tmp_path):
+        name = tmp_path / "owner-secrets"
+        with open(name, "w") as conf:
+            conf.write("""user1 password123""")
+        os.chmod(name, mode=stat.S_IRWXU)
+
+        assert not file_is_world_readable(name)

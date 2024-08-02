@@ -1,5 +1,7 @@
 import asyncio
 import logging
+import os
+import stat
 from functools import wraps
 from ipaddress import ip_address
 from time import time
@@ -63,3 +65,10 @@ def log_time_spent(logger: Union[logging.Logger, str] = __name__, level: int = l
         return wrapper
 
     return actual_decorator
+
+
+def file_is_world_readable(file: str) -> bool:
+    """Returns a boolean value indicating if a file is readable by other users than its owner"""
+    st_mode = getattr(os.stat(path=file), "st_mode", None)
+
+    return bool(st_mode & stat.S_IROTH)
