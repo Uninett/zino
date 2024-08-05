@@ -560,7 +560,7 @@ class PortStateMaintenance(PlannedMaintenance):
             return string_match(self.match_expression, port.ifalias)
         if self.match_type == MatchType.INTF_REGEXP:
             if regex_match(self.match_device, device.name):
-                return regex_match(self.match_expression, port.ifalias)
+                return regex_match(self.match_expression, port.ifdescr)
         return False
 
     def get_matching(self, state: "ZinoState") -> Iterator[Sequence[Union[str, int]]]:
