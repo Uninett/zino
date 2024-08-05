@@ -70,7 +70,8 @@ class TestMatchesEvent:
 class TestMatchesPortstate:
     @pytest.mark.parametrize("portstate_pm", [MatchType.REGEXP, MatchType.STR, MatchType.INTF_REGEXP], indirect=True)
     def test_should_return_false_for_non_matching_port(self, portstate_pm, device, port):
-        port.ifalias = "wrongport"
+        port.ifalias = "wrongportalias"
+        port.ifdescr = "wrongportdescr"
         assert not portstate_pm.matches_portstate(device, port)
 
     @pytest.mark.parametrize("portstate_pm", [MatchType.REGEXP, MatchType.STR], indirect=True)
