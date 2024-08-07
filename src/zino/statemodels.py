@@ -544,7 +544,7 @@ class PortStateMaintenance(PlannedMaintenance):
 
     def matches_event(self, event: Event, state: "ZinoState") -> bool:
         """Returns true if `event` will be affected by this planned maintenance"""
-        if event.type != PmType.PORTSTATE:
+        if not isinstance(event, PortStateEvent):
             return False
         device = state.devices[event.router]
         port = device.ports[event.ifindex]
