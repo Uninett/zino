@@ -20,3 +20,6 @@ old-events/
 polldevs.cf
 zino-state.json
 zino.toml
+
+# avoid accidental commit of the secrets file
+secrets

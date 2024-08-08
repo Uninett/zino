@@ -29,6 +29,7 @@ from zino.trapobservers import (  # noqa
     link_traps,
     logged_traps,
 )
+from zino.utils import file_is_readable_by_others
 
 STATE_DUMP_JOB_ID = "zino.dump_state"
 # Never try to dump state more often than this:
@@ -53,6 +54,16 @@ def main():
         _log.fatal(f"Configuration file with the name {args.config_file or DEFAULT_CONFIG_FILE} is invalid TOML.")
         sys.exit(1)
     except ValidationError as e:
+        _log.fatal(e)
+        sys.exit(1)
+
+    try:
+        secrets_file = state.config.authentication.file
+        if file_is_readable_by_others(secrets_file):
+            _log.warning(
+                f"Secrets file {secrets_file} is readable by other users. Please ensure that it is only readable by the user that runs the zino process."
+            )
+    except OSError as e:
         _log.fatal(e)
         sys.exit(1)
 
