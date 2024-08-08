@@ -10,7 +10,6 @@ This is still a work in progress, and is not yet a fully functional replacement
 for the original Tcl-based Zino.  An incomplete list of features that have yet
 to be ported:
 
-- Not all SNMP traps are logged in the same detail as in Zino 1.
 - No support for reading trap messages from a trap multiplexer like
   `straps`/`nmtrapd`.
 - The `CLEARFLAP` API command is not yet fully implemented.
