@@ -4,12 +4,13 @@ import asyncio
 import errno
 import grp
 import logging
+import logging.config
 import os
 import pwd
 import sys
 from asyncio import AbstractEventLoop
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Any, Optional
 
 import tzlocal
 from pydantic import ValidationError
@@ -43,8 +44,16 @@ def main():
         level=logging.INFO if not args.debug else logging.DEBUG,
         format="%(asctime)s - %(levelname)s - %(name)s (%(threadName)s) - %(message)s",
     )
+    state.config = load_config(args)
+    apply_logging_config(state.config.logging)
+    state.state = state.ZinoState.load_state_from_file(state.config.persistence.file) or state.ZinoState()
+    init_event_loop(args)
+
+
+def load_config(args: argparse.Namespace) -> state.Configuration:
+    """Loads the configuration file, exiting the process if there are config errors"""
     try:
-        state.config = read_configuration(args.config_file or DEFAULT_CONFIG_FILE, args.polldevs)
+        return read_configuration(args.config_file or DEFAULT_CONFIG_FILE, args.polldevs)
     except OSError:
         if args.config_file:
             _log.fatal(f"No config file with the name {args.config_file} found.")
@@ -56,8 +65,14 @@ def main():
         _log.fatal(e)
         sys.exit(1)
 
-    state.state = state.ZinoState.load_state_from_file(state.config.persistence.file) or state.ZinoState()
-    init_event_loop(args)
+
+def apply_logging_config(logging_config: dict[str, Any]) -> None:
+    """Applies the logging configuration, exiting the process if there are config errors"""
+    try:
+        logging.config.dictConfig(logging_config)
+    except ValueError as error:
+        _log.fatal(f"Invalid logging configuration: {error}")
+        sys.exit(1)
 
 
 def init_event_loop(args: argparse.Namespace, loop: Optional[AbstractEventLoop] = None):
@@ -224,7 +239,11 @@ def parse_args(arguments=None):
         help="Path to zino configuration file",
     )
     parser.add_argument(
-        "--debug", action="store_true", default=False, help="Set global log level to DEBUG. Very chatty!"
+        "--debug",
+        action="store_true",
+        default=False,
+        help="Set global log level to DEBUG. Very verbose! For more fine-grained control of logging configuration, it "
+        "is recommended to use the 'logging' section in the configuration file.",
     )
     parser.add_argument("--stop-in", type=int, default=None, help="Stop zino after N seconds.", metavar="N")
     parser.add_argument(

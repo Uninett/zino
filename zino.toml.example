@@ -25,3 +25,26 @@ file = "polldevs.cf"
 # How often the pollfile is read, in minutes
 # default 1 min
 period = 1
+
+# Logging configuration is optional, but if specified, it will override the
+# default logging config of Zino.  This is a TOML representation of the default
+# logging configuration dictionary, whose full documentation is available at
+# https://docs.python.org/3/library/logging.config.html#logging-config-dictschema
+#
+#[logging]
+#version = 1
+#
+#[logging.loggers.root]
+#level = "INFO"
+#handlers = ["console"]
+#
+#[logging.loggers.apscheduler]
+#level = "WARNING"
+#
+#[logging.formatters.standard]
+#format = "%(asctime)s - %(levelname)s - %(name)s (%(threadName)s) - %(message)s"
+#
+#[logging.handlers.console]
+#class = "logging.StreamHandler"
+#formatter = "standard"
+#stream = "ext://sys.stderr"
