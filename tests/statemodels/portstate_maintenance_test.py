@@ -70,7 +70,8 @@ class TestMatchesEvent:
 class TestMatchesPortstate:
     @pytest.mark.parametrize("portstate_pm", [MatchType.REGEXP, MatchType.STR, MatchType.INTF_REGEXP], indirect=True)
     def test_should_return_false_for_non_matching_port(self, portstate_pm, device, port):
-        port.ifdescr = "wrongport"
+        port.ifalias = "wrongportalias"
+        port.ifdescr = "wrongportdescr"
         assert not portstate_pm.matches_portstate(device, port)
 
     @pytest.mark.parametrize("portstate_pm", [MatchType.REGEXP, MatchType.STR], indirect=True)
@@ -95,11 +96,16 @@ class TestMatchesPortstate:
 
 @pytest.fixture
 def portstate_pm(request, device, port) -> PortStateMaintenance:
+    match_type = request.param
+    if match_type == MatchType.INTF_REGEXP:
+        match_expression = port.ifdescr
+    else:
+        match_expression = port.ifalias
     return PortStateMaintenance(
         start_time=datetime.datetime.now() - datetime.timedelta(days=1),
         end_time=datetime.datetime.now() + datetime.timedelta(days=1),
-        match_type=request.param,
-        match_expression=port.ifdescr,
+        match_type=match_type,
+        match_expression=match_expression,
         match_device=device.name,
     )
 
@@ -112,7 +118,7 @@ def matching_portstate_pm(device, port) -> Iterator[PortStateMaintenance]:
             start_time=datetime.datetime.now() - datetime.timedelta(days=1),
             end_time=datetime.datetime.now() + datetime.timedelta(days=1),
             match_type=MatchType.STR,
-            match_expression=port.ifdescr,
+            match_expression=port.ifalias,
             match_device=device.name,
         )
 
@@ -125,6 +131,6 @@ def nonmatching_portstate_pm(device, port) -> Iterator[PortStateMaintenance]:
             start_time=datetime.datetime.now() - datetime.timedelta(days=1),
             end_time=datetime.datetime.now() + datetime.timedelta(days=1),
             match_type=MatchType.STR,
-            match_expression=port.ifdescr,
+            match_expression=port.ifalias,
             match_device=device.name,
         )
