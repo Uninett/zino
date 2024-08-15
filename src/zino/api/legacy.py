@@ -631,9 +631,9 @@ class ZinoTestProtocol(Zino1ServerProtocol):
 
         index = EventIndex(event.router, event.subindex, type(event))
 
-        if events._events_by_index.get(index) and event.id == events._events_by_index[index].id:
+        if index in events._events_by_index and event.id == events._events_by_index[index].id:
             del events._events_by_index[index]
-        if events._closed_events_by_index.get(index) and event.id == events._closed_events_by_index[index].id:
+        if index in events._closed_events_by_index and event.id == events._closed_events_by_index[index].id:
             del events._closed_events_by_index[index]
         del events.events[event.id]
 
