@@ -935,7 +935,6 @@ class TestZino1TestProtocolDeleteEventCommand:
         assert fake_transport.write.called
         response = fake_transport.write.call_args[0][0].decode("utf-8")
         assert response.startswith("200 ")
-        assert response.startswith("200 ")
         assert event.id not in protocol._state.events.events.keys()
         assert not protocol._state.events.get(device_name=DEVICE_NAME, subindex=None, event_class=ReachabilityEvent)
         assert not protocol._state.events.get_closed_event(
