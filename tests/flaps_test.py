@@ -151,6 +151,107 @@ class TestFlappingStates:
         assert flapping_states.get_flap_value(1) == 0
 
 
+class TestFlappingStatesClearFlapInternal:
+    def test_when_event_with_flapstate_exists_it_should_reset_it_to_stable(
+        self, state_with_flapstats_and_portstate_event
+    ):
+        state = state_with_flapstats_and_portstate_event
+        port: Port = next(iter(state.devices.devices["localhost"].ports.values()))
+
+        state.flapping._clear_flap_internal(
+            ("localhost", port.ifindex), "nobody", "Flapstate manually cleared", state=state
+        )
+
+        updated_event = state.events.get("localhost", port.ifindex, PortStateEvent)
+        assert updated_event
+        assert updated_event.flapstate == FlapState.STABLE
+
+    def test_when_event_does_not_exist_it_should_do_nothing(
+        self,
+        state_with_flapstats,
+    ):
+        state = state_with_flapstats
+        port: Port = next(iter(state.devices.devices["localhost"].ports.values()))
+
+        state.flapping._clear_flap_internal(
+            ("localhost", port.ifindex), "nobody", "Flapstate manually cleared", state=state
+        )
+
+        assert not state.events.get("localhost", port.ifindex, PortStateEvent)
+
+    def test_when_event_but_not_port_exists_it_should_do_nothing(self, state_with_flapstats_and_portstate_event):
+        state = state_with_flapstats_and_portstate_event
+        port: Port = next(iter(state.devices.devices["localhost"].ports.values()))
+        # Remove the port from device state for this test
+        del state.devices.devices["localhost"].ports[port.ifindex]
+
+        state.flapping._clear_flap_internal(
+            ("localhost", port.ifindex), "nobody", "Flapstate manually cleared", state=state
+        )
+
+        event = state.events.get("localhost", port.ifindex, PortStateEvent)
+        assert event
+        assert event.flapstate == FlapState.FLAPPING  # still flapping!
+
+
+class TestFlappingStatesClearFlap:
+    def test_it_should_schedule_verification_of_single_port(
+        self,
+        state_with_flapstats_and_portstate_event,
+        polldevs_dict,
+        monkeypatch,
+    ):
+        state = state_with_flapstats_and_portstate_event
+        port: Port = next(iter(state.devices.devices["localhost"].ports.values()))
+        mock_schedule_verification_of_single_port = Mock()
+        monkeypatch.setattr(
+            LinkStateTask, "schedule_verification_of_single_port", mock_schedule_verification_of_single_port
+        )
+
+        state.flapping.clear_flap(("localhost", port.ifindex), "nobody", state, polldevs_dict["localhost"])
+
+        mock_schedule_verification_of_single_port.assert_called_once()
+        assert mock_schedule_verification_of_single_port.call_args[0][0] == port.ifindex
+
+    def test_when_port_does_not_exist_it_should_not_schedule_verification(
+        self,
+        state_with_flapstats_and_portstate_event,
+        polldevs_dict,
+        monkeypatch,
+    ):
+        state = state_with_flapstats_and_portstate_event
+        fake_ifindex = 999
+        mock_schedule_verification_of_single_port = Mock()
+        monkeypatch.setattr(
+            LinkStateTask, "schedule_verification_of_single_port", mock_schedule_verification_of_single_port
+        )
+
+        state.flapping.clear_flap(("localhost", fake_ifindex), "nobody", state, polldevs_dict["localhost"])
+
+        mock_schedule_verification_of_single_port.assert_not_called()
+
+
+@pytest.fixture
+def state_with_flapstats_and_portstate_event(state_with_flapstats) -> ZinoState:
+    port: Port = next(iter(state_with_flapstats.devices.devices["localhost"].ports.values()))
+    flapping_state = state_with_flapstats.flapping.interfaces[("localhost", port.ifindex)]
+    flapping_state.hist_val = FLAP_THRESHOLD
+
+    orig_event = state_with_flapstats.events.get_or_create_event("localhost", port.ifindex, PortStateEvent)
+    orig_event.flapstate = FlapState.FLAPPING
+    orig_event.flaps = 42
+    orig_event.port = port.ifdescr
+    orig_event.portstate = port.state
+    orig_event.router = "localhost"
+    orig_event.polladdr = "127.0.0.1"
+    orig_event.priority = 500
+    orig_event.ifindex = port.ifindex
+    orig_event.descr = port.ifalias
+
+    state_with_flapstats.events.commit(orig_event)
+    return state_with_flapstats
+
+
 class TestAgeSingleInterfaceFlappingState:
     @pytest.mark.asyncio
     async def test_it_should_decrease_hist_val(self, state_with_flapstats, polldevs_dict):
@@ -317,5 +418,5 @@ def mocked_out_poll_single_interface(monkeypatch):
     """Monkey patches LinkStateTask.poll_single_interface to do essentially nothing"""
     future = Future()
     future.set_result(None)
-    monkeypatch.setattr(LinkStateTask, "poll_single_interface", future)
+    monkeypatch.setattr(LinkStateTask, "poll_single_interface", Mock(return_value=future))
     yield monkeypatch
