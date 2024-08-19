@@ -3,7 +3,7 @@
 from ipaddress import IPv4Address, IPv6Address
 from os import R_OK, access
 from os.path import isfile
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 from pydantic import BaseModel, ConfigDict
 from pydantic.functional_validators import AfterValidator
@@ -83,3 +83,18 @@ class Configuration(BaseModel):
     authentication: Authentication = Authentication()
     persistence: Persistence = Persistence()
     polling: Polling = Polling()
+    logging: dict[str, Any] = {
+        "version": 1,
+        "loggers": {
+            "root": {"level": "INFO", "handlers": ["console"]},
+            "apscheduler": {"level": "WARNING"},
+        },
+        "formatters": {"standard": {"format": "%(asctime)s - %(levelname)s - %(name)s (%(threadName)s) - %(message)s"}},
+        "handlers": {
+            "console": {
+                "class": "logging.StreamHandler",
+                "formatter": "standard",
+                "stream": "ext://sys.stderr",
+            }
+        },
+    }
