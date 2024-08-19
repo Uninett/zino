@@ -86,7 +86,7 @@ class CiscoPimTrapLogger(TrapObserver):
 
         trap_type = "register" if trap.name.endswith("Register") else "join-prune"
         _logger.info(
-            "%s: PIM-invalid-%s: from %s group %s RP %s",
+            "%s PIM-invalid-%s: from %s group %s RP %s",
             trap.agent.device.name,
             trap_type,
             origin,

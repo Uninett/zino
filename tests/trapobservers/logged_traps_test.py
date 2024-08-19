@@ -87,7 +87,7 @@ class TestCiscoPimTrapLogger:
         )
         with caplog.at_level(logging.INFO):
             await observer.handle_trap(trap=trap)
-            assert "localhost: PIM-invalid-register: from 10.0.0.1 group 10.0.0.2 RP 10.0.0.3" in caplog.text
+            assert "localhost PIM-invalid-register: from 10.0.0.1 group 10.0.0.2 RP 10.0.0.3" in caplog.text
 
     @pytest.mark.asyncio
     async def test_when_trap_is_missing_error_origin_type_it_should_ignore_it(self, caplog, localhost_trap_originator):
