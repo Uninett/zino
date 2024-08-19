@@ -121,7 +121,7 @@ class LinkTrapObserver(TrapObserver):
         event.flaps = flap.flaps
         msg = (
             f'{device.name}: intf "{port.ifdescr}" ix {port.ifindex} ({port.ifalias}) flapping, '
-            f"{event.flaps} flaps, penalty {flap.hist_val:.2f}"
+            f"{event.flaps} flaps, penalty {flap.hist_val:5.2f}"
         )
         _logger.info(msg)
         event.add_log(msg)
