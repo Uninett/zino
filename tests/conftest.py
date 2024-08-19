@@ -205,8 +205,8 @@ async def snmpsim(snmpsimd_path, snmp_fixture_directory, snmp_test_port):
 
 @pytest.fixture(scope="session")
 def snmpsimd_path():
-    snmpsimd = which("snmpsimd.py")
-    assert snmpsimd, "Could not find snmpsimd.py"
+    snmpsimd = which("snmpsim-command-responder")
+    assert snmpsimd, "Could not find snmpsim-command-responder"
     yield snmpsimd
 
 
