@@ -393,9 +393,12 @@ class ReachabilityEvent(Event):
 
 
 class AlarmEvent(Event):
+    # Allow populating fields by name or alias
+    model_config = ConfigDict(populate_by_name=True)
+
     type: Literal["alarm"] = "alarm"
-    alarm_type: Optional[AlarmType] = None
-    alarm_count: Optional[int] = None
+    alarm_type: Optional[AlarmType] = Field(default=None, alias="alarm-type")
+    alarm_count: Optional[int] = Field(default=None, alias="alarm-count")
 
     @property
     def subindex(self) -> SubIndex:
