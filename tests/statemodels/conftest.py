@@ -11,7 +11,7 @@ def state() -> ZinoState:
 
 @pytest.fixture
 def port() -> Port:
-    return Port(ifindex=1, ifdescr="port")
+    return Port(ifindex=1, ifdescr="port", ifalias="portalias")
 
 
 @pytest.fixture
