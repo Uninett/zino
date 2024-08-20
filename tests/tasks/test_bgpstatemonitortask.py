@@ -51,9 +51,9 @@ class TestBGPStateMonitorTask:
         # check that the correct event has been created
         event = task.state.events.get(device_name=task.device.name, subindex=PEER_ADDRESS, event_class=BGPEvent)
         assert event
-        assert event.bgpas in [BGPAdminStatus.RUNNING, BGPAdminStatus.START]
-        assert event.bgpos == BGPOperState.ESTABLISHED
-        assert event.remote_addr == PEER_ADDRESS
+        assert event.admin_status in [BGPAdminStatus.RUNNING, BGPAdminStatus.START]
+        assert event.operational_state == BGPOperState.ESTABLISHED
+        assert event.remote_address == PEER_ADDRESS
         assert event.remote_as == DEFAULT_REMOTE_AS
         assert event.peer_uptime == DEFAULT_UPTIME
 
@@ -69,9 +69,9 @@ class TestBGPStateMonitorTask:
         event = task.state.events.get_or_create_event(
             device_name=task.device.name, subindex=PEER_ADDRESS, event_class=BGPEvent
         )
-        event.bgpos = BGPOperState.DOWN
-        event.bgpas = BGPAdminStatus.STOP
-        event.remote_addr = PEER_ADDRESS
+        event.operational_state = BGPOperState.DOWN
+        event.admin_status = BGPAdminStatus.STOP
+        event.remote_address = PEER_ADDRESS
         event.remote_as = DEFAULT_REMOTE_AS
         event.peer_uptime = 0
         task.state.events.commit(event=event)
@@ -84,9 +84,9 @@ class TestBGPStateMonitorTask:
         # check that the correct event has been created
         event = task.state.events.get(device_name=task.device.name, subindex=PEER_ADDRESS, event_class=BGPEvent)
         assert event
-        assert event.bgpas in [BGPAdminStatus.RUNNING, BGPAdminStatus.START]
-        assert event.bgpos == BGPOperState.ESTABLISHED
-        assert event.remote_addr == PEER_ADDRESS
+        assert event.admin_status in [BGPAdminStatus.RUNNING, BGPAdminStatus.START]
+        assert event.operational_state == BGPOperState.ESTABLISHED
+        assert event.remote_address == PEER_ADDRESS
         assert event.remote_as == DEFAULT_REMOTE_AS
         assert event.peer_uptime == DEFAULT_UPTIME
 
@@ -111,9 +111,9 @@ class TestBGPStateMonitorTask:
         # check that the correct event has been created
         event = task.state.events.get(device_name=task.device.name, subindex=PEER_ADDRESS, event_class=BGPEvent)
         assert event
-        assert event.bgpas in [BGPAdminStatus.HALTED, BGPAdminStatus.STOP]
-        assert event.bgpos == BGPOperState.DOWN
-        assert event.remote_addr == PEER_ADDRESS
+        assert event.admin_status in [BGPAdminStatus.HALTED, BGPAdminStatus.STOP]
+        assert event.operational_state == BGPOperState.DOWN
+        assert event.remote_address == PEER_ADDRESS
         assert event.remote_as == DEFAULT_REMOTE_AS
         assert event.peer_uptime == 0
 
@@ -137,9 +137,9 @@ class TestBGPStateMonitorTask:
         event = task.state.events.get_or_create_event(
             device_name=task.device.name, subindex=PEER_ADDRESS, event_class=BGPEvent
         )
-        event.bgpos = BGPOperState.DOWN
-        event.bgpas = BGPAdminStatus.STOP
-        event.remote_addr = PEER_ADDRESS
+        event.operational_state = BGPOperState.DOWN
+        event.admin_status = BGPAdminStatus.STOP
+        event.remote_address = PEER_ADDRESS
         event.remote_as = DEFAULT_REMOTE_AS
         event.peer_uptime = 0
         task.state.events.commit(event=event)
@@ -151,9 +151,9 @@ class TestBGPStateMonitorTask:
         # check that the correct event has been created
         event = task.state.events.get(device_name=task.device.name, subindex=PEER_ADDRESS, event_class=BGPEvent)
         assert event
-        assert event.bgpas in [BGPAdminStatus.RUNNING, BGPAdminStatus.START]
-        assert event.bgpos == BGPOperState.IDLE
-        assert event.remote_addr == PEER_ADDRESS
+        assert event.admin_status in [BGPAdminStatus.RUNNING, BGPAdminStatus.START]
+        assert event.operational_state == BGPOperState.IDLE
+        assert event.remote_address == PEER_ADDRESS
         assert event.remote_as == DEFAULT_REMOTE_AS
         assert event.peer_uptime == 0
 
@@ -177,9 +177,9 @@ class TestBGPStateMonitorTask:
         # check that the correct event has been created
         event = task.state.events.get(device_name=task.device.name, subindex=PEER_ADDRESS, event_class=BGPEvent)
         assert event
-        assert event.bgpas in [BGPAdminStatus.RUNNING, BGPAdminStatus.START]
-        assert event.bgpos == BGPOperState.DOWN
-        assert event.remote_addr == PEER_ADDRESS
+        assert event.admin_status in [BGPAdminStatus.RUNNING, BGPAdminStatus.START]
+        assert event.operational_state == BGPOperState.DOWN
+        assert event.remote_address == PEER_ADDRESS
         assert event.remote_as == DEFAULT_REMOTE_AS
         assert event.peer_uptime == 1000000
 

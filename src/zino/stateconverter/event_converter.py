@@ -104,9 +104,9 @@ def _set_event_attrs(linedata: LineData, state: ZinoState, indices: EventIndices
     elif event_field == "history":
         event.history = parse_log_and_history(linedata.value)
     elif event_field == "bgpOS":
-        event.bgpos = BGPOperState(linedata.value)
+        event.operational_state = BGPOperState(linedata.value)
     elif event_field == "bgpAS":
-        event.bgpas = BGPAdminStatus(linedata.value)
+        event.admin_status = BGPAdminStatus(linedata.value)
     elif event_field == "lastevent":
         event.lastevent = linedata.value
     elif event_field == "log":
@@ -120,7 +120,7 @@ def _set_event_attrs(linedata: LineData, state: ZinoState, indices: EventIndices
     elif event_field == "remote-AS":
         event.remote_as = int(linedata.value)
     elif event_field == "remote-addr":
-        event.remote_addr = parse_ip(linedata.value)
+        event.remote_address = parse_ip(linedata.value)
     elif event_field == "router":
         event.router = linedata.value
     elif event_field == "state":

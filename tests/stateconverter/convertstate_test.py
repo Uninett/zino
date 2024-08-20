@@ -98,11 +98,11 @@ class TestEvents:
         assert len(event.history) == 1
         assert len(event.log) == 1
         assert event.lastevent == "peer is down"
-        assert event.remote_addr == ip_address("0515:7cfd:1bcc:279e:f5a4:5528:f4c3:58af")
+        assert event.remote_address == ip_address("0515:7cfd:1bcc:279e:f5a4:5528:f4c3:58af")
         assert event.remote_as == 100
         assert event.peer_uptime == 420
-        assert event.bgpos == BGPOperState.DOWN
-        assert event.bgpas == BGPAdminStatus.RUNNING
+        assert event.operational_state == BGPOperState.DOWN
+        assert event.admin_status == BGPAdminStatus.RUNNING
 
     def test_invalid_event_attribute_should_not_be_set(self, invalid_event_save_state_path):
         state = create_state(invalid_event_save_state_path)
