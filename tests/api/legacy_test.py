@@ -458,7 +458,7 @@ class TestZino1ServerProtocolGetattrsCommand:
     async def test_should_output_correct_attrs_for_alias(self, authenticated_protocol):
         state = authenticated_protocol._state
         event1 = state.events.create_event("foo", IPv4Address("127.0.0.1"), BGPEvent)
-        event1.bgpos = BGPOperState.ESTABLISHED
+        event1.operational_state = BGPOperState.ESTABLISHED
         event1.remote_as = 2
         state.events.commit(event1)
 
@@ -468,7 +468,7 @@ class TestZino1ServerProtocolGetattrsCommand:
         assert f"id: {event1.id}\r\n" in output
         assert f"router: {event1.router}\r\n" in output
         assert f"state: {event1.state.value}\r\n" in output
-        assert f"bgpOS: {event1.bgpos}\r\n" in output
+        assert f"bgpOS: {event1.operational_state}\r\n" in output
         assert f"remote-AS: {event1.remote_as}\r\n" in output
 
 

@@ -359,15 +359,15 @@ class BGPEvent(Event):
     model_config = ConfigDict(populate_by_name=True)
 
     type: Literal["bgp"] = "bgp"
-    remote_addr: Optional[IPAddress] = None
+    remote_address: Optional[IPAddress] = Field(default=None, alias="remote-addr")
     remote_as: Optional[int] = Field(default=None, alias="remote-AS")
-    peer_uptime: Optional[int] = None
-    bgpos: Optional[BGPOperState] = Field(default=None, alias="bgpOS")
-    bgpas: Optional[BGPAdminStatus] = Field(default=None, alias="bgpAS")
+    peer_uptime: Optional[int] = Field(default=None, alias="peer-uptime")
+    operational_state: Optional[BGPOperState] = Field(default=None, alias="bgpOS")
+    admin_status: Optional[BGPAdminStatus] = Field(default=None, alias="bgpAS")
 
     @property
     def subindex(self) -> SubIndex:
-        return self.remote_addr
+        return self.remote_address
 
 
 class BFDEvent(Event):
