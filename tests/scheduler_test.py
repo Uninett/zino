@@ -9,8 +9,6 @@ from zino import scheduler
 from zino.state import ZinoState
 from zino.time import now
 
-YESTERDAY = last_run_time = now() - timedelta(days=1)
-
 
 class TestLoadPolldevs:
     @patch("zino.state.polldevs", dict())
@@ -37,7 +35,7 @@ class TestLoadPolldevs:
         scheduler.load_polldevs(polldevs_conf)
 
         # This needs to be patched since the mtime of the two conf fixtures is the same
-        with patch("zino.state.pollfile_mtime", YESTERDAY):
+        with patch("zino.state.pollfile_mtime", last_run_time=now() - timedelta(days=1)):
             new_devices, deleted_devices, changed_devices, _ = scheduler.load_polldevs(polldevs_conf_with_single_router)
 
         assert not new_devices
@@ -85,7 +83,7 @@ class TestLoadPolldevs:
         _, _, _, defaults = scheduler.load_polldevs(polldevs_conf)
 
         # This needs to be patched since the mtime of the two conf fixtures is the same
-        with patch("zino.state.pollfile_mtime", YESTERDAY):
+        with patch("zino.state.pollfile_mtime", last_run_time=now() - timedelta(days=1)):
             _, _, _, changed_defaults = scheduler.load_polldevs(polldevs_with_changed_defaults)
         assert defaults != changed_defaults
 
@@ -113,7 +111,7 @@ class TestLoadPolldevs:
         scheduler.load_polldevs(polldevs_conf)
 
         # This needs to be patched since the mtime of the two conf fixtures is the same
-        with patch("zino.state.pollfile_mtime", YESTERDAY):
+        with patch("zino.state.pollfile_mtime", last_run_time=now() - timedelta(days=1)):
             new_devices, deleted_devices, changed_devices, _ = scheduler.load_polldevs(polldevs_with_changed_defaults)
 
         assert not new_devices
@@ -145,7 +143,7 @@ class TestLoadPolldevs:
         scheduler.load_polldevs(polldevs_conf)
 
         # This needs to be patched since the mtime of the two conf fixtures is the same
-        with patch("zino.state.pollfile_mtime", YESTERDAY):
+        with patch("zino.state.pollfile_mtime", last_run_time=now() - timedelta(days=1)):
             new_devices, deleted_devices, changed_devices, _ = scheduler.load_polldevs(polldevs_with_changed_defaults)
 
         assert not new_devices
