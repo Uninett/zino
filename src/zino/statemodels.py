@@ -245,6 +245,9 @@ class ReachabilityState(Enum):
 class Event(BaseModel):
     """Keeps track of event state"""
 
+    # Allow populating fields by name or alias
+    model_config = ConfigDict(populate_by_name=True)
+
     id: Optional[int] = None
 
     router: str
@@ -355,9 +358,6 @@ class PortStateEvent(Event):
 
 
 class BGPEvent(Event):
-    # Allow populating fields by name or alias
-    model_config = ConfigDict(populate_by_name=True)
-
     type: Literal["bgp"] = "bgp"
     remote_address: Optional[IPAddress] = Field(default=None, alias="remote-addr")
     remote_as: Optional[int] = Field(default=None, alias="remote-AS")
@@ -371,9 +371,6 @@ class BGPEvent(Event):
 
 
 class BFDEvent(Event):
-    # Allow populating fields by name or alias
-    model_config = ConfigDict(populate_by_name=True)
-
     type: Literal["bfd"] = "bfd"
     ifindex: Optional[int] = None
     bfdstate: Optional[BFDSessState] = Field(default=None, alias="bfdState")
@@ -393,9 +390,6 @@ class ReachabilityEvent(Event):
 
 
 class AlarmEvent(Event):
-    # Allow populating fields by name or alias
-    model_config = ConfigDict(populate_by_name=True)
-
     type: Literal["alarm"] = "alarm"
     alarm_type: Optional[AlarmType] = Field(default=None, alias="alarm-type")
     alarm_count: Optional[int] = Field(default=None, alias="alarm-count")
