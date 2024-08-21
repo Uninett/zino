@@ -4,7 +4,6 @@ __all__ = ["polldevs", "ZinoState"]
 
 import json
 import logging
-from datetime import datetime
 from typing import Dict, Optional
 
 from pydantic import BaseModel, Field
@@ -27,7 +26,7 @@ state: "ZinoState" = None
 config: Configuration = Configuration()
 
 # Last time the pollfile was modified
-pollfile_mtime: Optional[datetime] = None
+pollfile_mtime: Optional[float] = None
 
 
 class ZinoState(BaseModel):

@@ -1,5 +1,5 @@
 import logging
-from datetime import timedelta
+from time import time
 from unittest.mock import Mock, patch
 
 import pytest
@@ -7,7 +7,6 @@ from apscheduler.jobstores.base import JobLookupError
 
 from zino import scheduler
 from zino.state import ZinoState
-from zino.time import now
 
 
 class TestLoadPolldevs:
@@ -35,7 +34,7 @@ class TestLoadPolldevs:
         scheduler.load_polldevs(polldevs_conf)
 
         # This needs to be patched since the mtime of the two conf fixtures is the same
-        with patch("zino.state.pollfile_mtime", last_run_time=now() - timedelta(days=1)):
+        with patch("zino.state.pollfile_mtime", last_run_time=time() - 60):
             new_devices, deleted_devices, changed_devices, _ = scheduler.load_polldevs(polldevs_conf_with_single_router)
 
         assert not new_devices
@@ -83,7 +82,7 @@ class TestLoadPolldevs:
         _, _, _, defaults = scheduler.load_polldevs(polldevs_conf)
 
         # This needs to be patched since the mtime of the two conf fixtures is the same
-        with patch("zino.state.pollfile_mtime", last_run_time=now() - timedelta(days=1)):
+        with patch("zino.state.pollfile_mtime", last_run_time=time() - 60):
             _, _, _, changed_defaults = scheduler.load_polldevs(polldevs_with_changed_defaults)
         assert defaults != changed_defaults
 
@@ -111,7 +110,7 @@ class TestLoadPolldevs:
         scheduler.load_polldevs(polldevs_conf)
 
         # This needs to be patched since the mtime of the two conf fixtures is the same
-        with patch("zino.state.pollfile_mtime", last_run_time=now() - timedelta(days=1)):
+        with patch("zino.state.pollfile_mtime", last_run_time=time() - 60):
             new_devices, deleted_devices, changed_devices, _ = scheduler.load_polldevs(polldevs_with_changed_defaults)
 
         assert not new_devices
@@ -143,7 +142,7 @@ class TestLoadPolldevs:
         scheduler.load_polldevs(polldevs_conf)
 
         # This needs to be patched since the mtime of the two conf fixtures is the same
-        with patch("zino.state.pollfile_mtime", last_run_time=now() - timedelta(days=1)):
+        with patch("zino.state.pollfile_mtime", last_run_time=time() - 60):
             new_devices, deleted_devices, changed_devices, _ = scheduler.load_polldevs(polldevs_with_changed_defaults)
 
         assert not new_devices

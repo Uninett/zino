@@ -2,7 +2,7 @@ import asyncio
 import logging
 import operator
 import pathlib
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Sequence, Set, Tuple
 
 from apscheduler.executors.asyncio import AsyncIOExecutor
@@ -48,8 +48,7 @@ def load_polldevs(polldevs_conf: str) -> Tuple[Set, Set, Set, dict[str, str]]:
     :returns: A tuple of (new_devices, deleted_devices, changed_devices and a dictionary of default settings)
     """
     try:
-        st_mtime = pathlib.Path(polldevs_conf).stat().st_mtime
-        modified_time = datetime.fromtimestamp(st_mtime, tz=timezone.utc)
+        modified_time = pathlib.Path(polldevs_conf).stat().st_mtime
     except OSError as error:
         _log.error(error)
         return set(), set(), set(), dict()
