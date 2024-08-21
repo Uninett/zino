@@ -44,7 +44,9 @@ def main():
         level=logging.INFO if not args.debug else logging.DEBUG,
         format="%(asctime)s - %(levelname)s - %(name)s (%(threadName)s) - %(message)s",
     )
-    state.config = load_config(args)
+    config = load_config(args)
+    if config:
+        state.config = config
     apply_logging_config(state.config.logging)
     state.state = state.ZinoState.load_state_from_file(state.config.persistence.file) or state.ZinoState()
     init_event_loop(args)
