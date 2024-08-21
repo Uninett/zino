@@ -64,8 +64,13 @@ def main():
     init_event_loop(args)
 
 
-def load_config(args: argparse.Namespace) -> state.Configuration:
-    """Loads the configuration file, exiting the process if there are config errors"""
+def load_config(args: argparse.Namespace) -> Optional[state.Configuration]:
+    """
+    Loads the configuration file, exiting the process if there are config errors
+
+    Returns the configuration specified by the config file and None if no config file
+    name was specified as argument and no default config file exists
+    """
     try:
         return read_configuration(args.config_file or DEFAULT_CONFIG_FILE, args.polldevs)
     except OSError:
