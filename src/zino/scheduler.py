@@ -43,7 +43,7 @@ def get_scheduler() -> AsyncIOScheduler:
 def load_polldevs(polldevs_conf: str) -> Tuple[Set, Set, Set, dict[str, str]]:
     """Loads pollfile into process state.
 
-    :returns: A tuple of (new_devices, deleted_devices, changed_devices and a dictionary of default settings)
+    :returns: A tuple of (new_devices, deleted_devices, changed_devices, default_settings)
     """
     try:
         devices, defaults = read_polldevs(polldevs_conf)
