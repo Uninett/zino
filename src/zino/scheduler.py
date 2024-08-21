@@ -50,8 +50,8 @@ def load_polldevs(polldevs_conf: str) -> Tuple[Set, Set, Set, dict[str, str]]:
     try:
         st_mtime = pathlib.Path(polldevs_conf).stat().st_mtime
         modified_time = datetime.fromtimestamp(st_mtime, tz=timezone.utc)
-    except OSError as e:  # noqa
-        _log.error(e)
+    except OSError as error:
+        _log.error(error)
         return set(), set(), set(), dict()
 
     if modified_time == state.pollfile_mtime:
