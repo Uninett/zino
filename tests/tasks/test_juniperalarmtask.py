@@ -9,11 +9,10 @@ from zino.tasks.juniperalarmtask import JuniperAlarmTask
 
 
 class TestJuniperalarmTask:
-    @pytest.mark.asyncio
+
     async def test_task_runs_without_errors(self, juniper_alarm_task):
         assert (await juniper_alarm_task.run()) is None
 
-    @pytest.mark.asyncio
     async def test_task_does_nothing_for_non_juniper_device(self, juniper_alarm_task):
         task = juniper_alarm_task
         device_state = task.state.devices.get(device_name=task.device.name)
@@ -23,7 +22,6 @@ class TestJuniperalarmTask:
 
         assert device_state.alarms is None
 
-    @pytest.mark.asyncio
     async def test_task_does_nothing_for_no_result(self, caplog, snmp_test_port):
         device = PollDevice(
             name="buick.lab.example.org",
@@ -45,7 +43,6 @@ class TestJuniperalarmTask:
             not in caplog.text
         )
 
-    @pytest.mark.asyncio
     async def test_task_logs_error_for_non_int_result(self, caplog, snmp_test_port):
         device = PollDevice(
             name="buick.lab.example.org",
@@ -67,7 +64,6 @@ class TestJuniperalarmTask:
         )
         assert "Yellow alarm count: value 0. Red alarm count: value 'buick'." in caplog.text
 
-    @pytest.mark.asyncio
     async def test_task_saves_alarm_count_in_device_state(self, juniper_alarm_task):
         task = juniper_alarm_task
         device_state = task.state.devices.get(device_name=task.device.name)
@@ -79,7 +75,6 @@ class TestJuniperalarmTask:
         assert device_state.alarms["yellow"] == 1
         assert device_state.alarms["red"] == 2
 
-    @pytest.mark.asyncio
     async def test_task_overrides_alarm_count_in_device_state(self, juniper_alarm_task):
         task = juniper_alarm_task
         device_state = task.state.devices.get(device_name=task.device.name)
@@ -94,7 +89,6 @@ class TestJuniperalarmTask:
         assert device_state.alarms["yellow"] == 1
         assert device_state.alarms["red"] == 2
 
-    @pytest.mark.asyncio
     async def test_task_creates_both_alarm_events_on_both_counts_changed(self, juniper_alarm_task):
         task = juniper_alarm_task
         device_state = task.state.devices.get(device_name=task.device.name)
@@ -110,7 +104,6 @@ class TestJuniperalarmTask:
         assert yellow_event.alarm_count == 1
         assert red_event.alarm_count == 2
 
-    @pytest.mark.asyncio
     async def test_task_creates_one_alarm_event_on_one_count_changed(self, juniper_alarm_task):
         task = juniper_alarm_task
         device_state = task.state.devices.get(device_name=task.device.name)
@@ -129,7 +122,6 @@ class TestJuniperalarmTask:
         assert red_event
         assert red_event.alarm_count == 2
 
-    @pytest.mark.asyncio
     async def test_task_creates_event_with_correct_log_on_initial_run(self, juniper_alarm_task):
         task = juniper_alarm_task
         device_state = task.state.devices.get(device_name=task.device.name)
@@ -147,7 +139,6 @@ class TestJuniperalarmTask:
         log_messages = [log_entry.message for log_entry in red_event.log]
         assert f"{juniper_alarm_task.device.name} red alarms went from 0 to 2" in log_messages
 
-    @pytest.mark.asyncio
     async def test_task_updates_alarm_events(self, juniper_alarm_task):
         task = juniper_alarm_task
         device_state = task.state.devices.get(device_name=task.device.name)
@@ -171,7 +162,6 @@ class TestJuniperalarmTask:
         assert new_yellow_event.alarm_count == 1
         assert new_red_event.alarm_count == 2
 
-    @pytest.mark.asyncio
     async def test_task_does_not_create_alarm_events_on_unchanged_alarm_count(self, juniper_alarm_task):
         task = juniper_alarm_task
         device_state = task.state.devices.get(device_name=task.device.name)
@@ -189,7 +179,6 @@ class TestJuniperalarmTask:
         assert not yellow_event
         assert not red_event
 
-    @pytest.mark.asyncio
     async def test_task_does_not_create_alarm_events_on_alarm_count_zero_on_first_run(self, snmp_test_port):
         device = PollDevice(
             name="buick.lab.example.org",

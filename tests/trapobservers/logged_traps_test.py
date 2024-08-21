@@ -17,7 +17,6 @@ from zino.trapobservers.logged_traps import (
 
 class TestRestartTrapLogger:
     @pytest.mark.parametrize("trap_name", ["coldStart", "warmStart"])
-    @pytest.mark.asyncio
     async def test_when_handle_trap_is_called_it_should_log_trap_name(
         self, caplog, localhost_trap_originator, trap_name
     ):
@@ -29,7 +28,7 @@ class TestRestartTrapLogger:
 
 
 class TestCiscoReloadTrapLogger:
-    @pytest.mark.asyncio
+
     async def test_when_handle_trap_is_called_it_should_log_reload(
         self,
         caplog,
@@ -43,7 +42,7 @@ class TestCiscoReloadTrapLogger:
 
 
 class TestCiscoConfigManEventLogger:
-    @pytest.mark.asyncio
+
     async def test_when_handle_trap_is_called_it_should_log_config_change(
         self,
         caplog,
@@ -66,7 +65,7 @@ class TestCiscoConfigManEventLogger:
 
 
 class TestCiscoPimTrapLogger:
-    @pytest.mark.asyncio
+
     async def test_when_handle_trap_is_called_with_invalid_pim_register_it_should_log_it_correctly(
         self, caplog, localhost_trap_originator
     ):
@@ -89,7 +88,6 @@ class TestCiscoPimTrapLogger:
             await observer.handle_trap(trap=trap)
             assert "localhost PIM-invalid-register: from 10.0.0.1 group 10.0.0.2 RP 10.0.0.3" in caplog.text
 
-    @pytest.mark.asyncio
     async def test_when_trap_is_missing_error_origin_type_it_should_ignore_it(self, caplog, localhost_trap_originator):
         observer = CiscoPimTrapLogger(state=Mock())
         trap = TrapMessage(
@@ -109,7 +107,6 @@ class TestCiscoPimTrapLogger:
             await observer.handle_trap(trap=trap)
             assert "PIM-invalid" not in caplog.text
 
-    @pytest.mark.asyncio
     async def test_when_trap_error_origin_type_is_not_ipv4_it_should_ignore_it(self, caplog, localhost_trap_originator):
         observer = CiscoPimTrapLogger(state=Mock())
         trap = TrapMessage(
@@ -132,7 +129,7 @@ class TestCiscoPimTrapLogger:
 
 
 class TestOspfIfConfigErrorLogger:
-    @pytest.mark.asyncio
+
     async def test_when_handle_trap_is_called_with_ospf_config_error_it_should_log_it_correctly(
         self, caplog, localhost_trap_originator
     ):

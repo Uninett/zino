@@ -51,7 +51,7 @@ class TestParseIP:
 
 
 class TestReverseDNS:
-    @pytest.mark.asyncio
+
     async def test_should_return_reverse_dns_for_valid_ip(self, mock_dnsresolver):
         valid_ip = "8.8.8.8"
         reverse_dns_value = "reverse.dns.example.com"
@@ -69,7 +69,6 @@ class TestReverseDNS:
         result = await reverse_dns(valid_ip)
         assert result == reverse_dns_value
 
-    @pytest.mark.asyncio
     async def test_should_return_none_for_invalid_ip(self, mock_dnsresolver):
         invalid_ip = "0.0.0.0"
 

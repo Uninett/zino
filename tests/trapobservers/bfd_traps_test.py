@@ -11,7 +11,7 @@ from zino.trapobservers.bfd_traps import BFDTrapObserver
 
 
 class TestBFDTrapObserver:
-    @pytest.mark.asyncio
+
     async def test_when_bfd_trap_is_received_it_should_poll_all_affected_sessions(
         self, bfd_session_down_trap, monkeypatch, event_loop
     ):
@@ -27,7 +27,6 @@ class TestBFDTrapObserver:
 
         assert bfdtask_run.call_count == 4
 
-    @pytest.mark.asyncio
     async def test_when_polldevs_config_is_missing_it_should_do_nothing(
         self, bfd_session_down_trap, monkeypatch, event_loop
     ):
@@ -41,7 +40,6 @@ class TestBFDTrapObserver:
 
         assert bfdtask_run.call_count == 0
 
-    @pytest.mark.asyncio
     async def test_when_malformed_bfd_trap_is_received_it_should_log_and_return(
         self,
         malformed_bfd_session_down_trap,

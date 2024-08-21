@@ -2,8 +2,6 @@ import logging
 from datetime import timedelta
 from unittest.mock import Mock, patch
 
-import pytest
-
 from zino import flaps
 from zino.config.models import PollDevice
 from zino.statemodels import FlapState, InterfaceState, PortStateEvent
@@ -19,7 +17,7 @@ OID_IFOPERSTATUS = ".1.3.6.1.2.1.2.2.1.8"
 
 
 class TestLinkTrapObserver:
-    @pytest.mark.asyncio
+
     async def test_when_link_down_is_received_it_should_create_portstate_event(
         self, state_with_localhost_with_port, localhost_receiver
     ):
@@ -37,7 +35,6 @@ class TestLinkTrapObserver:
             "localhost", 1, PortStateEvent
         ), "no portstate event was created"
 
-    @pytest.mark.asyncio
     async def test_when_port_does_not_match_watch_pattern_it_should_ignore_link_traps(
         self, state_with_localhost_with_port, localhost_receiver
     ):
@@ -57,7 +54,6 @@ class TestLinkTrapObserver:
             "localhost", 1, PortStateEvent
         ), "linkDown for non-watched port was not ignored"
 
-    @pytest.mark.asyncio
     async def test_when_port_matches_ignore_pattern_it_should_ignore_link_traps(
         self, state_with_localhost_with_port, localhost_receiver
     ):
@@ -104,7 +100,6 @@ class TestLinkTrapObserver:
             localhost, localhost.ports[1], is_up=False
         ), "did not ignore redundant linkDown trap"
 
-    @pytest.mark.asyncio
     async def test_when_link_trap_is_missing_ifindex_value_it_should_ignore_trap_early(
         self, state_with_localhost_with_port
     ):
@@ -114,7 +109,6 @@ class TestLinkTrapObserver:
             assert not await observer.handle_trap(trap)
             assert not handle_link_transition.called, "handle_link_transition was called"
 
-    @pytest.mark.asyncio
     async def test_when_link_trap_refers_to_unknown_port_it_should_ignore_trap_early(
         self, state_with_localhost_with_port
     ):

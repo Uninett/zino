@@ -27,7 +27,6 @@ class TestTrapReceiver:
         receiver.add_community("public")
         assert len(receiver._communities) == 1
 
-    @pytest.mark.asyncio
     async def test_when_trap_lacks_trap_oid_it_should_be_ignored(self, localhost_receiver):
         trap = TrapMessage(agent=TrapOriginator(address=ipaddress.ip_address("127.0.0.1"), port=666))
         trap.variables.append(
@@ -42,7 +41,6 @@ class TestTrapReceiver:
         )
         assert not TrapReceiver._verify_trap(trap)
 
-    @pytest.mark.asyncio
     async def test_when_trap_lacks_sysuptime_it_should_be_ignored(self, localhost_receiver):
         trap = TrapMessage(agent=TrapOriginator(address=ipaddress.ip_address("127.0.0.1"), port=666))
         trap.variables.append(
@@ -57,7 +55,6 @@ class TestTrapReceiver:
         )
         assert not TrapReceiver._verify_trap(trap)
 
-    @pytest.mark.asyncio
     async def test_when_trap_observer_wants_no_traps_auto_subscribe_should_ignore_it(self, localhost_receiver):
         class MockObserver(TrapObserver):
             WANTED_TRAPS = set()
@@ -65,7 +62,6 @@ class TestTrapReceiver:
         localhost_receiver.auto_subscribe_observers()
         assert not any(isinstance(observer, MockObserver) for observer in localhost_receiver._observers.values())
 
-    @pytest.mark.asyncio
     async def test_when_called_multiple_times_auto_subscribe_should_not_add_duplicates(self, localhost_receiver):
         """The same observer class should not be subscribed more than once for the same trap"""
 
@@ -86,7 +82,7 @@ class TestTrapReceiver:
 
 @pytest.mark.skipif(not shutil.which("snmptrap"), reason="Cannot find snmptrap command line program")
 class TestTrapReceiverExternally:
-    @pytest.mark.asyncio
+
     async def test_when_trap_is_from_unknown_device_it_should_ignore_it(self, event_loop, caplog):
         receiver = TrapReceiver(address="127.0.0.1", port=1162, loop=event_loop)
         receiver.add_community("public")
@@ -99,21 +95,18 @@ class TestTrapReceiverExternally:
         finally:
             receiver.close()
 
-    @pytest.mark.asyncio
     async def test_when_trap_is_from_known_device_it_should_log_it(self, localhost_receiver, caplog):
         with caplog.at_level(logging.DEBUG):
             await send_trap_externally(OID_COLD_START, OID_SYSNAME_0, "s", "'MockDevice'")
             assert "Trap from localhost" in caplog.text
             assert OID_COLD_START in caplog.text
 
-    @pytest.mark.asyncio
     async def test_when_observer_is_added_and_trap_matches_it_should_call_it(self, localhost_receiver):
         observer = Mock()
         localhost_receiver.observe(observer, ("SNMPv2-MIB", "coldStart"))
         await send_trap_externally(OID_COLD_START, OID_SYSNAME_0, "s", "'MockDevice'")
         assert observer.handle_trap.called
 
-    @pytest.mark.asyncio
     async def test_when_observer_raises_unhandled_exception_it_should_log_it(self, localhost_receiver, caplog):
         crashing_observer = Mock()
         crashing_observer.handle_trap.side_effect = ValueError("mocked exception")
@@ -124,7 +117,6 @@ class TestTrapReceiverExternally:
             assert "ValueError" in caplog.text
             assert "mocked exception" in caplog.text
 
-    @pytest.mark.asyncio
     async def test_when_early_observer_returns_false_it_should_not_call_later_observers(
         self, localhost_receiver, event_loop
     ):
@@ -151,7 +143,6 @@ class TestTrapReceiverExternally:
         assert early_observer.handle_trap.called
         assert not late_observer.handle_trap.called
 
-    @pytest.mark.asyncio
     async def test_when_conversion_of_varbind_to_python_object_fails_it_should_set_value_to_none(
         self, localhost_receiver
     ):
@@ -162,7 +153,6 @@ class TestTrapReceiverExternally:
                 trap = mock_dispatch.call_args.args[0]
                 assert all(var.value is None for var in trap.variables)
 
-    @pytest.mark.asyncio
     async def test_when_trap_verification_fails_it_should_not_dispatch_trap(self, localhost_receiver):
         with patch.object(localhost_receiver, "_verify_trap", return_value=False):
             with patch.object(localhost_receiver, "dispatch_trap") as mock_dispatch:

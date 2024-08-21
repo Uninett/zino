@@ -8,7 +8,7 @@ from zino.tasks.vendor import VendorTask
 
 
 class TestVendorTask:
-    @pytest.mark.asyncio
+
     async def test_run_should_set_enterprise_id(self, snmpsim, snmp_test_port):
         device = PollDevice(name="localhost", address="127.0.0.1", community="public", port=snmp_test_port)
         state = ZinoState()
@@ -18,7 +18,6 @@ class TestVendorTask:
         # The "public" test fixture is from an HP switch
         assert state.devices[device.name].enterprise_id == 11
 
-    @pytest.mark.asyncio
     async def test_run_should_raise_exception_when_there_is_no_response(self):
         device = PollDevice(name="localhost", address="127.0.0.1", community="invalid", port=666)
         state = ZinoState()

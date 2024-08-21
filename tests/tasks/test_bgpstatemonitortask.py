@@ -20,12 +20,11 @@ DEFAULT_UPTIME = 250
 
 
 class TestBGPStateMonitorTask:
-    @pytest.mark.asyncio
+
     @pytest.mark.parametrize("task", ["public", "juniper-bgp", "cisco-bgp", "general-bgp"], indirect=True)
     async def test_task_runs_without_errors(self, task):
         assert (await task.run()) is None
 
-    @pytest.mark.asyncio
     @pytest.mark.parametrize("task", ["missing-info-bgp"], indirect=True)
     async def test_task_logs_missing_information(self, task, caplog):
         """Tests that the BGP state monitor task logs if necessary information for a BGP device is missing"""
@@ -34,7 +33,6 @@ class TestBGPStateMonitorTask:
 
         assert f"router {task.device.name} misses BGP variables" in caplog.text
 
-    @pytest.mark.asyncio
     @pytest.mark.parametrize(
         "task", ["general-bgp-external-reset", "cisco-bgp-external-reset", "juniper-bgp-external-reset"], indirect=True
     )
@@ -57,7 +55,6 @@ class TestBGPStateMonitorTask:
         assert event.remote_as == DEFAULT_REMOTE_AS
         assert event.peer_uptime == DEFAULT_UPTIME
 
-    @pytest.mark.asyncio
     @pytest.mark.parametrize(
         "task", ["general-bgp-external-reset", "cisco-bgp-external-reset", "juniper-bgp-external-reset"], indirect=True
     )
@@ -90,7 +87,6 @@ class TestBGPStateMonitorTask:
         assert event.remote_as == DEFAULT_REMOTE_AS
         assert event.peer_uptime == DEFAULT_UPTIME
 
-    @pytest.mark.asyncio
     @pytest.mark.parametrize(
         "task", ["general-bgp-admin-down", "cisco-bgp-admin-down", "juniper-bgp-admin-down"], indirect=True
     )
@@ -117,7 +113,6 @@ class TestBGPStateMonitorTask:
         assert event.remote_as == DEFAULT_REMOTE_AS
         assert event.peer_uptime == 0
 
-    @pytest.mark.asyncio
     @pytest.mark.parametrize(
         "task", ["general-bgp-admin-up", "cisco-bgp-admin-up", "juniper-bgp-admin-up"], indirect=True
     )
@@ -157,7 +152,6 @@ class TestBGPStateMonitorTask:
         assert event.remote_as == DEFAULT_REMOTE_AS
         assert event.peer_uptime == 0
 
-    @pytest.mark.asyncio
     @pytest.mark.parametrize(
         "task", ["general-bgp-oper-down", "cisco-bgp-oper-down", "juniper-bgp-oper-down"], indirect=True
     )
@@ -183,7 +177,6 @@ class TestBGPStateMonitorTask:
         assert event.remote_as == DEFAULT_REMOTE_AS
         assert event.peer_uptime == 1000000
 
-    @pytest.mark.asyncio
     @pytest.mark.parametrize(
         "task", ["general-bgp-oper-down", "cisco-bgp-oper-down", "juniper-bgp-oper-down"], indirect=True
     )
@@ -203,7 +196,6 @@ class TestBGPStateMonitorTask:
         assert event
         assert event.model_dump_json(exclude_none=True, indent=2, warnings="error")
 
-    @pytest.mark.asyncio
     @pytest.mark.parametrize(
         "task",
         ["general-bgp-oper-down-short", "cisco-bgp-oper-down-short", "juniper-bgp-oper-down-short"],
@@ -235,49 +227,42 @@ class TestBGPStateMonitorTask:
 
 
 class TestGetBGPStyle:
-    @pytest.mark.asyncio
+
     @pytest.mark.parametrize("task", ["juniper-bgp"], indirect=True)
     async def test_get_bgp_style_returns_correct_style_for_juniper(self, task):
         assert (await task._get_bgp_style()) == BGPStyle.JUNIPER
 
-    @pytest.mark.asyncio
     @pytest.mark.parametrize("task", ["cisco-bgp"], indirect=True)
     async def test_get_bgp_style_returns_correct_style_for_cisco(self, task):
         assert (await task._get_bgp_style()) == BGPStyle.CISCO
 
-    @pytest.mark.asyncio
     @pytest.mark.parametrize("task", ["general-bgp"], indirect=True)
     async def test_get_bgp_style_returns_correct_style_for_general(self, task):
         assert (await task._get_bgp_style()) == BGPStyle.GENERAL
 
-    @pytest.mark.asyncio
     @pytest.mark.parametrize("task", ["public"], indirect=True)
     async def test_get_bgp_style_returns_correct_style_for_non_bgp_task(self, task):
         assert (await task._get_bgp_style()) is None
 
 
 class TestGetLocalAs:
-    @pytest.mark.asyncio
+
     @pytest.mark.parametrize("task", ["juniper-bgp"], indirect=True)
     async def test_get_local_as_returns_correct_value_for_juniper(self, task):
         assert (await task._get_local_as(bgp_style=BGPStyle.JUNIPER)) == 10
 
-    @pytest.mark.asyncio
     @pytest.mark.parametrize("task", ["cisco-bgp"], indirect=True)
     async def test_get_local_as_returns_correct_value_for_cisco(self, task):
         assert (await task._get_local_as(bgp_style=BGPStyle.CISCO)) == 10
 
-    @pytest.mark.asyncio
     @pytest.mark.parametrize("task", ["general-bgp"], indirect=True)
     async def test_get_local_as_returns_correct_value_for_general(self, task):
         assert (await task._get_local_as(bgp_style=BGPStyle.GENERAL)) == 10
 
-    @pytest.mark.asyncio
     @pytest.mark.parametrize("task", ["public"], indirect=True)
     async def test_get_local_as_returns_none_for_non_existent_local_as(self, task):
         assert (await task._get_local_as(bgp_style=BGPStyle.GENERAL)) is None
 
-    @pytest.mark.asyncio
     @pytest.mark.parametrize("task", ["public"], indirect=True)
     async def test_get_local_as_returns_none_for_non_existent_local_as_with_juniper_bgp_style(self, task):
         assert (await task._get_local_as(bgp_style=BGPStyle.JUNIPER)) is None

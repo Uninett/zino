@@ -9,12 +9,11 @@ from zino.tasks.addrs import AddressMapTask, validate_ipaddr
 
 
 class TestAddressMapTask:
-    @pytest.mark.asyncio
+
     async def test_it_should_run_without_error_on_reachable_device(self, address_task_with_dummy_device):
         result = await address_task_with_dummy_device.run()
         assert result is None
 
-    @pytest.mark.asyncio
     async def test_get_addrs_should_find_addresses(self, address_task_with_dummy_device):
         result = await address_task_with_dummy_device._get_addrs()
         assert result == {
@@ -26,7 +25,6 @@ class TestAddressMapTask:
             IPv4Address("128.0.0.4"),
         }
 
-    @pytest.mark.asyncio
     async def test_when_address_is_removed_it_should_update_the_state_accordingly(self, address_task_with_dummy_device):
         dead_address = IPv4Address("192.0.168.42")
 
@@ -40,7 +38,6 @@ class TestAddressMapTask:
         assert dead_address not in device.addresses
         assert dead_address not in state.addresses
 
-    @pytest.mark.asyncio
     async def test_when_address_is_taken_from_other_device_it_should_update_the_state_accordingly(
         self, address_task_with_dummy_device
     ):
