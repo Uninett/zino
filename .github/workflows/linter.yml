@@ -2,7 +2,10 @@
 # MegaLinter GitHub Action configuration file
 # More info at https://megalinter.io
 name: MegaLinter
-on: [push, pull_request]
+on:
+  push:
+    branches: "master"
+  pull_request:
 
 jobs:
   megalinter:
