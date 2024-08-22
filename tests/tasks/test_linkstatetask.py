@@ -15,13 +15,12 @@ from zino.tasks.linkstatetask import (
 
 
 class TestLinkStateTask:
-    @pytest.mark.asyncio
+
     async def test_run_should_not_create_event_if_links_are_up(self, linkstatetask_with_links_up):
         task = linkstatetask_with_links_up
         assert (await task.run()) is None
         assert len(task.state.events) == 0
 
-    @pytest.mark.asyncio
     async def test_run_should_create_event_if_at_least_one_link_is_down(self, linkstatetask_with_one_link_down):
         task = linkstatetask_with_one_link_down
         assert (await task.run()) is None
@@ -92,7 +91,6 @@ class TestBaseInterfaceRow:
         row = BaseInterfaceRow(index=42, descr="x", alias="x", admin_status="x", oper_status="x", last_change=0)
         assert row.is_sane()
 
-    @pytest.mark.asyncio
     async def test_poll_single_interface_should_update_state(self, linkstatetask_with_one_link_down):
         target_index = 2
         await linkstatetask_with_one_link_down.poll_single_interface(target_index)
@@ -104,7 +102,6 @@ class TestBaseInterfaceRow:
         assert port.ifdescr == "2"
         assert port.ifalias == "from a famous"
 
-    @pytest.mark.asyncio
     async def test_when_ifindex_is_1_poll_single_interface_should_not_crash(self, linkstatetask_with_one_link_down):
         """Regression test.  poll_single_interface constructs a GET-NEXT request by asking for the set of next values
         after ifindex-1 - but 0 indexes are illegal when encoding OIDs into tables.
@@ -112,7 +109,6 @@ class TestBaseInterfaceRow:
         target_index = 1
         assert await linkstatetask_with_one_link_down.poll_single_interface(target_index) is None
 
-    @pytest.mark.asyncio
     async def test_when_timeout_occurs_poll_single_interface_should_not_crash(self, linkstatetask_with_one_link_down):
         with patch.object(linkstatetask_with_one_link_down.snmp, "getnext2") as mock_getnext2:
             mock_getnext2.side_effect = TimeoutError

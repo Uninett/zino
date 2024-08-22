@@ -62,7 +62,6 @@ class TestZino1BaseServerProtocol:
         assert fake_transport.write.called
         assert fake_transport.write.call_args[0][0].startswith(b"200 ")
 
-    @pytest.mark.asyncio
     async def test_when_simple_data_line_is_received_then_command_should_be_dispatched(self):
         args = []
 
@@ -94,7 +93,6 @@ class TestZino1BaseServerProtocol:
 
         assert fake_transport.close.called
 
-    @pytest.mark.asyncio
     async def test_read_multiline_should_return_data_as_future(self):
         protocol = Zino1BaseServerProtocol()
         fake_transport = Mock()
@@ -108,7 +106,6 @@ class TestZino1BaseServerProtocol:
         assert data == ["line one", "line two"]
 
     @pytest.mark.timeout(5)
-    @pytest.mark.asyncio
     async def test_data_received_should_break_down_multiline_input_packets_with_cr_and_lf(self):
         protocol = Zino1BaseServerProtocol()
         fake_transport = Mock()
@@ -120,7 +117,6 @@ class TestZino1BaseServerProtocol:
         assert data == ["line one", "line two"]
 
     @pytest.mark.timeout(5)
-    @pytest.mark.asyncio
     async def test_data_received_should_break_down_multiline_input_packets_with_just_lf(self):
         protocol = Zino1BaseServerProtocol()
         fake_transport = Mock()
@@ -155,7 +151,6 @@ class TestZino1BaseServerProtocol:
         assert fake_transport.write.called
         assert fake_transport.write.call_args[0][0].startswith(b"500 ")
 
-    @pytest.mark.asyncio
     async def test_when_privileged_command_is_requested_by_authenticated_client_then_response_should_be_ok(self):
         class TestProtocol(Zino1BaseServerProtocol):
             @requires_authentication
@@ -198,7 +193,6 @@ class TestZino1BaseServerProtocol:
         assert b"arg1" in response, "arguments are not mentioned in response"
         assert b"arg2" in response, "arguments are not mentioned in response"
 
-    @pytest.mark.asyncio
     async def test_when_command_has_too_many_args_then_it_should_ignore_the_extraneous_args(self):
         class TestProtocol(Zino1BaseServerProtocol):
             async def do_foo(self, arg1, arg2):
@@ -229,7 +223,6 @@ class TestZino1BaseServerProtocol:
         responder, args = protocol._get_responder("FOO BAR")
         assert responder.name == "FOO BAR"
 
-    @pytest.mark.asyncio
     async def test_when_command_raises_unhandled_exception_then_error_response_should_be_sent(
         self, buffered_fake_transport
     ):
@@ -239,7 +232,6 @@ class TestZino1BaseServerProtocol:
         await protocol.message_received("RAISEERROR")
         assert b"500 internal error" in buffered_fake_transport.data_buffer.getvalue()
 
-    @pytest.mark.asyncio
     async def test_when_command_raises_unhandled_exception_then_exception_should_be_logged(
         self, buffered_fake_transport, caplog
     ):
@@ -268,7 +260,7 @@ class TestZino1BaseServerProtocol:
 
 
 class TestZino1ServerProtocolTranslateCaseIdToEvent:
-    @pytest.mark.asyncio
+
     async def test_when_caseid_exists_it_should_return_event_object(self):
         args = []
 
@@ -289,7 +281,6 @@ class TestZino1ServerProtocolTranslateCaseIdToEvent:
 
         assert args[0] is test_event
 
-    @pytest.mark.asyncio
     async def test_when_caseid_doesnt_exist_the_return_value_should_be_awaitable(self):
         class TestProtocol(Zino1ServerProtocol):
             @Zino1ServerProtocol._translate_case_id_to_event
@@ -305,7 +296,7 @@ class TestZino1ServerProtocolTranslateCaseIdToEvent:
 
 
 class TestZino1ServerProtocolUserCommand:
-    @pytest.mark.asyncio
+
     async def test_when_correct_authentication_is_given_then_response_should_be_ok(self, secrets_file):
         protocol = Zino1ServerProtocol(secrets_file=secrets_file)
         fake_transport = Mock()
@@ -319,7 +310,6 @@ class TestZino1ServerProtocolUserCommand:
         assert response.startswith(b"200 ")
         assert protocol.is_authenticated
 
-    @pytest.mark.asyncio
     async def test_when_incorrect_authentication_is_given_then_response_should_be_error(self, secrets_file):
         protocol = Zino1ServerProtocol(secrets_file=secrets_file)
         fake_transport = Mock()
@@ -332,7 +322,6 @@ class TestZino1ServerProtocolUserCommand:
         assert response.startswith(b"500")
         assert not protocol.is_authenticated
 
-    @pytest.mark.asyncio
     async def test_when_authentication_is_attempted_more_than_once_then_response_should_be_error(self, secrets_file):
         protocol = Zino1ServerProtocol(secrets_file=secrets_file)
         fake_transport = Mock()
@@ -350,14 +339,14 @@ class TestZino1ServerProtocolUserCommand:
 
 
 class TestZino1ServerProtocolQuitCommand:
-    @pytest.mark.asyncio
+
     async def test_when_quit_is_issued_then_transport_should_be_closed(self, authenticated_protocol):
         await authenticated_protocol.message_received("QUIT")
         assert authenticated_protocol.transport.close.called
 
 
 class TestZino1ServerProtocolHelpCommand:
-    @pytest.mark.asyncio
+
     async def test_when_unauthenticated_help_is_issued_then_unauthenticated_top_level_commands_should_be_listed(
         self, buffered_fake_transport
     ):
@@ -376,7 +365,6 @@ class TestZino1ServerProtocolHelpCommand:
                 command_name.encode() in buffered_fake_transport.data_buffer.getvalue()
             ), f"{command_name} is not listed in HELP"
 
-    @pytest.mark.asyncio
     async def test_when_authenticated_help_is_issued_then_all_top_level_commands_should_be_listed(
         self, authenticated_protocol
     ):
@@ -390,7 +378,7 @@ class TestZino1ServerProtocolHelpCommand:
 
 
 class TestZino1ServerProtocolCaseidsCommand:
-    @pytest.mark.asyncio
+
     async def test_should_output_a_list_of_known_event_ids(self, authenticated_protocol):
         state = authenticated_protocol._state
         event1 = state.events.create_event("foo", None, ReachabilityEvent)
@@ -404,7 +392,6 @@ class TestZino1ServerProtocolCaseidsCommand:
         assert f"{event1.id}\r\n".encode() in output
         assert f"{event2.id}\r\n".encode() in output
 
-    @pytest.mark.asyncio
     async def test_should_output_a_list_of_only_ids_of_non_closed_events(self, authenticated_protocol):
         state = authenticated_protocol._state
         event1 = state.events.create_event("foo", None, ReachabilityEvent)
@@ -421,7 +408,7 @@ class TestZino1ServerProtocolCaseidsCommand:
 
 
 class TestZino1ServerProtocolVersionCommand:
-    @pytest.mark.asyncio
+
     async def test_should_output_current_version(self, buffered_fake_transport):
         protocol = Zino1ServerProtocol()
         protocol.connection_made(buffered_fake_transport)
@@ -434,7 +421,7 @@ class TestZino1ServerProtocolVersionCommand:
 
 
 class TestZino1ServerProtocolGetattrsCommand:
-    @pytest.mark.asyncio
+
     async def test_should_output_correct_attrs(self, authenticated_protocol):
         state = authenticated_protocol._state
         event1 = state.events.create_event("foo", None, ReachabilityEvent)
@@ -447,14 +434,12 @@ class TestZino1ServerProtocolGetattrsCommand:
         assert f"router: {event1.router}\r\n" in output
         assert f"state: {event1.state.value}\r\n" in output
 
-    @pytest.mark.asyncio
     async def test_when_caseid_is_invalid_it_should_output_error(self, authenticated_protocol):
         await authenticated_protocol.message_received("GETATTRS 42")
 
         output = authenticated_protocol.transport.data_buffer.getvalue().decode()
         assert "\r\n500 " in output
 
-    @pytest.mark.asyncio
     async def test_should_output_correct_attrs_for_alias(self, authenticated_protocol):
         state = authenticated_protocol._state
         event1 = state.events.create_event("foo", IPv4Address("127.0.0.1"), BGPEvent)
@@ -473,7 +458,7 @@ class TestZino1ServerProtocolGetattrsCommand:
 
 
 class TestZino1ServerProtocolGethistCommand:
-    @pytest.mark.asyncio
+
     async def test_should_output_all_lines(self, authenticated_protocol):
         state = authenticated_protocol._state
         event = state.events.create_event("foo", None, ReachabilityEvent)
@@ -491,7 +476,6 @@ class TestZino1ServerProtocolGethistCommand:
         assert lines[-1] == "."
         assert all(line[0].isdigit() or line.startswith(" ") for line in lines[:-1])
 
-    @pytest.mark.asyncio
     async def test_when_caseid_is_invalid_it_should_output_error(self, authenticated_protocol):
         await authenticated_protocol.message_received("GETHIST 999")
 
@@ -500,7 +484,7 @@ class TestZino1ServerProtocolGethistCommand:
 
 
 class TestZino1ServerProtocolGetlogCommand:
-    @pytest.mark.asyncio
+
     async def test_should_output_all_lines(self, authenticated_protocol):
         state = authenticated_protocol._state
         event = state.events.create_event("foo", None, ReachabilityEvent)
@@ -518,7 +502,6 @@ class TestZino1ServerProtocolGetlogCommand:
         assert lines[-1] == "."
         assert all(line[0].isdigit() or line.startswith(" ") for line in lines[:-1])
 
-    @pytest.mark.asyncio
     async def test_when_caseid_is_invalid_it_should_output_error(self, authenticated_protocol):
         await authenticated_protocol.message_received("GETLOG 999")
 
@@ -527,7 +510,7 @@ class TestZino1ServerProtocolGetlogCommand:
 
 
 class TestZino1ServerProtocolAddhistCommand:
-    @pytest.mark.asyncio
+
     async def test_should_add_history_entry_to_event(self, authenticated_protocol, event_loop):
         state = authenticated_protocol._state
         event = state.events.create_event("foo", None, ReachabilityEvent)
@@ -544,7 +527,6 @@ class TestZino1ServerProtocolAddhistCommand:
             committed_event = state.events[event.id]
             assert len(committed_event.history) > pre_count
 
-    @pytest.mark.asyncio
     async def test_should_prefix_history_message_with_username(self, authenticated_protocol, event_loop):
         state = authenticated_protocol._state
         event = state.events.create_event("foo", None, ReachabilityEvent)
@@ -561,7 +543,6 @@ class TestZino1ServerProtocolAddhistCommand:
             entry = committed_event.history[-1]
             assert entry.message.startswith(authenticated_protocol.user)
 
-    @pytest.mark.asyncio
     async def test_when_caseid_is_invalid_it_should_output_error(self, authenticated_protocol):
         await authenticated_protocol.message_received("ADDHIST 999")
 
@@ -570,14 +551,13 @@ class TestZino1ServerProtocolAddhistCommand:
 
 
 class TestZino1ServerProtocolSetstateCommand:
-    @pytest.mark.asyncio
+
     async def test_when_caseid_is_invalid_it_should_output_error(self, authenticated_protocol):
         await authenticated_protocol.message_received("SETSTATE 999 ignored")
 
         output = authenticated_protocol.transport.data_buffer.getvalue().decode()
         assert "\r\n500 " in output
 
-    @pytest.mark.asyncio
     async def test_when_state_is_invalid_it_should_output_error(self, authenticated_protocol):
         state = authenticated_protocol._state
         event = state.events.create_event("foo", None, ReachabilityEvent)
@@ -588,7 +568,6 @@ class TestZino1ServerProtocolSetstateCommand:
         output = authenticated_protocol.transport.data_buffer.getvalue().decode()
         assert "\r\n500 " in output
 
-    @pytest.mark.asyncio
     async def test_when_event_is_closed_it_should_output_error_and_stay_closed(self, authenticated_protocol):
         state = authenticated_protocol._state
         event = state.events.create_event("foo", None, ReachabilityEvent)
@@ -603,7 +582,6 @@ class TestZino1ServerProtocolSetstateCommand:
         event = state.events[event.id]
         assert event.state == EventState.CLOSED
 
-    @pytest.mark.asyncio
     async def test_when_caseid_and_state_is_valid_event_state_should_be_changed(self, authenticated_protocol):
         state = authenticated_protocol._state
         event = state.events.create_event("foo", None, ReachabilityEvent)
@@ -617,7 +595,6 @@ class TestZino1ServerProtocolSetstateCommand:
         updated_event = state.events[event.id]
         assert updated_event.state == EventState.IGNORED
 
-    @pytest.mark.asyncio
     async def test_when_caseid_and_state_is_valid_event_history_should_contain_username(self, authenticated_protocol):
         state = authenticated_protocol._state
         event = state.events.create_event("foo", None, ReachabilityEvent)
@@ -634,7 +611,7 @@ class TestZino1ServerProtocolSetstateCommand:
 
 
 class TestZino1ServerProtocolCommunityCommand:
-    @pytest.mark.asyncio
+
     async def test_should_output_community_for_router(self, authenticated_protocol):
         router_name = "buick.lab.example.org"
         community = "public"
@@ -652,7 +629,6 @@ class TestZino1ServerProtocolCommunityCommand:
         output = authenticated_protocol.transport.data_buffer.getvalue()
         assert f"201 {device.community}\r\n".encode() in output
 
-    @pytest.mark.asyncio
     async def test_should_output_error_response_for_unknown_router(self, authenticated_protocol):
         await authenticated_protocol.message_received("COMMUNITY unknown.router.example.org")
 
@@ -661,7 +637,7 @@ class TestZino1ServerProtocolCommunityCommand:
 
 
 class TestZino1ServerProtocolNtieCommand:
-    @pytest.mark.asyncio
+
     async def test_when_nonce_is_bogus_it_should_respond_with_error(self, event_loop, authenticated_protocol):
         server = ZinoServer(loop=event_loop, state=ZinoState(), polldevs=dict())
         server.notification_channels = dict()  # Ensure there are none for this test
@@ -672,7 +648,6 @@ class TestZino1ServerProtocolNtieCommand:
         output = authenticated_protocol.transport.data_buffer.getvalue().decode()
         assert "\r\n500 " in output
 
-    @pytest.mark.asyncio
     async def test_when_nonce_exists_it_should_respond_with_ok(self, event_loop, authenticated_protocol):
         server = ZinoServer(loop=event_loop, state=ZinoState(), polldevs=dict())
         nonce = get_challenge()
@@ -685,7 +660,6 @@ class TestZino1ServerProtocolNtieCommand:
         output = authenticated_protocol.transport.data_buffer.getvalue().decode()
         assert "\r\n200 " in output
 
-    @pytest.mark.asyncio
     async def test_when_nonce_exists_it_should_tie_the_corresponding_channel(self, event_loop, authenticated_protocol):
         server = ZinoServer(loop=event_loop, state=ZinoState(), polldevs=dict())
         nonce = get_challenge()
@@ -699,7 +673,7 @@ class TestZino1ServerProtocolNtieCommand:
 
 
 class TestZino1ServerProtocolPollrtrCommand:
-    @pytest.mark.asyncio
+
     async def test_should_add_run_all_tasks_job(self, authenticated_protocol):
         router_name = "buick.lab.example.org"
         community = "public"
@@ -722,7 +696,6 @@ class TestZino1ServerProtocolPollrtrCommand:
         assert "200 ok\r\n".encode() in output
         assert mock_scheduler.add_job.called
 
-    @pytest.mark.asyncio
     async def test_should_output_error_response_for_unknown_router(self, authenticated_protocol):
         unknown_router = "unknown.router.example.org"
         await authenticated_protocol.message_received(f"POLLRTR {unknown_router}")
@@ -732,7 +705,7 @@ class TestZino1ServerProtocolPollrtrCommand:
 
 
 class TestZino1ServerProtocolPollintfCommand:
-    @pytest.mark.asyncio
+
     async def test_should_call_poll_single_interface(self, authenticated_protocol):
         router_name = "buick.lab.example.org"
         community = "public"
@@ -754,7 +727,6 @@ class TestZino1ServerProtocolPollintfCommand:
         assert "200 ok\r\n".encode() in output
         assert mock_schedule_verification.called
 
-    @pytest.mark.asyncio
     async def test_should_output_error_response_for_unknown_router(self, authenticated_protocol):
         unknown_router = "unknown.router.example.org"
         await authenticated_protocol.message_received(f"POLLINTF {unknown_router} 1")
@@ -762,7 +734,6 @@ class TestZino1ServerProtocolPollintfCommand:
         output = authenticated_protocol.transport.data_buffer.getvalue()
         assert f"500 Router {unknown_router} unknown\r\n".encode() in output
 
-    @pytest.mark.asyncio
     async def test_should_output_error_response_for_invalid_ifindex(self, authenticated_protocol):
         router_name = "buick.lab.example.org"
         community = "public"
@@ -781,7 +752,7 @@ class TestZino1ServerProtocolPollintfCommand:
 
 
 class TestZino1ServerProtocolClearflapCommand:
-    @pytest.mark.asyncio
+
     async def test_it_should_set_event_flapstate_to_stable_and_respond_with_ok(self, authenticated_protocol):
         # Arrange bigly
         router_name = "buick.lab.example.org"
@@ -817,7 +788,6 @@ class TestZino1ServerProtocolClearflapCommand:
         assert updated_event
         assert updated_event.flapstate == FlapState.STABLE
 
-    @pytest.mark.asyncio
     async def test_it_should_output_error_response_for_unknown_router(self, authenticated_protocol):
         unknown_router = "unknown.router.example.org"
         await authenticated_protocol.message_received(f"CLEARFLAP {unknown_router} 1")
@@ -825,7 +795,6 @@ class TestZino1ServerProtocolClearflapCommand:
         output = authenticated_protocol.transport.data_buffer.getvalue()
         assert f"500 Router {unknown_router} unknown\r\n".encode() in output
 
-    @pytest.mark.asyncio
     async def test_it_should_output_error_response_for_invalid_ifindex(self, authenticated_protocol):
         router_name = "buick.lab.example.org"
         community = "public"
@@ -845,7 +814,7 @@ class TestZino1ServerProtocolClearflapCommand:
 
 
 class TestZino1TestProtocol:
-    @pytest.mark.asyncio
+
     async def test_when_authenticated_then_authtest_should_respond_with_ok(self):
         protocol = ZinoTestProtocol()
         fake_transport = Mock()
@@ -857,7 +826,6 @@ class TestZino1TestProtocol:
         assert fake_transport.write.called
         assert fake_transport.write.call_args[0][0].startswith(b"200 ")
 
-    @pytest.mark.asyncio
     async def test_multitest_should_accept_multiline_input(self, buffered_fake_transport, event_loop):
         class MockProtocol(ZinoTestProtocol):
             def _read_multiline(self):
@@ -874,7 +842,7 @@ class TestZino1TestProtocol:
 
 
 class TestZino1ServerProtocolPmCommand:
-    @pytest.mark.asyncio
+
     async def test_it_should_always_return_a_500_error(self, authenticated_protocol):
         await authenticated_protocol.message_received("PM")
 
@@ -882,7 +850,7 @@ class TestZino1ServerProtocolPmCommand:
 
 
 class TestZino1ServerProtocolPmHelpCommand:
-    @pytest.mark.asyncio
+
     async def test_when_authenticated_pm_help_is_issued_then_all_pm_subcommands_should_be_listed(
         self, authenticated_protocol
     ):
@@ -900,7 +868,7 @@ class TestZino1ServerProtocolPmHelpCommand:
 
 
 class TestZino1ServerProtocolPmListCommand:
-    @pytest.mark.asyncio
+
     async def test_when_authenticated_should_list_all_pm_ids(
         self, authenticated_protocol, active_device_pm, active_portstate_pm
     ):
@@ -922,7 +890,7 @@ class TestZino1ServerProtocolPmListCommand:
 
 
 class TestZino1ServerProtocolPmCancelCommand:
-    @pytest.mark.asyncio
+
     async def test_when_authenticated_should_cancel_pm(self, authenticated_protocol, active_device_pm):
         planned_maintenances = authenticated_protocol._state.planned_maintenances.planned_maintenances
         planned_maintenances[active_device_pm.id] = active_device_pm
@@ -935,7 +903,6 @@ class TestZino1ServerProtocolPmCancelCommand:
         log_messages = [log.message for log in active_device_pm.log]
         assert f"PM closed by {authenticated_protocol.user}: PM cancelled" in log_messages
 
-    @pytest.mark.asyncio
     async def test_when_authenticated_should_do_nothing_for_ended_pm(self, authenticated_protocol, ended_pm):
         planned_maintenances = authenticated_protocol._state.planned_maintenances.planned_maintenances
         await authenticated_protocol.message_received(f"PM CANCEL {ended_pm.id}")
@@ -949,7 +916,7 @@ class TestZino1ServerProtocolPmCancelCommand:
 
 
 class TestZino1ServerProtocolPmAddLogCommand:
-    @pytest.mark.asyncio
+
     async def test_should_add_log_entry_to_pm(self, authenticated_protocol, active_device_pm, event_loop):
         planned_maintenances = authenticated_protocol._state.planned_maintenances.planned_maintenances
         planned_maintenances[active_device_pm.id] = active_device_pm
@@ -969,7 +936,7 @@ class TestZino1ServerProtocolPmAddLogCommand:
 
 
 class TestZino1ServerProtocolPmLogCommand:
-    @pytest.mark.asyncio
+
     async def test_should_output_pm_log(self, authenticated_protocol, active_device_pm):
         planned_maintenances = authenticated_protocol._state.planned_maintenances.planned_maintenances
         planned_maintenances[active_device_pm.id] = active_device_pm
@@ -990,7 +957,7 @@ class TestZino1ServerProtocolPmLogCommand:
 
 
 class TestZino1ServerProtocolPmDetailsCommand:
-    @pytest.mark.asyncio
+
     async def test_when_authenticated_should_output_device_pm_details(self, authenticated_protocol, active_device_pm):
         planned_maintenances = authenticated_protocol._state.planned_maintenances.planned_maintenances
         planned_maintenances[active_device_pm.id] = active_device_pm
@@ -1014,7 +981,6 @@ class TestZino1ServerProtocolPmDetailsCommand:
             active_device_pm.match_expression in response
         ), f"Expected response to contain match expression {active_device_pm.match_expression}"
 
-    @pytest.mark.asyncio
     async def test_when_authenticated_should_output_portstate_pm_details(
         self, authenticated_protocol, active_portstate_pm
     ):
@@ -1047,7 +1013,7 @@ class TestZino1ServerProtocolPmDetailsCommand:
 
 
 class TestZino1ServerProtocolPmAddCommand:
-    @pytest.mark.asyncio
+
     async def test_when_authenticated_should_create_device_pm(self, authenticated_protocol):
         planned_maintenances = authenticated_protocol._state.planned_maintenances.planned_maintenances
         start_time = int((now() + timedelta(minutes=10)).timestamp())
@@ -1065,7 +1031,6 @@ class TestZino1ServerProtocolPmAddCommand:
         assert pm_id, "Expected response to contain PM successfully added message"
         assert planned_maintenances.get(int(pm_id), None)
 
-    @pytest.mark.asyncio
     async def test_when_authenticated_should_create_portstate_pm(self, authenticated_protocol):
         planned_maintenances = authenticated_protocol._state.planned_maintenances.planned_maintenances
         start_time = int((now() + timedelta(minutes=10)).timestamp())
@@ -1083,7 +1048,6 @@ class TestZino1ServerProtocolPmAddCommand:
         assert pm_id, "Expected response to contain PM successfully added message"
         assert planned_maintenances.get(int(pm_id), None)
 
-    @pytest.mark.asyncio
     async def test_when_authenticated_should_create_portstate_pm_with_interface_regexp(self, authenticated_protocol):
         planned_maintenances = authenticated_protocol._state.planned_maintenances.planned_maintenances
         start_time = int((now() + timedelta(minutes=10)).timestamp())
@@ -1102,7 +1066,6 @@ class TestZino1ServerProtocolPmAddCommand:
         assert pm_id, "Expected response to contain PM successfully added message"
         assert planned_maintenances.get(int(pm_id), None)
 
-    @pytest.mark.asyncio
     @pytest.mark.parametrize(
         "start_time,end_time,pm_type,match_type,args,expected_error",
         [
@@ -1186,7 +1149,7 @@ class TestZino1ServerProtocolPmAddCommand:
 
 
 class TestZino1ServerProtocolPmMatchingCommand:
-    @pytest.mark.asyncio
+
     async def test_when_authenticated_should_output_matching_devices(
         self, authenticated_protocol, state_with_localhost, active_device_pm
     ):
@@ -1207,7 +1170,6 @@ class TestZino1ServerProtocolPmMatchingCommand:
             for line in lines
         )
 
-    @pytest.mark.asyncio
     async def test_when_authenticated_should_not_output_non_matching_devices(
         self, authenticated_protocol, state_with_localhost, active_device_pm
     ):
@@ -1228,7 +1190,6 @@ class TestZino1ServerProtocolPmMatchingCommand:
             for line in lines
         )
 
-    @pytest.mark.asyncio
     async def test_when_authenticated_should_output_matching_ports(
         self, authenticated_protocol, state_with_localhost_with_port, active_portstate_pm
     ):
@@ -1252,7 +1213,6 @@ class TestZino1ServerProtocolPmMatchingCommand:
             for line in lines
         )
 
-    @pytest.mark.asyncio
     async def test_when_authenticated_should_not_output_non_matching_ports(
         self, authenticated_protocol, state_with_localhost_with_port, active_portstate_pm
     ):

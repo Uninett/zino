@@ -9,11 +9,10 @@ from zino.tasks.task import Task
 
 
 class TestRunAllTasks:
-    @pytest.mark.asyncio
+
     async def test_does_not_raise_error_if_device_is_unreachable(self, unreachable_task):
         assert (await run_all_tasks(unreachable_task.device, unreachable_task.state)) is None
 
-    @pytest.mark.asyncio
     async def test_when_one_task_raises_device_unreachable_it_should_not_run_further_tasks(
         self, raising_task, non_raising_task
     ):
@@ -27,7 +26,7 @@ class TestRunAllTasks:
 
 
 class TestRunRegisteredTasks:
-    @pytest.mark.asyncio
+
     async def test_raises_error_if_device_is_unreachable(self, unreachable_task):
         """The rest of the registered tasks are cancelled as a result of this"""
         with pytest.raises(DeviceUnreachableError):

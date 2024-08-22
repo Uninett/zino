@@ -253,7 +253,7 @@ def state_with_flapstats_and_portstate_event(state_with_flapstats) -> ZinoState:
 
 
 class TestAgeSingleInterfaceFlappingState:
-    @pytest.mark.asyncio
+
     async def test_it_should_decrease_hist_val(self, state_with_flapstats, polldevs_dict):
         port: Port = next(iter(state_with_flapstats.devices.devices["localhost"].ports.values()))
         flapping_state = state_with_flapstats.flapping.interfaces[("localhost", port.ifindex)]
@@ -264,7 +264,6 @@ class TestAgeSingleInterfaceFlappingState:
         )
         assert flapping_state.hist_val < initial
 
-    @pytest.mark.asyncio
     async def test_when_flap_is_below_threshold_it_should_remove_flapping_state(
         self, mocked_out_poll_single_interface, state_with_flapstats, polldevs_dict
     ):
@@ -280,7 +279,7 @@ class TestAgeSingleInterfaceFlappingState:
 
 
 class TestStabilizeFlappingState:
-    @pytest.mark.asyncio
+
     async def test_when_no_event_exists_it_should_create_an_event(
         self, mocked_out_poll_single_interface, state_with_flapstats, polldevs_dict
     ):
@@ -296,7 +295,6 @@ class TestStabilizeFlappingState:
 
         assert len(state_with_flapstats.events.events) > 0
 
-    @pytest.mark.asyncio
     async def test_when_a_matching_event_exists_it_should_set_its_flapstate_to_stable(
         self, mocked_out_poll_single_interface, state_with_flapstats, polldevs_dict
     ):
@@ -325,7 +323,6 @@ class TestStabilizeFlappingState:
         assert updated_event
         assert updated_event.flapstate == FlapState.STABLE
 
-    @pytest.mark.asyncio
     async def test_when_a_matching_closed_event_exists_it_should_set_its_flapstate_to_stable(
         self, mocked_out_poll_single_interface, state_with_flapstats, polldevs_dict
     ):
@@ -356,7 +353,6 @@ class TestStabilizeFlappingState:
         assert closed_event
         assert closed_event.flapstate == FlapState.STABLE
 
-    @pytest.mark.asyncio
     async def test_when_port_is_unkown_it_should_still_log_the_change(
         self,
         mocked_out_poll_single_interface,
@@ -377,7 +373,6 @@ class TestStabilizeFlappingState:
         assert f"{fake_ifindex} stopped flapping" in caplog.text
 
 
-@pytest.mark.asyncio
 async def test_age_flapping_states_should_age_all_flapping_states(monkeypatch, event_loop):
     future = event_loop.create_future()
     future.set_result(None)

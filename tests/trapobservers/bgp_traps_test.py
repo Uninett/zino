@@ -10,7 +10,7 @@ from zino.trapobservers.bgp_traps import BgpTrapObserver
 
 
 class TestBgpTrapObserver:
-    @pytest.mark.asyncio
+
     async def test_when_backward_transition_trap_is_received_it_should_change_bgp_peer_state(
         self, backward_transition_trap
     ):
@@ -23,7 +23,6 @@ class TestBgpTrapObserver:
         assert len(device.bgp_peers) == 1
         assert device.bgp_peers[peer].oper_state == BGPOperState.ACTIVE
 
-    @pytest.mark.asyncio
     async def test_when_trap_is_missing_required_varbinds_it_should_do_nothing(self, backward_transition_trap):
         device = backward_transition_trap.agent.device
         peer = next(iter(device.bgp_peers.keys()))
@@ -36,7 +35,6 @@ class TestBgpTrapObserver:
         assert len(device.bgp_peers) == 1
         assert device.bgp_peers[peer].oper_state == BGPOperState.ESTABLISHED
 
-    @pytest.mark.asyncio
     async def test_when_trap_has_invalid_remote_addr_it_should_do_nothing(self, backward_transition_trap):
         device = backward_transition_trap.agent.device
         peer = next(iter(device.bgp_peers.keys()))
@@ -48,7 +46,6 @@ class TestBgpTrapObserver:
         assert len(device.bgp_peers) == 1
         assert device.bgp_peers[peer].oper_state == BGPOperState.ESTABLISHED
 
-    @pytest.mark.asyncio
     async def test_when_trap_has_invalid_oper_state_it_should_do_nothing(self, backward_transition_trap):
         device = backward_transition_trap.agent.device
         peer = next(iter(device.bgp_peers.keys()))
@@ -60,7 +57,6 @@ class TestBgpTrapObserver:
         assert len(device.bgp_peers) == 1
         assert device.bgp_peers[peer].oper_state == BGPOperState.ESTABLISHED
 
-    @pytest.mark.asyncio
     async def test_when_established_trap_is_received_it_should_just_log_it(self, established_trap, caplog):
         """This requirement is disputed until Håvard E confirms it"""
         observer = BgpTrapObserver(state=Mock())
@@ -68,7 +64,6 @@ class TestBgpTrapObserver:
             await observer.handle_trap(trap=established_trap)
             assert "BGP peer up" in caplog.text
 
-    @pytest.mark.asyncio
     async def test_when_trap_is_unknown_it_should_pass_it_on(self, established_trap):
         established_trap.name = "FOOBAR"
         observer = BgpTrapObserver(state=Mock())

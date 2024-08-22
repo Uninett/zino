@@ -8,7 +8,7 @@ from zino.tasks.reachabletask import ReachableTask
 
 
 class TestTask:
-    @pytest.mark.asyncio
+
     async def test_get_sysuptime_returns_uptime(self, snmpsim, snmp_test_port):
         device = PollDevice(
             name="buick.lab.example.org",
@@ -21,7 +21,6 @@ class TestTask:
         uptime = await task._get_uptime()
         assert uptime
 
-    @pytest.mark.asyncio
     async def test_get_sysuptime_raises_timeout_error(self):
         device = PollDevice(name="nonexist", address="127.0.0.1", community="invalid", port=666)
         state = ZinoState()
