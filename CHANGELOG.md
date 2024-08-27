@@ -12,6 +12,41 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) and the chang
 
 <!-- towncrier release notes start -->
 
+## [UNRELEASED]
+
+
+### Added
+
+- Added full implementation of the `CLEARFLAP` API command ([#113](https://github.com/Uninett/zino/issues/113))
+- Log warning if `secrets` file is world-readable ([#280](https://github.com/Uninett/zino/issues/280))
+- Added customized logging of multiple traps, just as in Zino1:
+  - `CISCOTRAP-MIB::reload`
+  - `CISCO-CONFIG-MAN-MIB::ciscoConfigManEvent`
+  - `CISCO-PIM-MIB::ciscoPimInvalidRegister`
+  - `CISCO-PIM-MIB::ciscoPimInvalidJoinPrune`
+  - `OSPF-TRAP-MIB::ospfIfConfigError`
+
+  ([#319](https://github.com/Uninett/zino/issues/319))
+- Custom logging configuration can now be applied in `zino.toml`
+
+### Changed
+
+- Rename/alias BGP and Juniper alarm event attributes ([#352](https://github.com/Uninett/zino/issues/352))
+
+### Fixed
+
+- Properly use dashes in event attribute names in the legacy API ([#281](https://github.com/Uninett/zino/issues/281))
+- Use Zino1 field names for serialization of planned maintenance ([#287](https://github.com/Uninett/zino/issues/287))
+- Match against port alias instead of port description when match_type is "regexp" or "str" for portstate maintenance events. Still matches port description for "intf-regexp". ([#297](https://github.com/Uninett/zino/issues/297))
+- Fix BGP-related Pydantic serialization warnings ([#312](https://github.com/Uninett/zino/issues/312))
+- Stop logging empty interface descriptions on first discovery ([#314](https://github.com/Uninett/zino/issues/314))
+- Reschedule devices whose configuration attributes where changed in the pollfile ([#330](https://github.com/Uninett/zino/issues/330))
+- Use Zino1 field names for serialization of BGP/BFD events ([#331](https://github.com/Uninett/zino/issues/331))
+- Use default interval from pollfile to stagger new jobs ([#337](https://github.com/Uninett/zino/issues/337))
+- When matching an event to a planned maintenance check that event is of the correct subclass ([#344](https://github.com/Uninett/zino/issues/344))
+- Properly encode timedelta values as an integer number of seconds in the legacy API
+
+
 ## [2.0.0-beta.1] - 2024-07-09
 
 
