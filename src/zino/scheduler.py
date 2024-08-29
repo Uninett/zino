@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import operator
+import pathlib
 from datetime import datetime, timedelta
 from typing import Sequence, Set, Tuple
 
@@ -41,13 +42,23 @@ def get_scheduler() -> AsyncIOScheduler:
 
 @log_time_spent()
 def load_polldevs(polldevs_conf: str) -> Tuple[Set, Set, Set, dict[str, str]]:
-    """Loads pollfile into process state.
+    """Loads pollfile into process state if it was changed since the last time it
+    was loaded
 
     :returns: A tuple of (new_devices, deleted_devices, changed_devices, default_settings)
     """
     try:
+        modified_time = pathlib.Path(polldevs_conf).stat().st_mtime
+    except OSError as error:
+        _log.error(error)
+        return set(), set(), set(), dict()
+
+    if modified_time == state.pollfile_mtime:
+        return set(), set(), set(), dict()
+
+    try:
         devices, defaults = read_polldevs(polldevs_conf)
-    except InvalidConfiguration as error:
+    except (InvalidConfiguration, OSError) as error:
         _log.error(error)
         return set(), set(), set(), dict()
 
@@ -67,6 +78,8 @@ def load_polldevs(polldevs_conf: str) -> Tuple[Set, Set, Set, dict[str, str]]:
     state.polldevs.update(devices)
     for device in deleted_devices:
         del state.polldevs[device]
+
+    state.pollfile_mtime = modified_time
 
     return new_devices, deleted_devices, changed_devices, defaults
 

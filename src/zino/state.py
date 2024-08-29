@@ -25,6 +25,9 @@ state: "ZinoState" = None
 
 config: Configuration = Configuration()
 
+# Last time the pollfile was modified
+pollfile_mtime: Optional[float] = None
+
 
 class ZinoState(BaseModel):
     """Holds all state that Zino needs to persist between runtimes"""

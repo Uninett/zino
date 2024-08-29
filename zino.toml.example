@@ -22,7 +22,7 @@ period = 5
 # default "polldevs.cf"
 file = "polldevs.cf"
 
-# How often the pollfile is read, in minutes
+# How often the pollfile is checked for changes, in minutes
 # default 1 min
 period = 1
 
