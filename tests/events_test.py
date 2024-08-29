@@ -271,3 +271,25 @@ class TestEvents:
 
         assert new_event.lasttrans is None
         assert new_event.ac_down is None
+
+    def test_record_downtime_should_not_update_event_if_downtime_is_calculated_to_zero_or_less(self, monkeypatch):
+        events = Events()
+        old_event = events.get_or_create_event("foobar", None, ReachabilityEvent)
+        old_event.reachability = ReachabilityState.NORESPONSE
+        events.commit(old_event)
+
+        # Make now() return same value as lasttrans so record_downtime
+        # calculates a timedelta of 0
+        lasttrans = now()
+        mocked_now = Mock(return_value=lasttrans)
+        monkeypatch.setattr("zino.events.now", mocked_now)
+
+        new_event = events.checkout(old_event.id)
+        new_event.reachability = ReachabilityState.REACHABLE
+        new_event.lasttrans = lasttrans
+        new_event.ac_down = None
+
+        events.record_downtime(new_event, old_event)
+
+        assert new_event.lasttrans == lasttrans
+        assert new_event.ac_down is None
