@@ -1,3 +1,4 @@
+from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
@@ -5,13 +6,14 @@ import pytest
 from zino.config.models import PollDevice
 from zino.oid import OID
 from zino.state import ZinoState
-from zino.statemodels import InterfaceState, Port
+from zino.statemodels import InterfaceState, Port, PortStateEvent
 from zino.tasks.linkstatetask import (
     BaseInterfaceRow,
     CollectedInterfaceDataIsNotSaneError,
     LinkStateTask,
     MissingInterfaceTableData,
 )
+from zino.time import now
 
 
 class TestLinkStateTask:
@@ -77,6 +79,97 @@ class TestLinkStateTask:
             is None
         )
 
+    @pytest.mark.asyncio
+    async def test_should_set_lasttrans_for_new_portstate_event(self, linkstatetask_with_one_link_down):
+        task = linkstatetask_with_one_link_down
+        await task.run()
+        event = task.state.events.get(task.device.name, 2, PortStateEvent)
+        assert event.lasttrans
+
+    @pytest.mark.asyncio
+    async def test_should_update_lasttrans_for_portstate_event_going_from_down_to_up(self, linkstatetask_with_links_up):
+        task = linkstatetask_with_links_up
+        initial_lasttrans = now() - timedelta(minutes=5)
+
+        device = task.device_state
+        device.ports.update({1: Port(ifindex=1, ifdescr="1", ifalias="from a famous", state=InterfaceState.DOWN)})
+
+        event = task.state.events.create_event(task.device.name, 1, PortStateEvent)
+        event.ifindex = 1
+        event.portstate = InterfaceState.DOWN
+        event.lasttrans = initial_lasttrans
+        task.state.events.commit(event)
+
+        assert (await task.run()) is None
+        updated_event = task.state.events[event.id]
+        assert updated_event.portstate == InterfaceState.UP
+        assert updated_event.lasttrans > initial_lasttrans
+
+    @pytest.mark.asyncio
+    async def test_should_update_lasttrans_for_portstate_event_going_from_down_to_admindown(
+        self, linkstatetask_with_admin_down
+    ):
+        task = linkstatetask_with_admin_down
+        initial_lasttrans = now() - timedelta(minutes=5)
+
+        device = task.device_state
+        device.ports.update({1: Port(ifindex=1, ifdescr="1", ifalias="from a famous", state=InterfaceState.DOWN)})
+
+        event = task.state.events.create_event(task.device.name, 1, PortStateEvent)
+        event.ifindex = 1
+        event.portstate = InterfaceState.DOWN
+        event.lasttrans = initial_lasttrans
+        task.state.events.commit(event)
+
+        assert (await task.run()) is None
+        updated_event = task.state.events[event.id]
+        assert updated_event.portstate == InterfaceState.ADMIN_DOWN
+        assert updated_event.lasttrans > initial_lasttrans
+
+    @pytest.mark.asyncio
+    async def test_should_update_ac_down_for_portstate_event_going_from_down_to_up(self, linkstatetask_with_links_up):
+        task = linkstatetask_with_links_up
+        initial_lasttrans = now() - timedelta(minutes=5)
+        initial_ac_down = timedelta(0)
+
+        device = task.device_state
+        device.ports.update({1: Port(ifindex=1, ifdescr="1", ifalias="from a famous", state=InterfaceState.DOWN)})
+
+        event = task.state.events.create_event(task.device.name, 1, PortStateEvent)
+        event.ifindex = 1
+        event.portstate = InterfaceState.DOWN
+        event.ac_down = initial_ac_down
+        event.lasttrans = initial_lasttrans
+        task.state.events.commit(event)
+
+        assert (await task.run()) is None
+        updated_event = task.state.events[event.id]
+        assert updated_event.portstate == InterfaceState.UP
+        assert updated_event.ac_down > initial_ac_down
+
+    @pytest.mark.asyncio
+    async def test_should_update_ac_down_for_portstate_event_going_from_down_to_admin_down(
+        self, linkstatetask_with_admin_down
+    ):
+        task = linkstatetask_with_admin_down
+        initial_lasttrans = now() - timedelta(minutes=5)
+        initial_ac_down = timedelta(0)
+
+        device = task.device_state
+        device.ports.update({1: Port(ifindex=1, ifdescr="1", ifalias="alias", state=InterfaceState.DOWN)})
+
+        event = task.state.events.create_event(task.device.name, 1, PortStateEvent)
+        event.ifindex = 1
+        event.portstate = InterfaceState.DOWN
+        event.ac_down = initial_ac_down
+        event.lasttrans = initial_lasttrans
+        task.state.events.commit(event)
+
+        assert (await task.run()) is None
+        updated_event = task.state.events[event.id]
+        assert updated_event.portstate == InterfaceState.ADMIN_DOWN
+        assert updated_event.ac_down > initial_ac_down
+
 
 class TestBaseInterfaceRow:
     def test_when_index_is_missing_is_sane_should_return_false(self):
@@ -126,6 +219,16 @@ def linkstatetask_with_links_up(snmpsim, snmp_test_port):
 @pytest.fixture
 def linkstatetask_with_one_link_down(snmpsim, snmp_test_port):
     device = PollDevice(name="buick.lab.example.org", address="127.0.0.1", port=snmp_test_port, community="linksdown")
+    state = ZinoState()
+    task = LinkStateTask(device, state)
+    yield task
+
+
+@pytest.fixture
+def linkstatetask_with_admin_down(snmpsim, snmp_test_port):
+    device = PollDevice(
+        name="buick.lab.example.org", address="127.0.0.1", port=snmp_test_port, community="linksadmindown"
+    )
     state = ZinoState()
     task = LinkStateTask(device, state)
     yield task
