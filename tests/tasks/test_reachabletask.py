@@ -36,6 +36,7 @@ class TestReachableTask:
         task = reachable_task
         event = task.state.events.create_event(task.device.name, None, ReachabilityEvent)
         event.reachability = ReachabilityState.NORESPONSE
+        event.lasttrans = now() - timedelta(minutes=5)
         task.state.events.commit(event)
 
         assert (await task.run()) is None
@@ -57,6 +58,7 @@ class TestReachableTask:
         task = reachable_task
         event = task.state.events.create_event(task.device.name, None, ReachabilityEvent)
         event.reachability = ReachabilityState.NORESPONSE
+        event.lasttrans = now() - timedelta(minutes=5)
         task.state.events.commit(event)
 
         assert (await task._run_extra_job()) is None
