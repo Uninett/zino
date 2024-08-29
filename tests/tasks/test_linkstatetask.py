@@ -80,14 +80,14 @@ class TestLinkStateTask:
         )
 
     @pytest.mark.asyncio
-    async def test_should_set_lasttrans_for_new_portstate_event(self, linkstatetask_with_one_link_down):
+    async def test_when_event_is_new_it_should_set_lasttrans(self, linkstatetask_with_one_link_down):
         task = linkstatetask_with_one_link_down
         await task.run()
         event = task.state.events.get(task.device.name, 2, PortStateEvent)
         assert event.lasttrans
 
     @pytest.mark.asyncio
-    async def test_should_update_lasttrans_for_portstate_event_going_from_down_to_up(self, linkstatetask_with_links_up):
+    async def test_when_event_transitions_from_to_up_it_should_update_lasttrans(self, linkstatetask_with_links_up):
         task = linkstatetask_with_links_up
         initial_lasttrans = now() - timedelta(minutes=5)
 
@@ -106,7 +106,7 @@ class TestLinkStateTask:
         assert updated_event.lasttrans > initial_lasttrans
 
     @pytest.mark.asyncio
-    async def test_should_update_lasttrans_for_portstate_event_going_from_down_to_admindown(
+    async def test_when_event_transitions_from_down_to_admindown_it_should_update_lasttrans(
         self, linkstatetask_with_admin_down
     ):
         task = linkstatetask_with_admin_down
@@ -127,7 +127,7 @@ class TestLinkStateTask:
         assert updated_event.lasttrans > initial_lasttrans
 
     @pytest.mark.asyncio
-    async def test_should_update_ac_down_for_portstate_event_going_from_down_to_up(self, linkstatetask_with_links_up):
+    async def test_when_event_transitions_from_down_to_up_it_should_update_ac_down(self, linkstatetask_with_links_up):
         task = linkstatetask_with_links_up
         initial_lasttrans = now() - timedelta(minutes=5)
         initial_ac_down = timedelta(0)
@@ -148,7 +148,7 @@ class TestLinkStateTask:
         assert updated_event.ac_down > initial_ac_down
 
     @pytest.mark.asyncio
-    async def test_should_update_ac_down_for_portstate_event_going_from_down_to_admin_down(
+    async def test_when_event_transitions_from_down_to_admindown_it_should_update_ac_down(
         self, linkstatetask_with_admin_down
     ):
         task = linkstatetask_with_admin_down

@@ -73,7 +73,7 @@ class TestReachableTask:
         assert event.reachability == ReachabilityState.NORESPONSE
 
     @pytest.mark.asyncio
-    async def test_should_set_lasttrans_for_new_reachable_event(self, unreachable_task):
+    async def test_when_event_is_new_it_should_set_lasttrans(self, unreachable_task):
         task = unreachable_task
         with pytest.raises(DeviceUnreachableError):
             await task.run()
@@ -81,7 +81,7 @@ class TestReachableTask:
         assert event.lasttrans
 
     @pytest.mark.asyncio
-    async def test_should_update_lasttrans_for_reachable_event_going_from_no_response_to_reachable(
+    async def test_when_event_transitions_from_no_response_to_reachable_it_should_update_lasttrans(
         self, reachable_task
     ):
         task = reachable_task
@@ -98,7 +98,7 @@ class TestReachableTask:
         assert updated_event.lasttrans > initial_lasttrans
 
     @pytest.mark.asyncio
-    async def test_should_update_lasttrans_for_reachable_event_going_from_reachable_to_no_response(
+    async def test_when_event_transitions_from_reachable_to_no_response_it_should_update_lasttrans(
         self, unreachable_task
     ):
         task = unreachable_task
@@ -116,7 +116,7 @@ class TestReachableTask:
         assert updated_event.lasttrans > initial_lasttrans
 
     @pytest.mark.asyncio
-    async def test_should_update_ac_down_for_reachable_event_going_from_no_response_to_reachable(self, reachable_task):
+    async def test_when_event_transitions_from_no_response_to_reachable_it_should_update_ac_down(self, reachable_task):
         task = reachable_task
         initial_ac_down = timedelta(0)
         initial_lasttrans = now() - timedelta(minutes=5)

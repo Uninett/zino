@@ -119,7 +119,7 @@ class TestLinkTrapObserver:
             assert not await observer.handle_trap(trap)
             assert not handle_link_transition.called, "handle_link_transition was called"
 
-    async def test_should_set_lasttrans_for_new_portstate_event(
+    async def test_when_event_is_new_it_should_set_lasttrans(
         self, state_with_localhost_with_port, localhost_receiver
     ):
         assert not state_with_localhost_with_port.events.get(
@@ -262,7 +262,7 @@ class TestLinkTrapObserverHandleLinkTransitions:
 
         assert index not in state_with_localhost_with_port.flapping.interfaces
 
-    def test_when_link_transitions_from_up_to_flapping_lasttrans_for_related_event_should_be_updated(
+    def test_when_link_transitions_from_up_to_flapping_it_should_update_lasttrans_for_related_event(
         self, state_with_localhost_with_port
     ):
         observer = LinkTrapObserver(state=state_with_localhost_with_port, polldevs={})
@@ -287,7 +287,7 @@ class TestLinkTrapObserverHandleLinkTransitions:
         assert updated_event.portstate == InterfaceState.DOWN
         assert updated_event.lasttrans > initial_lasttrans
 
-    async def test_when_link_transitions_from_flapping_to_up_lasttrans_for_related_event_should_be_updated(
+    async def test_when_link_transitions_from_flapping_to_up_it_should_update_lasttrans_for_related_event(
         self, state_with_localhost_with_port
     ):
         observer = LinkTrapObserver(state=state_with_localhost_with_port, polldevs={})
@@ -314,7 +314,7 @@ class TestLinkTrapObserverHandleLinkTransitions:
         assert updated_event.portstate == InterfaceState.UP
         assert updated_event.lasttrans > initial_lasttrans
 
-    async def test_when_link_transitions_from_flapping_to_up_ac_down_for_related_event_should_be_updated(
+    async def test_when_link_transitions_from_flapping_to_up_it_should_update_ac_down_for_related_event(
         self, state_with_localhost_with_port
     ):
         observer = LinkTrapObserver(state=state_with_localhost_with_port, polldevs={})

@@ -256,7 +256,7 @@ class TestEvents:
         index = EventIndex("foobar", None, ReachabilityEvent)
         assert not events._events_by_index.get(index)
 
-    def test_record_downtime_should_not_update_event_if_lasttrans_is_not_set(self):
+    def test_when_lasttrans_is_not_set_record_downtime_should_not_update_event(self):
         events = Events()
         old_event = events.get_or_create_event("foobar", None, ReachabilityEvent)
         old_event.reachability = ReachabilityState.NORESPONSE
@@ -272,7 +272,7 @@ class TestEvents:
         assert new_event.lasttrans is None
         assert new_event.ac_down is None
 
-    def test_record_downtime_should_not_update_event_if_downtime_is_calculated_to_zero_or_less(self, monkeypatch):
+    def test_when_downtime_is_calculated_to_zero_or_less_record_downtime_should_not_update_event(self, monkeypatch):
         events = Events()
         old_event = events.get_or_create_event("foobar", None, ReachabilityEvent)
         old_event.reachability = ReachabilityState.NORESPONSE
