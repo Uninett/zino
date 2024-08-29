@@ -133,7 +133,6 @@ underlines = ["", "", ""]
 title_format = "## [{version}] - {project_date}"
 issue_format = "[#{issue}](https://github.com/Uninett/zino/issues/{issue})"
 wrap = false
-ignore = [".gitkeep"]
 
 [[tool.towncrier.type]]
 directory = "security"
