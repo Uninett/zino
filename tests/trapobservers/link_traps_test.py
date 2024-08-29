@@ -119,9 +119,7 @@ class TestLinkTrapObserver:
             assert not await observer.handle_trap(trap)
             assert not handle_link_transition.called, "handle_link_transition was called"
 
-    async def test_when_event_is_new_it_should_set_lasttrans(
-        self, state_with_localhost_with_port, localhost_receiver
-    ):
+    async def test_when_event_is_new_it_should_set_lasttrans(self, state_with_localhost_with_port, localhost_receiver):
         assert not state_with_localhost_with_port.events.get(
             "localhost", 1, PortStateEvent
         ), "initial state should be empty"
