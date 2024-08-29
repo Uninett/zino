@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from zino.events import EventExistsError, EventIndex, Events
-from zino.statemodels import Event, EventState, ReachabilityEvent
+from zino.statemodels import Event, EventState, ReachabilityEvent, ReachabilityState
 from zino.time import now
 
 
@@ -255,3 +255,19 @@ class TestEvents:
 
         index = EventIndex("foobar", None, ReachabilityEvent)
         assert not events._events_by_index.get(index)
+
+    def test_record_downtime_should_not_update_event_if_lasttrans_is_not_set(self):
+        events = Events()
+        old_event = events.get_or_create_event("foobar", None, ReachabilityEvent)
+        old_event.reachability = ReachabilityState.NORESPONSE
+        events.commit(old_event)
+
+        new_event = events.checkout(old_event.id)
+        new_event.reachability = ReachabilityState.REACHABLE
+        new_event.lasttrans = None
+        new_event.ac_down = None
+
+        events.record_downtime(new_event, old_event)
+
+        assert new_event.lasttrans is None
+        assert new_event.ac_down is None
