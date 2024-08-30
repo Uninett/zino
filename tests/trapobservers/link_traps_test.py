@@ -119,6 +119,21 @@ class TestLinkTrapObserver:
             assert not await observer.handle_trap(trap)
             assert not handle_link_transition.called, "handle_link_transition was called"
 
+    async def test_when_event_is_new_it_should_set_lasttrans(self, state_with_localhost_with_port, localhost_receiver):
+        assert not state_with_localhost_with_port.events.get(
+            "localhost", 1, PortStateEvent
+        ), "initial state should be empty"
+
+        observer = LinkTrapObserver(
+            state=localhost_receiver.state, polldevs=localhost_receiver.polldevs, loop=localhost_receiver.loop
+        )
+        localhost_receiver.observe(observer, *LinkTrapObserver.WANTED_TRAPS)
+        await trapd_test.send_trap_externally(OID_LINKDOWN, OID_IFINDEX, "i", "1", OID_IFOPERSTATUS, "i", "2")
+
+        event = state_with_localhost_with_port.events.get("localhost", 1, PortStateEvent)
+        assert event.portstate == InterfaceState.DOWN
+        assert event.lasttrans, "lasttrans not set"
+
 
 class TestLinkTrapObserverHandleLinkTransitions:
     def test_when_port_is_ignored_by_patterns_it_should_not_create_portstate_event(
@@ -244,3 +259,84 @@ class TestLinkTrapObserverHandleLinkTransitions:
         observer.handle_link_transition(localhost, port, is_up=True)
 
         assert index not in state_with_localhost_with_port.flapping.interfaces
+
+    def test_when_link_transitions_from_up_to_flapping_it_should_update_lasttrans_for_related_event(
+        self, state_with_localhost_with_port
+    ):
+        observer = LinkTrapObserver(state=state_with_localhost_with_port, polldevs={})
+        localhost = state_with_localhost_with_port.devices.devices["localhost"]
+        port = next(iter(localhost.ports.values()))
+        flap = state_with_localhost_with_port.flapping.first_flap(("localhost", port.ifindex))
+        flap.hist_val = flaps.FLAP_THRESHOLD * 2
+
+        initial_lasttrans = now() - timedelta(minutes=5)
+        events = state_with_localhost_with_port.events
+        event = events.create_event("localhost", port.ifindex, PortStateEvent)
+        event.ifindex = port.ifindex
+        event.portstate = InterfaceState.UP
+        event.lasttrans = initial_lasttrans
+        events.commit(event)
+
+        observer.handle_link_transition(localhost, port, is_up=False)
+
+        updated_event = events[event.id]
+
+        assert updated_event.flapstate == FlapState.FLAPPING
+        assert updated_event.portstate == InterfaceState.DOWN
+        assert updated_event.lasttrans > initial_lasttrans
+
+    async def test_when_link_transitions_from_flapping_to_up_it_should_update_lasttrans_for_related_event(
+        self, state_with_localhost_with_port
+    ):
+        observer = LinkTrapObserver(state=state_with_localhost_with_port, polldevs={})
+        localhost = state_with_localhost_with_port.devices.devices["localhost"]
+        port = next(iter(localhost.ports.values()))
+        index = ("localhost", port.ifindex)
+        flap = state_with_localhost_with_port.flapping.first_flap(index)
+        flap.hist_val = flaps.FLAP_MIN - 1
+        flap.in_active_flap_state = True
+
+        initial_lasttrans = now() - timedelta(minutes=5)
+        events = state_with_localhost_with_port.events
+        event = events.create_event("localhost", port.ifindex, PortStateEvent)
+        event.ifindex = port.ifindex
+        event.flapstate = FlapState.FLAPPING
+        event.portstate = InterfaceState.DOWN
+        event.lasttrans = initial_lasttrans
+        events.commit(event)
+
+        observer.handle_link_transition(localhost, port, is_up=True)
+
+        updated_event = events[event.id]
+        assert updated_event.flapstate == FlapState.STABLE
+        assert updated_event.portstate == InterfaceState.UP
+        assert updated_event.lasttrans > initial_lasttrans
+
+    async def test_when_link_transitions_from_flapping_to_up_it_should_update_ac_down_for_related_event(
+        self, state_with_localhost_with_port
+    ):
+        observer = LinkTrapObserver(state=state_with_localhost_with_port, polldevs={})
+        localhost = state_with_localhost_with_port.devices.devices["localhost"]
+        port = next(iter(localhost.ports.values()))
+        index = ("localhost", port.ifindex)
+        flap = state_with_localhost_with_port.flapping.first_flap(index)
+        flap.hist_val = flaps.FLAP_MIN - 1
+        flap.in_active_flap_state = True
+
+        initial_lasttrans = now() - timedelta(minutes=5)
+        initial_ac_down = timedelta(0)
+        events = state_with_localhost_with_port.events
+        event = events.create_event("localhost", port.ifindex, PortStateEvent)
+        event.ifindex = port.ifindex
+        event.flapstate = FlapState.FLAPPING
+        event.portstate = InterfaceState.DOWN
+        event.ac_down = initial_ac_down
+        event.lasttrans = initial_lasttrans
+        events.commit(event)
+
+        observer.handle_link_transition(localhost, port, is_up=True)
+
+        updated_event = events[event.id]
+        assert updated_event.flapstate == FlapState.STABLE
+        assert updated_event.portstate == InterfaceState.UP
+        assert updated_event.ac_down > initial_ac_down

@@ -50,8 +50,10 @@ class ReachableTask(Task):
     def _update_reachability_event_as_reachable(self):
         event = self.state.events.get(self.device.name, None, ReachabilityEvent)
         if event and event.reachability != ReachabilityState.REACHABLE:
-            event.reachability = ReachabilityState.REACHABLE
+            event = self.state.events.checkout(event.id)
             event.add_log(f"{self.device.name} reachable")
+            event.reachability = ReachabilityState.REACHABLE
+            self.state.events.commit(event)
 
     def _schedule_extra_job(self):
         name = self._get_extra_job_name()

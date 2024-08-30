@@ -337,6 +337,13 @@ class Event(BaseModel):
         with open(filename, "w") as statefile:
             statefile.write(self.model_dump_json(exclude_none=True, indent=2))
 
+    def is_down(self) -> bool:
+        """Returns true if the event is in a down state.
+        What is considered a "down state" depends on the type of event,
+        but generally it means something like a device or a port is down.
+        """
+        return False
+
 
 class FlapState(StrEnum):
     FLAPPING = "flapping"
@@ -355,6 +362,13 @@ class PortStateEvent(Event):
     @property
     def subindex(self) -> SubIndex:
         return self.ifindex
+
+    def is_down(self) -> bool:
+        """Returns true if the event is in a down state.
+        A PortStateEvent is considered "down" if the port it is related to is
+        either down or in a flapping state.
+        """
+        return self.portstate in [InterfaceState.DOWN, InterfaceState.FLAPPING]
 
 
 class BGPEvent(Event):
@@ -387,6 +401,13 @@ class BFDEvent(Event):
 class ReachabilityEvent(Event):
     type: Literal["reachability"] = "reachability"
     reachability: Optional[ReachabilityState] = None
+
+    def is_down(self) -> bool:
+        """Returns true if the event is in a down state.
+        A ReachabilityEvent is considered "down" if the device it is related to
+        is not reachable.
+        """
+        return self.reachability == ReachabilityState.NORESPONSE
 
 
 class AlarmEvent(Event):

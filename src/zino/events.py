@@ -149,6 +149,7 @@ class Events(BaseModel):
             event.id = self.get_next_available_event_id()
         else:
             old_event = self.events[event.id]
+        self.record_downtime(event, old_event)
         index = EventIndex(event.router, event.subindex, type(event))
         self.events[event.id] = event
 
@@ -203,6 +204,28 @@ class Events(BaseModel):
     def _call_observers_for(self, new_event: Event, old_event: Optional[Event] = None):
         for observer in self._observers:
             observer(new_event=new_event, old_event=old_event)
+
+    def record_downtime(self, new_event: Event, old_event: Optional[Event] = None):
+        timestamp = now()
+        # Assume not initally down if this is a completely new event
+        is_initially_down = old_event.is_down() if old_event else False
+        # Entering up state
+        if is_initially_down and not new_event.is_down():
+            if not new_event.lasttrans:
+                _log.debug(f"Event {new_event.id} transitioned from down to up with no lasttrans value")
+                return
+
+            downtime = timestamp - new_event.lasttrans
+
+            # bogus, ignore
+            if downtime <= timedelta(0):
+                return
+
+            new_event.ac_down = (new_event.ac_down or timedelta(0)) + downtime
+            new_event.lasttrans = timestamp
+        # Entering down state
+        elif not is_initially_down and new_event.is_down():
+            new_event.lasttrans = timestamp
 
 
 class EventExistsError(Exception):
