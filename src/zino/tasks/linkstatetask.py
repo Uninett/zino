@@ -7,6 +7,7 @@ from typing import Any
 from zino.oid import OID
 from zino.scheduler import get_scheduler
 from zino.snmp import SparseWalkResponse
+from zino.state import config
 from zino.statemodels import InterfaceState, Port, PortStateEvent
 from zino.tasks.task import Task
 
@@ -116,6 +117,10 @@ class LinkStateTask(Task):
 
     def _make_or_update_state_event(self, port: Port, new_state: InterfaceState, last_change: int):
         event = self.state.events.get_or_create_event(self.device.name, port.ifindex, PortStateEvent)
+
+        if config.polling.suppress_initial_down_alarms and not event.id and new_state == InterfaceState.DOWN:
+            self.schedule_verification_of_single_port(port.ifindex)
+            return
 
         event.portstate = new_state
         event.port = port.ifdescr

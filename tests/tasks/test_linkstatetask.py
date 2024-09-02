@@ -28,6 +28,14 @@ class TestLinkStateTask:
         assert (await task.run()) is None
         assert len(task.state.events) == 1
 
+    async def test_run_should_not_create_event_if_suppress_initial_down_alarms_config_is_true(
+        self, linkstatetask_with_one_link_down
+    ):
+        task = linkstatetask_with_one_link_down
+        with patch("zino.state.config.polling.suppress_initial_down_alarms", True):
+            assert (await task.run()) is None
+        assert len(task.state.events) == 0
+
     def test_when_patterns_are_empty_interface_should_not_be_ignored(self, task_with_dummy_device):
         data = BaseInterfaceRow(
             index=2, descr="GigabitEthernet1/2", alias="uplink", admin_status="up", oper_status="up", last_change=0
