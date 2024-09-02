@@ -71,6 +71,7 @@ class Polling(BaseModel):
 
     file: ExistingFileName = POLLFILE
     period: int = 1
+    suppress_initial_down_alarms: bool = False
 
 
 class Configuration(BaseModel):

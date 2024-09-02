@@ -26,6 +26,10 @@ file = "polldevs.cf"
 # default 1 min
 period = 1
 
+# If on the first start of Zino interface-down alarms should be created
+# default False
+suppress_initial_down_alarms = False
+
 # Logging configuration is optional, but if specified, it will override the
 # default logging config of Zino.  This is a TOML representation of the default
 # logging configuration dictionary, whose full documentation is available at
