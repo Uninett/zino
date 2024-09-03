@@ -4,6 +4,7 @@ __all__ = ["polldevs", "ZinoState"]
 
 import json
 import logging
+import os
 from typing import Dict, Optional
 
 from pydantic import BaseModel, Field
@@ -42,8 +43,10 @@ class ZinoState(BaseModel):
     def dump_state_to_file(self, filename: str):
         """Dumps the full state to a file in JSON format"""
         _log.debug("dumping state to %s", filename)
-        with open(filename, "w") as statefile:
+        temp_file = f"{filename}.tmp"
+        with open(temp_file, "w") as statefile:
             statefile.write(self.model_dump_json(exclude_none=True, indent=2))
+        os.replace(src=temp_file, dst=filename)
 
     @classmethod
     @log_time_spent()
