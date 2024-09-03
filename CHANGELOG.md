@@ -12,6 +12,43 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) and the chang
 
 <!-- towncrier release notes start -->
 
+# ## [2.0.0-beta.2] - 2024-09-03
+
+### Added
+
+- Added full implementation of the `CLEARFLAP` API command ([#113](https://github.com/Uninett/zino/issues/113))
+- Log warning if `secrets` file is world-readable ([#280](https://github.com/Uninett/zino/issues/280))
+- Only load and parse pollfile if it has been changed since last load ([#282](https://github.com/Uninett/zino/issues/282))
+- Added customized logging of multiple traps, just as in Zino 1:
+  - `CISCOTRAP-MIB::reload`
+  - `CISCO-CONFIG-MAN-MIB::ciscoConfigManEvent`
+  - `CISCO-PIM-MIB::ciscoPimInvalidRegister`
+  - `CISCO-PIM-MIB::ciscoPimInvalidJoinPrune`
+  - `OSPF-TRAP-MIB::ospfIfConfigError`
+
+  ([#319](https://github.com/Uninett/zino/issues/319))
+- Added support for tracking accumulated event downtime for reachability and portstate events ([#332](https://github.com/Uninett/zino/issues/332))
+- Custom logging configuration can now be applied in `zino.toml`
+
+### Changed
+
+- Rename/alias BGP and Juniper alarm event attributes in order to have more useful variable names in Python code, while retaining aliases that are compatible with the legacy API protocol ([#352](https://github.com/Uninett/zino/issues/352))
+
+### Fixed
+
+- Properly use dashes in event attribute names in the legacy API ([#281](https://github.com/Uninett/zino/issues/281))
+- Use Zino 1-compatible field names for serialization of planned maintenance ([#287](https://github.com/Uninett/zino/issues/287))
+- Use Zino 1 field names for serialization of BGP/BFD events ([#331](https://github.com/Uninett/zino/issues/331))
+- Match against port alias instead of port description when `match_type` is `regexp` or `str` for portstate maintenance events. Still matches port description for `intf-regexp`. ([#297](https://github.com/Uninett/zino/issues/297))
+- Fix BGP-related Pydantic serialization warnings ([#312](https://github.com/Uninett/zino/issues/312))
+- Stop logging empty interface descriptions on first discovery ([#314](https://github.com/Uninett/zino/issues/314))
+- Reschedule devices whose configuration attributes where changed in the pollfile ([#330](https://github.com/Uninett/zino/issues/330))
+- Use default interval from pollfile to stagger new jobs ([#337](https://github.com/Uninett/zino/issues/337))
+- When matching an event to a planned maintenance, check that event is of the correct subclass ([#344](https://github.com/Uninett/zino/issues/344))
+- Avoid potential state corruption issues by saving the running state to a temporary file before overwriting the existing state file ([#364](https://github.com/Uninett/zino/issues/364))
+- Properly encode timedelta values as an integer number of seconds in the legacy API
+
+
 ## [2.0.0-beta.1] - 2024-07-09
 
 
