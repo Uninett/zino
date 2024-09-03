@@ -24,7 +24,6 @@ dependencies = [
     "apscheduler",
     "pydantic>=2.7.0",
     "pysnmplib",
-    "pyasn1<0.5.0",
     "aiodns",
     "tomli; python_version < '3.11'",
 ]
