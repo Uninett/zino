@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import argparse
 import asyncio
-import errno
 import grp
 import logging
 import logging.config
@@ -107,11 +106,10 @@ def init_event_loop(args: argparse.Namespace, loop: Optional[AbstractEventLoop] 
         try:
             loop.run_until_complete(trap_receiver.open())
         except PermissionError:
-            _log.fatal(
-                "Permission denied on UDP port %s. Use --trap-port to specify unprivileged port, or run as root",
-                args.trap_port,
+            sys.exit(
+                f"Permission denied on UDP port {args.trap_port}. Use --trap-port to specify unprivileged port, "
+                f"or run as root"
             )
-            sys.exit(errno.EACCES)
     if args.user:
         switch_to_user(args.user)
 
