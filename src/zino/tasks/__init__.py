@@ -1,6 +1,9 @@
 import logging
 
+from zino.config.models import PollDevice
+from zino.state import ZinoState
 from zino.tasks.errors import DeviceUnreachableError
+from zino.utils import log_time_spent
 
 _log = logging.getLogger(__name__)
 
@@ -12,7 +15,8 @@ async def run_all_tasks(device, state):
         _log.debug(f"Device {device.name} could not be reached. Any remaining tasks have been cancelled.")
 
 
-async def run_registered_tasks(device, state):
+@log_time_spent(logger="zino.tasktime", level=logging.INFO, limit=30.0, formatter=lambda args, kwargs: args[0].name)
+async def run_registered_tasks(device: PollDevice, state: ZinoState):
     for task_class in get_registered_tasks():
         task = task_class(device, state)
         await task.run()
