@@ -62,7 +62,7 @@ class AddressMapTask(Task):
             if address not in state.addresses:
                 _logger.info("%s adds address %s", self.device.name, address)
             elif state.addresses[address] != self.device.name:
-                _logger.info("Home of %s changed from %s to %s", address, state.addresses[address], self.device.name)
+                _logger.debug("Home of %s changed from %s to %s", address, state.addresses[address], self.device.name)
 
             state.addresses[address] = self.device.name
 
