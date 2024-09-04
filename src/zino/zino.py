@@ -6,12 +6,14 @@ import logging
 import logging.config
 import os
 import pwd
+import signal
 import sys
 from asyncio import AbstractEventLoop
 from datetime import datetime, timedelta
 from typing import Any, Optional
 
 import tzlocal
+from apscheduler.schedulers.base import BaseScheduler
 from pydantic import ValidationError
 
 from zino import flaps, state
@@ -165,6 +167,8 @@ def init_event_loop(args: argparse.Namespace, loop: Optional[AbstractEventLoop] 
         _log.info("Instructed to stop in %s seconds", args.stop_in)
         scheduler.add_job(func=loop.stop, trigger="date", run_date=datetime.now() + timedelta(seconds=args.stop_in))
 
+    loop.add_signal_handler(signal.SIGUSR1, log_scheduler_stats, scheduler)
+
     try:
         loop.run_forever()
     except (KeyboardInterrupt, SystemExit):
@@ -242,7 +246,10 @@ def reschedule_dump_state(log_msg: str) -> None:
 
 
 def parse_args(arguments=None):
-    parser = argparse.ArgumentParser(description="Zino is not OpenView")
+    parser = argparse.ArgumentParser(
+        description="Zino is not OpenView",
+        epilog="Sending a USR1 signal to the Zino process will dump the current list of scheduled jobs.",
+    )
     parser.add_argument(
         "--polldevs",
         type=str,
@@ -276,6 +283,13 @@ def parse_args(arguments=None):
     )
     args = parser.parse_args(args=arguments)
     return args
+
+
+def log_scheduler_stats(scheduler: BaseScheduler):
+    """Dumps the full stats of the default scheduler to the log"""
+    _log.info("Scheduler stats:")
+    for job in scheduler.get_jobs():
+        _log.info("  %s: %s", job.id, job)
 
 
 if __name__ == "__main__":
