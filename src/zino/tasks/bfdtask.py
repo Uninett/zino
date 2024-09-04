@@ -89,7 +89,7 @@ class BFDTask(Task):
 
     async def _poll_juniper(self, session_index: int = None) -> DescrBFDStates:
         if session_index is None:
-            bfd_rows = await self.snmp.sparsewalk(*self.JUNIPER_BFD_COLUMNS)
+            bfd_rows = await self.snmp.sparsewalk(*self.JUNIPER_BFD_COLUMNS, max_repetitions=5)
         else:
             bfd_rows = await self._get_single_row(session_index, *self.JUNIPER_BFD_COLUMNS)
 
