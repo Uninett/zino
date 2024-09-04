@@ -1,4 +1,5 @@
 import asyncio
+import inspect
 import logging
 import os
 import stat
@@ -20,21 +21,62 @@ async def reverse_dns(ip: str) -> Optional[str]:
         return None
 
 
-def log_time_spent(logger: Union[logging.Logger, str] = __name__, level: int = logging.DEBUG):
-    """Decorator that logs the time taken for a function to execute.  Not suitable for use with async functions"""
+def log_time_spent(
+    logger: Union[logging.Logger, str] = __name__,
+    level: int = logging.DEBUG,
+    limit: Union[int, float] = 0.0,
+    formatter: Optional[callable] = None,
+) -> callable:
+    """Decorator that logs the time taken for a function to execute"""
     if isinstance(logger, str):
         logger = logging.getLogger(logger)
 
-    def actual_decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            start = time()
-            try:
-                result = func(*args, **kwargs)
-            finally:
-                end = time()
-                logger.log(level, "%s took %s seconds", func.__name__, end - start)
-            return result
+    def actual_decorator(func: callable) -> callable:
+        if inspect.iscoroutinefunction(func):
+
+            @wraps(func)
+            async def wrapper(*args, **kwargs):
+                if formatter:
+                    func_repr = f"{func.__name__}({formatter(args, kwargs)})"
+                else:
+                    func_repr = func.__name__
+                start = time()
+                try:
+                    result = await func(*args, **kwargs)
+                finally:
+                    end = time()
+                    duration = end - start
+                    if duration >= limit:
+                        logger.log(
+                            level,
+                            "%s took %.3f ms",
+                            func_repr,
+                            duration * 1000.0,
+                        )
+                return result
+
+        else:
+
+            @wraps(func)
+            def wrapper(*args, **kwargs):
+                if formatter:
+                    func_repr = f"{func.__name__}({formatter(args, kwargs)})"
+                else:
+                    func_repr = func.__name__
+                start = time()
+                try:
+                    result = func(*args, **kwargs)
+                finally:
+                    end = time()
+                    duration = end - start
+                    if duration >= limit:
+                        logger.log(
+                            level,
+                            "%s took %.3f ms",
+                            func_repr,
+                            duration * 1000.0,
+                        )
+                return result
 
         return wrapper
 

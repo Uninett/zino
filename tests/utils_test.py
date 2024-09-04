@@ -51,9 +51,21 @@ class TestLogTimeSpent:
         assert any(
             record.name == "test_logger"
             and "took" in record.msg
-            and "seconds" in record.msg
+            and "ms" in record.msg
             and "test_function" in record.args
             for record in caplog.records
+        )
+
+    async def test_when_decorated_function_is_async_it_should_log_time_spent(self, caplog):
+        @log_time_spent(level=logging.DEBUG)
+        async def test_function():
+            pass
+
+        with caplog.at_level(logging.DEBUG):
+            await test_function()
+
+        assert any(
+            "took" in record.msg and "ms" in record.msg and "test_function" in record.args for record in caplog.records
         )
 
 
