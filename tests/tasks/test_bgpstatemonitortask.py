@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 from ipaddress import IPv4Address
 
 import pytest
@@ -13,6 +14,7 @@ from zino.statemodels import (
     BGPStyle,
 )
 from zino.tasks.bgpstatemonitortask import BaseBGPRow, BGPStateMonitorTask
+from zino.time import now
 
 PEER_ADDRESS = IPv4Address("10.0.0.1")
 DEFAULT_REMOTE_AS = 20
@@ -224,6 +226,89 @@ class TestBGPStateMonitorTask:
         # check that no event has been created
         event = task.state.events.get(device_name=task.device.name, subindex=PEER_ADDRESS, event_class=BGPEvent)
         assert not event
+
+    @pytest.mark.parametrize(
+        "task", ["general-bgp-oper-down", "cisco-bgp-oper-down", "juniper-bgp-oper-down"], indirect=True
+    )
+    async def test_when_event_is_new_it_should_set_lasttrans(self, task):
+        # set initial state
+        task.device_state.bgp_peers = {
+            PEER_ADDRESS: BGPPeerSession(
+                uptime=DEFAULT_UPTIME, admin_status=BGPAdminStatus.START, oper_state=BGPOperState.ESTABLISHED
+            )
+        }
+        await task.run()
+        # check that the correct event has been created
+        event = task.state.events.get(device_name=task.device.name, subindex=PEER_ADDRESS, event_class=BGPEvent)
+        assert event.lasttrans
+
+    @pytest.mark.parametrize(
+        "task", ["general-bgp-external-reset", "cisco-bgp-external-reset", "juniper-bgp-external-reset"], indirect=True
+    )
+    async def test_when_event_transitions_from_not_established_to_established_it_should_update_lasttrans(self, task):
+        # create oper down event
+        event = task.state.events.get_or_create_event(
+            device_name=task.device.name, subindex=PEER_ADDRESS, event_class=BGPEvent
+        )
+        event.operational_state = BGPOperState.DOWN
+        event.admin_status = BGPAdminStatus.STOP
+        event.remote_address = PEER_ADDRESS
+        event.remote_as = DEFAULT_REMOTE_AS
+        event.peer_uptime = 0
+        task.state.events.commit(event=event)
+
+        # initial lasttrans should be set by commit()
+        initial_lasttrans = event.lasttrans
+
+        await task.run()
+        updated_event = task.state.events[event.id]
+        assert updated_event.operational_state == BGPOperState.ESTABLISHED
+        assert updated_event.lasttrans > initial_lasttrans
+
+    @pytest.mark.parametrize(
+        "task", ["general-bgp-admin-down", "cisco-bgp-admin-down", "juniper-bgp-admin-down"], indirect=True
+    )
+    async def test_when_event_transitions_from_established_to_not_established_it_should_update_lasttrans(self, task):
+        initial_lasttrans = now() - timedelta(minutes=5)
+        # create oper established event
+        event = task.state.events.get_or_create_event(
+            device_name=task.device.name, subindex=PEER_ADDRESS, event_class=BGPEvent
+        )
+        event.operational_state = BGPOperState.ESTABLISHED
+        event.admin_status = BGPAdminStatus.RUNNING
+        event.remote_address = PEER_ADDRESS
+        event.remote_as = DEFAULT_REMOTE_AS
+        event.peer_uptime = 0
+        event.lasttrans = initial_lasttrans
+        task.state.events.commit(event=event)
+
+        await task.run()
+        updated_event = task.state.events[event.id]
+        assert updated_event.operational_state == BGPOperState.DOWN
+        assert updated_event.lasttrans > initial_lasttrans
+
+    @pytest.mark.parametrize(
+        "task", ["general-bgp-external-reset", "cisco-bgp-external-reset", "juniper-bgp-external-reset"], indirect=True
+    )
+    async def test_when_event_transitions_from_not_established_to_established_it_should_update_ac_down(self, task):
+        initial_ac_down = timedelta(0)
+
+        # create oper down event
+        event = task.state.events.get_or_create_event(
+            device_name=task.device.name, subindex=PEER_ADDRESS, event_class=BGPEvent
+        )
+        event.operational_state = BGPOperState.DOWN
+        event.admin_status = BGPAdminStatus.STOP
+        event.remote_address = PEER_ADDRESS
+        event.remote_as = DEFAULT_REMOTE_AS
+        event.peer_uptime = 0
+        event.ac_down = initial_ac_down
+        task.state.events.commit(event=event)
+
+        await task.run()
+        updated_event = task.state.events[event.id]
+        assert updated_event.operational_state == BGPOperState.ESTABLISHED
+        assert updated_event.ac_down > initial_ac_down
 
 
 class TestGetBGPStyle:

@@ -383,6 +383,13 @@ class BGPEvent(Event):
     def subindex(self) -> SubIndex:
         return self.remote_address
 
+    def is_down(self) -> bool:
+        """Returns true if the event is in a down state.
+        A BGPEvent is considered "down" if the operational state
+        for the BGP session is not established.
+        """
+        return self.operational_state != BGPOperState.ESTABLISHED
+
 
 class BFDEvent(Event):
     type: Literal["bfd"] = "bfd"
