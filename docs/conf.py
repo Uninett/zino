@@ -7,7 +7,7 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'Zino'
-copyright = '2024, Morten Brekkevold, Johanna England, Simon Tveit'
+copyright = '2024, Sikt - The Norwegian Agency for Shared Services in Education and Research'
 author = 'Morten Brekkevold, Johanna England, Simon Tveit'
 release = '2.0.0-beta.2'
 
