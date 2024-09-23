@@ -11,6 +11,7 @@ dist/
 # Generated files
 src/zino/version.py
 old-events/
+docs/_build/
 .coverage
 *.pyc
 *.egg-info/

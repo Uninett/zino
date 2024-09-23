@@ -95,6 +95,7 @@ force-exclude = '''
     | build
     | dist
     | src/zino/mibdumps
+    | docs
   )
 )
 '''
@@ -103,7 +104,7 @@ force-exclude = '''
 line-length = 120
 target-version = "py39"
 exclude = [
-    "mibdumps"
+    "mibdumps", "docs"
 ]
 # Exclude files even when passed directly as argument (for MegaLinter)
 force-exclude = true
