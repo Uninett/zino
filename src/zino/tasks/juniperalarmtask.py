@@ -1,6 +1,6 @@
 import logging
 
-from zino.snmp import NoSuchNameError, VarBindError
+from zino.snmp.base import NoSuchNameError, VarBindError
 from zino.statemodels import AlarmEvent, AlarmType
 from zino.tasks.task import Task
 

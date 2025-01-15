@@ -3,7 +3,7 @@ from typing import Dict, Sequence
 
 from zino.oid import OID
 from zino.scheduler import get_scheduler
-from zino.snmp import SparseWalkResponse
+from zino.snmp.base import SparseWalkResponse
 from zino.statemodels import BFDEvent, BFDSessState, BFDState, IPAddress, Port
 from zino.tasks.task import Task
 from zino.utils import reverse_dns

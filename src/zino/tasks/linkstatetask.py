@@ -6,7 +6,7 @@ from typing import Any
 
 from zino.oid import OID
 from zino.scheduler import get_scheduler
-from zino.snmp import SparseWalkResponse
+from zino.snmp.base import SparseWalkResponse
 from zino.statemodels import InterfaceState, Port, PortStateEvent
 from zino.tasks.task import Task
 
