@@ -13,8 +13,7 @@ from pysnmp.proto.rfc1905 import EndOfMibView, NoSuchInstance, NoSuchObject
 
 from zino.config.models import PollDevice
 from zino.oid import OID
-from zino.snmp import (
-    SNMP,
+from zino.snmp.base import (
     EndOfMibViewError,
     Identifier,
     MibNotFoundError,
@@ -22,6 +21,7 @@ from zino.snmp import (
     NoSuchNameError,
     NoSuchObjectError,
 )
+from zino.snmp.pysnmp_backend import SNMP
 
 
 @pytest.fixture(scope="session")
@@ -42,7 +42,7 @@ def unreachable_snmp_client():
     future = asyncio.Future()
     future.set_result(mock_results)
     timeout_mock = Mock(return_value=future)
-    with patch.multiple("zino.snmp", getCmd=timeout_mock, nextCmd=timeout_mock, bulkCmd=timeout_mock):
+    with patch.multiple("zino.snmp.pysnmp_backend", getCmd=timeout_mock, nextCmd=timeout_mock, bulkCmd=timeout_mock):
         device = PollDevice(name="nonexist", address="127.0.0.1", community="invalid", port=666)
         yield SNMP(device)
 
@@ -269,7 +269,7 @@ class TestVarBindErrors:
         future = asyncio.Future()
         future.set_result(mock_results)
         get_mock = Mock(return_value=future)
-        monkeypatch.setattr("zino.snmp.getCmd", get_mock)
+        monkeypatch.setattr("zino.snmp.pysnmp_backend.getCmd", get_mock)
 
         snmp_client._resolve_object(object_type)
 

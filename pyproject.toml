@@ -94,7 +94,7 @@ force-exclude = '''
     | buck-out
     | build
     | dist
-    | src/zino/mibdumps
+    | src/zino/snmp/mibdumps
     | docs
   )
 )

@@ -460,7 +460,7 @@ class SNMP:
     @staticmethod
     def _object_type_to_mib_object(object_type: ObjectType) -> MibObject:
         oid = OID(str(object_type[0]))
-        value = _mib_value_to_python(object_type[1])
+        value = mib_value_to_python(object_type[1])
         return MibObject(oid, value)
 
     @classmethod
@@ -500,7 +500,7 @@ class SNMP:
 def _convert_varbind(ident: ObjectIdentity, value: ObjectType) -> SNMPVarBind:
     """Converts a PySNMP varbind pair to an Identifier/value pair"""
     mib, obj, indices = ident.getMibSymbol()
-    value = _mib_value_to_python(value)
+    value = mib_value_to_python(value)
 
     prefix = SNMP._oid_to_object_type(mib, obj)
     SNMP._resolve_object(prefix)
@@ -510,7 +510,7 @@ def _convert_varbind(ident: ObjectIdentity, value: ObjectType) -> SNMPVarBind:
     return Identifier(mib, obj, row_index), value
 
 
-def _mib_value_to_python(value: SupportedTypes) -> Union[str, int, OID]:
+def mib_value_to_python(value: SupportedTypes) -> Union[str, int, OID]:
     """Translates various PySNMP mib value objects to plainer Python objects, such as strings, integers or OIDs"""
     if isinstance(value, univ.Integer):
         value = int(value) if not value.namedValues else value.prettyPrint()

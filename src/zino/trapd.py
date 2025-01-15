@@ -17,7 +17,7 @@ from pysnmp.smi.rfc1902 import ObjectIdentity, ObjectType
 import zino.state
 from zino.config.models import PollDevice
 from zino.oid import OID
-from zino.snmp import _mib_value_to_python, get_new_snmp_engine
+from zino.snmp import get_new_snmp_engine, mib_value_to_python
 from zino.statemodels import DeviceState, IPAddress
 
 TrapType = tuple[str, str]  # A mib name and a corresponding trap symbolic name
@@ -199,7 +199,7 @@ class TrapReceiver:
             mib, label, instance, raw_value = self._resolve_varbind(var, raw_value)
             _logger.debug("(%r, %r, %s) = %s", mib, label, instance, raw_value.prettyPrint())
             try:
-                value = _mib_value_to_python(raw_value)
+                value = mib_value_to_python(raw_value)
             except Exception:  # noqa
                 value = None
             trap.variables.append(TrapVarBind(OID(var), mib, label, instance, raw_value, value))
