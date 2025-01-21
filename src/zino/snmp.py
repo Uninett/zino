@@ -5,6 +5,7 @@ import os
 import threading
 from collections import defaultdict
 from dataclasses import dataclass
+from functools import reduce
 from ipaddress import ip_address
 from typing import Any, NamedTuple, Sequence, Tuple, Union
 
@@ -499,9 +500,24 @@ class SNMP:
 
 def _convert_varbind(ident: ObjectIdentity, value: ObjectType) -> SNMPVarBind:
     """Converts a PySNMP varbind pair to an Identifier/value pair"""
-    mib, obj, row_index = ident.getMibSymbol()
+    mib, obj, indices = ident.getMibSymbol()
     value = _mib_value_to_python(value)
+    row_index = reduce(lambda acc, index: acc + _index_to_tuple(index), indices, ())
     return Identifier(mib, obj, OID(row_index)), value
+
+
+def _index_to_tuple(index: ObjectIdentity) -> Tuple[int, ...]:
+    """Unrolls a PySNMP index object to a tuple of integers"""
+    try:
+        return tuple(index)
+    except TypeError:
+        try:
+            return index.asTuple()
+        except AttributeError:
+            try:
+                return index.getOid()
+            except AttributeError:
+                return (int(index),)
 
 
 def _mib_value_to_python(value: SupportedTypes) -> Union[str, int, OID]:
