@@ -35,6 +35,11 @@ class OID(tuple):
             return oid
         return tuple.__new__(cls, oid)
 
+    def __init__(self, oid):
+        super().__init__()
+        if not all(isinstance(i, int) for i in self):
+            raise TypeError("Not all arguments could be converted to `int`")
+
     def __str__(self):
         return SEPARATOR + SEPARATOR.join([str(i) for i in self])
 
