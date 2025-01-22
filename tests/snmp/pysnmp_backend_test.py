@@ -231,7 +231,8 @@ class TestUnreachableDeviceShouldRaiseException:
 
 
 async def test_get_object_that_does_not_exist_should_raise_exception(snmp_client):
-    with pytest.raises(NoSuchNameError):
+    with pytest.raises((NoSuchNameError, NoSuchInstanceError)):
+        # NoSuchNameError is only relevant on SNMP v1, for v2c the error is NoSuchInstanceError
         await snmp_client.get("SNMPv2-MIB", "sysUpTime", 1)
 
 
