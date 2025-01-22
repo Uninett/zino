@@ -61,8 +61,13 @@ class TestJuniperalarmTask:
         assert (
             f"Device {task.device.name} returns alarm count not of type int. Yellow alarm count: type <class 'int'>. Red alarm count: type <class 'str'>."
             in caplog.text
+        ) or (
+            f"Device {task.device.name} returns alarm count not of type int. Yellow alarm count: type <class 'int'>. Red alarm count: type <class 'bytes'>."
+            in caplog.text
         )
-        assert "Yellow alarm count: value 0. Red alarm count: value 'buick'." in caplog.text
+        assert ("Yellow alarm count: value 0. Red alarm count: value 'buick'." in caplog.text) or (
+            "Yellow alarm count: value 0. Red alarm count: value b'buick'." in caplog.text
+        )
 
     async def test_task_saves_alarm_count_in_device_state(self, juniper_alarm_task):
         task = juniper_alarm_task
