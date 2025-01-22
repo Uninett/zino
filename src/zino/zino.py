@@ -13,11 +13,13 @@ from datetime import datetime, timedelta
 from typing import Any, Optional
 
 import tzlocal
+from netsnmpy import netsnmp
 from pydantic import ValidationError
 
 from zino import flaps, state
 from zino.api.server import ZinoServer
 from zino.config import InvalidConfigurationError, read_configuration
+from zino.oid import OID
 from zino.scheduler import get_scheduler, load_and_schedule_polldevs
 from zino.statemodels import Event
 from zino.trapd import TrapReceiver
@@ -60,8 +62,30 @@ def main():
         _log.fatal(e)
         sys.exit(1)
 
+    init_netsnmp()
     state.state = state.ZinoState.load_state_from_file(state.config.persistence.file) or state.ZinoState()
     init_event_loop(args)
+
+
+def init_netsnmp():
+    """Basic initialization of Net-SNMP library"""
+    netsnmp.register_log_callback(enable_debug=logging.getLogger("netsnmpy.netsnmp").isEnabledFor(logging.DEBUG))
+    netsnmp.load_mibs()
+    # Test basic MIB lookup to fail early
+    try:
+        netsnmp.symbol_to_oid("SNMPv2-MIB::sysUpTime")
+        symbol = netsnmp.oid_to_symbol(
+            OID(
+                ".1.3.6.1.4.1.2636.5.1.1.2.1.1.1.11.0.2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.32.1.7.0.0.0."
+                "128.1.0.0.0.0.0.0.0.2"
+            )
+        )
+        assert symbol.startswith("BGP4-V2-MIB-JUNIPER::jnxBgpM2PeerRemoteAddr")
+    except (ValueError, AssertionError) as error:
+        _log.fatal("MIB tests failed (%s). Make sure the MIBs are loaded correctly.", error)
+        _log.fatal("MIBS=%s", os.environ.get("MIBS"))
+        _log.fatal("MIBDIRS=%s", os.environ.get("MIBDIRS"))
+        sys.exit(1)
 
 
 def load_config(args: argparse.Namespace) -> Optional[state.Configuration]:
