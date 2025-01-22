@@ -19,6 +19,7 @@ docs/_build/
 
 # avoid accidental commits of config and state files
 polldevs.cf
+polldevs.cf.*
 zino-state.json
 zino.toml
 
