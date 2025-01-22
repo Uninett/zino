@@ -22,6 +22,7 @@ polldevs.cf
 polldevs.cf.*
 zino-state.json
 zino.toml
+save-state.tcl
 
 # avoid accidental commit of the secrets file
 secrets
