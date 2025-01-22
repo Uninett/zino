@@ -17,7 +17,7 @@ from pysnmp.smi.rfc1902 import ObjectIdentity, ObjectType
 import zino.state
 from zino.config.models import PollDevice
 from zino.oid import OID
-from zino.snmp import get_new_snmp_engine, mib_value_to_python
+from zino.snmp.pysnmp_backend import get_new_snmp_engine, mib_value_to_python
 from zino.statemodels import DeviceState, IPAddress
 
 TrapType = tuple[str, str]  # A mib name and a corresponding trap symbolic name
