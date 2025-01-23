@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 from zino.config.models import PollDevice
-from zino.snmp import SNMP
+from zino.snmp import get_snmp_session
 
 if TYPE_CHECKING:
     from zino.state import ZinoState
@@ -16,7 +16,7 @@ class Task(ABC):
     def __init__(self, device: PollDevice, state: ZinoState):
         self.device = device
         self.state = state
-        self.snmp = SNMP(device=device)
+        self.snmp = get_snmp_session(device=device)
 
     @abstractmethod
     async def run(self):
