@@ -36,6 +36,12 @@ def pytest_configure(config):
     modules = ", ".join(sorted(netsnmp.get_loaded_mibs()))
     print(f"Loaded MIB modules: {modules}")
 
+    # Every test should operate with a fresh SNMP session object:
+    # Disable re-use of SNMP sessions for testing purposes
+    from zino import snmp
+
+    snmp._snmp_sessions = None
+
 
 @pytest.fixture
 def polldevs_conf(tmp_path):
