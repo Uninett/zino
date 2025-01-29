@@ -2,26 +2,19 @@ import asyncio
 from unittest.mock import Mock, patch
 
 import pytest
-from pysnmp.hlapi.asyncio import (
-    ObjectIdentity,
-    ObjectType,
-    Udp6TransportTarget,
-    UdpTransportTarget,
-)
-from pysnmp.proto import errind
-from pysnmp.proto.rfc1905 import EndOfMibView, NoSuchInstance, NoSuchObject
+from netsnmpy import netsnmp
+from netsnmpy.netsnmp import EndOfMibView, NoSuchInstance, NoSuchObject, SNMPVariable
+from netsnmpy.oids import OID
 
 from zino.config.models import PollDevice
-from zino.oid import OID
-from zino.snmp.base import (
+from zino.snmp import (
     EndOfMibViewError,
     Identifier,
-    MibNotFoundError,
     NoSuchInstanceError,
-    NoSuchNameError,
     NoSuchObjectError,
 )
-from zino.snmp.pysnmp_backend import SNMP
+from zino.snmp.base import MibNotFoundError, NoSuchNameError
+from zino.snmp.netsnmpy_backend import SNMP, resolve_symbol
 
 
 @pytest.fixture(scope="session")
@@ -38,11 +31,20 @@ def ipv6_snmp_client(snmpsim, snmp_test_port) -> SNMP:
 
 @pytest.fixture()
 def unreachable_snmp_client():
-    mock_results = errind.RequestTimedOut(), None, None, []
     future = asyncio.Future()
-    future.set_result(mock_results)
+    future.set_exception(TimeoutError("Mock timeout"))
     timeout_mock = Mock(return_value=future)
-    with patch.multiple("zino.snmp.pysnmp_backend", getCmd=timeout_mock, nextCmd=timeout_mock, bulkCmd=timeout_mock):
+    with patch.multiple(
+        "zino.snmp.netsnmpy_backend.SNMP",
+        get=timeout_mock,
+        getnext=timeout_mock,
+        getnext2=timeout_mock,
+        walk=timeout_mock,
+        getbulk=timeout_mock,
+        bulkwalk=timeout_mock,
+        getbulk2=timeout_mock,
+        sparsewalk=timeout_mock,
+    ):
         device = PollDevice(name="nonexist", address="127.0.0.1", community="invalid", port=666)
         yield SNMP(device)
 
@@ -165,34 +167,30 @@ class TestMibResolver:
     """Tests to ensure that various required MIBs can be resolved"""
 
     def test_sysuptime_should_be_resolved(self):
-        object_type = SNMP._oid_to_object_type("SNMPv2-MIB", "sysUpTime")
-        SNMP._resolve_object(object_type)
-        assert object_type[0]
+        assert resolve_symbol(("SNMPv2-MIB", "sysUpTime"))
 
     def test_ifalias_should_be_resolved(self):
-        object_type = SNMP._oid_to_object_type("IF-MIB", "ifAlias", "1")
-        SNMP._resolve_object(object_type)
-        assert object_type[0]
+        assert resolve_symbol(("IF-MIB", "ifAlias", "1"))
 
     def test_ipadentaddr_should_be_resolved(self):
-        object_type = SNMP._oid_to_object_type("IP-MIB", "ipAdEntAddr")
-        SNMP._resolve_object(object_type)
-        assert object_type[0]
+        assert resolve_symbol(("IP-MIB", "ipAdEntAddr"))
 
     def test_jnx_bgp_m2_peer_state_should_be_resolved(self):
-        object_type = SNMP._oid_to_object_type("BGP4-V2-MIB-JUNIPER", "jnxBgpM2PeerState")
-        SNMP._resolve_object(object_type)
-        assert object_type[0]
+        assert resolve_symbol(("BGP4-V2-MIB-JUNIPER", "jnxBgpM2PeerState"))
 
     def test_c_bgp_peer2_state_should_be_resolved(self):
-        object_type = SNMP._oid_to_object_type("CISCO-BGP4-MIB", "cbgpPeer2State")
-        SNMP._resolve_object(object_type)
-        assert object_type[0]
+        assert resolve_symbol(("CISCO-BGP4-MIB", "cbgpPeer2State"))
 
     def test_bgp_peer_state_should_be_resolved(self):
-        object_type = SNMP._oid_to_object_type("BGP4-MIB", "bgpPeerState")
-        SNMP._resolve_object(object_type)
-        assert object_type[0]
+        assert resolve_symbol(("BGP4-MIB", "bgpPeerState"))
+
+    def test_juniper_bgp_mib_oids_should_be_resolved_to_symbols(self):
+        """Ensure vendored MIBs are loaded properly by testing low-level netsnmpy lookup"""
+        oid = OID(
+            ".1.3.6.1.4.1.2636.5.1.1.2.1.1.1.11.0.2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.32.1.7.0.0.0.128.1.0.0.0.0.0.0.0.2"
+        )
+        symbol = netsnmp.oid_to_symbol(oid)
+        assert symbol.startswith("BGP4-V2-MIB-JUNIPER::jnxBgpM2PeerRemoteAddr")
 
 
 class TestUnreachableDeviceShouldRaiseException:
@@ -236,14 +234,6 @@ async def test_get_object_that_does_not_exist_should_raise_exception(snmp_client
         await snmp_client.get("SNMPv2-MIB", "sysUpTime", 1)
 
 
-class TestUdpTransportTarget:
-    def test_when_device_address_is_ipv6_then_udp6_transport_should_be_returned(self, ipv6_snmp_client):
-        assert isinstance(ipv6_snmp_client.udp_transport_target, Udp6TransportTarget)
-
-    def test_when_device_address_is_ipv4_then_udp_transport_should_be_returned(self, snmp_client):
-        assert isinstance(snmp_client.udp_transport_target, UdpTransportTarget)
-
-
 class TestVarBindErrors:
     """
     Test class for verifying the handling of varbind errors in SNMP commands.
@@ -264,15 +254,12 @@ class TestVarBindErrors:
     )
     async def test_get_should_raise_exception(self, error, exception, snmp_client, monkeypatch):
         query = ("SNMPv2-MIB", "sysDescr", 0)
-        object_type = ObjectType(ObjectIdentity(*query), error)
-
-        mock_results = None, None, None, [object_type]
+        oid = resolve_symbol(query)
+        mock_results = [SNMPVariable(oid, error)]
         future = asyncio.Future()
         future.set_result(mock_results)
         get_mock = Mock(return_value=future)
-        monkeypatch.setattr("zino.snmp.pysnmp_backend.getCmd", get_mock)
-
-        snmp_client._resolve_object(object_type)
+        monkeypatch.setattr("zino.snmp.netsnmpy_backend.SNMPSession.aget", get_mock)
 
         with pytest.raises(exception):
             await snmp_client.get(*query)
