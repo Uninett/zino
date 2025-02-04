@@ -1,7 +1,7 @@
 name: Check for changelog file
 
-on: 
-  pull_request: 
+on:
+  pull_request:
       # labeled/unlabeled = label is added/removed
       # synchronize = PR's head branch was updated
       types: [labeled, unlabeled, opened, reopened, synchronize]
