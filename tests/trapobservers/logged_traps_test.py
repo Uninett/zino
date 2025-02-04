@@ -76,11 +76,11 @@ class TestCiscoPimTrapLogger:
             name="ciscoPimInvalidRegister",
             variables=[
                 Mock(var="cpimLastErrorOriginType", value="ipv4"),
-                Mock(var="cpimLastErrorOrigin", raw_value=b"\x0A\x00\x00\x01"),
+                Mock(var="cpimLastErrorOrigin", raw_value=b"\x0a\x00\x00\x01"),
                 Mock(var="cpimLastErrorGroupType", value="ipv4"),
-                Mock(var="cpimLastErrorGroup", raw_value=b"\x0A\x00\x00\x02"),
+                Mock(var="cpimLastErrorGroup", raw_value=b"\x0a\x00\x00\x02"),
                 Mock(var="cpimLastErrorRPType", value="ipv4"),
-                Mock(var="cpimLastErrorRP", raw_value=b"\x0A\x00\x00\x03"),
+                Mock(var="cpimLastErrorRP", raw_value=b"\x0a\x00\x00\x03"),
                 Mock(var="cpimInvalidRegisterMsgsRcvd", value=42),
             ],
         )
@@ -95,11 +95,11 @@ class TestCiscoPimTrapLogger:
             mib="CISCO-PIM-MIB",
             name="ciscoPimInvalidRegister",
             variables=[
-                Mock(var="cpimLastErrorOrigin", raw_value=b"\x0A\x00\x00\x01"),
+                Mock(var="cpimLastErrorOrigin", raw_value=b"\x0a\x00\x00\x01"),
                 Mock(var="cpimLastErrorGroupType", value="ipv4"),
-                Mock(var="cpimLastErrorGroup", raw_value=b"\x0A\x00\x00\x02"),
+                Mock(var="cpimLastErrorGroup", raw_value=b"\x0a\x00\x00\x02"),
                 Mock(var="cpimLastErrorRPType", value="ipv4"),
-                Mock(var="cpimLastErrorRP", raw_value=b"\x0A\x00\x00\x03"),
+                Mock(var="cpimLastErrorRP", raw_value=b"\x0a\x00\x00\x03"),
                 Mock(var="cpimInvalidRegisterMsgsRcvd", value=42),
             ],
         )
@@ -115,11 +115,11 @@ class TestCiscoPimTrapLogger:
             name="ciscoPimInvalidRegister",
             variables=[
                 Mock(var="cpimLastErrorOriginType", value="ipv6"),
-                Mock(var="cpimLastErrorOrigin", raw_value=b"\x0A\x00\x00\x01"),
+                Mock(var="cpimLastErrorOrigin", raw_value=b"\x0a\x00\x00\x01"),
                 Mock(var="cpimLastErrorGroupType", value="ipv4"),
-                Mock(var="cpimLastErrorGroup", raw_value=b"\x0A\x00\x00\x02"),
+                Mock(var="cpimLastErrorGroup", raw_value=b"\x0a\x00\x00\x02"),
                 Mock(var="cpimLastErrorRPType", value="ipv4"),
-                Mock(var="cpimLastErrorRP", raw_value=b"\x0A\x00\x00\x03"),
+                Mock(var="cpimLastErrorRP", raw_value=b"\x0a\x00\x00\x03"),
                 Mock(var="cpimInvalidRegisterMsgsRcvd", value=42),
             ],
         )
@@ -141,7 +141,7 @@ class TestOspfIfConfigErrorLogger:
             name="ospfIfConfigError",
             variables=[
                 Mock(var="snmpTrapOID", value=snmp_trap_oid),
-                Mock(var="ospfRouterId", raw_value=b"\x0A\x00\x00\x01", value=ip_address("10.0.0.1")),
+                Mock(var="ospfRouterId", raw_value=b"\x0a\x00\x00\x01", value=ip_address("10.0.0.1")),
                 Mock(var="ospfIfIpAddress", raw_value=b"\xc0\xa8\x01\x01", value=ip_address("192.168.1.1")),
                 Mock(var="doesNotBelongValue", value="foobar"),
             ],
