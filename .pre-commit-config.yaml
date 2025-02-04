@@ -10,7 +10,7 @@ repos:
         exclude: &exclude_pattern '^changelog.d/'
       - id: debug-statements
   - repo: https://github.com/pycqa/isort
-    rev: 5.13.2
+    rev: 6.0.0
     hooks:
       - id: isort
         name: isort (python)
