@@ -2,14 +2,13 @@ import logging
 from datetime import timedelta
 from unittest.mock import Mock, patch
 
+from trapd import send_trap_externally
 from zino import flaps
 from zino.config.models import PollDevice
 from zino.statemodels import FlapState, InterfaceState, PortStateEvent
 from zino.time import now
 from zino.trapd import TrapMessage
 from zino.trapobservers.link_traps import LinkTrapObserver
-
-from .. import trapd_test
 
 OID_LINKDOWN = ".1.3.6.1.6.3.1.1.5.3"
 OID_IFINDEX = ".1.3.6.1.2.1.2.2.1.1"
@@ -29,7 +28,7 @@ class TestLinkTrapObserver:
             state=localhost_receiver.state, polldevs=localhost_receiver.polldevs, loop=localhost_receiver.loop
         )
         localhost_receiver.observe(observer, *LinkTrapObserver.WANTED_TRAPS)
-        await trapd_test.send_trap_externally(OID_LINKDOWN, OID_IFINDEX, "i", "1", OID_IFOPERSTATUS, "i", "2")
+        await send_trap_externally(OID_LINKDOWN, OID_IFINDEX, "i", "1", OID_IFOPERSTATUS, "i", "2")
 
         assert state_with_localhost_with_port.events.get(
             "localhost", 1, PortStateEvent
@@ -48,7 +47,7 @@ class TestLinkTrapObserver:
             state=localhost_receiver.state, polldevs=localhost_receiver.polldevs, loop=localhost_receiver.loop
         )
         localhost_receiver.observe(observer, *LinkTrapObserver.WANTED_TRAPS)
-        await trapd_test.send_trap_externally(OID_LINKDOWN, OID_IFINDEX, "i", "1", OID_IFOPERSTATUS, "i", "2")
+        await send_trap_externally(OID_LINKDOWN, OID_IFINDEX, "i", "1", OID_IFOPERSTATUS, "i", "2")
 
         assert not state_with_localhost_with_port.events.get(
             "localhost", 1, PortStateEvent
@@ -67,7 +66,7 @@ class TestLinkTrapObserver:
             state=localhost_receiver.state, polldevs=localhost_receiver.polldevs, loop=localhost_receiver.loop
         )
         localhost_receiver.observe(observer, *LinkTrapObserver.WANTED_TRAPS)
-        await trapd_test.send_trap_externally(OID_LINKDOWN, OID_IFINDEX, "i", "1", OID_IFOPERSTATUS, "i", "2")
+        await send_trap_externally(OID_LINKDOWN, OID_IFINDEX, "i", "1", OID_IFOPERSTATUS, "i", "2")
 
         assert not state_with_localhost_with_port.events.get(
             "localhost", 1, PortStateEvent
@@ -128,7 +127,7 @@ class TestLinkTrapObserver:
             state=localhost_receiver.state, polldevs=localhost_receiver.polldevs, loop=localhost_receiver.loop
         )
         localhost_receiver.observe(observer, *LinkTrapObserver.WANTED_TRAPS)
-        await trapd_test.send_trap_externally(OID_LINKDOWN, OID_IFINDEX, "i", "1", OID_IFOPERSTATUS, "i", "2")
+        await send_trap_externally(OID_LINKDOWN, OID_IFINDEX, "i", "1", OID_IFOPERSTATUS, "i", "2")
 
         event = state_with_localhost_with_port.events.get("localhost", 1, PortStateEvent)
         assert event.portstate == InterfaceState.DOWN
