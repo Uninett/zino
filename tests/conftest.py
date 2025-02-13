@@ -19,7 +19,7 @@ from zino.statemodels import (
     PortStateMaintenance,
 )
 from zino.time import now
-from zino.trapd import TrapReceiver
+from zino.trapd.pysnmp_backend import TrapReceiver
 
 
 def pytest_configure(config):

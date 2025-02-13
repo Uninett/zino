@@ -1,4 +1,3 @@
-import asyncio
 import ipaddress
 import logging
 import shutil
@@ -7,14 +6,15 @@ from unittest.mock import Mock, patch
 
 import pytest
 
+from trapd import send_trap_externally
 from zino.oid import OID
-from zino.trapd import (
+from zino.trapd.base import (
     TrapMessage,
     TrapObserver,
     TrapOriginator,
-    TrapReceiver,
     TrapVarBind,
 )
+from zino.trapd.pysnmp_backend import TrapReceiver
 
 OID_COLD_START = ".1.3.6.1.6.3.1.1.5.1"
 OID_SYSNAME_0 = ".1.3.6.1.2.1.1.5.0"
@@ -146,7 +146,7 @@ class TestTrapReceiverExternally:
     async def test_when_conversion_of_varbind_to_python_object_fails_it_should_set_value_to_none(
         self, localhost_receiver
     ):
-        with patch("zino.trapd.mib_value_to_python", side_effect=ValueError("mock exception")):
+        with patch("zino.trapd.pysnmp_backend.mib_value_to_python", side_effect=ValueError("mock exception")):
             with patch.object(localhost_receiver, "dispatch_trap") as mock_dispatch:
                 await send_trap_externally(OID_COLD_START, OID_SYSNAME_0, "s", "'MockDevice'")
                 assert mock_dispatch.called
@@ -158,15 +158,3 @@ class TestTrapReceiverExternally:
             with patch.object(localhost_receiver, "dispatch_trap") as mock_dispatch:
                 await send_trap_externally(OID_COLD_START, OID_SYSNAME_0, "s", "'MockDevice'")
                 assert not mock_dispatch.called
-
-
-async def send_trap_externally(*args: str):
-    """Uses the snmptrap command line program to send a trap to the local trap receiver test instance on port 1162.
-
-    :param args: The arguments to pass to the snmptrap command line program, see `man snmptrap` for details on the
-                 rather esoteric syntax.
-    """
-    args = " ".join(args)
-    proc = await asyncio.create_subprocess_shell(f"snmptrap -v 2c -c public localhost:1162 '' {args}")
-    await proc.communicate()
-    assert proc.returncode == 0, "snmptrap command exited with error"
