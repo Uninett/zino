@@ -499,9 +499,15 @@ class SNMP:
 
 def _convert_varbind(ident: ObjectIdentity, value: ObjectType) -> SNMPVarBind:
     """Converts a PySNMP varbind pair to an Identifier/value pair"""
-    mib, obj, row_index = ident.getMibSymbol()
+    mib, obj, indices = ident.getMibSymbol()
     value = _mib_value_to_python(value)
-    return Identifier(mib, obj, OID(row_index)), value
+
+    prefix = SNMP._oid_to_object_type(mib, obj)
+    SNMP._resolve_object(prefix)
+    prefix = OID(prefix[0])
+    row_index = OID(ident).strip_prefix(prefix)
+
+    return Identifier(mib, obj, row_index), value
 
 
 def _mib_value_to_python(value: SupportedTypes) -> Union[str, int, OID]:

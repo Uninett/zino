@@ -1,3 +1,5 @@
+import pytest
+
 from zino.oid import OID
 
 
@@ -38,3 +40,8 @@ def test_can_create_oid_from_bytestring():
     oid_bytestring = b".1.2.3.4"
     oid = OID(oid_bytestring)
     assert str(oid) == ".1.2.3.4"
+
+
+def test_when_oid_contains_non_numeric_elements_it_should_raise_typeerror():
+    with pytest.raises(TypeError):
+        OID((1, 2, 3, "foo", 4))

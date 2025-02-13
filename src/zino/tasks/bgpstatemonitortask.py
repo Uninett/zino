@@ -158,7 +158,8 @@ class BGPStateMonitorTask(Task):
             return None
 
         for oid, result in cisco_bgp_info.items():
-            result["cbgpPeer2RemoteAddr"] = ip_address(oid)
+            _addr_type, _addr_len, addr = oid[0], oid[1], oid[2:]
+            result["cbgpPeer2RemoteAddr"] = ip_address(bytes(addr))
 
         cisco_bgp_info = self._transform_variables_from_specific_to_general(
             bgp_info=cisco_bgp_info, bgp_style=BGPStyle.CISCO
@@ -191,16 +192,7 @@ class BGPStateMonitorTask(Task):
             *((mib_name, var) for var in variables),
             max_repetitions=3,
         )
-
-        cleaned_bgp_info = dict()
-
-        for oid, entry in bgp_info.items():
-            if len(oid) == 1:
-                cleaned_bgp_info[oid[0].prettyPrint()] = entry
-            else:
-                cleaned_bgp_info[oid[1].prettyPrint()] = entry
-
-        return cleaned_bgp_info
+        return bgp_info
 
     def _transform_variables_from_specific_to_general(
         self, bgp_info: SparseWalkResponse, bgp_style: BGPStyle
