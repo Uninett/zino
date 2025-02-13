@@ -21,7 +21,7 @@ from ipaddress import ip_address
 from typing import Optional, Tuple
 
 from zino.statemodels import BGPOperState, BGPPeerSession, IPAddress
-from zino.trapd import TrapMessage, TrapObserver
+from zino.trapd.base import TrapMessage, TrapObserver
 
 _logger = logging.getLogger(__name__)
 

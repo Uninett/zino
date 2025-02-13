@@ -5,7 +5,7 @@ from unittest.mock import Mock
 import pytest
 
 from zino.statemodels import BGPOperState, BGPPeerSession
-from zino.trapd import TrapMessage
+from zino.trapd.base import TrapMessage
 from zino.trapobservers.bgp_traps import BgpTrapObserver
 
 

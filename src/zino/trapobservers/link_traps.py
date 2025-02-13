@@ -15,7 +15,7 @@ from zino.statemodels import (
     PortStateEvent,
 )
 from zino.tasks.linkstatetask import LinkStateTask
-from zino.trapd import TrapMessage, TrapObserver
+from zino.trapd.base import TrapMessage, TrapObserver
 
 _logger = logging.getLogger(__name__)
 TRAP_WINDOW = timedelta(minutes=5)
