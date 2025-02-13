@@ -7,7 +7,7 @@ from zino import flaps
 from zino.config.models import PollDevice
 from zino.statemodels import FlapState, InterfaceState, PortStateEvent
 from zino.time import now
-from zino.trapd import TrapMessage
+from zino.trapd.base import TrapMessage
 from zino.trapobservers.link_traps import LinkTrapObserver
 
 OID_LINKDOWN = ".1.3.6.1.6.3.1.1.5.3"

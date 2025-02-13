@@ -6,7 +6,7 @@ import pytest
 
 from zino.config.models import PollDevice
 from zino.oid import OID
-from zino.trapd import TrapMessage
+from zino.trapd.base import TrapMessage
 from zino.trapobservers.bfd_traps import BFDTrapObserver
 
 
