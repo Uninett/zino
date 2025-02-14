@@ -21,7 +21,7 @@ OID_SYSNAME_0 = ".1.3.6.1.2.1.1.5.0"
 
 
 class TestTrapReceiver:
-    def test_add_community_should_accept_same_community_multiple_times(self):
+    async def test_add_community_should_accept_same_community_multiple_times(self):
         receiver = TrapReceiver()
         receiver.add_community("public")
         receiver.add_community("public")
