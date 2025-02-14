@@ -258,7 +258,7 @@ def state_with_localhost():
 @pytest_asyncio.fixture
 async def localhost_receiver(state_with_localhost, event_loop) -> TrapReceiver:
     """Yields a TrapReceiver instance with a standardized setup for running external tests on localhost"""
-    receiver = TrapReceiver(address="127.0.0.1", port=1162, loop=event_loop, state=state_with_localhost)
+    receiver = TrapReceiver(address="127.0.0.1", port=1163, loop=event_loop, state=state_with_localhost)
     receiver.add_community("public")
     await receiver.open()
     yield receiver
