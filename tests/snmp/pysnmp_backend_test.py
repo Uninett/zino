@@ -15,6 +15,8 @@ from zino.config.models import PollDevice
 from zino.oid import OID
 from zino.snmp.base import (
     EndOfMibViewError,
+    ErrorIndication,
+    ErrorStatus,
     Identifier,
     MibNotFoundError,
     NoSuchInstanceError,
@@ -276,3 +278,34 @@ class TestVarBindErrors:
 
         with pytest.raises(exception):
             await snmp_client.get(*query)
+
+
+class TestPDUErrors:
+    """Tests for handling error flags in response PDUs."""
+
+    async def test_when_snmpv1_variable_does_not_exist_it_should_raise_error(self, snmp_client):
+        snmp_client.device.hcounters = False  # force SNMPv1
+        with pytest.raises(NoSuchNameError):
+            await snmp_client.get("SNMPv2-MIB", "sysUpTime", 999)
+
+    def test_when_local_error_is_indicated_it_should_raise(self, snmp_client):
+        with pytest.raises(ErrorIndication):
+            snmp_client._raise_errors(error_indication="Something went wrong", error_status=0, error_index=0)
+
+    def test_when_pdu_error_is_not_nosuchname_it_should_raise_generic_error(self, snmp_client):
+        obj = snmp_client._oid_to_object_type("SNMPv2-MIB", "sysDescr")
+        snmp_client._resolve_object(obj)
+        error_status = 4  # readOnly
+        error_index = 1
+        with pytest.raises(ErrorStatus):
+            snmp_client._raise_errors(None, error_status, error_index, obj)
+
+
+class TestSubtreeIsSupported:
+    async def test_when_agent_has_subtree_it_should_return_true(self, snmp_client):
+        response = await snmp_client.subtree_is_supported("SNMPv2-MIB", "system")
+        assert response
+
+    async def test_when_agent_does_not_have_subtree_it_should_return_false(self, snmp_client):
+        response = await snmp_client.subtree_is_supported("BFD-STD-MIB", "bfdSessTable")
+        assert not response
