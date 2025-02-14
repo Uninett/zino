@@ -1,4 +1,4 @@
-"""SNMP trap 'daemon' for Zino 2"""
+"""SNMP trap 'daemon' for Zino 2 implemented using PySNMP"""
 
 import asyncio
 import logging
