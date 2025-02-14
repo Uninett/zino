@@ -1,4 +1,3 @@
-import asyncio
 import ipaddress
 import logging
 import shutil
@@ -7,21 +6,22 @@ from unittest.mock import Mock, patch
 
 import pytest
 
+from trapd import send_trap_externally
 from zino.oid import OID
-from zino.trapd import (
+from zino.trapd.base import (
     TrapMessage,
     TrapObserver,
     TrapOriginator,
-    TrapReceiver,
     TrapVarBind,
 )
+from zino.trapd.pysnmp_backend import TrapReceiver
 
 OID_COLD_START = ".1.3.6.1.6.3.1.1.5.1"
 OID_SYSNAME_0 = ".1.3.6.1.2.1.1.5.0"
 
 
 class TestTrapReceiver:
-    def test_add_community_should_accept_same_community_multiple_times(self):
+    async def test_add_community_should_accept_same_community_multiple_times(self):
         receiver = TrapReceiver()
         receiver.add_community("public")
         receiver.add_community("public")
@@ -97,14 +97,14 @@ class TestTrapReceiverExternally:
 
     async def test_when_trap_is_from_known_device_it_should_log_it(self, localhost_receiver, caplog):
         with caplog.at_level(logging.DEBUG):
-            await send_trap_externally(OID_COLD_START, OID_SYSNAME_0, "s", "'MockDevice'")
+            await send_trap_externally(OID_COLD_START, OID_SYSNAME_0, "s", "'MockDevice'", port=localhost_receiver.port)
             assert "Trap from localhost" in caplog.text
             assert OID_COLD_START in caplog.text
 
     async def test_when_observer_is_added_and_trap_matches_it_should_call_it(self, localhost_receiver):
         observer = Mock()
         localhost_receiver.observe(observer, ("SNMPv2-MIB", "coldStart"))
-        await send_trap_externally(OID_COLD_START, OID_SYSNAME_0, "s", "'MockDevice'")
+        await send_trap_externally(OID_COLD_START, OID_SYSNAME_0, "s", "'MockDevice'", port=localhost_receiver.port)
         assert observer.handle_trap.called
 
     async def test_when_observer_raises_unhandled_exception_it_should_log_it(self, localhost_receiver, caplog):
@@ -113,7 +113,7 @@ class TestTrapReceiverExternally:
         localhost_receiver.observe(crashing_observer, ("SNMPv2-MIB", "coldStart"))
 
         with caplog.at_level(logging.INFO):
-            await send_trap_externally(OID_COLD_START, OID_SYSNAME_0, "s", "'MockDevice'")
+            await send_trap_externally(OID_COLD_START, OID_SYSNAME_0, "s", "'MockDevice'", port=localhost_receiver.port)
             assert "ValueError" in caplog.text
             assert "mocked exception" in caplog.text
 
@@ -139,16 +139,18 @@ class TestTrapReceiverExternally:
             "i",
             "2",
         ]
-        await send_trap_externally(*bgp_backward_transition_trap)
+        await send_trap_externally(*bgp_backward_transition_trap, port=localhost_receiver.port)
         assert early_observer.handle_trap.called
         assert not late_observer.handle_trap.called
 
     async def test_when_conversion_of_varbind_to_python_object_fails_it_should_set_value_to_none(
         self, localhost_receiver
     ):
-        with patch("zino.trapd.mib_value_to_python", side_effect=ValueError("mock exception")):
+        with patch("zino.trapd.pysnmp_backend.mib_value_to_python", side_effect=ValueError("mock exception")):
             with patch.object(localhost_receiver, "dispatch_trap") as mock_dispatch:
-                await send_trap_externally(OID_COLD_START, OID_SYSNAME_0, "s", "'MockDevice'")
+                await send_trap_externally(
+                    OID_COLD_START, OID_SYSNAME_0, "s", "'MockDevice'", port=localhost_receiver.port
+                )
                 assert mock_dispatch.called
                 trap = mock_dispatch.call_args.args[0]
                 assert all(var.value is None for var in trap.variables)
@@ -156,17 +158,7 @@ class TestTrapReceiverExternally:
     async def test_when_trap_verification_fails_it_should_not_dispatch_trap(self, localhost_receiver):
         with patch.object(localhost_receiver, "_verify_trap", return_value=False):
             with patch.object(localhost_receiver, "dispatch_trap") as mock_dispatch:
-                await send_trap_externally(OID_COLD_START, OID_SYSNAME_0, "s", "'MockDevice'")
+                await send_trap_externally(
+                    OID_COLD_START, OID_SYSNAME_0, "s", "'MockDevice'", port=localhost_receiver.port
+                )
                 assert not mock_dispatch.called
-
-
-async def send_trap_externally(*args: str):
-    """Uses the snmptrap command line program to send a trap to the local trap receiver test instance on port 1162.
-
-    :param args: The arguments to pass to the snmptrap command line program, see `man snmptrap` for details on the
-                 rather esoteric syntax.
-    """
-    args = " ".join(args)
-    proc = await asyncio.create_subprocess_shell(f"snmptrap -v 2c -c public localhost:1162 '' {args}")
-    await proc.communicate()
-    assert proc.returncode == 0, "snmptrap command exited with error"

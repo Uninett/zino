@@ -5,7 +5,7 @@ from unittest.mock import Mock
 import pytest
 
 from zino.oid import OID
-from zino.trapd import TrapMessage
+from zino.trapd.base import TrapMessage
 from zino.trapobservers.logged_traps import (
     CiscoConfigManEventLogger,
     CiscoPimTrapLogger,

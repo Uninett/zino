@@ -4,7 +4,7 @@ import logging
 from ipaddress import ip_address
 from typing import Optional
 
-from zino.trapd import TrapMessage, TrapObserver
+from zino.trapd.base import TrapMessage, TrapObserver
 
 _logger = logging.getLogger(__name__)
 
