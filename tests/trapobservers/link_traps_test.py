@@ -28,7 +28,9 @@ class TestLinkTrapObserver:
             state=localhost_receiver.state, polldevs=localhost_receiver.polldevs, loop=localhost_receiver.loop
         )
         localhost_receiver.observe(observer, *LinkTrapObserver.WANTED_TRAPS)
-        await send_trap_externally(OID_LINKDOWN, OID_IFINDEX, "i", "1", OID_IFOPERSTATUS, "i", "2")
+        await send_trap_externally(
+            OID_LINKDOWN, OID_IFINDEX, "i", "1", OID_IFOPERSTATUS, "i", "2", port=localhost_receiver.port
+        )
 
         assert state_with_localhost_with_port.events.get(
             "localhost", 1, PortStateEvent
@@ -127,7 +129,9 @@ class TestLinkTrapObserver:
             state=localhost_receiver.state, polldevs=localhost_receiver.polldevs, loop=localhost_receiver.loop
         )
         localhost_receiver.observe(observer, *LinkTrapObserver.WANTED_TRAPS)
-        await send_trap_externally(OID_LINKDOWN, OID_IFINDEX, "i", "1", OID_IFOPERSTATUS, "i", "2")
+        await send_trap_externally(
+            OID_LINKDOWN, OID_IFINDEX, "i", "1", OID_IFOPERSTATUS, "i", "2", port=localhost_receiver.port
+        )
 
         event = state_with_localhost_with_port.events.get("localhost", 1, PortStateEvent)
         assert event.portstate == InterfaceState.DOWN
