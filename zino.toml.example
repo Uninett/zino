@@ -26,6 +26,11 @@ file = "polldevs.cf"
 # default 1 min
 period = 1
 
+[snmp]
+# Zino supports two SNMP back-ends: "netsnmp" and "pysnmp".  The default is "netsnmp" (which requires the Net-SNMP C
+# library to be installed on your system).  "pysnmp" selects the pure Python library PySNMP, which is less performant.
+backend = "netsnmp"
+
 # Logging configuration is optional, but if specified, it will override the
 # default logging config of Zino.  This is a TOML representation of the default
 # logging configuration dictionary, whose full documentation is available at
