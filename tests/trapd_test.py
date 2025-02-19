@@ -146,7 +146,7 @@ class TestTrapReceiverExternally:
     async def test_when_conversion_of_varbind_to_python_object_fails_it_should_set_value_to_none(
         self, localhost_receiver
     ):
-        with patch("zino.trapd._mib_value_to_python", side_effect=ValueError("mock exception")):
+        with patch("zino.trapd.mib_value_to_python", side_effect=ValueError("mock exception")):
             with patch.object(localhost_receiver, "dispatch_trap") as mock_dispatch:
                 await send_trap_externally(OID_COLD_START, OID_SYSNAME_0, "s", "'MockDevice'")
                 assert mock_dispatch.called

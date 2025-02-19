@@ -4,9 +4,8 @@ import logging
 import os
 import threading
 from collections import defaultdict
-from dataclasses import dataclass
 from ipaddress import ip_address
-from typing import Any, NamedTuple, Sequence, Tuple, Union
+from typing import Any, Sequence, Tuple, Union
 
 from pyasn1.type import univ
 from pysnmp.hlapi.asyncio import (
@@ -28,6 +27,19 @@ from pysnmp.smi.error import MibNotFoundError as PysnmpMibNotFoundError
 
 from zino.config.models import PollDevice
 from zino.oid import OID
+from zino.snmp.base import (
+    EndOfMibViewError,
+    ErrorIndication,
+    ErrorStatus,
+    Identifier,
+    MibNotFoundError,
+    MibObject,
+    NoSuchInstanceError,
+    NoSuchNameError,
+    NoSuchObjectError,
+    SNMPVarBind,
+    SparseWalkResponse,
+)
 
 _log = logging.getLogger(__name__)
 
@@ -52,65 +64,8 @@ def get_new_snmp_engine() -> SnmpEngine:
     return snmp_engine
 
 
-@dataclass
-class MibObject:
-    oid: OID
-    value: Union[str, int, OID]
-
-
-class Identifier(NamedTuple):
-    """Identifies a MIB object by MIB, object name and row index"""
-
-    mib: str
-    object: str
-    index: OID
-
-
 PySNMPVarBind = tuple[ObjectIdentity, ObjectType]
-SNMPVarBind = tuple[Identifier, Any]
 SupportedTypes = Union[univ.Integer, univ.OctetString, ObjectIdentity, ObjectType]
-SparseWalkResponse = dict[OID, dict[str, Any]]
-
-
-class SnmpError(Exception):
-    """Base class for SNMP, MIB and OID specific errors"""
-
-
-class ErrorIndication(SnmpError):
-    """Class for SNMP errors that occur locally,
-    as opposed to being reported from a different SNMP entity.
-    """
-
-
-class MibNotFoundError(ErrorIndication):
-    """Raised if a required MIB file could not be found"""
-
-
-class ErrorStatus(SnmpError):
-    """Raised if an SNMP entity includes a non-zero error status in its response PDU.
-    RFC 1905 defines the possible errors that can be specified in the error status field.
-    This can either be used directly or subclassed for one of these specific errors.
-    """
-
-
-class NoSuchNameError(ErrorStatus):
-    """Represents the "noSuchName" error. Raised if an object could not be found at an OID."""
-
-
-class VarBindError(SnmpError):
-    """Base class for errors carried in varbinds and not in the errorStatus or errorIndication fields"""
-
-
-class NoSuchObjectError(VarBindError):
-    """Raised if an object could not be found at an OID"""
-
-
-class NoSuchInstanceError(VarBindError):
-    """Raised if an instance could not be found at an OID"""
-
-
-class EndOfMibViewError(VarBindError):
-    """Raised if end of MIB view is encountered"""
 
 
 class SNMP:
@@ -460,7 +415,7 @@ class SNMP:
     @staticmethod
     def _object_type_to_mib_object(object_type: ObjectType) -> MibObject:
         oid = OID(str(object_type[0]))
-        value = _mib_value_to_python(object_type[1])
+        value = mib_value_to_python(object_type[1])
         return MibObject(oid, value)
 
     @classmethod
@@ -500,7 +455,7 @@ class SNMP:
 def _convert_varbind(ident: ObjectIdentity, value: ObjectType) -> SNMPVarBind:
     """Converts a PySNMP varbind pair to an Identifier/value pair"""
     mib, obj, indices = ident.getMibSymbol()
-    value = _mib_value_to_python(value)
+    value = mib_value_to_python(value)
 
     prefix = SNMP._oid_to_object_type(mib, obj)
     SNMP._resolve_object(prefix)
@@ -510,7 +465,7 @@ def _convert_varbind(ident: ObjectIdentity, value: ObjectType) -> SNMPVarBind:
     return Identifier(mib, obj, row_index), value
 
 
-def _mib_value_to_python(value: SupportedTypes) -> Union[str, int, OID]:
+def mib_value_to_python(value: SupportedTypes) -> Union[str, int, OID]:
     """Translates various PySNMP mib value objects to plainer Python objects, such as strings, integers or OIDs"""
     if isinstance(value, univ.Integer):
         value = int(value) if not value.namedValues else value.prettyPrint()

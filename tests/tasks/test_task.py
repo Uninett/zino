@@ -25,7 +25,7 @@ class TestTask:
         device = PollDevice(name="nonexist", address="127.0.0.1", community="invalid", port=666)
         state = ZinoState()
         task = ReachableTask(device, state)
-        with patch("zino.tasks.task.SNMP.get") as get_mock:
+        with patch("zino.snmp.SNMP.get") as get_mock:
             get_mock.side_effect = TimeoutError
             with pytest.raises(TimeoutError):
                 await task._get_uptime()

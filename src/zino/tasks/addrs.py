@@ -3,7 +3,6 @@ import re
 from ipaddress import ip_address
 from typing import Any, List, Optional
 
-from zino.snmp import SNMP
 from zino.statemodels import IPAddress
 from zino.tasks.task import Task
 
@@ -49,8 +48,7 @@ class AddressMapTask(Task):
         self._update_address_maps(addresses)
 
     async def _get_addrs(self) -> set[IPAddress]:
-        snmp = SNMP(self.device)
-        result = await snmp.bulkwalk("IP-MIB", "ipAdEntAddr")
+        result = await self.snmp.bulkwalk("IP-MIB", "ipAdEntAddr")
         addresses = (validate_ipaddr(r.value) for r in result)
         return set(addr for addr in addresses if addr)
 

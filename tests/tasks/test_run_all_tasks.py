@@ -1,7 +1,8 @@
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
 
+from zino.config.models import PollDevice
 from zino.state import ZinoState
 from zino.tasks import run_all_tasks, run_registered_tasks
 from zino.tasks.errors import DeviceUnreachableError
@@ -16,7 +17,7 @@ class TestRunAllTasks:
     async def test_when_one_task_raises_device_unreachable_it_should_not_run_further_tasks(
         self, raising_task, non_raising_task
     ):
-        mock_device = Mock()
+        mock_device = PollDevice(name="mock_device", address="127.0.0.1")
         state = ZinoState()
         with patch("zino.tasks.get_registered_tasks") as get_registered_tasks:
             get_registered_tasks.return_value = [raising_task, non_raising_task]
