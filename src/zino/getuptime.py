@@ -5,7 +5,7 @@ import asyncio
 import logging
 
 from zino.config.polldevs import read_polldevs
-from zino.snmp import SNMP
+from zino.snmp import import_snmp_backend
 from zino.state import config
 
 _log = logging.getLogger(__name__)
@@ -23,7 +23,8 @@ async def run(args: argparse.Namespace):
     devices, _ = read_polldevs(config.polling.file)
     device = devices[args.router]
 
-    snmp = SNMP(device)
+    backend = import_snmp_backend(config.snmp.backend)
+    snmp = backend.SNMP(device)
     response = await snmp.get("SNMPv2-MIB", "sysUpTime", 0)
     _log.info("Response from %s: %r", device.name, int(response))
 

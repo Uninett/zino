@@ -55,6 +55,11 @@ def _get_engine():
     return _local.snmp_engine
 
 
+def init_backend():
+    """Initializes the PySNMP backend"""
+    _get_engine()
+
+
 def get_new_snmp_engine() -> SnmpEngine:
     """Returns a new SnmpEngine object with Zino's directory of MIB modules loaded"""
     snmp_engine = SnmpEngine()

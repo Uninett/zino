@@ -1,10 +1,11 @@
 """SNMP back-end based on netsnmp-cffi"""
 
 import logging
+import os
 from collections import defaultdict
 from typing import Any, Optional, Sequence, Tuple, Union
 
-import netsnmpy.netsnmp
+from netsnmpy import netsnmp
 from netsnmpy.netsnmp import (
     EndOfMibView,
     NoSuchInstance,
@@ -24,6 +25,8 @@ from zino.snmp.base import (
     MibObject,
     NoSuchInstanceError,
     NoSuchObjectError,
+    SNMPBackendError,
+    SNMPBackendVersionError,
     SNMPVarBind,
     SparseWalkResponse,
 )
@@ -31,11 +34,29 @@ from zino.snmp.base import (
 _log = logging.getLogger(__name__)
 
 
-def get_new_snmp_engine():
-    """This is only here because the pysnmp backend provides it.  It needs to be
-    gone, but we need to figure out how it is used outside this module, if at all.
-    """
-    raise NotImplementedError
+def init_backend():
+    """Basic initialization of Net-SNMP library"""
+    version = netsnmp.get_version()
+    if version < (5, 9):
+        raise SNMPBackendVersionError(version)
+
+    netsnmp.register_log_callback(enable_debug=logging.getLogger("netsnmpy.netsnmp").isEnabledFor(logging.DEBUG))
+    netsnmp.load_mibs()
+    # Test basic MIB lookup to fail early
+    try:
+        netsnmp.symbol_to_oid("SNMPv2-MIB::sysUpTime")
+        symbol = netsnmp.oid_to_symbol(
+            OID(
+                ".1.3.6.1.4.1.2636.5.1.1.2.1.1.1.11.0.2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.2.32.1.7.0.0.0."
+                "128.1.0.0.0.0.0.0.0.2"
+            )
+        )
+        assert symbol.startswith("BGP4-V2-MIB-JUNIPER::jnxBgpM2PeerRemoteAddr")
+    except (ValueError, AssertionError) as error:
+        _log.fatal("MIB tests failed (%s). Make sure the MIBs are loaded correctly.", error)
+        _log.fatal("MIBS=%s", os.environ.get("MIBS"))
+        _log.fatal("MIBDIRS=%s", os.environ.get("MIBDIRS"))
+        raise SNMPBackendError("MIB tests failed. Make sure the MIBs are loaded correctly") from error
 
 
 class SNMP:
@@ -82,7 +103,7 @@ class SNMP:
         var_binds = await self.session.aget(*oids)
         return [_convert_snmp_variable(v) for v in var_binds]
 
-    def _raise_varbind_errors(self, var_bind: netsnmpy.netsnmp.Variable):
+    def _raise_varbind_errors(self, var_bind: netsnmp.Variable):
         """Raises a relevant exception if an error has occurred in a varbind"""
         oid, value = var_bind
         if isinstance(value, NoSuchObject):
@@ -293,7 +314,7 @@ def _convert_snmp_variable(variable: SNMPVariable) -> SNMPVarBind:
     """
     mib, obj, _rest = _split_symbol(variable.symbolic_name)
     # Net-SNMP does a symbolic breakdown of the full OID, so we need to reassemble the bits we care about:
-    prefix = netsnmpy.netsnmp.symbol_to_oid(f"{mib}::{obj}")
+    prefix = netsnmp.symbol_to_oid(f"{mib}::{obj}")
     suffix = variable.oid.strip_prefix(prefix)
 
     if variable.enum_value is not None:

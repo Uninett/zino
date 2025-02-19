@@ -17,10 +17,10 @@ import zino.state
 from zino.config.models import PollDevice
 from zino.oid import OID
 from zino.snmp.pysnmp_backend import get_new_snmp_engine, mib_value_to_python
-from zino.trapd import TrapReceiverBase
 from zino.trapd.base import (
     TrapMessage,
     TrapOriginator,
+    TrapReceiverBase,
     TrapVarBind,
 )
 

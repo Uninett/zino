@@ -3,7 +3,7 @@
 from ipaddress import IPv4Address, IPv6Address
 from os import R_OK, access
 from os.path import isfile
-from typing import Any, Optional, Union
+from typing import Any, Literal, Optional, Union
 
 from pydantic import BaseModel, ConfigDict
 from pydantic.functional_validators import AfterValidator
@@ -73,6 +73,12 @@ class Polling(BaseModel):
     period: int = 1
 
 
+class SNMPConfiguration(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    backend: Literal["pysnmp", "netsnmp"] = "netsnmp"
+
+
 class Configuration(BaseModel):
     """Class for keeping track of the configuration set by zino.toml"""
 
@@ -83,6 +89,7 @@ class Configuration(BaseModel):
     authentication: Authentication = Authentication()
     persistence: Persistence = Persistence()
     polling: Polling = Polling()
+    snmp: SNMPConfiguration = SNMPConfiguration()
     logging: dict[str, Any] = {
         "version": 1,
         "loggers": {
