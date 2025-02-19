@@ -8,7 +8,7 @@ on:
 
 jobs:
   towncrier:
-    if: ${{ github.actor != 'dependabot[bot]' && !contains(github.event.pull_request.labels.*.name, 'nonews') }}
+    if: ${{ github.actor != 'dependabot[bot]' && !contains(github.event.pull_request.labels.*.name, 'nonews') && !contains(github.event.pull_request.labels.*.name, 'github_actions') }}
     runs-on: ubuntu-latest
     name: Towncrier check
     steps:
