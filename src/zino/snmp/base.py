@@ -63,3 +63,15 @@ class NoSuchInstanceError(VarBindError):
 
 class EndOfMibViewError(VarBindError):
     """Raised if end of MIB view is encountered"""
+
+
+class SNMPBackendError(SnmpError):
+    """Base class for SNMP back-end specific errors"""
+
+
+class SNMPBackendNotLoaded(SNMPBackendError):
+    """No SNMP back-end has been loaded yet"""
+
+
+class SNMPBackendVersionError(SNMPBackendError):
+    """The available SNMP back-end library version is incompatible with the required version"""
