@@ -25,6 +25,13 @@ from zino.trapd import netsnmpy_backend, pysnmp_backend
 def pytest_configure(config):
     import os
 
+    # Load the default SNMP back-end for the test suite.  Tests for specific back-end will import directly from those.
+    from zino.snmp import import_snmp_backend
+    from zino.trapd import import_trap_backend
+
+    import_snmp_backend()
+    import_trap_backend()
+
     from netsnmpy import netsnmp
 
     from zino.snmp import get_vendored_mib_directory
