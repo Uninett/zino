@@ -7,13 +7,14 @@ from netsnmpy.netsnmp import EndOfMibView, NoSuchInstance, NoSuchObject, SNMPVar
 from netsnmpy.oids import OID
 
 from zino.config.models import PollDevice
-from zino.snmp import (
+from zino.snmp.base import (
     EndOfMibViewError,
     Identifier,
+    MibNotFoundError,
     NoSuchInstanceError,
+    NoSuchNameError,
     NoSuchObjectError,
 )
-from zino.snmp.base import MibNotFoundError, NoSuchNameError
 from zino.snmp.netsnmpy_backend import SNMP, resolve_symbol
 
 
