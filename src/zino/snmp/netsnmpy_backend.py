@@ -4,7 +4,7 @@ import logging
 from collections import defaultdict
 from typing import Any, Optional, Sequence, Tuple, Union
 
-import netsnmpy.netsnmp
+from netsnmpy import netsnmp
 from netsnmpy.netsnmp import (
     EndOfMibView,
     NoSuchInstance,
@@ -82,7 +82,7 @@ class SNMP:
         var_binds = await self.session.aget(*oids)
         return [_convert_snmp_variable(v) for v in var_binds]
 
-    def _raise_varbind_errors(self, var_bind: netsnmpy.netsnmp.Variable):
+    def _raise_varbind_errors(self, var_bind: netsnmp.Variable):
         """Raises a relevant exception if an error has occurred in a varbind"""
         oid, value = var_bind
         if isinstance(value, NoSuchObject):
@@ -293,7 +293,7 @@ def _convert_snmp_variable(variable: SNMPVariable) -> SNMPVarBind:
     """
     mib, obj, _rest = _split_symbol(variable.symbolic_name)
     # Net-SNMP does a symbolic breakdown of the full OID, so we need to reassemble the bits we care about:
-    prefix = netsnmpy.netsnmp.symbol_to_oid(f"{mib}::{obj}")
+    prefix = netsnmp.symbol_to_oid(f"{mib}::{obj}")
     suffix = variable.oid.strip_prefix(prefix)
 
     if variable.enum_value is not None:
