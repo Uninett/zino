@@ -6,7 +6,6 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from trapd import send_trap_externally
 from zino.oid import OID
 from zino.trapd.base import (
     TrapMessage,
@@ -15,6 +14,8 @@ from zino.trapd.base import (
     TrapVarBind,
 )
 from zino.trapd.pysnmp_backend import TrapReceiver
+
+from . import send_trap_externally
 
 OID_COLD_START = ".1.3.6.1.6.3.1.1.5.1"
 OID_SYSNAME_0 = ".1.3.6.1.2.1.1.5.0"
@@ -82,7 +83,6 @@ class TestTrapReceiver:
 
 @pytest.mark.skipif(not shutil.which("snmptrap"), reason="Cannot find snmptrap command line program")
 class TestTrapReceiverExternally:
-
     async def test_when_trap_is_from_unknown_device_it_should_ignore_it(self, event_loop, caplog):
         receiver = TrapReceiver(address="127.0.0.1", port=1162, loop=event_loop)
         receiver.add_community("public")
