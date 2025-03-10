@@ -69,6 +69,12 @@ def main():
 
 def init_netsnmp():
     """Basic initialization of Net-SNMP library"""
+    # Ensure that the vendored MIBs can be found by Net-SNMP (unless overridden by the user's environment)
+    if "MIBDIRS" not in os.environ:
+        from zino.snmp import get_vendored_mib_directory
+
+        os.environ["MIBDIRS"] = f"+:{get_vendored_mib_directory()}"
+
     netsnmp.register_log_callback(enable_debug=logging.getLogger("netsnmpy.netsnmp").isEnabledFor(logging.DEBUG))
     netsnmp.load_mibs()
     # Test basic MIB lookup to fail early

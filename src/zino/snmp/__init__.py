@@ -1,5 +1,6 @@
 """Zino SNMP back-ends"""
 
+import os.path
 from weakref import WeakValueDictionary
 
 from zino.config.models import PollDevice
@@ -25,3 +26,8 @@ def get_snmp_session(device: PollDevice) -> SNMP:
     if not session:
         session = _snmp_sessions[key] = SNMP(device)
     return session
+
+
+def get_vendored_mib_directory():
+    """Returns the path to the vendored MIB directory"""
+    return os.path.join(os.path.dirname(__file__), "mibs")
