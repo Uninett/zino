@@ -70,6 +70,9 @@ exclude = ["tests*"]
 "*" = [
     "*.rst",
 ]
+"zino.snmp" = [
+    "mibs/*",
+]
 
 [tool.setuptools.exclude-package-data]
 "*" = ["tests/"]

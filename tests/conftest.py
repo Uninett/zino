@@ -27,9 +27,11 @@ def pytest_configure(config):
 
     from netsnmpy import netsnmp
 
+    import zino.snmp
+
     # Ensure that the vendored MIBs are loaded
     os.environ["MIBS"] = "ALL"
-    vendored_mibs = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "mibs"))
+    vendored_mibs = os.path.abspath(os.path.join(os.path.dirname(zino.snmp.__file__), "mibs"))
     print(f"Setting MIBDIRS to {vendored_mibs}")
     os.environ["MIBDIRS"] = f"{vendored_mibs}"
     netsnmp.load_mibs()
