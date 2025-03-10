@@ -19,7 +19,7 @@ from zino.statemodels import (
     PortStateMaintenance,
 )
 from zino.time import now
-from zino.trapd.pysnmp_backend import TrapReceiver
+from zino.trapd import pysnmp_backend
 
 
 def pytest_configure(config):
@@ -256,9 +256,9 @@ def state_with_localhost():
 
 
 @pytest_asyncio.fixture
-async def localhost_receiver(state_with_localhost, event_loop) -> TrapReceiver:
+async def localhost_pysnmp_receiver(state_with_localhost, event_loop) -> pysnmp_backend.TrapReceiver:
     """Yields a TrapReceiver instance with a standardized setup for running external tests on localhost"""
-    receiver = TrapReceiver(address="127.0.0.1", port=1163, loop=event_loop, state=state_with_localhost)
+    receiver = pysnmp_backend.TrapReceiver(address="127.0.0.1", port=1163, loop=event_loop, state=state_with_localhost)
     receiver.add_community("public")
     await receiver.open()
     yield receiver
