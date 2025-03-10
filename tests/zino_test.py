@@ -26,7 +26,7 @@ def test_zino_help_screen_should_not_crash():
     assert subprocess.check_call(["zino", "--help"]) == 0
 
 
-def test_zino_should_not_crash_right_away(polldevs_conf_with_no_routers, zino_conf):
+def test_zino_should_not_crash_right_away(polldevs_conf_with_no_routers, unused_udp_port, zino_conf):
     """This tests that the main function runs Zino for at least 2 seconds"""
     seconds_to_run_for = 2
     subprocess.check_call(
@@ -39,12 +39,12 @@ def test_zino_should_not_crash_right_away(polldevs_conf_with_no_routers, zino_co
             "--config-file",
             str(zino_conf),
             "--trap-port",
-            "1162",
+            str(unused_udp_port),
         ]
     )
 
 
-def test_zino_should_run_with_pollfile_name_in_config_file(polldevs_conf_with_no_routers, zino_conf):
+def test_zino_should_run_with_pollfile_name_in_config_file(polldevs_conf_with_no_routers, unused_udp_port, zino_conf):
     """This tests that the main function runs Zino for at least 2 seconds when
     the name of the pollfile is defined in the config file
     """
@@ -57,12 +57,12 @@ def test_zino_should_run_with_pollfile_name_in_config_file(polldevs_conf_with_no
             "--config-file",
             str(zino_conf),
             "--trap-port",
-            "1162",
+            str(unused_udp_port),
         ]
     )
 
 
-def test_zino_should_not_run_without_pollfile(zino_conf_with_non_existent_pollfile):
+def test_zino_should_not_run_without_pollfile(zino_conf_with_non_existent_pollfile, unused_udp_port):
     """This tests that the main function does not Zino for at least 2 seconds when
     the name of the pollfile is defined in the config file, but does not exist
     """
@@ -76,7 +76,7 @@ def test_zino_should_not_run_without_pollfile(zino_conf_with_non_existent_pollfi
                 "--config-file",
                 str(zino_conf_with_non_existent_pollfile),
                 "--trap-port",
-                "1162",
+                str(unused_udp_port),
             ]
         )
 
@@ -92,7 +92,7 @@ def test_when_logging_config_is_invalid_then_apply_logging_config_should_exit():
         zino.apply_logging_config({"loggers": {"zino": {"level": "invalid"}}})
 
 
-def test_zino_should_not_run_with_invalid_conf_file(invalid_zino_conf):
+def test_zino_should_not_run_with_invalid_conf_file(invalid_zino_conf, unused_udp_port):
     """This tests that the main function does not Zino for at least 2 seconds when
     the name of the pollfile is defined in the config file, but does not exist
     """
@@ -106,7 +106,7 @@ def test_zino_should_not_run_with_invalid_conf_file(invalid_zino_conf):
                 "--config-file",
                 str(invalid_zino_conf),
                 "--trap-port",
-                "1162",
+                str(unused_udp_port),
             ]
         )
 
