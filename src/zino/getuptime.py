@@ -24,9 +24,10 @@ async def run(args: argparse.Namespace):
     device = devices[args.router]
 
     backend = import_snmp_backend(config.snmp.backend)
+    backend.init_backend()
     snmp = backend.SNMP(device)
     response = await snmp.get("SNMPv2-MIB", "sysUpTime", 0)
-    _log.info("Response from %s: %r", device.name, int(response))
+    _log.info("Response from %s: %r", device.name, response.value)
 
 
 def parse_args():
