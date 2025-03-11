@@ -13,6 +13,7 @@ from pysnmp.proto.rfc1905 import EndOfMibView, NoSuchInstance, NoSuchObject
 
 from zino.config.models import PollDevice
 from zino.oid import OID
+from zino.snmp import pysnmp_backend
 from zino.snmp.base import (
     EndOfMibViewError,
     ErrorIndication,
@@ -23,7 +24,7 @@ from zino.snmp.base import (
     NoSuchNameError,
     NoSuchObjectError,
 )
-from zino.snmp.pysnmp_backend import SNMP
+from zino.snmp.pysnmp_backend import SNMP, init_backend
 
 
 @pytest.fixture(scope="session")
@@ -309,3 +310,9 @@ class TestSubtreeIsSupported:
     async def test_when_agent_does_not_have_subtree_it_should_return_false(self, snmp_client):
         response = await snmp_client.subtree_is_supported("BFD-STD-MIB", "bfdSessTable")
         assert not response
+
+
+class TestInitBackend:
+    def test_it_should_initialize_an_snmp_engine_instance(self):
+        init_backend()
+        assert pysnmp_backend._local.snmp_engine is not None

@@ -1,4 +1,5 @@
 import asyncio
+import os
 from unittest.mock import Mock, patch
 
 import pytest
@@ -14,8 +15,10 @@ from zino.snmp.base import (
     NoSuchInstanceError,
     NoSuchNameError,
     NoSuchObjectError,
+    SNMPBackendError,
+    SNMPBackendVersionError,
 )
-from zino.snmp.netsnmpy_backend import SNMP, resolve_symbol
+from zino.snmp.netsnmpy_backend import SNMP, init_backend, resolve_symbol
 
 
 @pytest.fixture(scope="session")
@@ -48,6 +51,25 @@ def unreachable_snmp_client():
     ):
         device = PollDevice(name="nonexist", address="127.0.0.1", community="invalid", port=666)
         yield SNMP(device)
+
+
+class TestInitBackend:
+    def test_when_netsnmp_is_too_old_it_should_raise(self):
+        with patch("zino.snmp.netsnmpy_backend.netsnmp.get_version", return_value=(5, 7, 0)):
+            with pytest.raises(SNMPBackendVersionError):
+                init_backend()
+
+    def test_when_mibdirs_envvar_is_not_set_it_should_set_it(self):
+        env = os.environ.copy()
+        env.pop("MIBDIRS", None)
+        with patch("os.environ", env):
+            init_backend()
+            assert "MIBDIRS" in os.environ
+
+    def test_when_vendored_mib_cannot_be_resolved_it_should_raise(self):
+        with patch("zino.snmp.netsnmpy_backend.netsnmp.symbol_to_oid", side_effect=ValueError("Mock error")):
+            with pytest.raises(SNMPBackendError):
+                init_backend()
 
 
 class TestSNMPRequestsResponseTypes:
