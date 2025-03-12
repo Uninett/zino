@@ -89,14 +89,14 @@ class TestTrapReceiver:
 
 @pytest.mark.skipif(not shutil.which("snmptrap"), reason="Cannot find snmptrap command line program")
 class TestTrapReceiverExternally:
-    async def test_when_trap_is_from_unknown_device_it_should_ignore_it(self, event_loop, caplog):
-        receiver = TrapReceiver(address="127.0.0.1", port=1162, loop=event_loop)
+    async def test_when_trap_is_from_unknown_device_it_should_ignore_it(self, event_loop, unused_udp_port, caplog):
+        receiver = TrapReceiver(address="127.0.0.1", port=unused_udp_port, loop=event_loop)
         receiver.add_community("public")
         try:
             await receiver.open()
 
             with caplog.at_level(logging.DEBUG):
-                await send_trap_externally(OID_COLD_START, OID_SYSNAME_0, "s", "'MockDevice'")
+                await send_trap_externally(OID_COLD_START, OID_SYSNAME_0, "s", "'MockDevice'", port=unused_udp_port)
                 assert "ignored trap from 127.0.0.1" in caplog.text
         finally:
             receiver.close()

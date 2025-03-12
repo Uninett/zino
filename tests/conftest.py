@@ -256,9 +256,11 @@ def state_with_localhost():
 
 
 @pytest_asyncio.fixture
-async def localhost_pysnmp_receiver(state_with_localhost, event_loop) -> pysnmp_backend.TrapReceiver:
+async def localhost_pysnmp_receiver(state_with_localhost, unused_udp_port, event_loop) -> pysnmp_backend.TrapReceiver:
     """Yields a TrapReceiver instance with a standardized setup for running external tests on localhost"""
-    receiver = pysnmp_backend.TrapReceiver(address="127.0.0.1", port=1163, loop=event_loop, state=state_with_localhost)
+    receiver = pysnmp_backend.TrapReceiver(
+        address="127.0.0.1", port=unused_udp_port, loop=event_loop, state=state_with_localhost
+    )
     receiver.add_community("public")
     await receiver.open()
     yield receiver
