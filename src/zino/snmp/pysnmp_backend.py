@@ -61,7 +61,11 @@ def init_backend():
 
 
 def get_new_snmp_engine() -> SnmpEngine:
-    """Returns a new SnmpEngine object with Zino's directory of MIB modules loaded"""
+    """Returns a new SnmpEngine object with Zino's directory of MIB modules loaded.
+
+    The SNMP engine is a PySNMP specific object.  This may be useful when working directly with PySNMP, but it is not
+    part of the high-level API that an SNMP back-end module needs to export.
+    """
     snmp_engine = SnmpEngine()
     mib_builder = snmp_engine.getMibBuilder()
     mib_builder.addMibSources(builder.DirMibSource(MIB_SOURCE_DIR))
