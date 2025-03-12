@@ -5,7 +5,7 @@ import ipaddress
 import pytest
 
 from zino.statemodels import DeviceState
-from zino.trapd import TrapOriginator
+from zino.trapd.base import TrapOriginator
 
 
 @pytest.fixture

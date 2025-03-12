@@ -18,7 +18,7 @@ from pprint import pformat
 from typing import Optional
 
 from zino.tasks.bfdtask import BFDTask
-from zino.trapd import TrapMessage, TrapObserver
+from zino.trapd.base import TrapMessage, TrapObserver
 
 _logger = logging.getLogger(__name__)
 
