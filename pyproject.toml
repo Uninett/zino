@@ -26,6 +26,7 @@ dependencies = [
     "pysnmplib",
     "aiodns",
     "tomli; python_version < '3.11'",
+    "netsnmp-cffi>=0.1.1",
 ]
 dynamic = ["version"]
 
@@ -69,6 +70,9 @@ exclude = ["tests*"]
 "*" = [
     "*.rst",
 ]
+"zino.snmp" = [
+    "mibs/*",
+]
 
 [tool.setuptools.exclude-package-data]
 "*" = ["tests/"]
@@ -94,7 +98,7 @@ force-exclude = '''
     | buck-out
     | build
     | dist
-    | src/zino/mibdumps
+    | src/zino/snmp/mibdumps
     | docs
   )
 )

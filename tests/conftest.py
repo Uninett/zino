@@ -22,6 +22,29 @@ from zino.time import now
 from zino.trapd import TrapReceiver
 
 
+def pytest_configure(config):
+    import os
+
+    from netsnmpy import netsnmp
+
+    from zino.snmp import get_vendored_mib_directory
+
+    # Ensure that the vendored MIBs are loaded
+    os.environ["MIBS"] = "ALL"
+    vendored_mibs = get_vendored_mib_directory()
+    print(f"Setting MIBDIRS to {vendored_mibs}")
+    os.environ["MIBDIRS"] = f"{vendored_mibs}"
+    netsnmp.load_mibs()
+    modules = ", ".join(sorted(netsnmp.get_loaded_mibs()))
+    print(f"Loaded MIB modules: {modules}")
+
+    # Every test should operate with a fresh SNMP session object:
+    # Disable re-use of SNMP sessions for testing purposes
+    from zino import snmp
+
+    snmp._snmp_sessions = None
+
+
 @pytest.fixture
 def polldevs_conf(tmp_path):
     name = tmp_path.joinpath("polldevs.cf")

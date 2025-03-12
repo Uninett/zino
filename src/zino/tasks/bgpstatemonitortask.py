@@ -3,7 +3,7 @@ from dataclasses import dataclass, replace
 from ipaddress import ip_address
 from typing import Iterable, Optional
 
-from zino.snmp import SparseWalkResponse
+from zino.snmp.base import SparseWalkResponse
 from zino.statemodels import (
     BGPAdminStatus,
     BGPEvent,
