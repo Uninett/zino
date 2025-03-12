@@ -6,12 +6,12 @@
 This is the modern Python re-implementation of the battle-proven Zino network
 state monitor, first implemented in Tcl/Scotty at Uninett in the 1990s.
 
-This is still a work in progress, and is not yet a fully functional replacement
-for the original Tcl-based Zino.  An incomplete list of features that have yet
-to be ported:
+An incomplete list of features that have yet to be ported from legacy Zino:
 
 - No support for reading trap messages from a trap multiplexer like
-  `straps`/`nmtrapd`.
+  `straps`/`nmtrapd`.  This type of functionality may potentially be achieved
+  by employing general packet multiplexers.  See issue
+  [#362](https://github.com/Uninett/zino/issues/362) for more details.
 
 Development of Zino 2.0 is fully sponsored by [NORDUnet](https://nordu.net/),
 on behalf of the nordic NRENs.
@@ -89,6 +89,36 @@ First, ensure you have Python 3.9, 3.10 or 3.11 available on your system.
 Second, we recommend creating a *Python virtual environment*, which is
 isolated from other Python software installed on your system, and installing
 Zino into that.
+
+Zino also currently supports two separate SNMP back-end libraries:
+
+- [PySNMP](https://pypi.org/project/pysnmplib/), a pure Python SNMP
+  implementation, which should run right out-of-the-box (unfortunately, with
+  poor performance).
+- [netsnmp-cffi](https://pypi.org/project/netsnmp-cffi/, a Python binding to
+  the stable and performant [Net-SNMP C library](https://www.net-snmp.org/).
+
+### Running Zino with the PySNMP library
+
+The current version of Zino selects the Net-SNMP backend by default.  If you do
+not care about performance, are having a problem with the `netsnmp-cffi`
+implementation, or just do not want to deal with the hassle of adding another C
+library to you system, you can select the PySNMP back-end by changing the
+appropriate setting in `zino.toml`.  Please see the section "Configuring Zino"
+for more details.
+
+### Running Zino with the Net-SNMP library
+
+If you want to run Zino with the more performant C library, you need to first
+ensure this library (at least version 5.9) is installed on your system.
+E.g. on Debian, this would be provided by the
+[libsnmp40](https://packages.debian.org/bookworm/libsnmp40) package.
+
+If your're on Linux, the `netsnmp-cffi` Python package should already have a
+version of this library bundled for most common versions of Linux and Python,
+and you might not have to do anything.  If that is not the case, you may have
+to build the `netsnmp-cffi` C shim from source, in which case you will also
+need the Net-SNMP C header files and a C compiler toolchain.
 
 ### Creating a Python virtual environment for Zino
 
