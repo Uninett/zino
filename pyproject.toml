@@ -41,23 +41,6 @@ zinoconv = "zino.stateconverter.convertstate:main"
 
 [project.optional-dependencies]
 docs = ["sphinx>=2.2.0"]
-dev = [
-    "black",
-    "build",
-    "coverage",
-    "ipython",
-    "isort",
-    "pre-commit",
-    "pytest",
-    "pytest-asyncio<0.22.0",
-    "pytest-timeout",
-    "retry",
-    "ruff",
-    "snmpsim>=1.0",
-    "towncrier",
-    "tox<4",
-    "twine",
-]
 
 [tool.setuptools]
 include-package-data = true
