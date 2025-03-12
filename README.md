@@ -300,6 +300,17 @@ zinoconv save-state.tcl zino-state.json
 
 ## Developing Zino
 
+### Development tools
+
+A bunch of tools needed or recommended to have available when developing Zino
+and/or running its test suite are listed in the requirements file
+[requirements/dev.txt](./requirements/dev.txt).  These can be installed to your
+development virtualenv using `pip` (or `uv pip`):
+
+```sh
+pip install -r requirements/dev.txt
+```
+
 ### Running tests
 
 [tox](https://tox.wiki/) and [pytest](https://pytest.org/) are used to run the
