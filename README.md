@@ -95,7 +95,7 @@ Zino also currently supports two separate SNMP back-end libraries:
 - [PySNMP](https://pypi.org/project/pysnmplib/), a pure Python SNMP
   implementation, which should run right out-of-the-box (unfortunately, with
   poor performance).
-- [netsnmp-cffi](https://pypi.org/project/netsnmp-cffi/, a Python binding to
+- [netsnmp-cffi](https://pypi.org/project/netsnmp-cffi/), a Python binding to
   the stable and performant [Net-SNMP C library](https://www.net-snmp.org/).
 
 ### Running Zino with the PySNMP library
