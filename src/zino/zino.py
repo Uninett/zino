@@ -122,6 +122,21 @@ def init_event_loop(args: argparse.Namespace, loop: Optional[AbstractEventLoop] 
     if args.user:
         switch_to_user(args.user)
 
+    setup_initial_job_schedule(loop, args)
+
+    server = ZinoServer(loop=loop, state=state.state, polldevs=state.polldevs)
+    server.serve()
+
+    try:
+        loop.run_forever()
+    except (KeyboardInterrupt, SystemExit):
+        pass
+
+    return True
+
+
+def setup_initial_job_schedule(loop: AbstractEventLoop, args: argparse.Namespace) -> None:
+    """Schedules all recurring and single-run jobs"""
     scheduler = get_scheduler()
     scheduler.start()
 
@@ -167,19 +182,9 @@ def init_event_loop(args: argparse.Namespace, loop: Optional[AbstractEventLoop] 
         minutes=30,
     )
 
-    server = ZinoServer(loop=loop, state=state.state, polldevs=state.polldevs)
-    server.serve()
-
     if args.stop_in:
         _log.info("Instructed to stop in %s seconds", args.stop_in)
         scheduler.add_job(func=loop.stop, trigger="date", run_date=datetime.now() + timedelta(seconds=args.stop_in))
-
-    try:
-        loop.run_forever()
-    except (KeyboardInterrupt, SystemExit):
-        pass
-
-    return True
 
 
 def switch_to_user(username: str):
