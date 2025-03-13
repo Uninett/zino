@@ -79,6 +79,10 @@ class SNMP:
         )
         self.session.open()
 
+    def __del__(self):
+        """Ensures Net-SNMP resources are properly released when sessions are garbage collected"""
+        self.session.close()
+
     async def get(self, *oid: str) -> MibObject:
         """SNMP-GETs the given oid
         Example usage:
