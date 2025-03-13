@@ -18,10 +18,12 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: System :: Networking :: Monitoring",
 ]
 dependencies = [
     "apscheduler",
+    "pyasyncore; python_version >= '3.12'",  # Due to a deficiency in pysnmplib; can be removed when fixed
     "pydantic>=2.7.0",
     "pysnmplib",
     "aiodns",
