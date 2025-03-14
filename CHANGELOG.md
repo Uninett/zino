@@ -12,6 +12,23 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) and the chang
 
 <!-- towncrier release notes start -->
 
+## [2.0.0] - 2025-03-14
+
+### Added
+
+- Calculate downtime for BGP events ([#368](https://github.com/Uninett/zino/issues/368))
+- Added debug logging of low-level SNMP session details to aid in debugging low-level OS resource management problems
+- Added directory for Sphinx documentation in order to set up ReadTheDocs site and secure the name `zino` there.
+
+### Fixed
+
+- Added alternative C-based SNMP back-end for massive performance gains ([#383](https://github.com/Uninett/zino/issues/383))
+- Log "home" address changes as `DEBUG` level information, to avoid unnecessary verbosity in VRRP setups ([#215](https://github.com/Uninett/zino/issues/215))
+- Fix Zino dependencies to allow running on Python 3.12 ([#386](https://github.com/Uninett/zino/issues/386))
+- Fixed unintended symbolic translations in the SNMP abstraction layer, and removed now obsolete workarounds for the problem ([#389](https://github.com/Uninett/zino/issues/389))
+- Removed development tools from list of optional package runtime requirements ([#399](https://github.com/Uninett/zino/issues/399))
+
+
 # ## [2.0.0-beta.2] - 2024-09-03
 
 ### Added
