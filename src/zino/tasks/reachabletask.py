@@ -39,7 +39,9 @@ class ReachableTask(Task):
 
     async def _run_extra_job(self):
         try:
-            await self._get_uptime()
+            # This runs outside a job context, so we need to ensure we clean up low-level SNMP resources
+            with self.snmp:
+                await self._get_uptime()
         except TimeoutError:
             return
         else:
