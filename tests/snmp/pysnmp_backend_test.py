@@ -316,3 +316,8 @@ class TestInitBackend:
     def test_it_should_initialize_an_snmp_engine_instance(self):
         init_backend()
         assert pysnmp_backend._local.snmp_engine is not None
+
+
+def test_snmp_object_should_be_usable_as_context_manager(snmp_client):
+    with snmp_client as context:
+        assert context is snmp_client

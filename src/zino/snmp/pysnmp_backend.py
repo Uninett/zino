@@ -85,6 +85,15 @@ class SNMP:
     def __init__(self, device: PollDevice):
         self.device = device
 
+    # SNMP objects are expected to provide a context manager interface for allocating and releasing low-level
+    # resources.  There are no low-level resources to manage in PySNMP, so these next two methods are empty:
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        return
+
     async def get(self, *oid: str) -> MibObject:
         """SNMP-GETs the given oid
         Example usage:
