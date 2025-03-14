@@ -317,7 +317,7 @@ pip install -r requirements/dev.txt
 test suite. To run the test suite on all supported versions of Python, run:
 
 ```shell
-tox
+tox run
 ```
 
 ### Code style
