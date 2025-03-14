@@ -24,7 +24,8 @@ from zino.snmp.netsnmpy_backend import SNMP, init_backend, resolve_symbol
 @pytest.fixture(scope="session")
 def snmp_client(snmpsim, snmp_test_port):
     device = PollDevice(name="buick.lab.example.org", address="127.0.0.1", port=snmp_test_port)
-    return SNMP(device)
+    with SNMP(device) as snmp:
+        yield snmp
 
 
 @pytest.fixture(scope="session")

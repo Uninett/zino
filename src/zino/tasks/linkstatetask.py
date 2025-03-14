@@ -58,14 +58,18 @@ class LinkStateTask(Task):
         self._update_interfaces(attrs)
 
     async def poll_single_interface(self, ifindex: int):
-        """Polls and updates a single interface"""
+        """Polls and updates a single interface.
+
+        This is most often run outside a job context, and must therefore take care of SNMP resource management.
+        """
         prev_ifindex = ifindex - 1
         poll_list = [
             ("IF-MIB", column, str(prev_ifindex)) if prev_ifindex else ("IF-MIB", column) for column in BASE_POLL_LIST
         ]
         try:
-            result = await self.snmp.getnext2(*poll_list)
-            self.sysuptime = await self._get_uptime()
+            with self.snmp as snmp:
+                result = await snmp.getnext2(*poll_list)
+                self.sysuptime = await self._get_uptime()
         except TimeoutError:
             _logger.error("%s: timed out polling single interface %s", self.device.name, ifindex)
             return

@@ -65,7 +65,20 @@ def init_backend():
 
 
 class SNMP:
-    """Represents an SNMP management session for a single device"""
+    """Represents an SNMP management session for a single device.
+
+    Net-SNMP allocates low-level resources for each session, so it is important to close the session when done with
+    it.  The initial Zino 2 codebase did not expect to have to manage low-level resources, so all SNMP operations of
+    this class will implicitly open an unopened or closed session - which means that some parts of Zino *will* have
+    to manage resource de-allocation.
+
+    Complete job runs should manage the session as a context manager, but tasks that schedule SNMP operations outside
+    of the main job loop should be careful to also manage their own resources.
+
+    Example context manager usage:
+    >>> with SNMP(device) as snmp:
+    >>>     uptime = await snmp.get("SNMPv2-MIB", "sysUpTime", 0)
+    """
 
     def __init__(self, device: PollDevice):
         self.device = device
@@ -77,7 +90,30 @@ class SNMP:
             timeout=device.timeout,
             retries=device.retries,
         )
-        self.session.open()
+        self._is_open = False
+
+    def open(self):
+        """Opens a low-level SNMP session"""
+        if not self._is_open:
+            self.session.open()
+            self._is_open = True
+
+    def close(self):
+        """Closes a low-level SNMP session"""
+        if self._is_open:
+            self.session.close()
+            self._is_open = False
+
+    def __enter__(self):
+        self.open()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+    def _open_if_closed(self):
+        if not self._is_open:
+            self.open()
 
     async def get(self, *oid: str) -> MibObject:
         """SNMP-GETs the given oid
@@ -89,6 +125,7 @@ class SNMP:
         :return: A MibObject representing the resulting MIB variable
         """
         objid = resolve_symbol(oid)
+        self._open_if_closed()
         var_binds = await self.session.aget(objid)
         result = var_binds[0]
         self._raise_varbind_errors(result)
@@ -105,6 +142,7 @@ class SNMP:
         :return: A list of MibObject instances representing the resulting MIB variables
         """
         oids = [resolve_symbol(var) for var in variables]
+        self._open_if_closed()
         var_binds = await self.session.aget(*oids)
         return [_convert_snmp_variable(v) for v in var_binds]
 
@@ -128,6 +166,7 @@ class SNMP:
         :return: A MibObject representing the resulting MIB variable
         """
         objid = resolve_symbol(oid)
+        self._open_if_closed()
         var_binds = await self.session.agetnext(objid)
         result = var_binds[0]
         self._raise_varbind_errors(result)
@@ -151,6 +190,7 @@ class SNMP:
         :return: A sequence of MibObject instances representing the resulting MIB variables
         """
         oids = [resolve_symbol(var) for var in variables]
+        self._open_if_closed()
         var_binds = await self.session.agetnext(*oids)
         return [_convert_snmp_variable(v) for v in var_binds]
 
@@ -166,6 +206,7 @@ class SNMP:
         results = []
         root_oid = resolve_symbol(oid)
         current_oid = root_oid
+        self._open_if_closed()
         while True:
             response = await self.session.agetnext(current_oid)
             var_bind = response[0]
@@ -186,6 +227,7 @@ class SNMP:
         :return: A list of MibObjects representing the resulting MIB variables
         """
         objid = resolve_symbol(oid)
+        self._open_if_closed()
         var_binds = await self.session.agetbulk(objid, max_repetitions=max_repetitions)
         return [MibObject(*var_bind) for var_bind in var_binds]
 
@@ -206,6 +248,7 @@ class SNMP:
         :return: A sequence of two-tuples that represent the response varbinds
         """
         oid_objects = [resolve_symbol(v) for v in variables]
+        self._open_if_closed()
         var_binds = await self.session.agetbulk(*oid_objects, max_repetitions=max_repetitions)
 
         query_count = len(variables)
@@ -225,6 +268,7 @@ class SNMP:
         """
         results = []
         start_oid = query_oid = resolve_symbol(oid)
+        self._open_if_closed()
         while True:
             response = await self.session.agetbulk(query_oid, max_repetitions=max_repetitions)
             if not response:
@@ -253,6 +297,7 @@ class SNMP:
         query_objects = roots = [resolve_symbol(symbol) for symbol in variables]
         results: dict[OID, dict[str, Any]] = defaultdict(dict)
 
+        self._open_if_closed()
         while True:
             query_objects = await self._sparsewalk_iteration(roots, query_objects, results, max_repetitions)
             if not query_objects:

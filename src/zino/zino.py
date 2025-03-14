@@ -2,6 +2,7 @@
 import argparse
 import asyncio
 import errno
+import gc
 import grp
 import logging
 import logging.config
@@ -9,6 +10,7 @@ import os
 import pwd
 import sys
 from asyncio import AbstractEventLoop
+from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, Optional
 
@@ -122,6 +124,21 @@ def init_event_loop(args: argparse.Namespace, loop: Optional[AbstractEventLoop] 
     if args.user:
         switch_to_user(args.user)
 
+    setup_initial_job_schedule(loop, args)
+
+    server = ZinoServer(loop=loop, state=state.state, polldevs=state.polldevs)
+    server.serve()
+
+    try:
+        loop.run_forever()
+    except (KeyboardInterrupt, SystemExit):
+        pass
+
+    return True
+
+
+def setup_initial_job_schedule(loop: AbstractEventLoop, args: argparse.Namespace) -> None:
+    """Schedules all recurring and single-run jobs"""
     scheduler = get_scheduler()
     scheduler.start()
 
@@ -167,19 +184,15 @@ def init_event_loop(args: argparse.Namespace, loop: Optional[AbstractEventLoop] 
         minutes=30,
     )
 
-    server = ZinoServer(loop=loop, state=state.state, polldevs=state.polldevs)
-    server.serve()
+    scheduler.add_job(
+        func=log_snmp_session_stats,
+        trigger="interval",
+        minutes=1,
+    )
 
     if args.stop_in:
         _log.info("Instructed to stop in %s seconds", args.stop_in)
         scheduler.add_job(func=loop.stop, trigger="date", run_date=datetime.now() + timedelta(seconds=args.stop_in))
-
-    try:
-        loop.run_forever()
-    except (KeyboardInterrupt, SystemExit):
-        pass
-
-    return True
 
 
 def switch_to_user(username: str):
@@ -248,6 +261,47 @@ def reschedule_dump_state(log_msg: str) -> None:
     if job.next_run_time > next_run:
         _log.debug("%s, Rescheduling state dump from %s to %s", log_msg, job.next_run_time, next_run)
         job.modify(next_run_time=next_run)
+
+
+def log_snmp_session_stats():
+    """Logs debug information about the current number of SNMP session objects"""
+    logger = logging.getLogger("zino.snmp")
+    if not logger.isEnabledFor(logging.DEBUG):
+        return  # Skip potentially expensive count operations if debug logging is not enabled
+
+    backend = import_snmp_backend()
+    log_low_level = "netsnmpy" in backend.__name__
+
+    from zino.snmp import SNMP, _snmp_sessions
+
+    device_count = len(state.state.devices)
+    reusable = len(_snmp_sessions) if _snmp_sessions else 0
+
+    msg = "(SNMP) session update: routers=%d, reusable (zino)=%d, gc reachable (high-level)=%d"
+    if log_low_level:
+        from netsnmpy.session import Session
+
+        counts = _count_reachable_objects(SNMP, Session)
+        counts = counts[SNMP], counts[Session]
+        msg += ", gc reachable (low-level)=%d"
+    else:
+        counts = _count_reachable_objects(SNMP)
+        counts = (counts[SNMP],)
+
+    logger.debug(msg, device_count, reusable, *counts)
+
+
+def _count_reachable_objects(*types):
+    """Returns the number of objects of the given types that are currently reachable by the garbage collector.
+
+    Designed to do a single pass over all objects in memory, for some semblance of efficiency.
+    """
+    counts = defaultdict(int)
+    for obj in gc.get_objects():
+        for t in types:
+            if isinstance(obj, t):
+                counts[t] += 1
+    return counts
 
 
 def parse_args(arguments=None):
