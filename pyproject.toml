@@ -65,34 +65,10 @@ exclude = ["tests*"]
 [tool.setuptools_scm]
 write_to = "src/zino/version.py"
 
-[tool.black]
-line-length = 120
-# Exclude files even when passed directly as argument (for MegaLinter)
-force-exclude = '''
-(
-  /(
-      \.eggs         # exclude a few common directories in the
-    | \.git          # root of the project
-    | \.hg
-    | \.mypy_cache
-    | \.nox
-    | \.tox
-    | \.venv
-    | \.ve
-    | _build
-    | buck-out
-    | build
-    | dist
-    | src/zino/snmp/mibdumps
-    | docs
-  )
-)
-'''
-
 [tool.ruff]
 line-length = 120
 target-version = "py39"
-exclude = [
+extend-exclude = [
     "mibdumps", "docs"
 ]
 # Exclude files even when passed directly as argument (for MegaLinter)
