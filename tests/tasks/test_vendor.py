@@ -8,7 +8,6 @@ from zino.tasks.vendor import VendorTask
 
 
 class TestVendorTask:
-
     async def test_run_should_set_enterprise_id(self, snmpsim, snmp_test_port):
         device = PollDevice(name="localhost", address="127.0.0.1", community="public", port=snmp_test_port)
         state = ZinoState()

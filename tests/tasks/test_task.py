@@ -8,7 +8,6 @@ from zino.tasks.reachabletask import ReachableTask
 
 
 class TestTask:
-
     async def test_get_sysuptime_returns_uptime(self, snmpsim, snmp_test_port):
         device = PollDevice(
             name="buick.lab.example.org",

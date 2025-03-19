@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Fetch SNMP agent uptime using Zino high-level APIs"""
+
 import argparse
 import asyncio
 import logging

@@ -17,13 +17,12 @@ OID_IFOPERSTATUS = ".1.3.6.1.2.1.2.2.1.8"
 
 
 class TestLinkTrapObserver:
-
     async def test_when_link_down_is_received_it_should_create_portstate_event(
         self, state_with_localhost_with_port, localhost_pysnmp_receiver
     ):
-        assert not state_with_localhost_with_port.events.get(
-            "localhost", 1, PortStateEvent
-        ), "initial state should be empty"
+        assert not state_with_localhost_with_port.events.get("localhost", 1, PortStateEvent), (
+            "initial state should be empty"
+        )
 
         observer = LinkTrapObserver(
             state=localhost_pysnmp_receiver.state,
@@ -35,16 +34,16 @@ class TestLinkTrapObserver:
             OID_LINKDOWN, OID_IFINDEX, "i", "1", OID_IFOPERSTATUS, "i", "2", port=localhost_pysnmp_receiver.port
         )
 
-        assert state_with_localhost_with_port.events.get(
-            "localhost", 1, PortStateEvent
-        ), "no portstate event was created"
+        assert state_with_localhost_with_port.events.get("localhost", 1, PortStateEvent), (
+            "no portstate event was created"
+        )
 
     async def test_when_port_does_not_match_watch_pattern_it_should_ignore_link_traps(
         self, state_with_localhost_with_port, localhost_pysnmp_receiver
     ):
-        assert not state_with_localhost_with_port.events.get(
-            "localhost", 1, PortStateEvent
-        ), "initial state should be empty"
+        assert not state_with_localhost_with_port.events.get("localhost", 1, PortStateEvent), (
+            "initial state should be empty"
+        )
         localhost_config = PollDevice(name="localhost", address="127.0.0.1", watchpat="foo.*")
         localhost_pysnmp_receiver.polldevs["localhost"] = localhost_config
 
@@ -56,16 +55,16 @@ class TestLinkTrapObserver:
         localhost_pysnmp_receiver.observe(observer, *LinkTrapObserver.WANTED_TRAPS)
         await send_trap_externally(OID_LINKDOWN, OID_IFINDEX, "i", "1", OID_IFOPERSTATUS, "i", "2")
 
-        assert not state_with_localhost_with_port.events.get(
-            "localhost", 1, PortStateEvent
-        ), "linkDown for non-watched port was not ignored"
+        assert not state_with_localhost_with_port.events.get("localhost", 1, PortStateEvent), (
+            "linkDown for non-watched port was not ignored"
+        )
 
     async def test_when_port_matches_ignore_pattern_it_should_ignore_link_traps(
         self, state_with_localhost_with_port, localhost_pysnmp_receiver
     ):
-        assert not state_with_localhost_with_port.events.get(
-            "localhost", 1, PortStateEvent
-        ), "initial state should be empty"
+        assert not state_with_localhost_with_port.events.get("localhost", 1, PortStateEvent), (
+            "initial state should be empty"
+        )
         localhost_config = PollDevice(name="localhost", address="127.0.0.1", ignorepat=".*eth0.*")
         localhost_pysnmp_receiver.polldevs["localhost"] = localhost_config
 
@@ -77,9 +76,9 @@ class TestLinkTrapObserver:
         localhost_pysnmp_receiver.observe(observer, *LinkTrapObserver.WANTED_TRAPS)
         await send_trap_externally(OID_LINKDOWN, OID_IFINDEX, "i", "1", OID_IFOPERSTATUS, "i", "2")
 
-        assert not state_with_localhost_with_port.events.get(
-            "localhost", 1, PortStateEvent
-        ), "linkDown for non-watched port was not ignored"
+        assert not state_with_localhost_with_port.events.get("localhost", 1, PortStateEvent), (
+            "linkDown for non-watched port was not ignored"
+        )
 
     def test_when_event_exists_policy_should_not_ignore_trap(self, state_with_localhost_with_port):
         observer = LinkTrapObserver(state=state_with_localhost_with_port, polldevs=Mock())
@@ -104,9 +103,9 @@ class TestLinkTrapObserver:
         localhost = state_with_localhost_with_port.devices.devices["localhost"]
         port = localhost.ports[1]
         port.state = InterfaceState.DOWN
-        assert observer.is_port_ignored_by_policy(
-            localhost, localhost.ports[1], is_up=False
-        ), "did not ignore redundant linkDown trap"
+        assert observer.is_port_ignored_by_policy(localhost, localhost.ports[1], is_up=False), (
+            "did not ignore redundant linkDown trap"
+        )
 
     async def test_when_link_trap_is_missing_ifindex_value_it_should_ignore_trap_early(
         self, state_with_localhost_with_port
@@ -130,9 +129,9 @@ class TestLinkTrapObserver:
     async def test_when_event_is_new_it_should_set_lasttrans(
         self, state_with_localhost_with_port, localhost_pysnmp_receiver
     ):
-        assert not state_with_localhost_with_port.events.get(
-            "localhost", 1, PortStateEvent
-        ), "initial state should be empty"
+        assert not state_with_localhost_with_port.events.get("localhost", 1, PortStateEvent), (
+            "initial state should be empty"
+        )
 
         observer = LinkTrapObserver(
             state=localhost_pysnmp_receiver.state,

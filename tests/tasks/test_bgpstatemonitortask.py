@@ -22,7 +22,6 @@ DEFAULT_UPTIME = 250
 
 
 class TestBGPStateMonitorTask:
-
     @pytest.mark.parametrize("task", ["public", "juniper-bgp", "cisco-bgp", "general-bgp"], indirect=True)
     async def test_task_runs_without_errors(self, task):
         assert (await task.run()) is None
@@ -312,7 +311,6 @@ class TestBGPStateMonitorTask:
 
 
 class TestGetBGPStyle:
-
     @pytest.mark.parametrize("task", ["juniper-bgp"], indirect=True)
     async def test_get_bgp_style_returns_correct_style_for_juniper(self, task):
         assert (await task._get_bgp_style()) == BGPStyle.JUNIPER
@@ -331,7 +329,6 @@ class TestGetBGPStyle:
 
 
 class TestGetLocalAs:
-
     @pytest.mark.parametrize("task", ["juniper-bgp"], indirect=True)
     async def test_get_local_as_returns_correct_value_for_juniper(self, task):
         assert (await task._get_local_as(bgp_style=BGPStyle.JUNIPER)) == 10

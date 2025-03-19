@@ -10,7 +10,6 @@ from zino.utils import file_is_world_readable, log_time_spent, reverse_dns
 
 
 class TestReverseDNS:
-
     async def test_should_return_reverse_dns_for_valid_ip(self, mock_dnsresolver):
         valid_ip = "8.8.8.8"
         reverse_dns_value = "reverse.dns.example.com"
