@@ -23,7 +23,7 @@ More information about contributing to Zino can be found in the
 * [ ] Added a changelog fragment for [towncrier](https://github.com/Uninett/zino/blob/master/README.md#before-merging-a-pull-request)
 * [ ] Added/amended tests for new/changed code <!-- In case CodeCov Upload makes the tests fail, simply rerun them a few minutes later -->
 * [ ] Added/changed documentation
-* [ ] Linted/formatted the code with black, ruff and isort, easiest by using [pre-commit](https://github.com/Uninett/zino/blob/master/README.md#code-style)
+* [ ] Linted/formatted the code with ruff, easiest by using [pre-commit](https://github.com/Uninett/zino/blob/master/README.md#code-style)
 * [ ] The first line of the commit message continues the sentence "If applied, this commit will ...", starts with a capital letter, does not end with punctuation and is 50 characters or less long. See https://cbea.ms/git-commit/
 * [ ] If applicable: Created new issues if this PR does not fix the issue completely/there is further work to be done
 
