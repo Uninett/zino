@@ -324,10 +324,9 @@ tox run
 
 Zino code should follow the [PEP-8](https://peps.python.org/pep-0008/) and
 [PEP-257](https://peps.python.org/pep-0257/)
-guidelines. [Black](https://github.com/psf/black) and
-[isort](https://pycqa.github.io/isort/) are used for automatic code
-formatting. The [pre-commit](https://pre-commit.com/) tool is used to enforce
-code styles at commit-time.
+guidelines. [Ruff](https://docs.astral.sh/ruff) is used for automatic code
+formatting and linting. The [pre-commit](https://pre-commit.com/) tool is used
+to enforce code styles at commit-time.
 
 Before you start hacking, enable pre-commit hooks in your cloned repository,
 like so:
