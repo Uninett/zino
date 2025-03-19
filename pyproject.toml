@@ -71,12 +71,10 @@ target-version = "py39"
 extend-exclude = [
     "mibdumps", "docs"
 ]
-# Exclude files even when passed directly as argument (for MegaLinter)
-force-exclude = true
 
-[tool.isort]
-profile = "black"
-src_paths = ["src", "tests"]
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
+fixable = ["I"]
 
 [tool.coverage.report]
 # Regexes for lines to exclude from consideration
