@@ -9,7 +9,6 @@ from zino.tasks.juniperalarmtask import JuniperAlarmTask
 
 
 class TestJuniperalarmTask:
-
     async def test_task_runs_without_errors(self, juniper_alarm_task):
         assert (await juniper_alarm_task.run()) is None
 

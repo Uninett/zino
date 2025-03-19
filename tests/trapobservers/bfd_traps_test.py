@@ -11,7 +11,6 @@ from zino.trapobservers.bfd_traps import BFDTrapObserver
 
 
 class TestBFDTrapObserver:
-
     async def test_when_bfd_trap_is_received_it_should_poll_all_affected_sessions(
         self, bfd_session_down_trap, monkeypatch, event_loop
     ):

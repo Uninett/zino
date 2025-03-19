@@ -17,7 +17,6 @@ from zino.time import now
 
 
 class TestLinkStateTask:
-
     async def test_run_should_not_create_event_if_links_are_up(self, linkstatetask_with_links_up):
         task = linkstatetask_with_links_up
         assert (await task.run()) is None
