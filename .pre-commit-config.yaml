@@ -14,14 +14,15 @@ repos:
     hooks:
       - id: isort
         name: isort (python)
-  - repo: https://github.com/psf/black
-    rev: 25.1.0
-    hooks:
-      - id: black
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.9.4
     hooks:
+        # Run the linter
       - id: ruff
+        name: "Ruff linting"
+        # Run the formatter
+      - id: ruff-format
+        name: "Ruff formatting"
   - repo: https://github.com/twisted/towncrier
     rev: 24.8.0
     hooks:
