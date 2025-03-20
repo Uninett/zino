@@ -401,3 +401,12 @@ A few other helpful flags:
 - `keep` - do not delete the files in `changelog.d/`
 
 More information about [towncrier](https://towncrier.readthedocs.io).
+
+### Making git blame ignore formatting changes
+The Zino codebase has been slightly reformatted a couple of times. To make
+`git blame` ignore these changes you can run
+```console
+$ git config blame.ignoreRevsFile .git-blame-ignore-revs
+```
+For more information check the
+[git blame docs](https://git-scm.com/docs/git-blame#Documentation/git-blame.txt---ignore-revs-fileltfilegt).
