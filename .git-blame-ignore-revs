@@ -6,3 +6,5 @@ e0ac8815008114743f6fb2d8a918005bb32dd94f
 905e7a01fc720732bc3513e074719bae78dddfe3
 # Fix trailing whitespace in towncrier workflow @johannaengland 04/02/2024
 e41cd16efb5f8bcb399a5b85b8d820dc8c5cf670
+# Reformat codebase using ruff @johannaengland 19/03/2025
+51931ae7045cb2f7fa7379c6c37726110a52b2d8
