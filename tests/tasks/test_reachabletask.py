@@ -8,7 +8,6 @@ from zino.time import now
 
 
 class TestReachableTask:
-
     async def test_run_should_not_create_event_if_device_is_reachable(self, reachable_task):
         task = reachable_task
         assert (await task.run()) is None

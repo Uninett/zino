@@ -47,8 +47,7 @@ class JuniperAlarmTask(Task):
 
         if not isinstance(yellow_alarm_count, int) or not isinstance(red_alarm_count, int):
             _logger.error(
-                "Device %s returns alarm count not of type int. "
-                "Yellow alarm count: type %s. Red alarm count: type %s.",
+                "Device %s returns alarm count not of type int. Yellow alarm count: type %s. Red alarm count: type %s.",
                 self.device.name,
                 type(yellow_alarm_count),
                 type(red_alarm_count),

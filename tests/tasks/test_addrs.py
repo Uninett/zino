@@ -9,7 +9,6 @@ from zino.tasks.addrs import AddressMapTask, validate_ipaddr
 
 
 class TestAddressMapTask:
-
     async def test_it_should_run_without_error_on_reachable_device(self, address_task_with_dummy_device):
         result = await address_task_with_dummy_device.run()
         assert result is None

@@ -1,7 +1,7 @@
 # Zino 2
 [![build badge](https://img.shields.io/github/actions/workflow/status/Uninett/zino/tests.yml?branch=master)](https://github.com/Uninett/zino/actions)
 [![codecov badge](https://codecov.io/gh/Uninett/zino/branch/master/graph/badge.svg)](https://codecov.io/gh/Uninett/zino)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Code style: Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
 This is the modern Python re-implementation of the battle-proven Zino network
 state monitor, first implemented in Tcl/Scotty at Uninett in the 1990s.
@@ -324,10 +324,9 @@ tox run
 
 Zino code should follow the [PEP-8](https://peps.python.org/pep-0008/) and
 [PEP-257](https://peps.python.org/pep-0257/)
-guidelines. [Black](https://github.com/psf/black) and
-[isort](https://pycqa.github.io/isort/) are used for automatic code
-formatting. The [pre-commit](https://pre-commit.com/) tool is used to enforce
-code styles at commit-time.
+guidelines. [Ruff](https://docs.astral.sh/ruff) is used for automatic code
+formatting and linting. The [pre-commit](https://pre-commit.com/) tool is used
+to enforce code styles at commit-time.
 
 Before you start hacking, enable pre-commit hooks in your cloned repository,
 like so:
@@ -402,3 +401,12 @@ A few other helpful flags:
 - `keep` - do not delete the files in `changelog.d/`
 
 More information about [towncrier](https://towncrier.readthedocs.io).
+
+### Making git blame ignore formatting changes
+The Zino codebase has been slightly reformatted a couple of times. To make
+`git blame` ignore these changes you can run
+```console
+$ git config blame.ignoreRevsFile .git-blame-ignore-revs
+```
+For more information check the
+[git blame docs](https://git-scm.com/docs/git-blame#Documentation/git-blame.txt---ignore-revs-fileltfilegt).

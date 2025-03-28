@@ -28,7 +28,6 @@ class TestRestartTrapLogger:
 
 
 class TestCiscoReloadTrapLogger:
-
     async def test_when_handle_trap_is_called_it_should_log_reload(
         self,
         caplog,
@@ -42,7 +41,6 @@ class TestCiscoReloadTrapLogger:
 
 
 class TestCiscoConfigManEventLogger:
-
     async def test_when_handle_trap_is_called_it_should_log_config_change(
         self,
         caplog,
@@ -65,7 +63,6 @@ class TestCiscoConfigManEventLogger:
 
 
 class TestCiscoPimTrapLogger:
-
     async def test_when_handle_trap_is_called_with_invalid_pim_register_it_should_log_it_correctly(
         self, caplog, localhost_trap_originator
     ):
@@ -129,7 +126,6 @@ class TestCiscoPimTrapLogger:
 
 
 class TestOspfIfConfigErrorLogger:
-
     async def test_when_handle_trap_is_called_with_ospf_config_error_it_should_log_it_correctly(
         self, caplog, localhost_trap_originator
     ):
