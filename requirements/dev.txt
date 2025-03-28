@@ -14,5 +14,5 @@ retry
 ruff
 snmpsim>=1.0,!=1.1.6
 towncrier
-tox<4
+tox
 twine
