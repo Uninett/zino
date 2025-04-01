@@ -260,7 +260,6 @@ class TestZino1BaseServerProtocol:
 
 
 class TestZino1ServerProtocolTranslateCaseIdToEvent:
-
     async def test_when_caseid_exists_it_should_return_event_object(self):
         args = []
 
@@ -296,7 +295,6 @@ class TestZino1ServerProtocolTranslateCaseIdToEvent:
 
 
 class TestZino1ServerProtocolUserCommand:
-
     async def test_when_correct_authentication_is_given_then_response_should_be_ok(self, secrets_file):
         protocol = Zino1ServerProtocol(secrets_file=secrets_file)
         fake_transport = Mock()
@@ -339,14 +337,12 @@ class TestZino1ServerProtocolUserCommand:
 
 
 class TestZino1ServerProtocolQuitCommand:
-
     async def test_when_quit_is_issued_then_transport_should_be_closed(self, authenticated_protocol):
         await authenticated_protocol.message_received("QUIT")
         assert authenticated_protocol.transport.close.called
 
 
 class TestZino1ServerProtocolHelpCommand:
-
     async def test_when_unauthenticated_help_is_issued_then_unauthenticated_top_level_commands_should_be_listed(
         self, buffered_fake_transport
     ):
@@ -361,9 +357,9 @@ class TestZino1ServerProtocolHelpCommand:
             if not getattr(responder.function, "requires_authentication", False)
         )
         for command_name in all_unauthenticated_command_names:
-            assert (
-                command_name.encode() in buffered_fake_transport.data_buffer.getvalue()
-            ), f"{command_name} is not listed in HELP"
+            assert command_name.encode() in buffered_fake_transport.data_buffer.getvalue(), (
+                f"{command_name} is not listed in HELP"
+            )
 
     async def test_when_authenticated_help_is_issued_then_all_top_level_commands_should_be_listed(
         self, authenticated_protocol
@@ -372,13 +368,12 @@ class TestZino1ServerProtocolHelpCommand:
 
         all_command_names = set(authenticated_protocol._get_top_level_responders())
         for command_name in all_command_names:
-            assert (
-                command_name.encode() in authenticated_protocol.transport.data_buffer.getvalue()
-            ), f"{command_name} is not listed in HELP"
+            assert command_name.encode() in authenticated_protocol.transport.data_buffer.getvalue(), (
+                f"{command_name} is not listed in HELP"
+            )
 
 
 class TestZino1ServerProtocolCaseidsCommand:
-
     async def test_should_output_a_list_of_known_event_ids(self, authenticated_protocol):
         state = authenticated_protocol._state
         event1 = state.events.create_event("foo", None, ReachabilityEvent)
@@ -408,7 +403,6 @@ class TestZino1ServerProtocolCaseidsCommand:
 
 
 class TestZino1ServerProtocolVersionCommand:
-
     async def test_should_output_current_version(self, buffered_fake_transport):
         protocol = Zino1ServerProtocol()
         protocol.connection_made(buffered_fake_transport)
@@ -421,7 +415,6 @@ class TestZino1ServerProtocolVersionCommand:
 
 
 class TestZino1ServerProtocolGetattrsCommand:
-
     async def test_should_output_correct_attrs(self, authenticated_protocol):
         state = authenticated_protocol._state
         event1 = state.events.create_event("foo", None, ReachabilityEvent)
@@ -458,7 +451,6 @@ class TestZino1ServerProtocolGetattrsCommand:
 
 
 class TestZino1ServerProtocolGethistCommand:
-
     async def test_should_output_all_lines(self, authenticated_protocol):
         state = authenticated_protocol._state
         event = state.events.create_event("foo", None, ReachabilityEvent)
@@ -484,7 +476,6 @@ class TestZino1ServerProtocolGethistCommand:
 
 
 class TestZino1ServerProtocolGetlogCommand:
-
     async def test_should_output_all_lines(self, authenticated_protocol):
         state = authenticated_protocol._state
         event = state.events.create_event("foo", None, ReachabilityEvent)
@@ -510,7 +501,6 @@ class TestZino1ServerProtocolGetlogCommand:
 
 
 class TestZino1ServerProtocolAddhistCommand:
-
     async def test_should_add_history_entry_to_event(self, authenticated_protocol, event_loop):
         state = authenticated_protocol._state
         event = state.events.create_event("foo", None, ReachabilityEvent)
@@ -551,7 +541,6 @@ class TestZino1ServerProtocolAddhistCommand:
 
 
 class TestZino1ServerProtocolSetstateCommand:
-
     async def test_when_caseid_is_invalid_it_should_output_error(self, authenticated_protocol):
         await authenticated_protocol.message_received("SETSTATE 999 ignored")
 
@@ -611,7 +600,6 @@ class TestZino1ServerProtocolSetstateCommand:
 
 
 class TestZino1ServerProtocolCommunityCommand:
-
     async def test_should_output_community_for_router(self, authenticated_protocol):
         router_name = "buick.lab.example.org"
         community = "public"
@@ -637,7 +625,6 @@ class TestZino1ServerProtocolCommunityCommand:
 
 
 class TestZino1ServerProtocolNtieCommand:
-
     async def test_when_nonce_is_bogus_it_should_respond_with_error(self, event_loop, authenticated_protocol):
         server = ZinoServer(loop=event_loop, state=ZinoState(), polldevs=dict())
         server.notification_channels = dict()  # Ensure there are none for this test
@@ -673,7 +660,6 @@ class TestZino1ServerProtocolNtieCommand:
 
 
 class TestZino1ServerProtocolPollrtrCommand:
-
     async def test_should_add_run_all_tasks_job(self, authenticated_protocol):
         router_name = "buick.lab.example.org"
         community = "public"
@@ -705,7 +691,6 @@ class TestZino1ServerProtocolPollrtrCommand:
 
 
 class TestZino1ServerProtocolPollintfCommand:
-
     async def test_should_call_poll_single_interface(self, authenticated_protocol):
         router_name = "buick.lab.example.org"
         community = "public"
@@ -752,7 +737,6 @@ class TestZino1ServerProtocolPollintfCommand:
 
 
 class TestZino1ServerProtocolClearflapCommand:
-
     async def test_it_should_set_event_flapstate_to_stable_and_respond_with_ok(self, authenticated_protocol):
         # Arrange bigly
         router_name = "buick.lab.example.org"
@@ -814,7 +798,6 @@ class TestZino1ServerProtocolClearflapCommand:
 
 
 class TestZino1TestProtocol:
-
     async def test_when_authenticated_then_authtest_should_respond_with_ok(self):
         protocol = ZinoTestProtocol()
         fake_transport = Mock()
@@ -842,7 +825,6 @@ class TestZino1TestProtocol:
 
 
 class TestZino1ServerProtocolPmCommand:
-
     async def test_it_should_always_return_a_500_error(self, authenticated_protocol):
         await authenticated_protocol.message_received("PM")
 
@@ -850,7 +832,6 @@ class TestZino1ServerProtocolPmCommand:
 
 
 class TestZino1ServerProtocolPmHelpCommand:
-
     async def test_when_authenticated_pm_help_is_issued_then_all_pm_subcommands_should_be_listed(
         self, authenticated_protocol
     ):
@@ -862,13 +843,12 @@ class TestZino1ServerProtocolPmHelpCommand:
             if responder.name.startswith("PM ")
         )
         for command_name in all_command_names:
-            assert (
-                command_name.encode() in authenticated_protocol.transport.data_buffer.getvalue()
-            ), f"{command_name} is not listed in PM HELP"
+            assert command_name.encode() in authenticated_protocol.transport.data_buffer.getvalue(), (
+                f"{command_name} is not listed in PM HELP"
+            )
 
 
 class TestZino1ServerProtocolPmListCommand:
-
     async def test_when_authenticated_should_list_all_pm_ids(
         self, authenticated_protocol, active_device_pm, active_portstate_pm
     ):
@@ -881,16 +861,15 @@ class TestZino1ServerProtocolPmListCommand:
 
         assert re.search(r"\b300 \b", response), "Expected response to contain status code 300"
 
-        assert re.search(
-            rf"\b{active_device_pm.id}\b", response
-        ), f"Expected response to contain id {active_device_pm.id}"
-        assert re.search(
-            rf"\b{active_portstate_pm.id}\b", response
-        ), f"Expected response to contain id {active_portstate_pm.id}"
+        assert re.search(rf"\b{active_device_pm.id}\b", response), (
+            f"Expected response to contain id {active_device_pm.id}"
+        )
+        assert re.search(rf"\b{active_portstate_pm.id}\b", response), (
+            f"Expected response to contain id {active_portstate_pm.id}"
+        )
 
 
 class TestZino1ServerProtocolPmCancelCommand:
-
     async def test_when_authenticated_should_cancel_pm(self, authenticated_protocol, active_device_pm):
         planned_maintenances = authenticated_protocol._state.planned_maintenances.planned_maintenances
         planned_maintenances[active_device_pm.id] = active_device_pm
@@ -916,7 +895,6 @@ class TestZino1ServerProtocolPmCancelCommand:
 
 
 class TestZino1ServerProtocolPmAddLogCommand:
-
     async def test_should_add_log_entry_to_pm(self, authenticated_protocol, active_device_pm, event_loop):
         planned_maintenances = authenticated_protocol._state.planned_maintenances.planned_maintenances
         planned_maintenances[active_device_pm.id] = active_device_pm
@@ -936,7 +914,6 @@ class TestZino1ServerProtocolPmAddLogCommand:
 
 
 class TestZino1ServerProtocolPmLogCommand:
-
     async def test_should_output_pm_log(self, authenticated_protocol, active_device_pm):
         planned_maintenances = authenticated_protocol._state.planned_maintenances.planned_maintenances
         planned_maintenances[active_device_pm.id] = active_device_pm
@@ -957,7 +934,6 @@ class TestZino1ServerProtocolPmLogCommand:
 
 
 class TestZino1ServerProtocolPmDetailsCommand:
-
     async def test_when_authenticated_should_output_device_pm_details(self, authenticated_protocol, active_device_pm):
         planned_maintenances = authenticated_protocol._state.planned_maintenances.planned_maintenances
         planned_maintenances[active_device_pm.id] = active_device_pm
@@ -966,20 +942,20 @@ class TestZino1ServerProtocolPmDetailsCommand:
 
         assert re.search(r"\b200 \b", response), "Expected response to contain status code 200"
 
-        assert (
-            str(int(active_device_pm.start_time.timestamp())) in response
-        ), f"Expected response to contain start time {active_device_pm.start_time.timestamp()}"
-        assert (
-            str(int(active_device_pm.end_time.timestamp())) in response
-        ), f"Expected response to contain end time {active_device_pm.end_time.timestamp()}"
+        assert str(int(active_device_pm.start_time.timestamp())) in response, (
+            f"Expected response to contain start time {active_device_pm.start_time.timestamp()}"
+        )
+        assert str(int(active_device_pm.end_time.timestamp())) in response, (
+            f"Expected response to contain end time {active_device_pm.end_time.timestamp()}"
+        )
         assert str(active_device_pm.id) in response, f"Expected response to contain id {active_device_pm.id}"
         assert str(active_device_pm.type) in response, f"Expected response to contain type {active_device_pm.type}"
-        assert (
-            str(active_device_pm.match_type) in response
-        ), f"Expected response to contain match type {active_device_pm.match_type}"
-        assert (
-            active_device_pm.match_expression in response
-        ), f"Expected response to contain match expression {active_device_pm.match_expression}"
+        assert str(active_device_pm.match_type) in response, (
+            f"Expected response to contain match type {active_device_pm.match_type}"
+        )
+        assert active_device_pm.match_expression in response, (
+            f"Expected response to contain match expression {active_device_pm.match_expression}"
+        )
 
     async def test_when_authenticated_should_output_portstate_pm_details(
         self, authenticated_protocol, active_portstate_pm
@@ -991,29 +967,28 @@ class TestZino1ServerProtocolPmDetailsCommand:
 
         assert re.search(r"\b200 \b", response), "Expected response to contain status code 200"
 
-        assert (
-            str(int(active_portstate_pm.start_time.timestamp())) in response
-        ), f"Expected response to contain start time {active_portstate_pm.start_time.timestamp()}"
-        assert (
-            str(int(active_portstate_pm.end_time.timestamp())) in response
-        ), f"Expected response to contain end time {active_portstate_pm.end_time.timestamp()}"
+        assert str(int(active_portstate_pm.start_time.timestamp())) in response, (
+            f"Expected response to contain start time {active_portstate_pm.start_time.timestamp()}"
+        )
+        assert str(int(active_portstate_pm.end_time.timestamp())) in response, (
+            f"Expected response to contain end time {active_portstate_pm.end_time.timestamp()}"
+        )
         assert str(active_portstate_pm.id) in response, f"Expected response to contain id {active_portstate_pm.id}"
-        assert (
-            str(active_portstate_pm.type) in response
-        ), f"Expected response to contain type {active_portstate_pm.type}"
-        assert (
-            str(active_portstate_pm.match_type) in response
-        ), f"Expected response to contain match type {active_portstate_pm.match_type}"
-        assert (
-            str(active_portstate_pm.match_device) in response
-        ), f"Expected response to contain match device {active_portstate_pm.match_device}"
-        assert (
-            active_portstate_pm.match_expression in response
-        ), f"Expected response to contain match expression {active_portstate_pm.match_expression}"
+        assert str(active_portstate_pm.type) in response, (
+            f"Expected response to contain type {active_portstate_pm.type}"
+        )
+        assert str(active_portstate_pm.match_type) in response, (
+            f"Expected response to contain match type {active_portstate_pm.match_type}"
+        )
+        assert str(active_portstate_pm.match_device) in response, (
+            f"Expected response to contain match device {active_portstate_pm.match_device}"
+        )
+        assert active_portstate_pm.match_expression in response, (
+            f"Expected response to contain match expression {active_portstate_pm.match_expression}"
+        )
 
 
 class TestZino1ServerProtocolPmAddCommand:
-
     async def test_when_authenticated_should_create_device_pm(self, authenticated_protocol):
         planned_maintenances = authenticated_protocol._state.planned_maintenances.planned_maintenances
         start_time = int((now() + timedelta(minutes=10)).timestamp())
@@ -1149,7 +1124,6 @@ class TestZino1ServerProtocolPmAddCommand:
 
 
 class TestZino1ServerProtocolPmMatchingCommand:
-
     async def test_when_authenticated_should_output_matching_devices(
         self, authenticated_protocol, state_with_localhost, active_device_pm
     ):

@@ -74,7 +74,6 @@ class TestInitBackend:
 
 
 class TestSNMPRequestsResponseTypes:
-
     async def test_get(self, snmp_client):
         response = await snmp_client.get("SNMPv2-MIB", "sysUpTime", 0)
         assert isinstance(response.oid, OID)
@@ -153,7 +152,6 @@ class TestSNMPRequestsResponseTypes:
 
 
 class TestUnknownMibShouldRaiseException:
-
     async def test_get(self, snmp_client):
         with pytest.raises(MibNotFoundError):
             await snmp_client.get("NON-EXISTENT-MIB", "foo", 0)
@@ -218,7 +216,6 @@ class TestMibResolver:
 
 
 class TestUnreachableDeviceShouldRaiseException:
-
     async def test_get(self, unreachable_snmp_client):
         with pytest.raises(TimeoutError):
             await unreachable_snmp_client.get("SNMPv2-MIB", "sysUpTime", 0)

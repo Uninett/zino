@@ -1,11 +1,9 @@
 # Development "requirements".  These are tools that are extremely useful or
 # even required to run the test suite, but not at all required by Zino at
 # runtime:
-black
 build
 coverage
 ipython
-isort
 pre-commit
 pytest
 pytest-asyncio<0.22.0

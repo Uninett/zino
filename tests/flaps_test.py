@@ -253,7 +253,6 @@ def state_with_flapstats_and_portstate_event(state_with_flapstats) -> ZinoState:
 
 
 class TestAgeSingleInterfaceFlappingState:
-
     async def test_it_should_decrease_hist_val(self, state_with_flapstats, polldevs_dict):
         port: Port = next(iter(state_with_flapstats.devices.devices["localhost"].ports.values()))
         flapping_state = state_with_flapstats.flapping.interfaces[("localhost", port.ifindex)]
@@ -279,7 +278,6 @@ class TestAgeSingleInterfaceFlappingState:
 
 
 class TestStabilizeFlappingState:
-
     async def test_when_no_event_exists_it_should_create_an_event(
         self, mocked_out_poll_single_interface, state_with_flapstats, polldevs_dict
     ):

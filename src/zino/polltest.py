@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Test SNMP polling using the PySNMP high-level API directly"""
+
 import argparse
 import asyncio
 import logging

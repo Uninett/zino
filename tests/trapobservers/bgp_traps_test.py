@@ -10,7 +10,6 @@ from zino.trapobservers.bgp_traps import BgpTrapObserver
 
 
 class TestBgpTrapObserver:
-
     async def test_when_backward_transition_trap_is_received_it_should_change_bgp_peer_state(
         self, backward_transition_trap
     ):
