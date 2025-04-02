@@ -27,3 +27,10 @@ def test_when_interrupted_by_ctrl_c_zino_should_exit_cleanly(zino_conf):
     process.wait()
 
     assert process.returncode == 0, f"Process exited with code {process.returncode}"
+
+
+def test_when_run_from_empty_directory_it_should_log_error_and_exit(tmp_path_factory):
+    cwd = tmp_path_factory.mktemp("empty")
+    expected_error = b"No such file or directory: 'secrets'"
+    result = subprocess.run(["zino", "--trap-port", "0"], cwd=cwd, capture_output=True)
+    assert expected_error in result.stderr

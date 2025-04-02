@@ -92,6 +92,7 @@ class Configuration(BaseModel):
     snmp: SNMPConfiguration = SNMPConfiguration()
     logging: dict[str, Any] = {
         "version": 1,
+        "disable_existing_loggers": False,
         "loggers": {
             "root": {"level": "INFO", "handlers": ["console"]},
             "apscheduler": {"level": "WARNING"},
