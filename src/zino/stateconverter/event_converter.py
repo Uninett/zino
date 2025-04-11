@@ -1,14 +1,11 @@
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import get_args
 
-from zino.events import EventIndex
 from zino.state import ZinoState
 from zino.stateconverter.linedata import LineData
 from zino.stateconverter.utils import OldState, parse_ip, parse_log_and_history
 from zino.statemodels import (
     AlarmEvent,
-    AlarmType,
     BFDEvent,
     BFDSessState,
     BGPAdminStatus,
@@ -19,7 +16,6 @@ from zino.statemodels import (
     PortStateEvent,
     ReachabilityEvent,
     ReachabilityState,
-    SubIndex,
 )
 
 _log = logging.getLogger(__name__)
@@ -34,71 +30,36 @@ event_name_to_type = {
 }
 
 
-EventIndices = dict[str, EventIndex]
-
-
 def set_event_state(
     old_state: OldState,
     new_state: ZinoState,
 ):
-    event_indices: EventIndices = {}
-    for linedata in old_state["::EventIdToIx"]:
-        event_id, event_index = _get_event_index(linedata)
-        event_indices[event_id] = event_index
+    id_to_type = {}
+
+    # Register event type per id
+    for linedata in old_state["::EventAttrs"]:
+        if linedata.identifiers[0] == "type":
+            id_to_type[int(linedata.identifiers[1])] = linedata.value
+
     for linedata in old_state["::EventAttrs"]:
         try:
-            _set_event_attrs(linedata, new_state, event_indices)
+            _set_event_attrs(linedata, new_state, id_to_type)
         except ValueError as e:
             _log.error(f"Error setting event attribute: {str(e)}")
     new_state.events._rebuild_indexes()
 
 
-def _get_event_index(line: LineData) -> tuple[int, EventIndex]:
-    """Parses a LineData representing an EventIdToIx line and returns a tuple
-    of event_id, event_index
-    """
-    event_id = int(line.identifiers[0])
-
-    index_components = line.value.split(",")
-    if len(index_components) not in [2, 3]:
-        raise ValueError(f"Invalid event index {line.value}")
-    device, *rest = index_components
-    # The last component should always be the event type
-    event_type = rest.pop() if rest else None
-    # If anything is left, it should be the subindex
-    subindex = _parse_subindex(rest[0]) if rest else None
-
-    event_index = EventIndex(device, subindex, event_name_to_type[event_type])
-    return event_id, event_index
-
-
-def _parse_subindex(subindex: str) -> SubIndex:
-    """Parses the part of a EventIdToIx line that defines the ip/port value"""
-    if subindex is None:
-        return subindex
-    if subindex in get_args(AlarmType):
-        return subindex
-    try:
-        return parse_ip(subindex)
-    except ValueError:
-        pass
-    try:
-        return int(subindex)
-    except ValueError:
-        pass
-    raise ValueError(f"Invalid SubIndex: {subindex}")
-
-
-def _set_event_attrs(linedata: LineData, state: ZinoState, indices: EventIndices):
+def _set_event_attrs(linedata: LineData, state: ZinoState, id_to_type: dict[int, str]):
     event_field = linedata.identifiers[0]
     event_id = int(linedata.identifiers[1])
-    event_index = indices[event_id]
     state.events.last_event_id = max(state.events.last_event_id, event_id)
     if event_id in state.events.events:
         event = state.events.events[event_id]
     else:
-        event = state.events.create_event(*event_index)
-        event.id = event_id
+        event_type = id_to_type[event_id]
+        event_class = event_name_to_type[event_type]
+        # router needs to be set now since its a required field, will be overwritten later
+        event = event_class(id=event_id, router="placeholder")
     if event_field == "priority":
         event.priority = int(linedata.value)
     elif event_field == "history":
