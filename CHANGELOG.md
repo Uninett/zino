@@ -12,6 +12,14 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) and the chang
 
 <!-- towncrier release notes start -->
 
+## [2.0.1] - 2025-04-11
+
+### Fixed
+
+- Ensure error messages are printed as they should be on zino startup ([#404](https://github.com/Uninett/zino/issues/404))
+- Fix state converter crashing if there is a closed event ([#406](https://github.com/Uninett/zino/issues/406))
+
+
 ## [2.0.0] - 2025-03-14
 
 ### Added
