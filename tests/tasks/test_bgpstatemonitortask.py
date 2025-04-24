@@ -1,6 +1,7 @@
 import logging
 from datetime import timedelta
 from ipaddress import IPv4Address
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -363,6 +364,14 @@ class TestBaseBGPRow:
             BaseBGPRow("active", "invalid flimflam", "10.0.42.0", 5, 0)
 
 
+class TestDisabledBGPDevice:
+    async def test_when_do_bgp_is_false_it_should_not_run(self, caplog, task_with_bgp_disabled_device):
+        router = task_with_bgp_disabled_device.device.name
+        with caplog.at_level(logging.DEBUG):
+            await task_with_bgp_disabled_device.run()
+            assert f"Skipping BGP scanning for {router} due to config" in caplog.text
+
+
 @pytest.fixture
 def task(request, snmpsim, snmp_test_port):
     device = PollDevice(
@@ -380,3 +389,18 @@ def task(request, snmpsim, snmp_test_port):
     elif BGPStyle.GENERAL in request.param:
         task.device_state.bgp_style = BGPStyle.GENERAL
     yield task
+
+
+@pytest.fixture
+def task_with_bgp_disabled_device(snmp_test_port):
+    device = PollDevice(
+        name="buick.lab.example.org",
+        address="127.0.0.1",
+        community="not-important",
+        port=snmp_test_port,
+        do_bgp=False,
+    )
+    state = ZinoState()
+    with patch.object(BGPStateMonitorTask, "_get_bgp_style", new=AsyncMock(return_value=BGPStyle.GENERAL)):
+        task = BGPStateMonitorTask(device, state)
+        yield task
