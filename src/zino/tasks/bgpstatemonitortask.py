@@ -73,6 +73,10 @@ class BGPStateMonitorTask(Task):
     """Fetches and stores state information about external BGP sessions."""
 
     async def run(self):
+        if not self.device.do_bgp:
+            _logger.debug("Skipping BGP scanning for %s due to config", self.device.name)
+            return
+
         bgp_style = await self._get_bgp_style()
         if bgp_style != self.device_state.bgp_style:
             _logger.debug(
