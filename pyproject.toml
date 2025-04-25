@@ -87,6 +87,9 @@ exclude_also = [
     "raise NotImplementedError",
 ]
 
+[tool.coverage.run]
+source = ["src"]
+omit = ["**/zino/version.py"]
 
 [tool.towncrier]
 directory = "changelog.d"

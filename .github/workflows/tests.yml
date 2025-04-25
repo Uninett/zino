@@ -61,13 +61,14 @@ jobs:
           path: |
             reports/**/*
 
-  upload-pr-number-base-sha:
-    name: Save PR number and base SHA in artifact
+  upload-pr-info:
+    name: Save extra PR info in artifact
     runs-on: ubuntu-latest
     if: ${{ github.event.number && always() }}
     env:
       PR_NUMBER: ${{ github.event.number }}
       BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      BASE_NAME: ${{ github.base_ref }}
     steps:
       - name: Make PR number file
         run: |
@@ -76,7 +77,10 @@ jobs:
       - name: Make base SHA file
         run: |
           echo $BASE_SHA > ./extra/base_sha
-      - name: Upload PR number file and base SHA file
+      - name: Make base name file
+        run: |
+          echo $BASE_NAME > ./extra/base_name
+      - name: Upload PR info files
         uses: actions/upload-artifact@v4
         with:
           name: extra

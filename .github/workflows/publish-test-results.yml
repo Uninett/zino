@@ -61,6 +61,32 @@ jobs:
             echo "BASE_SHA=$base_sha" >> $GITHUB_ENV
           fi
 
+      - name: Read base name file
+        if: ${{ hashFiles('artifacts/extra/base_name') != '' }}
+        run: |
+          base_name=$(cat artifacts/extra/base_name)
+          re='^[0-9a-zA-Z._\/\-]+$'
+          if [[ $base_name =~ $re ]] ; then
+            echo "BASE_NAME=$base_name" >> $GITHUB_ENV
+          fi
+
+      - name: SonarQube Scan for Pull Request
+        uses: SonarSource/sonarqube-scan-action@v5
+        if: github.event.workflow_run.event == 'pull_request'
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.pullrequest.key=${{ env.PR_NUMBER }}
+            -Dsonar.pullrequest.branch=${{ github.event.workflow_run.head_branch }}
+            -Dsonar.pullrequest.base=${{ env.BASE_NAME }}
+
+      - name: SonarQube Scan for Push
+        uses: SonarSource/sonarqube-scan-action@v5
+        if: github.event.workflow_run.event == 'push'
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
       - name: Upload to Codecov
         uses: codecov/codecov-action@v5
         with:
