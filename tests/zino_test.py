@@ -1,14 +1,17 @@
 import getpass
 import grp
+import hashlib
 import logging
 import os
 import pwd
 import secrets
 import subprocess
+import time
 from argparse import Namespace
 from datetime import timedelta
 from unittest.mock import Mock, patch
 
+import pexpect
 import pytest
 
 from zino import zino
@@ -279,3 +282,28 @@ class TestLogSnmpSessionState:
                 with caplog.at_level(logging.INFO):
                     zino.log_snmp_session_stats()
                     assert "gc reachable" not in caplog.text
+
+
+class TestSecretsFileConfiguration:
+    def test_users_from_secrets_file_should_be_able_to_authenticate(
+        self, polldevs_conf_with_no_routers, zino_conf, secrets_file
+    ):
+        """Test connecting to the server, handling SHA1 challenge, and asserting successful login."""
+        # Start the process
+        zino_process = subprocess.Popen(["zino", "--config-file", str(zino_conf), "--trap-port", "0"])
+        with open(secrets_file, "r") as f:
+            username, password = f.readline().strip().split(" ", 1)
+        time.sleep(1)  # Wait for the server to start
+        try:
+            client = pexpect.spawn("telnet localhost 8001", timeout=5)
+            client.expect("200 ([a-f0-9]+) Hello, there")
+            challenge = client.match.group(1).decode("utf-8")
+
+            response = hashlib.sha1((challenge + " " + password).encode("utf-8")).hexdigest()
+
+            client.sendline(f"USER {username} {response}")
+            client.expect(["200 ok", "500 Authentication failure"])
+            assert "200 ok" in client.after.decode("utf-8")
+
+        finally:
+            zino_process.terminate()

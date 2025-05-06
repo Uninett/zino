@@ -126,7 +126,7 @@ def init_event_loop(args: argparse.Namespace, loop: Optional[AbstractEventLoop] 
 
     setup_initial_job_schedule(loop, args)
 
-    server = ZinoServer(loop=loop, state=state.state, polldevs=state.polldevs)
+    server = ZinoServer(loop=loop, state=state.state, polldevs=state.polldevs, config=state.config)
     server.serve()
 
     try:
