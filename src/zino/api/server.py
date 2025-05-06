@@ -22,7 +22,11 @@ class ZinoServer:
     NOTIFY_PORT = 8002
 
     def __init__(
-        self, loop: AbstractEventLoop, state: ZinoState, polldevs: dict[str, PollDevice], config: Configuration = None
+        self,
+        loop: AbstractEventLoop,
+        state: ZinoState,
+        polldevs: dict[str, PollDevice],
+        config: Optional[Configuration] = None,
     ):
         self._loop = loop
         self.state: ZinoState = state
