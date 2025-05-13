@@ -4,7 +4,7 @@ from typing import Optional
 
 from zino.api.legacy import Zino1ServerProtocol
 from zino.api.notify import Zino1NotificationProtocol
-from zino.config.models import PollDevice
+from zino.config.models import Configuration, PollDevice
 from zino.state import ZinoState
 from zino.statemodels import Event
 
@@ -21,18 +21,35 @@ class ZinoServer:
     API_PORT = 8001
     NOTIFY_PORT = 8002
 
-    def __init__(self, loop: AbstractEventLoop, state: ZinoState, polldevs: dict[str, PollDevice]):
+    def __init__(
+        self,
+        loop: AbstractEventLoop,
+        state: ZinoState,
+        polldevs: dict[str, PollDevice],
+        config: Optional[Configuration] = None,
+    ):
         self._loop = loop
         self.state: ZinoState = state
         self.polldevs: dict[str, PollDevice] = polldevs
         self.active_clients: set[Zino1ServerProtocol] = set()
         self.notification_channels: dict[str, Zino1NotificationProtocol] = {}
         self.notify_server = self.api_server = None
+        if not config:
+            # Fetch the global config (however nasty that is)
+            import zino.state
+
+            self.config = zino.state.config
+        else:
+            self.config = config
 
     def serve(self, address: str = "0.0.0.0"):
         """Sets up the two asyncio servers to serve in tandem 'forever'"""
         api_coroutine = self._loop.create_server(
-            lambda: Zino1ServerProtocol(server=self, state=self.state, polldevs=self.polldevs), address, self.API_PORT
+            lambda: Zino1ServerProtocol(
+                server=self, state=self.state, secrets_file=self.config.authentication.file, polldevs=self.polldevs
+            ),
+            address,
+            self.API_PORT,
         )
         self.api_server = self._loop.run_until_complete(api_coroutine)
         _logger.info("Serving API on %r", self.api_server.sockets[0].getsockname())
