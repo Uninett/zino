@@ -87,7 +87,7 @@ class TrapReceiver(TrapReceiverBase):
 
     def _verify_trap(self, netsnmp_trap: SNMPTrap, origin: TrapOriginator) -> bool:
         if not origin.device:
-            _logger.info("ignored trap from %s (not a box we monitor?)", origin.address)
+            _logger.debug("ignored trap from %s (not a box we monitor?)", origin.address)
             return False
 
         source_name = origin.device.name or origin.address
