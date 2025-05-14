@@ -64,7 +64,13 @@ class TrapReceiver(TrapReceiverBase):
         zino_trap = TrapMessage(agent=origin)
         for variable in trap.variables:
             _logger.debug("%s", variable)
-            identifier, value = _convert_snmp_variable(variable)
+            try:
+                identifier, value = _convert_snmp_variable(variable)
+            except ValueError:
+                _logger.error(
+                    "Could not resolve SNMP variable %s: %s (Maybe MIB not loaded?)", variable, variable.value
+                )
+                return
 
             # This should really be part of netsnmp-cffi, but it isn't currently
             raw_value = value = variable.value
@@ -81,7 +87,11 @@ class TrapReceiver(TrapReceiverBase):
         # TODO do some time calculations, but ask Håvard what the deal is with RestartTime vs. BootTime
 
         if trap.trap_oid:
-            trap_identifier, _ = _convert_snmp_variable(SNMPVariable(trap.trap_oid, None))
+            try:
+                trap_identifier, _ = _convert_snmp_variable(SNMPVariable(trap.trap_oid, None))
+            except ValueError:
+                _logger.error("Could not resolve trap OID %s (Maybe MIB not loaded?)", trap.trap_oid)
+                return
             zino_trap.mib, zino_trap.name = trap_identifier.mib, trap_identifier.object
         asyncio.ensure_future(self.dispatch_trap(zino_trap))
 
