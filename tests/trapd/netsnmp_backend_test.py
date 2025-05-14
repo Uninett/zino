@@ -5,6 +5,9 @@ from collections import Counter
 from unittest.mock import Mock, patch
 
 import pytest
+from netsnmpy.netsnmp import SNMPVariable
+from netsnmpy.oids import OID as NS_OID
+from netsnmpy.trapsession import SNMPTrap
 
 from zino.oid import OID
 from zino.trapd.base import (
@@ -85,6 +88,39 @@ class TestTrapReceiver:
         )
         dupes = {ident: count for ident, count in type_counts.items() if count > 1}
         assert not dupes
+
+    async def test_when_trap_is_unknown_it_should_not_crash(self, localhost_netsnmpy_receiver):
+        source = ipaddress.ip_address("127.0.0.1")
+        trap = SNMPTrap(
+            source=source,
+            agent=source,
+            generic_type=None,
+            trap_oid=OID(".1.1.1.1.1.1.1.1"),
+            uptime=1984,
+            community="public",
+            version="2c",
+            variables=[
+                SNMPVariable(NS_OID(".1.3.6.1.2.1.1.3.0"), 1984),
+            ],
+        )
+        assert not localhost_netsnmpy_receiver.trap_received(trap)
+
+    async def test_when_trap_contains_unknown_variable_it_should_not_crash(self, localhost_netsnmpy_receiver):
+        source = ipaddress.ip_address("127.0.0.1")
+        trap = SNMPTrap(
+            source=source,
+            agent=source,
+            generic_type=None,
+            trap_oid=OID(".1.3.6.1.4.1.2636.5.1.1.1.0.2"),
+            uptime=1984,
+            community="public",
+            version="2c",
+            variables=[
+                SNMPVariable(NS_OID(".1.3.6.1.2.1.1.3.0"), 1984),
+                SNMPVariable(NS_OID(".1.1.1.1.1.1.1.1.1"), 42),
+            ],
+        )
+        assert not localhost_netsnmpy_receiver.trap_received(trap)
 
 
 @pytest.mark.skipif(not shutil.which("snmptrap"), reason="Cannot find snmptrap command line program")
