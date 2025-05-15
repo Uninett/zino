@@ -322,7 +322,12 @@ class SNMP:
         query_count = len(query_objects)
         response_chunk = (var_binds[i : i + query_count] for i in range(0, len(var_binds), query_count))
         discards = set()
+        last_complete_chunk = ()
         for chunk in response_chunk:
+            if len(chunk) < query_count:
+                # Ignore incomplete chunks, just query those objects over again
+                break
+            last_complete_chunk = chunk
             for root, query, response in zip(roots, query_objects, chunk):
                 oid, value = response
                 if is_end_of_scope(root, oid, value):
@@ -333,7 +338,7 @@ class SNMP:
                 results[ident.index][ident.object] = value
 
         # Prepare next query based on the contents of the last chunk
-        query_objects = [oid for oid, _ in chunk if oid not in discards]
+        query_objects = [oid for oid, _ in last_complete_chunk if oid not in discards]
         return query_objects
 
     def is_in_scope(self, entry: MibObject, oid: Tuple[str, str]):
