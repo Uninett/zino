@@ -27,7 +27,7 @@ dependencies = [
     "pysnmplib",
     "aiodns",
     "tomli; python_version < '3.11'",
-    "netsnmp-cffi>=0.1.1",
+    "netsnmp-cffi>=0.1.2",
 ]
 dynamic = ["version"]
 
