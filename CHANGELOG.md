@@ -12,6 +12,17 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) and the chang
 
 <!-- towncrier release notes start -->
 
+## [2.0.2] - 2025-05-16
+
+### Fixed
+
+- Handle unresolvable trap variables more gracefully ([#408](https://github.com/Uninett/zino/issues/408))
+- Fix broken sparsewalk routine in Net-SNMP back-end (which caused `MissingInterfaceTableData` errors) ([#411](https://github.com/Uninett/zino/issues/411))
+- Ensure `secrets` file configuration option is actually used by the API protocol server ([#412](https://github.com/Uninett/zino/issues/412))
+- Reduce log message level for traps of unknown origin to DEBUG ([#413](https://github.com/Uninett/zino/issues/413))
+- Honor `do_bgp` option from `polldevs.cf` ([#414](https://github.com/Uninett/zino/issues/414))
+
+
 ## [2.0.1] - 2025-04-11
 
 ### Fixed
