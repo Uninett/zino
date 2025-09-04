@@ -44,7 +44,8 @@ class TrapMessage:
     def __str__(self):
         variables = [f"{v.mib}::{v.var}{v.instance or ''}={v.value or v.raw_value}" for v in self.variables]
         variables = ", ".join(variables)
-        return f"<Trap from {self.agent.device.name}: {variables}>"
+        trap_name = f"{self.mib}::{self.name}" if self.mib and self.name else "unknown"
+        return f"<Trap from {self.agent.device.name} ({trap_name}): {variables}>"
 
     def __contains__(self, label) -> bool:
         for var in self.variables:
