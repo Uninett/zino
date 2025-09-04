@@ -152,7 +152,7 @@ class TrapReceiverBase:
         """Dispatches incoming trap messages according to internal subscriptions"""
         observers = self.get_observers_for((trap.mib, trap.name))
         if not observers:
-            _logger.info("unknown trap: %s", trap)
+            _logger.debug("unknown trap: %s", trap)
             return
 
         for observer in observers:
