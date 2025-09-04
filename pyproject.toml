@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "Zino"
 description = "Robust network management system for large backbone networks"
-authors = [{name="Sikt - Kunnskapssektorens Tjenesteleverandør", email="kontakt@sikt.no"}]
+authors = [{name="Sikt - Norwegian Agency for Shared Services in Education and Research", email="kontakt@sikt.no"}]
 readme = "README.md"
 requires-python = ">=3.9"
 license = "Apache-2.0"
@@ -32,7 +32,9 @@ dependencies = [
 dynamic = ["version"]
 
 [project.urls]
-"Homepage" = "https://github.com/Uninett/zino"
+"Homepage" = "https://nordu.net/zino/"
+"GitHub" = "https://github.com/Uninett/zino"
+"Changelog" = "https://github.com/Uninett/zino/blob/master/CHANGELOG.md"
 
 [project.scripts]
 zino = "zino.zino:main"
