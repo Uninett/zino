@@ -93,6 +93,7 @@ class TrapReceiver(TrapReceiverBase):
                 _logger.error("Could not resolve trap OID %s (Maybe MIB not loaded?)", trap.trap_oid)
                 return
             zino_trap.mib, zino_trap.name = trap_identifier.mib, trap_identifier.object
+            _logger.debug("Trap from %s identified as %r", trap.source, trap_identifier)
         asyncio.ensure_future(self.dispatch_trap(zino_trap))
 
     def _verify_trap(self, netsnmp_trap: SNMPTrap, origin: TrapOriginator) -> bool:
