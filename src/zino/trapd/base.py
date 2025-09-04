@@ -44,7 +44,8 @@ class TrapMessage:
     def __str__(self):
         variables = [f"{v.mib}::{v.var}{v.instance or ''}={v.value or v.raw_value}" for v in self.variables]
         variables = ", ".join(variables)
-        return f"<Trap from {self.agent.device.name}: {variables}>"
+        trap_name = f"{self.mib}::{self.name}" if self.mib and self.name else "unknown"
+        return f"<Trap from {self.agent.device.name} ({trap_name}): {variables}>"
 
     def __contains__(self, label) -> bool:
         for var in self.variables:
@@ -151,7 +152,7 @@ class TrapReceiverBase:
         """Dispatches incoming trap messages according to internal subscriptions"""
         observers = self.get_observers_for((trap.mib, trap.name))
         if not observers:
-            _logger.info("unknown trap: %s", trap)
+            _logger.debug("unknown trap: %s", trap)
             return
 
         for observer in observers:
