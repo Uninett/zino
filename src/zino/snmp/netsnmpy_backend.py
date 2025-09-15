@@ -86,7 +86,7 @@ class SNMP:
             host=device.address,
             port=device.port,
             community=device.community,
-            version=self.snmp_version,
+            version=device.snmpversion,
             timeout=device.timeout,
             retries=device.retries,
         )
@@ -355,11 +355,6 @@ class SNMP:
     def _var_bind_to_mibobject(var_bind: tuple[OID, Any]) -> MibObject:
         oid, value = var_bind
         return MibObject(oid=oid, value=value)
-
-    @property
-    def snmp_version(self) -> str:
-        """Returns the preferred SNMP version of this device as a string"""
-        return "v2c" if self.device.hcounters else "v1"
 
 
 def _convert_snmp_variable(variable: SNMPVariable) -> SNMPVarBind:

@@ -455,7 +455,7 @@ class SNMP:
     @property
     def mp_model(self) -> int:
         """Returns the preferred SNMP version of this device as a PySNMP mpModel value"""
-        return 1 if self.device.hcounters else 0
+        return 1 if self.device.snmpversion == "v2c" else 0
 
     @property
     def community_data(self) -> CommunityData:

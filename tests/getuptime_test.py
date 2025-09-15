@@ -20,7 +20,7 @@ def polldevs_with_localhost(zino_conf, snmp_test_port):
             default community: public
             default domain: uninett.no
             default statistics: yes
-            default hcounters: yes
+            default snmpversion: v2c
 
             name: localhost
             address: 127.0.0.1

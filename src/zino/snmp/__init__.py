@@ -55,7 +55,7 @@ def get_snmp_session(device: PollDevice) -> "SNMP":
     if _snmp_sessions is None:  # Tests suite may disable session re-use
         return _selected_backend.SNMP(device)
     # We generate a session key based on every attribute that affects how the SNMP session is set up:
-    key = (device.address, device.community, device.hcounters)
+    key = (device.address, device.community, device.snmpversion)
     session = _snmp_sessions.get(key)
     if not session:
         session = _snmp_sessions[key] = _selected_backend.SNMP(device)

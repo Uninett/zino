@@ -126,7 +126,7 @@ def missing_device_address_polldevs_conf(tmp_path):
             default community: foobar
             default domain: uninett.no
             default statistics: yes
-            default hcounters: yes
+            default snmpversion: v2c
 
             name: example-gw
             """

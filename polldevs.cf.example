@@ -11,6 +11,7 @@
 default interval: 5
 default community: public
 default domain: example.org
+default snmpversion: v2c
 
 # Example router, with a higher scheduling priority.  Interfaces whose name
 # matches the regular expression `pe-` will be not be monitored:

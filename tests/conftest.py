@@ -62,7 +62,7 @@ def polldevs_conf(tmp_path):
             default community: foobar
             default domain: uninett.no
             default statistics: yes
-            default hcounters: yes
+            default snmpversion: v2c
 
             name: example-gw
             address: 10.0.42.1
@@ -83,7 +83,7 @@ def polldevs_conf_with_single_router(tmp_path):
             default community: foobar
             default domain: uninett.no
             default statistics: yes
-            default hcounters: yes
+            default snmpversion: v2c
 
             name: example-gw
             address: 10.0.42.1
@@ -102,7 +102,7 @@ def polldevs_conf_with_no_routers(tmp_path):
             default community: foobar
             default domain: uninett.no
             default statistics: yes
-            default hcounters: yes
+            default snmpversion: v2c
             """
         )
     yield name

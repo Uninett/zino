@@ -282,7 +282,7 @@ class TestPDUErrors:
     """Tests for handling error flags in response PDUs."""
 
     async def test_when_snmpv1_variable_does_not_exist_it_should_raise_error(self, snmp_client):
-        snmp_client.device.hcounters = False  # force SNMPv1
+        snmp_client.device.snmpversion = "v1"  # force SNMPv1
         with pytest.raises(NoSuchNameError):
             await snmp_client.get("SNMPv2-MIB", "sysUpTime", 999)
 
