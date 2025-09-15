@@ -6,9 +6,7 @@
 Zino documentation
 ==================
 
-Add your content using ``reStructuredText`` syntax. See the
-`reStructuredText <https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_
-documentation for details.
+Zino is a robust network management system for large backbone networks.
 
 
 .. toctree::
