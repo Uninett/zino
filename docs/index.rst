@@ -12,3 +12,5 @@ Zino is a robust network management system for large backbone networks.
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
+
+   howtos
