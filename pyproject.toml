@@ -90,6 +90,7 @@ exclude_also = [
 [tool.coverage.run]
 source = ["src"]
 omit = ["**/zino/version.py"]
+patch = ["subprocess"]
 
 [tool.towncrier]
 directory = "changelog.d"
