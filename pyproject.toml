@@ -22,9 +22,8 @@ classifiers = [
 ]
 dependencies = [
     "apscheduler",
-    "pyasyncore; python_version >= '3.12'",  # Due to a deficiency in pysnmplib; can be removed when fixed
     "pydantic>=2.7.0",
-    "pysnmplib",
+    "pysnmp~=6.2",
     "aiodns",
     "tomli; python_version < '3.11'",
     "netsnmp-cffi>=0.1.2",
