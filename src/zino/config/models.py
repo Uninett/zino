@@ -42,7 +42,8 @@ class PollDevice(BaseModel):
     retries: int = 3
     domain: str = None
     statistics: bool = True
-    hcounters: bool = True  # basically default to SNMP v2c
+    hcounters: bool = True  # Not used but kept for compatibility with old config files
+    snmpversion: Literal["v1", "v2c"] = "v2c"
     do_bgp: bool = True
     port: int = 161
 

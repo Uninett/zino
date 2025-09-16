@@ -70,7 +70,7 @@ class TestLoadPolldevs:
                 default community: barfoo
                 default domain: uninett.no
                 default statistics: yes
-                default hcounters: yes
+                default snmpversion: v2c
 
                 name: example-gw
                 address: 10.0.42.1
@@ -98,7 +98,7 @@ class TestLoadPolldevs:
                 default community: barfoo
                 default domain: uninett.no
                 default statistics: yes
-                default hcounters: yes
+                default snmpversion: v2c
 
                 name: example-gw
                 address: 10.0.42.1
@@ -129,7 +129,7 @@ class TestLoadPolldevs:
                 default community: foobar
                 default domain: uninett.no
                 default statistics: yes
-                default hcounters: yes
+                default snmpversion: v2c
 
                 name: example-gw
                 address: 10.0.42.1

@@ -13,13 +13,13 @@ class TestGetSnmpSession:
         # Temporarily enable session re-use (which is otherwise disabled for testing purposes)
         with monkeypatch.context() as patch:
             patch.setattr("zino.snmp._snmp_sessions", WeakValueDictionary())
-            device = PollDevice(name="localhost", address="127.0.0.1", community="public", hcounters=True)
+            device = PollDevice(name="localhost", address="127.0.0.1", community="public", snmpversion="v2c")
             session1 = get_snmp_session(device)
             session2 = get_snmp_session(device)
             assert session1 is session2
 
     def test_when_reuse_is_disabled_it_should_return_new_session(self):
-        device = PollDevice(name="localhost", address="127.0.0.1", community="public", hcounters=True)
+        device = PollDevice(name="localhost", address="127.0.0.1", community="public", snmpversion="v2c")
         session1 = get_snmp_session(device)
         session2 = get_snmp_session(device)
         assert session1 is not session2
