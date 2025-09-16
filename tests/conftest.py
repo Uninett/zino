@@ -221,13 +221,13 @@ async def snmpsim(snmpsimd_path, snmp_fixture_directory, snmp_test_port):
     proc = await asyncio.create_subprocess_exec(snmpsimd_path, *arguments)
 
     @retry(Exception, tries=3, delay=0.5, backoff=2)
-    def _wait_for_snmpsimd():
-        if _verify_localhost_snmp_response(snmp_test_port):
+    async def _wait_for_snmpsimd():
+        if await _verify_localhost_snmp_response(snmp_test_port):
             return True
         else:
             raise TimeoutError("Still waiting for snmpsimd to listen for queries")
 
-    _wait_for_snmpsimd()
+    await _wait_for_snmpsimd()
 
     yield
     proc.kill()
@@ -288,10 +288,10 @@ async def localhost_netsnmpy_receiver(
     receiver.close()
 
 
-def _verify_localhost_snmp_response(port: int):
+async def _verify_localhost_snmp_response(port: int):
     """Verifies that the snmpsimd fixture process is responding, by using PySNMP directly to query it."""
 
-    from pysnmp.hlapi import (
+    from pysnmp.hlapi.asyncio import (
         CommunityData,
         ContextData,
         ObjectIdentity,
@@ -301,14 +301,14 @@ def _verify_localhost_snmp_response(port: int):
         nextCmd,
     )
 
-    responses = nextCmd(
+    responses = await nextCmd(
         SnmpEngine(),
         CommunityData("public"),
         UdpTransportTarget(("localhost", port)),
         ContextData(),
         ObjectType(ObjectIdentity("SNMPv2-MIB", "sysObjectID")),
     )
-    return next(responses)
+    return responses
 
 
 @pytest.fixture
