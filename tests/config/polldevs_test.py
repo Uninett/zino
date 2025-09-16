@@ -30,6 +30,11 @@ class TestReadPolldevs:
         assert all(device.community == "foobar" for device in result.values())
         assert all(device.domain == "uninett.no" for device in result.values())
 
+    def test_when_hcounters_is_in_config_it_should_parse_correctly(self, polldevs_conf_with_hcounters):
+        result, _ = read_polldevs(polldevs_conf_with_hcounters)
+        assert len(result) == 2
+        assert all(device.hcounters for device in result.values())
+
 
 class TestReadInvalidPolldevs:
     def test_should_raise_exception(self, invalid_polldevs_conf):
@@ -129,6 +134,30 @@ def missing_device_address_polldevs_conf(tmp_path):
             default snmpversion: v2c
 
             name: example-gw
+            """
+        )
+    yield name
+
+
+@pytest.fixture
+def polldevs_conf_with_hcounters(tmp_path):
+    name = tmp_path.joinpath("polldevs.cf")
+    with open(name, "w") as conf:
+        conf.write(
+            """# polldevs test config
+            default interval: 5
+            default community: foobar
+            default domain: uninett.no
+            default statistics: yes
+            default snmpversion: v2c
+            default hcounters: yes
+
+            name: example-gw
+            address: 10.0.42.1
+            hcounters: yes
+
+            name: example-gw2
+            address: 10.0.43.1
             """
         )
     yield name
