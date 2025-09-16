@@ -24,7 +24,7 @@ def main():
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s (%(threadName)s) - %(message)s"
     )
-    asyncio.get_event_loop().run_until_complete(run(args))
+    asyncio.run(run(args))
 
 
 async def run(args: argparse.Namespace):
