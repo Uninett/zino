@@ -21,6 +21,7 @@ on behalf of the nordic NRENs.
 - [What is Zino?](#what-is-zino)
 - [Installing](#installing-zino)
 - [Configuring](#configuring-zino)
+- [Using](#using-zino)
 - [Contributing](#developing-zino)
 
 ## What is Zino?
@@ -51,8 +52,7 @@ all in a little under 5000 lines of Tcl.
 This project aims to port all this to Python, except for the TK-based user
 interface.  The Python implementation keeps backwards compatibility with the
 "simple SMTP-like client/server protocol", so that the existing user interface
-clients can be re-used (such as *Ritz* and *cuRitz*).  Additionally, a new web
-user interface client is being developed at https://github.com/uninett/howitz .
+clients can be re-used (such as *Ritz* and *cuRitz*).
 
 Zino is essentially a small program that can run in the background, monitoring
 your router network for:
@@ -85,8 +85,8 @@ switch to using a standby server if the master is unavailable.
 
 ## Installing Zino
 
-First, ensure you have Python 3.9, 3.10 or 3.11 available on your system.
-Second, we recommend creating a *Python virtual environment*, which is
+First, ensure you have a Python version between 3.9 and 3.12 available on your
+system. Second, we recommend creating a *Python virtual environment*, which is
 isolated from other Python software installed on your system, and installing
 Zino into that.
 
@@ -273,6 +273,27 @@ The proper way to authenticate as `user1` would then be to issue this command:
 ```
 USER user1 4daf3c1448c2c4b3b92489024cc4676f70c26b1d
 ```
+
+## Using Zino
+
+This package only represents the Zino server backend. In order to meaningfully
+interface with Zino as a user, you will want a remote interface to
+Zino. Several remote interfaces exist.
+
+* [curitz](https://github.com/Uninett/curitz) is a curses-based terminal
+  application to interface with Zino. It is currently the best client for
+  day-to-day use.
+
+* *Ritz* is the original Remote Interface To Zino. It is an X11 desktop
+  application written in Tcl/Tk. Unfortunately, the source code isn't currently
+  available.
+
+* [Howitz](https://github.com/Uninett/howitz) is a web-based remote interface
+  to Zino that was originally written as part of the Zino 2.0 project. However,
+  it has since been discontinued in favor of integration with
+  [Argus](http://github.com/Uninett/Argus) using the
+  [zino-argus glue service](https://github.com/Uninett/zino-argus-glue).
+
 
 ## Upgrading from Zino 1 (legacy/Tcl Zino)
 
