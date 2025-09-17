@@ -22,10 +22,21 @@ class TestLinkStateTask:
         assert (await task.run()) is None
         assert len(task.state.events) == 0
 
-    async def test_run_should_create_event_if_at_least_one_link_is_down(self, linkstatetask_with_one_link_down):
+    async def test_given_event_suppression_config_of_true_when_one_link_is_down_then_run_should_create_event(
+        self, linkstatetask_with_one_link_down
+    ):
         task = linkstatetask_with_one_link_down
+        task._make_events_for_new_interfaces = True
         assert (await task.run()) is None
         assert len(task.state.events) == 1
+
+    async def test_given_event_suppression_config_of_false_when_one_link_is_down_then_run_should_not_create_event(
+        self, linkstatetask_with_one_link_down
+    ):
+        task = linkstatetask_with_one_link_down
+        task._make_events_for_new_interfaces = False
+        assert (await task.run()) is None
+        assert len(task.state.events) == 0
 
     def test_when_patterns_are_empty_interface_should_not_be_ignored(self, task_with_dummy_device):
         data = BaseInterfaceRow(
@@ -81,6 +92,7 @@ class TestLinkStateTask:
     @pytest.mark.asyncio
     async def test_when_event_is_new_it_should_set_lasttrans(self, linkstatetask_with_one_link_down):
         task = linkstatetask_with_one_link_down
+        task._make_events_for_new_interfaces = True
         await task.run()
         event = task.state.events.get(task.device.name, 2, PortStateEvent)
         assert event.lasttrans
