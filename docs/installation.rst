@@ -123,3 +123,16 @@ port, e.g. by adding ``--trap-port 1162`` to the command line arguments,
 but this only works if you can configure your SNMP agents to send traps
 to this non-standard port. In any case, you can also tell Zino to skip
 listening for traps by specifying ``--trap-port 0``.
+
+
+Running Zino in production
+--------------------------
+
+In order to run Zino in a production setting, you should set up some service
+orchestration of the process.  I.e. the process should run in the background,
+its log output should be directed to somewhere it will be persisted, and the
+process should automatically be started at boot time and restarted if it
+crashes during runtime.
+
+If you're on a system that uses *systemd* for service management, please read
+:doc:`/howtos/controlling-zino-with-systemd`
