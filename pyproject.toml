@@ -34,6 +34,7 @@ dynamic = ["version"]
 "Homepage" = "https://nordu.net/zino/"
 "GitHub" = "https://github.com/Uninett/zino"
 "Changelog" = "https://github.com/Uninett/zino/blob/master/CHANGELOG.md"
+"Documentation" = "https://zino.readthedocs.io/en/latest/"
 
 [project.scripts]
 zino = "zino.zino:main"
