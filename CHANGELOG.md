@@ -12,6 +12,24 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) and the chang
 
 <!-- towncrier release notes start -->
 
+## [2.1.0] - 2025-09-17
+
+### Added
+
+- Added new config option to suppress `portstate` event generation for newly discovered interfaces ([#257](https://github.com/Uninett/zino/issues/257))
+- Document how to set up Zino with systemd ([#425](https://github.com/Uninett/zino/issues/425))
+- Delete events related to routers that have been removed from `polldevs.cf` ([#427](https://github.com/Uninett/zino/issues/427))
+- Finish setting up the documentation-tree: Add badge, some structure, trim down the README ([#434](https://github.com/Uninett/zino/issues/434))
+- Added debug logging of trap type identification information
+
+### Changed
+
+- Use new `snmpversion` config field in `zino.toml` to decide which SNMP version to use (default to `v2c`) ([#397](https://github.com/Uninett/zino/issues/397))
+- Default to *not* create `portstate` events for newly discovered interfaces
+- Reduced log level of "unknown trap" messages
+- Updated `pysnmplib` dependency to PySNMP 6.2 to ensure continued test suite success
+
+
 ## [2.0.2] - 2025-05-16
 
 ### Fixed
