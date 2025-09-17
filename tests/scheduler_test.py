@@ -6,7 +6,9 @@ import pytest
 from apscheduler.jobstores.base import JobLookupError
 
 from zino import scheduler
+from zino.events import EventIndex
 from zino.state import ZinoState
+from zino.statemodels import EventState, ReachabilityEvent
 
 
 class TestLoadPolldevs:
@@ -207,6 +209,17 @@ def test_deschedule_deleted_devices_should_not_fail_on_not_found_job(mocked_sche
 def test_scheduler_should_be_initialized_without_error():
     sched = scheduler.get_scheduler()
     assert sched
+
+
+def test_close_events_for_devices_should_close_events_for_given_devices(state_with_localhost):
+    with patch("zino.state.state", state_with_localhost) as state:
+        event_index = EventIndex("localhost", None, ReachabilityEvent)
+        event = state.events.create_event(*event_index)
+        state.events.commit(event)
+        assert event.state == EventState.OPEN
+        scheduler.close_events_for_devices(["localhost"])
+        event = state.events.get_closed_event(*event_index)
+        assert event.state == EventState.CLOSED
 
 
 @pytest.fixture

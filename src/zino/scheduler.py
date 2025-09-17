@@ -12,6 +12,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from zino import state
 from zino.config.models import DEFAULT_INTERVAL_MINUTES, PollDevice
 from zino.config.polldevs import InvalidConfiguration, read_polldevs
+from zino.statemodels import EventState
 from zino.tasks import run_all_tasks
 from zino.utils import log_time_spent
 
@@ -93,6 +94,7 @@ def init_state_for_devices(devices: Sequence[PollDevice]):
 
 async def load_and_schedule_polldevs(polldevs_conf: str):
     new_devices, deleted_devices, changed_devices, defaults = load_polldevs(polldevs_conf)
+    close_events_for_devices(deleted_devices)
     deschedule_devices(deleted_devices | changed_devices)
     stagger_interval = defaults.get("interval", DEFAULT_INTERVAL_MINUTES)
     schedule_devices(new_devices | changed_devices, int(stagger_interval))
@@ -131,3 +133,13 @@ def deschedule_devices(devices: Sequence[str]):
             scheduler.remove_job(job_id=name)
         except JobLookupError:
             _log.debug("Job for device %s could not be found", name)
+
+
+def close_events_for_devices(devices: Sequence[str]):
+    """Closes any open events for devices that have been removed from the polldevs configuration"""
+    for event in state.state.events.events.values():
+        if event.state is not EventState.CLOSED and event.router in devices:
+            checked_out_event = state.state.events.checkout(event.id)
+            checked_out_event.set_state(EventState.CLOSED)
+            checked_out_event.add_log(f"Router {event.router} is no longer being monitored")
+            state.state.events.commit(checked_out_event)
