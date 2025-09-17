@@ -5,11 +5,19 @@
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
+import os.path
+import sys
 
 project = 'Zino'
-copyright = '2024, Sikt - The Norwegian Agency for Shared Services in Education and Research'
+copyright = '2024-2025, Sikt - The Norwegian Agency for Shared Services in Education and Research'
 author = 'Morten Brekkevold, Johanna England, Simon Tveit'
-release = '2.0.0-beta.2'
+try:
+    sys.path.insert(0, os.path.join(os.path.abspath('..'), 'src'))
+    from zino.version import version
+
+    release = version
+except ImportError:
+    version = 'dev'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
