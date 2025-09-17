@@ -43,6 +43,32 @@ zinoconv = "zino.stateconverter.convertstate:main"
 [project.optional-dependencies]
 docs = ["sphinx>=2.2.0"]
 
+[dependency-groups]
+docs = ["sphinx>2.2.0"]
+test = [
+    "coverage",
+    "pexpect",
+    "pytest>7",
+    "pytest-asyncio<0.22.0",
+    "pytest-cov",
+    "pytest-timeout",
+    "retry",
+    "snmpsim>=1.0,!=1.1.6",
+    "tox",
+]
+maintenance = [
+    "build",
+    "twine",
+    "towncrier",
+]
+dev = [
+    "ruff",
+    "pre-commit",
+    "ipython",
+    {include-group = "maintenance"},
+    {include-group = "test"},
+]
+
 [tool.setuptools]
 include-package-data = true
 zip-safe = false
