@@ -6,7 +6,15 @@ name: Run test suite
 on:
   push:
     branches: master
+    paths-ignore:
+      - 'docs/**'
+      - 'changelog.d/*'
+      - 'README.md'
   pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - 'changelog.d/*'
+      - 'README.md'
   schedule: # Run daily at 08:00 CEST (06:00 UST)
     - cron: '0 6 * * *'
 
