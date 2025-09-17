@@ -1,0 +1,17 @@
+[Unit]
+Description=Zino
+After=network.target
+
+[Service]
+User=root
+Group=nogroup
+WorkingDirectory=/home/zino
+ExecStart=/home/zino/.zino/bin/zino --user zino
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=zino
+
+[Install]
+WantedBy=multi-user.target
