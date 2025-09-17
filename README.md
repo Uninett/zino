@@ -27,7 +27,7 @@ on behalf of the nordic NRENs.
 - [Installing](#installing-zino)
 - [Configuring](#configuring-zino)
 - [Using](#using-zino)
-- [Upgrade from Zino 1 (offline link)](docs/howtos/upgrade-from-zino-1.rst)
+- [Upgrade from Zino 1](docs/howtos/upgrade-from-zino-1.rst)
 - [Contributing](#developing-zino)
 
 ## What is Zino?
@@ -98,14 +98,13 @@ default it is backed by a C-library, Net-SNMP.
 We recommend you create a user to own zino's files instead of
 having everything be owned by root
 
-See [Installation (offline
-link)](docs/installation.rst) for the full details.
+See [Installation](docs/installation.rst) for the full details.
 
 ## Configuring Zino
 
 Zino *must* have at minimum one configuration file: ``polldevs.cf``, which
-keeps track of at least one SNMP-enabled router to monitor. See [Configuring
-(offline link)](docs/configuration.rst) for the details.
+keeps track of at least one SNMP-enabled router to monitor. See
+[Configuring](docs/configuration.rst) for the details.
 
 ## Using Zino
 
@@ -133,5 +132,5 @@ Zino. Several remote interfaces exist.
 Contributions are welcome, at this point especially bug reports (patches
 welcome), missing documentation, how to's and usage tips!
 
-See [Developing Zino (offline link)](docs/development.rst) for
-tips, expectations and assumptions.
+See [Developing Zino](docs/development.rst) for tips, expectations and
+assumptions.
