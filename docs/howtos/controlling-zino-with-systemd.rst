@@ -8,7 +8,7 @@ This assumes:
 2. the user ``zino`` has the home directory of ``/home/zino``
 3. ``zino`` is installed in a virtualenv ``/home/zino/.zino``
 
-Copy the :download:`zino.service.example`_ file, reproduced below, to ``/etc/systemd/system/zino.service``.
+Copy the :download:`zino.service.example` file, reproduced below, to ``/etc/systemd/system/zino.service``.
 
 .. literalinclude:: zino.service.example
 
