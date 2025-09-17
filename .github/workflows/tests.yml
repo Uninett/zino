@@ -6,7 +6,17 @@ name: Run test suite
 on:
   push:
     branches: master
+    paths:
+      - '**.py'
+      - 'src/**'
+      - 'tests/**'
+      - '!changelog.d/*'
   pull_request:
+    paths:
+      - '**.py'
+      - 'src/**'
+      - 'tests/**'
+      - '!changelog.d/*'
   schedule: # Run daily at 08:00 CEST (06:00 UST)
     - cron: '0 6 * * *'
 
