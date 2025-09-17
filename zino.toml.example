@@ -31,6 +31,10 @@ period = 1
 # library to be installed on your system).  "pysnmp" selects the pure Python library PySNMP, which is less performant.
 backend = "netsnmp"
 
+[event]
+# Whether to create portstate events for newly discovered interfaces that are operationally down
+make_events_for_new_interfaces = false
+
 # Logging configuration is optional, but if specified, it will override the
 # default logging config of Zino.  This is a TOML representation of the default
 # logging configuration dictionary, whose full documentation is available at

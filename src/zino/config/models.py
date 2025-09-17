@@ -80,6 +80,14 @@ class SNMPConfiguration(BaseModel):
     backend: Literal["pysnmp", "netsnmp"] = "netsnmp"
 
 
+class EventConfiguration(BaseModel):
+    """Options to control how events are created"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    make_events_for_new_interfaces: bool = False
+
+
 class Configuration(BaseModel):
     """Class for keeping track of the configuration set by zino.toml"""
 
@@ -91,6 +99,7 @@ class Configuration(BaseModel):
     persistence: Persistence = Persistence()
     polling: Polling = Polling()
     snmp: SNMPConfiguration = SNMPConfiguration()
+    event: EventConfiguration = EventConfiguration()
     logging: dict[str, Any] = {
         "version": 1,
         "disable_existing_loggers": False,
