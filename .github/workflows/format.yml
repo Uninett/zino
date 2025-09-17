@@ -3,17 +3,15 @@ name: Verify formatting
 on:
   push:
     branches: master
-    paths:
-      - '**.py'
-      - 'src/**'
-      - 'tests/**'
-      - '!changelog.d/*'
+    paths-ignore:
+      - 'docs/**'
+      - 'changelog.d/*'
+      - 'README.md'
   pull_request:
-    paths:
-      - '**.py'
-      - 'src/**'
-      - 'tests/**'
-      - '!changelog.d/*'
+    paths-ignore:
+      - 'docs/**'
+      - 'changelog.d/*'
+      - 'README.md'
 
 jobs:
   ruff:
