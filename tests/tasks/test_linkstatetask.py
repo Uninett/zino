@@ -51,6 +51,15 @@ class TestLinkStateTask:
         task_with_dummy_device.device.watchpat = "Gigabit"
         assert task_with_dummy_device._is_interface_watched(data)
 
+    def test_when_interface_matches_watchpat_not_at_the_beginning_it_should_not_be_ignored(
+        self, task_with_dummy_device
+    ):
+        data = BaseInterfaceRow(
+            index=2, descr="GigabitEthernet1/2", alias="uplink", admin_status="up", oper_status="up", last_change=0
+        )
+        task_with_dummy_device.device.watchpat = "1/2"
+        assert task_with_dummy_device._is_interface_watched(data)
+
     def test_when_interface_doesnt_match_watchpat_it_should_be_ignored(self, task_with_dummy_device):
         data = BaseInterfaceRow(
             index=2, descr="GigabitEthernet1/2", alias="uplink", admin_status="up", oper_status="up", last_change=0
@@ -63,6 +72,13 @@ class TestLinkStateTask:
             index=2, descr="GigabitEthernet1/2", alias="uplink", admin_status="up", oper_status="up", last_change=0
         )
         task_with_dummy_device.device.ignorepat = ".*Ethernet"
+        assert not task_with_dummy_device._is_interface_watched(data)
+
+    def test_when_interface_matches_ignorepat_not_at_the_beginning_it_should_be_ignored(self, task_with_dummy_device):
+        data = BaseInterfaceRow(
+            index=2, descr="GigabitEthernet1/2", alias="uplink", admin_status="up", oper_status="up", last_change=0
+        )
+        task_with_dummy_device.device.ignorepat = "1/2"
         assert not task_with_dummy_device._is_interface_watched(data)
 
     def test_when_interface_state_is_missing_update_state_should_raise_exception(self, task_with_dummy_device):
