@@ -353,3 +353,33 @@ class TestLinkTrapObserverHandleLinkTransitions:
         assert updated_event.flapstate == FlapState.STABLE
         assert updated_event.portstate == InterfaceState.UP
         assert updated_event.ac_down > initial_ac_down
+
+
+class TestLinkTrapObserverIsPortIgnoredByPatterns:
+    async def test_when_port_matches_watch_pattern_it_should_return_false(
+        self, state_with_localhost_with_port, localhost_pysnmp_receiver
+    ):
+        localhost_config = PollDevice(name="localhost", address="127.0.0.1", watchpat="bar")
+        localhost_pysnmp_receiver.polldevs["localhost"] = localhost_config
+
+        observer = LinkTrapObserver(
+            state=localhost_pysnmp_receiver.state,
+            polldevs=localhost_pysnmp_receiver.polldevs,
+            loop=localhost_pysnmp_receiver.loop,
+        )
+        device = state_with_localhost_with_port.devices["localhost"]
+        assert not observer.is_port_ignored_by_patterns(device, "foobar")
+
+    async def test_when_port_matches_ignore_pattern_it_should_return_true(
+        self, state_with_localhost_with_port, localhost_pysnmp_receiver
+    ):
+        localhost_config = PollDevice(name="localhost", address="127.0.0.1", ignorepat="bar")
+        localhost_pysnmp_receiver.polldevs["localhost"] = localhost_config
+
+        observer = LinkTrapObserver(
+            state=localhost_pysnmp_receiver.state,
+            polldevs=localhost_pysnmp_receiver.polldevs,
+            loop=localhost_pysnmp_receiver.loop,
+        )
+        device = state_with_localhost_with_port.devices["localhost"]
+        assert observer.is_port_ignored_by_patterns(device, "foobar")
