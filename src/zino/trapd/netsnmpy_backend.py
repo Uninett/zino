@@ -67,7 +67,7 @@ class TrapReceiver(TrapReceiverBase):
             try:
                 identifier, value = _convert_snmp_variable(variable)
             except ValueError:
-                _logger.error(
+                _logger.debug(
                     "Could not resolve SNMP variable %s: %s (Maybe MIB not loaded?)", variable, variable.value
                 )
                 return
