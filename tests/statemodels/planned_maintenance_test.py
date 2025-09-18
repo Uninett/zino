@@ -40,3 +40,15 @@ def pm() -> PlannedMaintenance:
         match_expression="device",
         match_device=None,
     )
+
+
+@pytest.fixture
+def regexp_pm() -> PlannedMaintenance:
+    return PlannedMaintenance(
+        start_time=datetime.datetime.now() - datetime.timedelta(days=1),
+        end_time=datetime.datetime.now() + datetime.timedelta(days=1),
+        type=PmType.DEVICE,
+        match_type=MatchType.REGEXP,
+        match_expression="device",
+        match_device=None,
+    )

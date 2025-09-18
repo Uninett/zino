@@ -11,6 +11,7 @@ from zino.statemodels import (
     EventState,
     LogEntry,
     ReachabilityEvent,
+    regex_search,
 )
 from zino.time import now
 
@@ -161,6 +162,17 @@ class TestDeviceStates:
         result = states.get(router)
         assert isinstance(result, DeviceState)
         assert router in states
+
+
+class TestRegexSearch:
+    def test_when_string_matches_not_at_the_beginning_it_should_return_true(self):
+        assert regex_search("device", "blabla_device")
+
+    def test_when_string_matches_at_the_beginning_it_should_return_true(self):
+        assert regex_search("device", "device")
+
+    def test_when_string_does_not_match_it_should_return_false(self):
+        assert not regex_search("device", "wrong")
 
 
 @pytest.fixture
