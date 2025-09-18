@@ -31,6 +31,11 @@ period = 1
 # library to be installed on your system).  "pysnmp" selects the pure Python library PySNMP, which is less performant.
 backend = "netsnmp"
 
+# Only accept SNMP trap messages with any community string in this list. The default value is ["public", "secret"].
+# The netsnmp backend will accept an empty list to mean: Admit any trap message, regardless of community.  The pysnmp
+# backend will not function properly unless there is at least one community string in the list.
+trap.require_community = ["public", "secret"]
+
 [event]
 # Whether to create portstate events for newly discovered interfaces that are operationally down
 make_events_for_new_interfaces = false
