@@ -166,12 +166,12 @@ class LinkStateTask(Task):
 
     def _is_interface_watched(self, data: BaseInterfaceRow):
         # If watch pattern exists, only watch matching interfaces
-        if self.device.watchpat and not re.match(self.device.watchpat, data.descr):
+        if self.device.watchpat and not re.search(self.device.watchpat, data.descr):
             _logger.debug("%s intf %s not watched", self.device.name, data.descr)
             return False
 
         # If ignore pattern exists, ignore matching interfaces
-        if self.device.ignorepat and re.match(self.device.ignorepat, data.descr):
+        if self.device.ignorepat and re.search(self.device.ignorepat, data.descr):
             _logger.debug("%s intf %s ignored", self.device.name, data.descr)
             return False
 

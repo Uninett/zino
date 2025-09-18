@@ -184,11 +184,11 @@ class LinkTrapObserver(TrapObserver):
 
     def is_port_ignored_by_patterns(self, device: DeviceState, ifdescr: str) -> bool:
         if watch_pattern := self.get_watch_pattern(device):
-            if not re.match(watch_pattern, ifdescr):
+            if not re.search(watch_pattern, ifdescr):
                 return True
 
         if ignore_pattern := self.get_ignore_pattern(device):
-            if re.match(ignore_pattern, ifdescr):
+            if re.search(ignore_pattern, ifdescr):
                 return True
 
         return False
