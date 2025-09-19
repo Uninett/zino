@@ -6,13 +6,21 @@ Development tools
 =================
 
 A bunch of tools needed or recommended to have available when developing
-Zino and/or running its test suite are listed in the requirements file
-``requirements/dev.txt`` (`local: <./requirements/dev.txt>`_, `online: <https://github.com/Uninett/zino/requirements/dev.txt>`_). These can be
-installed to your development virtualenv using ``pip`` (or ``uv pip``):
+Zino and/or running its test suite are included in dependency groups in the
+``pyproject.toml`` file (`local: <../pyproject.toml>`_, `online:
+<https://github.com/Uninett/zino/pyproject.toml>`_).
+
+The groups are:
+
+* ``test`` just for testing tools
+* ``maintenance`` for packagong and release tools
+* ``dev`` includes ``test`` and ``maintenance`` tools as weel as linters, formatters and other helpers.
+
+Install all of them to your development virtualenv using ``pip`` (or ``uv pip``):
 
 .. code:: shell
 
-   pip install -r requirements/dev.txt
+   pip install --group dev
 
 Running tests
 =============
