@@ -15,9 +15,9 @@ class TestReadConfiguration:
         assert config
         assert config.polling.file == str(polldevs_conf_with_single_router)
 
-    def test_raises_error_on_file_not_found(self, tmp_path):
-        with pytest.raises(FileNotFoundError):
-            read_configuration(tmp_path / "non-existent-config.toml")
+    def test_succeeds_on_file_not_found(self, tmp_path):
+        config = read_configuration(tmp_path / "non-existent-config.toml")
+        assert config, "Default config not generated"
 
     def test_raises_error_on_invalid_toml_file(self, invalid_zino_conf):
         with pytest.raises(InvalidConfigurationError):
