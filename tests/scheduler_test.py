@@ -223,9 +223,11 @@ def test_close_events_for_devices_should_close_events_for_given_devices(state_wi
         assert event.state == EventState.CLOSED
 
 
-def test_create_reachability_events_for_devices_should_create_reachability_events_for_given_devices(state_with_localhost):
+def test_create_reachability_events_for_devices_should_create_reachability_events_for_given_devices(
+    state_with_localhost,
+):
     with patch("zino.state.state", state_with_localhost) as state:
-        scheduler.create_reachabily_events_for_devices([PollDevice(name="localhost", address="127.0.0.1")])
+        scheduler.create_reachability_events_for_new_devices([PollDevice(name="localhost", address="127.0.0.1")])
         event = state.events.get("localhost", None, ReachabilityEvent)
         assert event.state == EventState.OPEN
         assert event.reachability == ReachabilityState.REACHABLE
