@@ -84,7 +84,7 @@ class BFDTask(Task):
 
         log = f"changed BFD state to {new_state.session_state} on port {port.ifdescr} on device {self.device.name}"
         event.lastevent = log
-        event.add_log(f"Port {port.ifdescr}" + log)
+        event.add_log(f"Port {port.ifdescr} " + log)
         self.state.events.commit(event)
 
     async def _poll_juniper(self, session_index: int = None) -> DescrBFDStates:
