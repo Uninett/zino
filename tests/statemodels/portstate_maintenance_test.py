@@ -70,12 +70,19 @@ class TestMatchesEvent:
 class TestMatchesPortstate:
     @pytest.mark.parametrize("portstate_pm", [MatchType.REGEXP, MatchType.STR, MatchType.INTF_REGEXP], indirect=True)
     def test_should_return_false_for_non_matching_port(self, portstate_pm, device, port):
-        port.ifalias = "wrongportalias"
-        port.ifdescr = "wrongportdescr"
+        port.ifalias = "wrong"
+        port.ifdescr = "wrong"
         assert not portstate_pm.matches_portstate(device, port)
 
     @pytest.mark.parametrize("portstate_pm", [MatchType.REGEXP, MatchType.STR], indirect=True)
     def test_regexp_and_str_should_return_true_for_matching_port(self, portstate_pm, device, port):
+        assert portstate_pm.matches_portstate(device, port)
+
+    @pytest.mark.parametrize("portstate_pm", [MatchType.REGEXP], indirect=True)
+    def test_regexp_should_return_true_for_matching_port_not_at_start_of_regexp_expression(
+        self, portstate_pm, device, port
+    ):
+        port.ifalias = "blabla" + port.ifalias
         assert portstate_pm.matches_portstate(device, port)
 
     @pytest.mark.parametrize("portstate_pm", [MatchType.INTF_REGEXP], indirect=True)
@@ -86,7 +93,7 @@ class TestMatchesPortstate:
     def test_intf_regexp_match_type_should_return_false_for_matching_port_and_non_matching_device(
         self, portstate_pm, device, port
     ):
-        device.name = "wrongdevice"
+        device.name = "wrong"
         assert not portstate_pm.matches_portstate(device, port)
 
     @pytest.mark.parametrize("portstate_pm", [MatchType.EXACT], indirect=True)

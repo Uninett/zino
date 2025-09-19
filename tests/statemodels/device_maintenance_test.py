@@ -66,9 +66,18 @@ class TestMatchesDevice:
     def test_should_return_true_if_device_name_matches_expression(self, device, device_pm):
         assert device_pm.matches_device(device)
 
+    @pytest.mark.parametrize("device_pm", [MatchType.REGEXP], indirect=True)
+    def test_should_return_true_if_device_name_matches_start_of_regexp_expression(self, device, device_pm):
+        assert device_pm.matches_device(device)
+
+    @pytest.mark.parametrize("device_pm", [MatchType.REGEXP], indirect=True)
+    def test_should_return_true_if_device_name_matches_not_start_of_regexp_expression(self, device, device_pm):
+        device.name = "blabla" + device.name
+        assert device_pm.matches_device(device)
+
     @pytest.mark.parametrize("device_pm", [MatchType.EXACT, MatchType.REGEXP, MatchType.STR], indirect=True)
     def test_should_return_false_if_device_name_does_not_match_expression(self, device, device_pm):
-        device.name = "wrongdevice"
+        device.name = "wrong"
         assert not device_pm.matches_device(device)
 
     @pytest.mark.parametrize("device_pm", [MatchType.INTF_REGEXP], indirect=True)
