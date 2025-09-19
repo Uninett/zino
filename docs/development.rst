@@ -33,6 +33,16 @@ versions of Python, run:
 
    tox run
 
+In order to run all the tests you need the non-python program ``snmptrap``. On
+debian-derived distros it is included in the ``snmp`` package, install it via:
+
+.. code:: shell
+
+   apt install snmp
+
+If this package is not installed some tests will be skipped.
+
+
 Code style
 ==========
 
