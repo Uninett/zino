@@ -172,7 +172,7 @@ class Events(BaseModel):
             return
 
         base_dir = config.archiving.old_events_dir
-        event.dump_event_to_file(dir_name=f"{base_dir}/{now().year}-{now().month}/{now().day}")
+        event.dump_event_to_file(dir_name=f"{base_dir}/{now().year}-{now().month:02d}/{now().day:02d}")
         index = EventIndex(event.router, event.subindex, type(event))
         if self._closed_events_by_index.get(index) and event.id == self._closed_events_by_index[index].id:
             del self._closed_events_by_index[index]
