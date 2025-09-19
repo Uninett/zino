@@ -23,11 +23,14 @@ def read_configuration(config_file_name: str, poll_file_name: Optional[str] = No
     pydantic.ValidationError if values in it are invalid or the specified files
     don't exist
     """
-    with open(config_file_name, mode="rb") as cf:
-        try:
-            config_dict = load(cf)
-        except TOMLDecodeError:
-            raise InvalidConfigurationError
+    try:
+        with open(config_file_name, mode="rb") as cf:
+            try:
+                config_dict = load(cf)
+            except TOMLDecodeError:
+                raise InvalidConfigurationError
+    except FileNotFoundError:
+        config_dict = {}
 
     # Polldevs by command line argument will override config file entry
     if poll_file_name:
@@ -36,6 +39,6 @@ def read_configuration(config_file_name: str, poll_file_name: Optional[str] = No
         else:
             config_dict["polling"]["file"] = poll_file_name
 
-    config = Configuration.model_validate(obj=config_dict, strict=True)
+    config = Configuration().model_validate(obj=config_dict, strict=True)
 
     return config
