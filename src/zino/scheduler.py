@@ -79,6 +79,7 @@ def load_polldevs(polldevs_conf: str) -> Tuple[Set, Set, Set, dict[str, str]]:
     state.polldevs.update(devices)
     for device in deleted_devices:
         del state.polldevs[device]
+    close_events_for_devices(deleted_devices)
 
     state.pollfile_mtime = modified_time
 
@@ -94,7 +95,6 @@ def init_state_for_devices(devices: Sequence[PollDevice]):
 
 async def load_and_schedule_polldevs(polldevs_conf: str):
     new_devices, deleted_devices, changed_devices, defaults = load_polldevs(polldevs_conf)
-    close_events_for_devices(deleted_devices)
     deschedule_devices(deleted_devices | changed_devices)
     stagger_interval = defaults.get("interval", DEFAULT_INTERVAL_MINUTES)
     schedule_devices(new_devices | changed_devices, int(stagger_interval))
