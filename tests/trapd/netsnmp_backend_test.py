@@ -11,10 +11,8 @@ from netsnmpy.trapsession import SNMPTrap
 
 from zino.oid import OID
 from zino.trapd.base import (
-    TrapMessage,
     TrapObserver,
     TrapOriginator,
-    TrapVarBind,
 )
 from zino.trapd.netsnmpy_backend import TrapReceiver
 
@@ -31,35 +29,36 @@ class TestTrapReceiver:
         receiver.add_community("public")
         assert len(receiver._communities) == 1
 
-    async def test_when_trap_lacks_trap_oid_it_should_be_ignored(self, localhost_netsnmpy_receiver):
-        origin = TrapOriginator(address=ipaddress.ip_address("127.0.0.1"), port=666)
-        trap = TrapMessage(agent=origin)
-        trap.variables.append(
-            TrapVarBind(
-                oid=OID(".1.3.6.1.2.1.1.3.0"),
-                mib="SNMPv2-MIB",
-                var="sysUpTime",
-                instance=OID(".0"),
-                raw_value=None,
-                value=123,
-            )
-        )
-        assert not localhost_netsnmpy_receiver._verify_trap(trap, origin)
+    async def test_when_trap_is_well_formed_it_should_be_verified(
+        self, trap_message, state_with_localhost, localhost_netsnmpy_receiver
+    ):
+        device = state_with_localhost.devices.get("localhost")
+        origin = TrapOriginator(address=trap_message.source, port=666, device=device)
+        assert localhost_netsnmpy_receiver._verify_trap(trap_message, origin)
 
-    async def test_when_trap_lacks_sysuptime_it_should_be_ignored(self, localhost_netsnmpy_receiver):
-        origin = TrapOriginator(address=ipaddress.ip_address("127.0.0.1"), port=666)
-        trap = TrapMessage(agent=origin)
-        trap.variables.append(
-            TrapVarBind(
-                oid=OID(".1.3.6.1.6.3.1.1.4.1"),
-                mib="SNMPv2-MIB",
-                var="snmpTrapOID",
-                instance=None,
-                raw_value=OID(".1.1.1"),
-                value=("FAKE-MIB", "fakeTrap"),
-            )
-        )
-        assert not localhost_netsnmpy_receiver._verify_trap(trap, origin)
+    async def test_when_trap_lacks_trap_oid_it_should_be_ignored(
+        self, trap_message, state_with_localhost, localhost_netsnmpy_receiver
+    ):
+        device = state_with_localhost.devices.get("localhost")
+        origin = TrapOriginator(address=trap_message.source, port=666, device=device)
+        trap_message.trap_oid = None
+        assert not localhost_netsnmpy_receiver._verify_trap(trap_message, origin)
+
+    async def test_when_trap_lacks_sysuptime_it_should_be_ignored(
+        self, trap_message, state_with_localhost, localhost_netsnmpy_receiver
+    ):
+        device = state_with_localhost.devices.get("localhost")
+        origin = TrapOriginator(address=trap_message.source, port=666, device=device)
+        trap_message.uptime = None
+        assert not localhost_netsnmpy_receiver._verify_trap(trap_message, origin)
+
+    async def test_when_trap_has_incorrect_community_it_should_be_ignored(
+        self, trap_message, state_with_localhost, localhost_netsnmpy_receiver
+    ):
+        device = state_with_localhost.devices.get("localhost")
+        origin = TrapOriginator(address=trap_message.source, port=666, device=device)
+        trap_message.community = "zaphod"
+        assert not localhost_netsnmpy_receiver._verify_trap(trap_message, origin)
 
     async def test_when_trap_observer_wants_no_traps_auto_subscribe_should_ignore_it(self, localhost_netsnmpy_receiver):
         class MockObserver(TrapObserver):
@@ -198,3 +197,21 @@ class TestTrapReceiverExternally:
                     OID_COLD_START, OID_SYSNAME_0, "s", "'MockDevice'", port=localhost_netsnmpy_receiver.port
                 )
                 assert not mock_dispatch.called
+
+
+@pytest.fixture
+def trap_message():
+    source = ipaddress.ip_address("127.0.0.1")
+    return SNMPTrap(
+        source=source,
+        agent=source,
+        generic_type=None,
+        trap_oid=OID(".1.3.6.1.4.1.2636.5.1.1.1.0.2"),
+        uptime=1984,
+        community="public",
+        version="2c",
+        variables=[
+            SNMPVariable(NS_OID(".1.3.6.1.2.1.1.3.0"), 1984),
+            SNMPVariable(NS_OID(".1.1.1.1.1.1.1.1.1"), 42),
+        ],
+    )
