@@ -52,6 +52,14 @@ class TestTrapReceiver:
         trap_message.uptime = None
         assert not localhost_netsnmpy_receiver._verify_trap(trap_message, origin)
 
+    async def test_when_trap_has_incorrect_community_it_should_be_ignored(
+        self, trap_message, state_with_localhost, localhost_netsnmpy_receiver
+    ):
+        device = state_with_localhost.devices.get("localhost")
+        origin = TrapOriginator(address=trap_message.source, port=666, device=device)
+        trap_message.community = "zaphod"
+        assert not localhost_netsnmpy_receiver._verify_trap(trap_message, origin)
+
     async def test_when_trap_observer_wants_no_traps_auto_subscribe_should_ignore_it(self, localhost_netsnmpy_receiver):
         class MockObserver(TrapObserver):
             WANTED_TRAPS = set()
