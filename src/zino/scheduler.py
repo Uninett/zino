@@ -136,7 +136,7 @@ def deschedule_devices(devices: Sequence[str]):
 
 
 def close_events_for_devices(devices: Sequence[str]):
-    """Closes any open events for devices that have been removed from the polldevs configuration"""
+    """Closes any non-closed events for given devices"""
     for event in state.state.events.events.values():
         if event.state is not EventState.CLOSED and event.router in devices:
             checked_out_event = state.state.events.checkout(event.id)
