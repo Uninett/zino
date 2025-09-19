@@ -109,8 +109,8 @@ def init_event_loop(args: argparse.Namespace, loop: Optional[AbstractEventLoop] 
     if args.trap_port:
         trap_backend = import_trap_backend()
         trap_receiver = trap_backend.TrapReceiver(port=args.trap_port, loop=loop, state=state.state)
-        trap_receiver.add_community("public")
-        trap_receiver.add_community("secret")
+        for community in state.config.snmp.trap.require_community:
+            trap_receiver.add_community(community)
         trap_receiver.auto_subscribe_observers()
 
         try:
