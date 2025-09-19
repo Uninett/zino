@@ -82,7 +82,7 @@ class BFDTask(Task):
         if event.bfdaddr:
             event.neigh_rdns = await reverse_dns(str(event.bfdaddr))
 
-        log = f"changed BFD state to {new_state.session_state} on port {port.ifdescr} on device {self.device.name}"
+        log = f"changed BFD state to {new_state.session_state} on port {port.ifdescr}"
         event.lastevent = log
         event.add_log(f"Port {port.ifdescr} " + log)
         self.state.events.commit(event)
