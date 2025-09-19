@@ -6,9 +6,10 @@ import pytest
 from apscheduler.jobstores.base import JobLookupError
 
 from zino import scheduler
+from zino.config.models import PollDevice
 from zino.events import EventIndex
 from zino.state import ZinoState
-from zino.statemodels import EventState, ReachabilityEvent
+from zino.statemodels import EventState, ReachabilityEvent, ReachabilityState
 
 
 class TestLoadPolldevs:
@@ -46,7 +47,7 @@ class TestLoadPolldevs:
     @patch("zino.state.polldevs", dict())
     @patch("zino.state.pollfile_mtime", None)
     @patch("zino.state.state", ZinoState())
-    def test__or_deleted_devices_on_invalid_configuration(self, invalid_polldevs_conf):
+    def test_should_return_no_new_or_deleted_devices_on_invalid_configuration(self, invalid_polldevs_conf):
         new_devices, deleted_devices, changed_devices, _ = scheduler.load_polldevs(invalid_polldevs_conf)
         assert not new_devices
         assert not deleted_devices
@@ -220,6 +221,16 @@ def test_close_events_for_devices_should_close_events_for_given_devices(state_wi
         scheduler.close_events_for_devices(["localhost"])
         event = state.events.get_closed_event(*event_index)
         assert event.state == EventState.CLOSED
+
+
+def test_create_reachability_events_for_devices_should_create_reachability_events_for_given_devices(
+    state_with_localhost,
+):
+    with patch("zino.state.state", state_with_localhost) as state:
+        scheduler.create_reachability_events_for_new_devices([PollDevice(name="localhost", address="127.0.0.1")])
+        event = state.events.get("localhost", None, ReachabilityEvent)
+        assert event.state == EventState.OPEN
+        assert event.reachability == ReachabilityState.REACHABLE
 
 
 @pytest.fixture

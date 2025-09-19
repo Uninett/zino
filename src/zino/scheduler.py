@@ -12,7 +12,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from zino import state
 from zino.config.models import DEFAULT_INTERVAL_MINUTES, PollDevice
 from zino.config.polldevs import InvalidConfiguration, read_polldevs
-from zino.statemodels import EventState
+from zino.statemodels import EventState, ReachabilityEvent, ReachabilityState
 from zino.tasks import run_all_tasks
 from zino.utils import log_time_spent
 
@@ -95,6 +95,7 @@ def init_state_for_devices(devices: Sequence[PollDevice]):
 async def load_and_schedule_polldevs(polldevs_conf: str):
     new_devices, deleted_devices, changed_devices, defaults = load_polldevs(polldevs_conf)
     close_events_for_devices(deleted_devices)
+    create_reachability_events_for_new_devices((state.polldevs[d] for d in new_devices))
     deschedule_devices(deleted_devices | changed_devices)
     stagger_interval = defaults.get("interval", DEFAULT_INTERVAL_MINUTES)
     schedule_devices(new_devices | changed_devices, int(stagger_interval))
@@ -143,3 +144,17 @@ def close_events_for_devices(devices: Sequence[str]):
             checked_out_event.set_state(EventState.CLOSED)
             checked_out_event.add_log(f"Router {event.router} is no longer being monitored")
             state.state.events.commit(checked_out_event)
+
+
+def create_reachability_events_for_new_devices(devices: Sequence[PollDevice]):
+    """
+    Creates a reachability event for each device to show that the device was added to
+    Zino
+    """
+    for device in devices:
+        event = state.state.events.get_or_create_event(device.name, None, ReachabilityEvent)
+        event.reachability = ReachabilityState.REACHABLE
+        event.add_log(f"{device.name} discovered")
+        event.polladdr = device.address
+        event.priority = device.priority
+        state.state.events.commit(event)
