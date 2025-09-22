@@ -108,8 +108,10 @@ class Zino1NotificationProtocol(asyncio.Protocol):
         matters.
         """
         if new_event.id not in state.events.events:
-            # Event has just been scavenged after being closed for a while
+            # Event has just been scavenged after being closed for a while.  No more notifications should be sent
+            # after this, since the event no longer exists.
             yield Notification(new_event.id, "scavenged", None)
+            return
 
         changed = new_event.get_changed_fields(old_event) if old_event else ["state"]
 

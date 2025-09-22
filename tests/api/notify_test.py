@@ -118,6 +118,13 @@ class TestZino1NotificationProtocolBuildNotifications:
         )
         assert Notification(event_id=42, change_type="state", value=expected) in notifications
 
+    def test_when_event_is_scavenged_it_should_only_produce_a_single_final_notification(self, fake_event):
+        protocol = Zino1NotificationProtocol()
+        fake_event.state = EventState.CLOSED
+        notifications = list(protocol.build_notifications(state=protocol._state, new_event=fake_event, old_event=None))
+        assert Notification(event_id=fake_event.id, change_type="scavenged", value=None) in notifications
+        assert len(notifications) == 1
+
 
 class TestZino1NotificationProtocolBuildAndSendNotifications:
     def test_should_send_notifications_only_to_tied_channels(self, event_loop, fake_event, changed_fake_event):
