@@ -81,9 +81,10 @@ def load_polldevs(polldevs_conf: str) -> Tuple[Set, Set, Set, dict[str, str]]:
     for device in deleted_devices:
         del state.polldevs[device]
 
-    # Update event state
+    # Update event/device state
     unmonitored_devices = set(state.state.devices.devices) - set(devices)
     close_events_for_devices(unmonitored_devices)
+    delete_devicestate_for_devices(unmonitored_devices)
 
     state.pollfile_mtime = modified_time
 
@@ -149,3 +150,9 @@ def close_events_for_devices(devices: Sequence[str]):
             checked_out_event.set_state(EventState.CLOSED)
             checked_out_event.add_log(f"Router {event.router} is no longer being monitored")
             state.state.events.commit(checked_out_event)
+
+
+def delete_devicestate_for_devices(devices: Sequence[str]):
+    """Deletes `DeviceState` for the given devices."""
+    for device in devices:
+        del state.state.devices.devices[device]
