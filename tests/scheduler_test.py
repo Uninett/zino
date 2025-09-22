@@ -45,18 +45,16 @@ class TestLoadPolldevs:
 
     @patch("zino.state.polldevs", dict())
     @patch("zino.state.pollfile_mtime", None)
-    def test_should_close_events_for_deleted_devices(self, polldevs_conf, polldevs_conf_with_single_router):
+    def test_when_device_is_not_in_polldevs_then_related_events_should_be_closed(self, polldevs_conf):
         with patch("zino.state.state", ZinoState()) as state:
-            scheduler.load_polldevs(polldevs_conf)
-            # example-gw2 is in polldevs_conf but not in polldevs_conf_with_single_router
-            event_index = EventIndex("example-gw2", None, ReachabilityEvent)
+            # this creates a DeviceState called removed-gw (removed-gw is not in polldevs_conf)
+            state.devices.get("removed-gw")
+            event_index = EventIndex("removed-gw", None, ReachabilityEvent)
             event = state.events.create_event(*event_index)
             state.events.commit(event)
             assert event.state == EventState.OPEN
 
-            # This needs to be patched since the mtime of the two conf fixtures is the same
-            with patch("zino.state.pollfile_mtime", last_run_time=time() - 60):
-                scheduler.load_polldevs(polldevs_conf_with_single_router)
+            scheduler.load_polldevs(polldevs_conf)
 
             event = state.events.get_closed_event(*event_index)
             assert event.state == EventState.CLOSED
