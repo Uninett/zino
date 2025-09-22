@@ -121,6 +121,16 @@ class TestUpdatePmStates:
         event = state.events.get(device.name, port.ifindex, PortStateEvent)
         assert event.state == EventState.IGNORED
 
+    def test_events_matching_active_portstate_pm_with_regexp_matching_not_at_the_beginning_should_be_set_to_ignored(
+        self, state, active_portstate_pm
+    ):
+        device = state.devices.get("blabla_device")
+        port = Port(ifindex=1, ifdescr="port", ifalias="portalias")
+        device.ports[port.ifindex] = port
+        state.planned_maintenances.update_pm_states(state)
+        event = state.events.get(device.name, port.ifindex, PortStateEvent)
+        assert event.state == EventState.IGNORED
+
     def test_when_pm_ends_its_affected_events_should_be_opened(self, state, ended_pm):
         device = state.devices.get("device")
 
@@ -146,7 +156,30 @@ class TestUpdatePmStates:
         # Set last run to be after start time so PM is not treated as if it just started
         state.planned_maintenances.last_run = active_device_pm.start_time + timedelta(hours=1)
         state.planned_maintenances.update_pm_states(state)
-        assert state.events.checkout(event.id).state == EventState.IGNORED
+
+    def test_events_matching_active_device_pm_with_regexp_matching_at_the_beginning_should_be_set_to_ignored(
+        self, state, active_regexp_device_pm
+    ):
+        device = state.devices.get("device")
+        state.planned_maintenances.update_pm_states(state)
+        reachability_event = state.events.get(device.name, None, ReachabilityEvent)
+        assert reachability_event.state == EventState.IGNORED
+        yellow_alarm_event = state.events.get(device.name, "yellow", AlarmEvent)
+        assert yellow_alarm_event.state == EventState.IGNORED
+        red_alarm_event = state.events.get(device.name, "red", AlarmEvent)
+        assert red_alarm_event.state == EventState.IGNORED
+
+    def test_events_matching_active_device_with_regexp_matching_not_at_the_beginning_should_be_set_to_ignored(
+        self, state, active_regexp_device_pm
+    ):
+        device = state.devices.get("blabla_device")
+        state.planned_maintenances.update_pm_states(state)
+        reachability_event = state.events.get(device.name, None, ReachabilityEvent)
+        assert reachability_event.state == EventState.IGNORED
+        yellow_alarm_event = state.events.get(device.name, "yellow", AlarmEvent)
+        assert yellow_alarm_event.state == EventState.IGNORED
+        red_alarm_event = state.events.get(device.name, "red", AlarmEvent)
+        assert red_alarm_event.state == EventState.IGNORED
 
 
 def test_pms_should_be_parsed_as_correct_subclass_when_read_from_file(
@@ -207,6 +240,18 @@ def old_pm(pms):
         end_time=now() - timedelta(days=99),
         pm_class=DeviceMaintenance,
         match_type=MatchType.EXACT,
+        match_expression="device",
+        match_device="device",
+    )
+
+
+@pytest.fixture
+def active_regexp_device_pm(pms):
+    return pms.create_planned_maintenance(
+        start_time=now() - timedelta(days=1),
+        end_time=now() + timedelta(days=1),
+        pm_class=DeviceMaintenance,
+        match_type=MatchType.REGEXP,
         match_expression="device",
         match_device="device",
     )
