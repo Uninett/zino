@@ -1,6 +1,8 @@
 import ipaddress
 import logging
+import random
 import shutil
+import string
 from collections import Counter
 from unittest.mock import Mock, patch
 
@@ -60,6 +62,15 @@ class TestTrapReceiver:
         origin = TrapOriginator(address=trap_message.source, port=666, device=device)
         trap_message.community = "zaphod"
         assert not localhost_netsnmpy_receiver._verify_trap(trap_message, origin)
+
+    async def test_when_no_community_requirement_is_configured_any_community_should_be_verified(
+        self, trap_message, state_with_localhost, localhost_netsnmpy_receiver
+    ):
+        localhost_netsnmpy_receiver._communities = {}
+        device = state_with_localhost.devices.get("localhost")
+        origin = TrapOriginator(address=trap_message.source, port=666, device=device)
+        trap_message.community = "".join(random.choices(string.ascii_letters + string.digits, k=12))
+        assert localhost_netsnmpy_receiver._verify_trap(trap_message, origin)
 
     async def test_when_trap_observer_wants_no_traps_auto_subscribe_should_ignore_it(self, localhost_netsnmpy_receiver):
         class MockObserver(TrapObserver):

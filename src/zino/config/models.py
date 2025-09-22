@@ -74,10 +74,19 @@ class Polling(BaseModel):
     period: int = 1
 
 
+class TrapConfiguration(BaseModel):
+    """Trap reception configuration"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    require_community: list[str] = ["public", "secret"]
+
+
 class SNMPConfiguration(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     backend: Literal["pysnmp", "netsnmp"] = "netsnmp"
+    trap: TrapConfiguration = TrapConfiguration()
 
 
 class EventConfiguration(BaseModel):

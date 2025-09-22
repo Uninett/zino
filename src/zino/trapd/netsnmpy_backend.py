@@ -104,17 +104,15 @@ class TrapReceiver(TrapReceiverBase):
         source_name = origin.device.name or origin.address
 
         if self._communities and netsnmp_trap.community not in self._communities:
-            _logger.error(
-                "Trap from %s with unknown community string %r, ignoring", source_name, netsnmp_trap.community
-            )
+            _logger.info("Trap from %s with unknown community string %r, ignoring", source_name, netsnmp_trap.community)
             return False
 
         if not netsnmp_trap.trap_oid:
-            _logger.error("Trap from %s did not contain a snmpTrapOID value, ignoring", source_name)
+            _logger.info("Trap from %s did not contain a snmpTrapOID value, ignoring", source_name)
             return False
 
         if not netsnmp_trap.uptime:
-            _logger.error("Trap from %s did not contain a sysUpTime value, ignoring", source_name)
+            _logger.info("Trap from %s did not contain a sysUpTime value, ignoring", source_name)
             return False
 
         return True
