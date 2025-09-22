@@ -48,9 +48,9 @@ def main():
         level=logging.INFO if not args.debug else logging.DEBUG,
         format="%(asctime)s - %(levelname)s - %(name)s (%(threadName)s) - %(message)s",
     )
-    config = load_config(args)
-    if config:
-        state.config = config
+    _config = load_config(args)
+    if _config:
+        state.config = _config
     apply_logging_config(state.config.logging)
 
     try:
@@ -64,9 +64,9 @@ def main():
         sys.exit(1)
 
     # Load the same SNMP and trap back-ends
-    snmp_backend = import_snmp_backend(config.snmp.backend)
+    snmp_backend = import_snmp_backend(state.config.snmp.backend)
     snmp_backend.init_backend()
-    import_trap_backend(config.snmp.backend)
+    import_trap_backend(state.config.snmp.backend)
 
     state.state = state.ZinoState.load_state_from_file(state.config.persistence.file) or state.ZinoState()
     init_event_loop(args)
