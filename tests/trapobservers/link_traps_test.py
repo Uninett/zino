@@ -1,6 +1,9 @@
 import logging
+import shutil
 from datetime import timedelta
 from unittest.mock import Mock, patch
+
+import pytest
 
 from zino import flaps
 from zino.config.models import PollDevice
@@ -9,6 +12,7 @@ from zino.time import now
 from zino.trapd.base import TrapMessage
 from zino.trapobservers.link_traps import LinkTrapObserver
 
+from .. import SNMPTRAP_MISSING
 from ..trapd import send_trap_externally
 
 OID_LINKDOWN = ".1.3.6.1.6.3.1.1.5.3"
@@ -17,6 +21,7 @@ OID_IFOPERSTATUS = ".1.3.6.1.2.1.2.2.1.8"
 
 
 class TestLinkTrapObserver:
+    @pytest.mark.skipif(not shutil.which("snmptrap"), reason=SNMPTRAP_MISSING)
     async def test_when_link_down_is_received_it_should_create_portstate_event(
         self, state_with_localhost_with_port, localhost_pysnmp_receiver
     ):
@@ -38,6 +43,7 @@ class TestLinkTrapObserver:
             "no portstate event was created"
         )
 
+    @pytest.mark.skipif(not shutil.which("snmptrap"), reason=SNMPTRAP_MISSING)
     async def test_when_port_does_not_match_watch_pattern_it_should_ignore_link_traps(
         self, state_with_localhost_with_port, localhost_pysnmp_receiver
     ):
@@ -59,6 +65,7 @@ class TestLinkTrapObserver:
             "linkDown for non-watched port was not ignored"
         )
 
+    @pytest.mark.skipif(not shutil.which("snmptrap"), reason=SNMPTRAP_MISSING)
     async def test_when_port_matches_ignore_pattern_it_should_ignore_link_traps(
         self, state_with_localhost_with_port, localhost_pysnmp_receiver
     ):
@@ -126,6 +133,7 @@ class TestLinkTrapObserver:
             assert not await observer.handle_trap(trap)
             assert not handle_link_transition.called, "handle_link_transition was called"
 
+    @pytest.mark.skipif(not shutil.which("snmptrap"), reason=SNMPTRAP_MISSING)
     async def test_when_event_is_new_it_should_set_lasttrans(
         self, state_with_localhost_with_port, localhost_pysnmp_receiver
     ):

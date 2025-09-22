@@ -15,6 +15,7 @@ from zino.trapd.base import (
 )
 from zino.trapd.pysnmp_backend import TrapReceiver
 
+from .. import SNMPTRAP_MISSING
 from . import send_trap_externally
 
 OID_COLD_START = ".1.3.6.1.6.3.1.1.5.1"
@@ -81,7 +82,7 @@ class TestTrapReceiver:
         assert not dupes
 
 
-@pytest.mark.skipif(not shutil.which("snmptrap"), reason="Cannot find snmptrap command line program")
+@pytest.mark.skipif(not shutil.which("snmptrap"), reason=SNMPTRAP_MISSING)
 class TestTrapReceiverExternally:
     async def test_when_trap_is_from_unknown_device_it_should_ignore_it(self, event_loop, unused_udp_port, caplog):
         receiver = TrapReceiver(address="127.0.0.1", port=unused_udp_port, loop=event_loop)
