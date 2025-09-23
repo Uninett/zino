@@ -31,11 +31,13 @@ class ReachableTask(Task):
             event.polladdr = self.device.address
             event.priority = self.device.priority
             self.state.events.commit(event)
+            self.state.devices[self.device.name].reachable_in_last_run = False
             self._schedule_extra_job()
             raise DeviceUnreachableError
         else:
             _logger.debug("Device %s is reachable", self.device.name)
             self._update_reachability_event_as_reachable()
+            self.state.devices[self.device.name].reachable_in_last_run = True
 
     async def _run_extra_job(self):
         try:
