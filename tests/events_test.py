@@ -44,6 +44,14 @@ class TestEvents:
         with pytest.raises(EventExistsError):
             events.create_event("foobar", None, ReachabilityEvent)
 
+    def test_committing_identically_keyed_but_separate_events_should_raise(self):
+        events = Events()
+        index = EventIndex("foobar", None, ReachabilityEvent)
+        event1 = events.get_or_create_event(*index)
+        event2 = events.get_or_create_event(*index)
+        events.commit(event1)
+        assert pytest.raises(EventExistsError, events.commit, event2)
+
     def test_event_should_be_gettable_by_id(self):
         events = Events()
         event = events.create_event("foobar", None, ReachabilityEvent)
