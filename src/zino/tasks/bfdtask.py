@@ -69,6 +69,10 @@ class BFDTask(Task):
         port.bfd_state = new_state
 
     async def _create_or_update_event(self, port: Port, new_state: BFDState):
+        neigh_rnds = None
+        if new_state.session_addr:
+            neigh_rnds = await reverse_dns(str(new_state.session_addr))
+
         event = self.state.events.get_or_create_event(self.device.name, port.ifindex, BFDEvent)
 
         event.ifindex = port.ifindex
@@ -78,9 +82,7 @@ class BFDTask(Task):
         event.bfdix = new_state.session_index
         event.bfddiscr = new_state.session_discr
         event.bfdaddr = new_state.session_addr
-
-        if event.bfdaddr:
-            event.neigh_rdns = await reverse_dns(str(event.bfdaddr))
+        event.neigh_rdns = neigh_rnds
 
         log = f"changed BFD state to {new_state.session_state} on port {port.ifdescr}"
         event.lastevent = log
