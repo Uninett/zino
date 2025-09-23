@@ -138,6 +138,7 @@ class DeviceState(BaseModel):
     boot_time: Optional[datetime.datetime] = None
     bgp_style: Optional[BGPStyle] = None
     bgp_peers: dict[IPAddress, BGPPeerSession] = dict()
+    reachable_in_last_run: Optional[bool] = None
 
     # This is the remaining set of potential device attributes stored in device state by the original Zino code:
     # EventId
