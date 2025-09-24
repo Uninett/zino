@@ -76,9 +76,14 @@ def load_polldevs(polldevs_conf: str) -> Tuple[Set, Set, Set, dict[str, str]]:
     if changed_devices:
         _log.info("changed devices: %r", changed_devices)
 
+    # Update polldevs
     state.polldevs.update(devices)
     for device in deleted_devices:
         del state.polldevs[device]
+
+    # Update event state
+    unmonitored_devices = set(state.state.devices.devices) - set(devices)
+    close_events_for_devices(unmonitored_devices)
 
     state.pollfile_mtime = modified_time
 
@@ -94,7 +99,6 @@ def init_state_for_devices(devices: Sequence[PollDevice]):
 
 async def load_and_schedule_polldevs(polldevs_conf: str):
     new_devices, deleted_devices, changed_devices, defaults = load_polldevs(polldevs_conf)
-    close_events_for_devices(deleted_devices)
     deschedule_devices(deleted_devices | changed_devices)
     stagger_interval = defaults.get("interval", DEFAULT_INTERVAL_MINUTES)
     schedule_devices(new_devices | changed_devices, int(stagger_interval))
@@ -136,7 +140,9 @@ def deschedule_devices(devices: Sequence[str]):
 
 
 def close_events_for_devices(devices: Sequence[str]):
-    """Closes any open events for devices that have been removed from the polldevs configuration"""
+    """Closes any non-closed events for given devices"""
+    if not devices:
+        return
     for event in state.state.events.events.values():
         if event.state is not EventState.CLOSED and event.router in devices:
             checked_out_event = state.state.events.checkout(event.id)

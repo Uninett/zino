@@ -45,6 +45,22 @@ class TestLoadPolldevs:
 
     @patch("zino.state.polldevs", dict())
     @patch("zino.state.pollfile_mtime", None)
+    def test_when_device_is_not_in_polldevs_then_related_events_should_be_closed(self, polldevs_conf):
+        with patch("zino.state.state", ZinoState()) as state:
+            # this creates a DeviceState called removed-gw (removed-gw is not in polldevs_conf)
+            state.devices.get("removed-gw")
+            event_index = EventIndex("removed-gw", None, ReachabilityEvent)
+            event = state.events.create_event(*event_index)
+            state.events.commit(event)
+            assert event.state == EventState.OPEN
+
+            scheduler.load_polldevs(polldevs_conf)
+
+            event = state.events.get_closed_event(*event_index)
+            assert event.state == EventState.CLOSED
+
+    @patch("zino.state.polldevs", dict())
+    @patch("zino.state.pollfile_mtime", None)
     @patch("zino.state.state", ZinoState())
     def test__or_deleted_devices_on_invalid_configuration(self, invalid_polldevs_conf):
         new_devices, deleted_devices, changed_devices, _ = scheduler.load_polldevs(invalid_polldevs_conf)
