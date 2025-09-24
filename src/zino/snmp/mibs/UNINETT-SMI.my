@@ -1,0 +1,41 @@
+--
+-- UNINETT enterprise specific MIB: Structure of Management Information
+--
+-- Copyright (c) 2012, UNINETT AS
+-- All rights reserved.
+--
+-- The contents of this document are subject to change without notice.
+--
+
+
+UNINETT-SMI DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY, OBJECT-IDENTITY, enterprises
+        FROM SNMPv2-SMI;
+
+uninettMIB MODULE-IDENTITY
+    LAST-UPDATED "201201180000Z"
+    ORGANIZATION "UNINETT AS"
+    CONTACT-INFO
+            "        UNINETT AS
+		     NO-7465 Trondheim
+		     Norway
+		     E-mail: drift@uninett.no"
+    DESCRIPTION
+            "The Structure of Management Information for UNINETT."
+    ::= { enterprises 2428 }
+
+--
+-- UNINETT MIB tree structure
+--
+
+uninettMibs OBJECT-IDENTITY
+    STATUS current
+    DESCRIPTION
+        "The root of UNINETT's SNMP MIB objects."
+    ::= { uninettMIB 130 }
+
+    zinoMIB              OBJECT IDENTIFIER ::= { uninettMibs 1 }
+
+END
