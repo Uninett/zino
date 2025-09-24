@@ -83,7 +83,9 @@ Running Zino for the first time
 -------------------------------
 
 In order for Zino to function properly, you first need to make a minimal
-``polldevs.cf`` configuration file, as described in the next section.
+:file:`polldevs.cf` configuration file, as described in the next section. You
+will also need a :file:`secrets` file for authenticating clients.
+
 However, at this point you can test that the ``zino`` command is
 available to run:
 
