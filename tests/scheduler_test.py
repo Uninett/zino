@@ -61,6 +61,16 @@ class TestLoadPolldevs:
 
     @patch("zino.state.polldevs", dict())
     @patch("zino.state.pollfile_mtime", None)
+    def test_when_device_is_not_in_polldevs_it_should_be_deleted_from_state(self, polldevs_conf):
+        with patch("zino.state.state", ZinoState()) as state:
+            # this creates a DeviceState called removed-gw (removed-gw is not in polldevs_conf)
+            state.devices.get("removed-gw")
+            assert "removed-gw" in state.devices
+            scheduler.load_polldevs(polldevs_conf)
+            assert "removed-gw" not in state.devices
+
+    @patch("zino.state.polldevs", dict())
+    @patch("zino.state.pollfile_mtime", None)
     @patch("zino.state.state", ZinoState())
     def test__or_deleted_devices_on_invalid_configuration(self, invalid_polldevs_conf):
         new_devices, deleted_devices, changed_devices, _ = scheduler.load_polldevs(invalid_polldevs_conf)
@@ -236,6 +246,13 @@ def test_close_events_for_devices_should_close_events_for_given_devices(state_wi
         scheduler.close_events_for_devices(["localhost"])
         event = state.events.get_closed_event(*event_index)
         assert event.state == EventState.CLOSED
+
+
+def test_delete_devicestate_for_devices_should_delete_devicestates_for_given_devices(state_with_localhost):
+    with patch("zino.state.state", state_with_localhost) as state:
+        assert "localhost" in state.devices
+        scheduler.delete_devicestate_for_devices(["localhost"])
+        assert "localhost" not in state.devices
 
 
 @pytest.fixture
