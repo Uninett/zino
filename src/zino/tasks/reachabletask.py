@@ -29,7 +29,10 @@ class ReachableTask(Task):
             event = self.state.events.get_or_create_event(self.device.name, None, ReachabilityEvent)
             if event.reachability != ReachabilityState.NORESPONSE:
                 event.reachability = ReachabilityState.NORESPONSE
-                event.add_log(f"{self.device.name} no-response")
+                if self.state.devices[self.device.name].reachability is None and self._make_events_for_new_devices:
+                    event.add_log(f"New device: {self.device.name} no-response")
+                else:
+                    event.add_log(f"{self.device.name} no-response")
             event.polladdr = self.device.address
             event.priority = self.device.priority
             self.state.events.commit(event)
@@ -92,6 +95,6 @@ class ReachableTask(Task):
 
     def _post_reachability_reachable_event_for_new_device(self):
         event = self.state.events.create_event(self.device.name, None, ReachabilityEvent)
-        event.add_log(f"{self.device.name} reachable")
+        event.add_log(f"New device: {self.device.name} reachable")
         event.reachability = ReachabilityState.REACHABLE
         self.state.events.commit(event)
