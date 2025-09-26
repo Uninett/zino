@@ -36,7 +36,7 @@ class ReachableTask(Task):
             event.polladdr = self.device.address
             event.priority = self.device.priority
             self.state.events.commit(event)
-            self.state.devices[self.device.name].reachability = False
+            self.device_state.reachability = False
             self._schedule_extra_job()
             raise DeviceUnreachableError
         else:
