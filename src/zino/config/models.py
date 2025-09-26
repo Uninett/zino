@@ -95,6 +95,7 @@ class EventConfiguration(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     make_events_for_new_interfaces: bool = False
+    make_events_for_new_devices: bool = False
 
 
 class Configuration(BaseModel):

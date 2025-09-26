@@ -40,6 +40,9 @@ trap.require_community = ["public", "secret"]
 # Whether to create portstate events for newly discovered interfaces that are operationally down
 make_events_for_new_interfaces = false
 
+# Whether to create reachability events for newly discovered devices to indicate that they were found by Zino
+make_events_for_new_devices = false
+
 # Logging configuration is optional, but if specified, it will override the
 # default logging config of Zino.  This is a TOML representation of the default
 # logging configuration dictionary, whose full documentation is available at

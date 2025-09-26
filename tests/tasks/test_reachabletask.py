@@ -8,11 +8,23 @@ from zino.time import now
 
 
 class TestReachableTask:
-    async def test_run_should_not_create_event_if_device_is_reachable(self, reachable_task):
+    async def test_given_event_creation_config_of_false_run_should_not_create_event_if_device_is_reachable(
+        self, reachable_task
+    ):
         task = reachable_task
+        task._make_events_for_new_devices = False
         assert (await task.run()) is None
         event = task.state.events.get(task.device.name, None, ReachabilityEvent)
         assert not event
+
+    async def test_given_event_creation_config_of_true_run_should_create_event_if_device_is_new_and_reachable(
+        self, reachable_task
+    ):
+        task = reachable_task
+        task._make_events_for_new_devices = True
+        assert (await task.run()) is None
+        event = task.state.events.get(task.device.name, None, ReachabilityEvent)
+        assert event
 
     async def test_run_should_create_event_if_device_is_unreachable(self, unreachable_task):
         task = unreachable_task
@@ -20,6 +32,14 @@ class TestReachableTask:
             await task.run()
         event = task.state.events.get(task.device.name, None, ReachabilityEvent)
         assert event
+
+    async def test_run_should_update_device_status_to_reachability_false_when_device_is_unreachable(
+        self, unreachable_task
+    ):
+        task = unreachable_task
+        with pytest.raises(DeviceUnreachableError):
+            await task.run()
+        assert task.state.devices[task.device.name].reachability is False
 
     async def test_run_should_start_extra_job_if_device_is_unreachable(self, unreachable_task):
         with pytest.raises(DeviceUnreachableError):
@@ -41,6 +61,13 @@ class TestReachableTask:
         assert (await task.run()) is None
         updated_event = task.state.events[event.id]
         assert updated_event.reachability == ReachabilityState.REACHABLE
+
+    async def test_run_should_update_device_status_to_reachability_true_when_device_is_reachable(self, reachable_task):
+        task = reachable_task
+        task.state.devices[task.device.name].reachability = False
+
+        assert (await task.run()) is None
+        assert task.state.devices[task.device.name].reachability is True
 
     async def test_run_should_update_event_to_noresponse_when_device_is_unreachable(self, unreachable_task):
         task = unreachable_task
