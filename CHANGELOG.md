@@ -12,6 +12,35 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) and the chang
 
 <!-- towncrier release notes start -->
 
+## [2.1.1] - 2025-09-29
+
+### Added
+
+- Added a new `snmp.trap.require_community` config option to require specific (or to disregard) community strings in incoming traps ([#421](https://github.com/Uninett/zino/issues/421))
+- Documented that the command line program `snmptrap` is needed for running parts of the development test suite
+
+### Changed
+
+- Remove redundant information from, and improve, log messages for BFD events ([#454](https://github.com/Uninett/zino/issues/454))
+- Locked `apscheduler` version requirement to latest stable series (3.11)
+- Avoid noisy logging during processing of trap messages:
+  - Reduced log level from ERROR to DEBUG for messages about unresolvable trap variables
+  - Reduced log level from ERROR to INFO for messages about various problems with incoming trap messages
+
+### Fixed
+
+- Match `watchpat`/`ignorepat` patterns against any part of interface name, not just the beginning ([#426](https://github.com/Uninett/zino/issues/426))
+- Match planned maintenance regexp patterns against any part of an interface or device name, not just the beginning ([#450](https://github.com/Uninett/zino/issues/450))
+- Don't crash when default `zino.toml` is not found ([#458](https://github.com/Uninett/zino/issues/458))
+- Close events for removed routers on startup, as well as during runtime ([#470](https://github.com/Uninett/zino/issues/470))
+- Delete old state data for devices no longer defined in `polldevs.cf` ([#471](https://github.com/Uninett/zino/issues/471))
+- Ensure multiple BFD events cannot be created for the same interface
+  - Ensure duplicate events cannot be created, even under race conditions  ([#474](https://github.com/Uninett/zino/pull/474))
+  - Make async reverse DNS lookups *before* creating BFD events, in order to avoid potential race conditions between polling and trap reception ([#475](https://github.com/Uninett/zino/pull/475))
+- Ensure month and day values in old events directory structure are padded to two digits for proper sortability
+- Stop incorrectly sending further event notifications to clients for events that have been scavenged - it confuses, or even crashes the clients
+
+
 ## [2.1.0] - 2025-09-17
 
 ### Added
