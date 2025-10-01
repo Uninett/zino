@@ -5,6 +5,7 @@ import re
 from datetime import datetime, timedelta
 from typing import Optional
 
+import zino.state
 import zino.time
 from zino.flaps import PortIndex
 from zino.statemodels import (
@@ -155,7 +156,7 @@ class LinkTrapObserver(TrapObserver):
         self.state.events.commit(event)
 
         if polldev := self.polldevs.get(device.name):
-            poll = LinkStateTask(device=polldev, state=self.state)
+            poll = LinkStateTask(device=polldev, state=self.state, config=zino.state.config)
             poll.schedule_verification_of_single_port(port.ifindex, deadline=FIRST_REVERIFICATION, reason="trap-verify")
             poll.schedule_verification_of_single_port(
                 port.ifindex, deadline=SECOND_REVERIFICATION, reason="trap-verify-2"

@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
-from zino.config.models import PollDevice
+from zino.config.models import Configuration, PollDevice
 from zino.oid import OID
 from zino.state import ZinoState
 from zino.statemodels import InterfaceState, Port, PortStateEvent
@@ -239,7 +239,7 @@ class TestBaseInterfaceRow:
 def linkstatetask_with_links_up(snmpsim, snmp_test_port):
     device = PollDevice(name="buick.lab.example.org", address="127.0.0.1", port=snmp_test_port, community="linksup")
     state = ZinoState()
-    task = LinkStateTask(device, state)
+    task = LinkStateTask(device, state, Configuration())
     yield task
 
 
@@ -247,7 +247,7 @@ def linkstatetask_with_links_up(snmpsim, snmp_test_port):
 def linkstatetask_with_one_link_down(snmpsim, snmp_test_port):
     device = PollDevice(name="buick.lab.example.org", address="127.0.0.1", port=snmp_test_port, community="linksdown")
     state = ZinoState()
-    task = LinkStateTask(device, state)
+    task = LinkStateTask(device, state, Configuration())
     yield task
 
 
@@ -257,7 +257,7 @@ def linkstatetask_with_admin_down(snmpsim, snmp_test_port):
         name="buick.lab.example.org", address="127.0.0.1", port=snmp_test_port, community="linksadmindown"
     )
     state = ZinoState()
-    task = LinkStateTask(device, state)
+    task = LinkStateTask(device, state, Configuration())
     yield task
 
 
@@ -265,5 +265,5 @@ def linkstatetask_with_admin_down(snmpsim, snmp_test_port):
 def task_with_dummy_device():
     device = PollDevice(name="test", address="127.0.0.1")
     state = ZinoState()
-    task = LinkStateTask(device, state)
+    task = LinkStateTask(device, state, Configuration())
     yield task

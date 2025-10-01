@@ -4,7 +4,6 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-import zino.state
 from zino.oid import OID
 from zino.scheduler import get_scheduler
 from zino.snmp.base import SparseWalkResponse
@@ -48,7 +47,7 @@ class LinkStateTask(Task):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._scheduler = get_scheduler()
-        self._make_events_for_new_interfaces = zino.state.config.event.make_events_for_new_interfaces
+        self._make_events_for_new_interfaces = self.config.event.make_events_for_new_interfaces
 
     async def run(self):
         poll_list = [("IF-MIB", column) for column in BASE_POLL_LIST]
