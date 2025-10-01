@@ -45,9 +45,7 @@ class ZinoServer:
     def serve(self, address: str = "0.0.0.0"):
         """Sets up the two asyncio servers to serve in tandem 'forever'"""
         api_coroutine = self._loop.create_server(
-            lambda: Zino1ServerProtocol(
-                server=self, state=self.state, secrets_file=self.config.authentication.file, polldevs=self.polldevs
-            ),
+            lambda: Zino1ServerProtocol(server=self, state=self.state, config=self.config, polldevs=self.polldevs),
             address,
             self.API_PORT,
         )

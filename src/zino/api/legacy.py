@@ -14,12 +14,13 @@ from functools import wraps
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, List, NamedTuple, Optional, Union
 
+import zino.state
 from zino import version
 from zino.api import auth
 from zino.api.notify import Zino1NotificationProtocol
-from zino.config.models import PollDevice
+from zino.config.models import Configuration, PollDevice
 from zino.scheduler import get_scheduler
-from zino.state import ZinoState, config
+from zino.state import ZinoState
 from zino.statemodels import (
     ClosedEventError,
     DeviceMaintenance,
@@ -62,6 +63,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         server: Optional["ZinoServer"] = None,
         state: Optional[ZinoState] = None,
         secrets_file: Optional[Union[Path, str]] = None,
+        config: Optional[Configuration] = None,
         polldevs: Optional[dict[str, PollDevice]] = None,
     ):
         """Initializes a protocol instance.
@@ -84,7 +86,8 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         self._responders = self._get_all_responders()
 
         self._state = state if state is not None else ZinoState()
-        self._secrets_file = secrets_file or config.authentication.file
+        self._config = config if config else zino.state.config
+        self._secrets_file = secrets_file or self._config.authentication.file
         self._polldevs = polldevs or dict()
 
     @property
