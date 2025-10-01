@@ -2,7 +2,6 @@ import logging
 
 from apscheduler.jobstores.base import JobLookupError
 
-import zino.state
 from zino.scheduler import get_scheduler
 from zino.statemodels import ReachabilityEvent, ReachabilityState
 from zino.tasks.errors import DeviceUnreachableError
@@ -17,7 +16,7 @@ class ReachableTask(Task):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._scheduler = get_scheduler()
-        self._make_events_for_new_devices = zino.state.config.event.make_events_for_new_devices
+        self._make_events_for_new_devices = self.config.event.make_events_for_new_devices
 
     async def run(self):
         """Checks if device is reachable. Schedules extra reachability checks if not."""

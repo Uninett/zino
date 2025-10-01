@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 import pytest
 
-from zino.config.models import PollDevice
+from zino.config.models import Configuration, PollDevice
 from zino.state import ZinoState
 from zino.tasks.reachabletask import ReachableTask
 
@@ -16,14 +16,14 @@ class TestTask:
             port=snmp_test_port,
         )
         state = ZinoState()
-        task = ReachableTask(device, state)
+        task = ReachableTask(device, state, Configuration())
         uptime = await task._get_uptime()
         assert uptime
 
     async def test_get_sysuptime_raises_timeout_error(self):
         device = PollDevice(name="nonexist", address="127.0.0.1", community="invalid", port=666)
         state = ZinoState()
-        task = ReachableTask(device, state)
+        task = ReachableTask(device, state, Configuration())
         with patch("zino.snmp.SNMP.get") as get_mock:
             get_mock.side_effect = TimeoutError
             with pytest.raises(TimeoutError):

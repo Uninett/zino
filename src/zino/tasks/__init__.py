@@ -6,17 +6,17 @@ from zino.tasks.errors import DeviceUnreachableError
 _log = logging.getLogger(__name__)
 
 
-async def run_all_tasks(device, state):
+async def run_all_tasks(device, state, config):
     try:
         with get_snmp_session(device):
-            await run_registered_tasks(device, state)
+            await run_registered_tasks(device, state, config)
     except DeviceUnreachableError:
         _log.debug(f"Device {device.name} could not be reached. Any remaining tasks have been cancelled.")
 
 
-async def run_registered_tasks(device, state):
+async def run_registered_tasks(device, state, config):
     for task_class in get_registered_tasks():
-        task = task_class(device, state)
+        task = task_class(device, state, config)
         await task.run()
 
 
