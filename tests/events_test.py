@@ -52,6 +52,27 @@ class TestEvents:
         events.commit(event1)
         assert pytest.raises(EventExistsError, events.commit, event2)
 
+    def test_committing_identically_keyed_but_closed_event_should_not_raise(self):
+        events = Events()
+
+        # Make and close first event
+        index = EventIndex("foobar", None, ReachabilityEvent)
+        event1: ReachabilityEvent = events.get_or_create_event(*index)
+        events.commit(event1)
+        event1 = events.get(*index)
+        event1.set_state(EventState.CLOSED)
+        events.commit(event1)
+
+        # Make new event for same thing
+        event2 = events.get_or_create_event(*index)
+        events.commit(event2)
+
+        # Commit changes to the closed event
+        event1 = events.get_closed_event(*index)
+        event1.add_history("made change to closed event")
+        events.commit(event1)
+        assert event1
+
     def test_event_should_be_gettable_by_id(self):
         events = Events()
         event = events.create_event("foobar", None, ReachabilityEvent)

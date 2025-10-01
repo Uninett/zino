@@ -151,10 +151,11 @@ class Events(BaseModel):
             old_event = self.events[event.id]
         self.record_downtime(event, old_event)
         index = EventIndex(event.router, event.subindex, type(event))
-        # verify that we're not attempting to replace an unrelated event in the index
-        indexed_event = self._events_by_index.get(index, event)
-        if indexed_event.id != event.id:
-            raise EventExistsError(f"{index} belongs to {indexed_event.id}, cannot commit {event.id} over it")
+        # verify that we're not attempting to replace an unrelated event in the index of open events
+        if event.state != EventState.CLOSED:
+            indexed_event = self._events_by_index.get(index, event)
+            if indexed_event.id != event.id:
+                raise EventExistsError(f"{index} belongs to {indexed_event.id}, cannot commit {event.id} over it")
         self.events[event.id] = event
 
         # If event is set to closed, move it to the closed index and set updated
