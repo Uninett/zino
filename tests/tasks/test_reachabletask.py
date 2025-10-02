@@ -8,18 +8,50 @@ from zino.time import now
 
 
 class TestReachableTask:
-    async def test_run_should_not_create_event_if_device_is_reachable(self, reachable_task):
+    async def test_given_event_creation_config_of_false_run_should_not_create_event_if_device_is_reachable(
+        self, reachable_task
+    ):
         task = reachable_task
+        task._make_events_for_new_devices = False
         assert (await task.run()) is None
         event = task.state.events.get(task.device.name, None, ReachabilityEvent)
         assert not event
 
-    async def test_run_should_create_event_if_device_is_unreachable(self, unreachable_task):
+    async def test_given_event_creation_config_of_true_run_should_create_event_if_device_is_new_and_reachable(
+        self, reachable_task
+    ):
+        task = reachable_task
+        task._make_events_for_new_devices = True
+        assert (await task.run()) is None
+        event = task.state.events.get(task.device.name, None, ReachabilityEvent)
+        assert event
+        assert f"New device: {reachable_task.device.name} reachable" in [log.message for log in event.log]
+
+    async def test_run_should_create_event_if_device_is_known_and_unreachable(self, unreachable_task):
         task = unreachable_task
+        task.state.devices[task.device.name].reachable_in_last_run = True
         with pytest.raises(DeviceUnreachableError):
             await task.run()
         event = task.state.events.get(task.device.name, None, ReachabilityEvent)
         assert event
+        assert f"{unreachable_task.device.name} no-response" in [log.message for log in event.log]
+
+    async def test_run_should_create_event_if_device_is_new_and_unreachable(self, unreachable_task):
+        task = unreachable_task
+        task._make_events_for_new_devices = True
+        with pytest.raises(DeviceUnreachableError):
+            await task.run()
+        event = task.state.events.get(task.device.name, None, ReachabilityEvent)
+        assert event
+        assert f"New device: {unreachable_task.device.name} no-response" in [log.message for log in event.log]
+
+    async def test_run_should_update_device_status_to_reachable_in_last_run_false_when_device_is_unreachable(
+        self, unreachable_task
+    ):
+        task = unreachable_task
+        with pytest.raises(DeviceUnreachableError):
+            await task.run()
+        assert task.state.devices[task.device.name].reachable_in_last_run is False
 
     async def test_run_should_start_extra_job_if_device_is_unreachable(self, unreachable_task):
         with pytest.raises(DeviceUnreachableError):
@@ -41,6 +73,15 @@ class TestReachableTask:
         assert (await task.run()) is None
         updated_event = task.state.events[event.id]
         assert updated_event.reachability == ReachabilityState.REACHABLE
+
+    async def test_run_should_update_device_status_to_reachable_in_last_run_true_when_device_is_reachable(
+        self, reachable_task
+    ):
+        task = reachable_task
+        task.state.devices[task.device.name].reachable_in_last_run = False
+
+        assert (await task.run()) is None
+        assert task.state.devices[task.device.name].reachable_in_last_run is True
 
     async def test_run_should_update_event_to_noresponse_when_device_is_unreachable(self, unreachable_task):
         task = unreachable_task
