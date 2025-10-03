@@ -4,7 +4,6 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-import zino.state
 from zino.oid import OID
 from zino.scheduler import get_scheduler
 from zino.snmp.base import SparseWalkResponse
@@ -48,7 +47,6 @@ class LinkStateTask(Task):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._scheduler = get_scheduler()
-        self._make_events_for_new_interfaces = zino.state.config.event.make_events_for_new_interfaces
 
     async def run(self):
         poll_list = [("IF-MIB", column) for column in BASE_POLL_LIST]
@@ -110,7 +108,7 @@ class LinkStateTask(Task):
                 raise MissingInterfaceTableData(self.device.name, data.index, attr)
 
         state = f"admin{data.admin_status.capitalize()}"
-        if not port.state and self._make_events_for_new_interfaces:
+        if not port.state and self.config.event.make_events_for_new_interfaces:
             # This is the first time we see this port
             if data.oper_status != "up" and state != "adminDown":
                 port.state = InterfaceState.UNKNOWN

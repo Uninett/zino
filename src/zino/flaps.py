@@ -154,6 +154,8 @@ class FlappingStates(BaseModel):
 
     def clear_flap(self, interface: PortIndex, user: str, state: ZinoState, polldev: PollDevice) -> None:
         """Clears the internal flapping state for a port, if it exists, and also updates an existing portstate event"""
+        from zino.state import config
+
         self._clear_flap_internal(interface, user, "Flapstate manually cleared", state=state)
 
         router, ifindex = interface
@@ -166,7 +168,7 @@ class FlappingStates(BaseModel):
             LinkStateTask,  # local import to avoid import cycles
         )
 
-        poller = LinkStateTask(device=polldev, state=state)
+        poller = LinkStateTask(device=polldev, state=state, config=config)
         poller.schedule_verification_of_single_port(ifindex, deadline=IMMEDIATELY, reason="clearflap")
 
     def _clear_flap_internal(self, interface: PortIndex, user: str, reason: str, state: ZinoState) -> None:
@@ -218,6 +220,8 @@ async def stabilize_flapping_state(
     """Updates port state and corresponding event to indicate things are now stable, for a port that has stopped
     flapping.
     """
+    from zino.state import config
+
     router_name, ifindex = index
     port = state.devices.get(router_name).ports.get(ifindex) if router_name in state.devices else None
     if port:
@@ -259,7 +263,7 @@ async def stabilize_flapping_state(
 
     old_state = port.state
     port.state = InterfaceState.FLAPPING
-    poll = LinkStateTask(device=polldev, state=state)
+    poll = LinkStateTask(device=polldev, state=state, config=config)
     try:
         await poll.poll_single_interface(ifindex)
     except Exception:  # noqa

@@ -12,7 +12,7 @@ class TestReachableTask:
         self, reachable_task
     ):
         task = reachable_task
-        task._make_events_for_new_devices = False
+        task.config.event.make_events_for_new_devices = False
         assert (await task.run()) is None
         event = task.state.events.get(task.device.name, None, ReachabilityEvent)
         assert not event
@@ -21,7 +21,7 @@ class TestReachableTask:
         self, reachable_task
     ):
         task = reachable_task
-        task._make_events_for_new_devices = True
+        task.config.event.make_events_for_new_devices = True
         assert (await task.run()) is None
         event = task.state.events.get(task.device.name, None, ReachabilityEvent)
         assert event
@@ -38,7 +38,7 @@ class TestReachableTask:
 
     async def test_run_should_create_event_if_device_is_new_and_unreachable(self, unreachable_task):
         task = unreachable_task
-        task._make_events_for_new_devices = True
+        task.config.event.make_events_for_new_devices = True
         with pytest.raises(DeviceUnreachableError):
             await task.run()
         event = task.state.events.get(task.device.name, None, ReachabilityEvent)
