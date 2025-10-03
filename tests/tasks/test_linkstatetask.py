@@ -26,7 +26,7 @@ class TestLinkStateTask:
         self, linkstatetask_with_one_link_down
     ):
         task = linkstatetask_with_one_link_down
-        task._make_events_for_new_interfaces = True
+        task.config.event.make_events_for_new_interfaces = True
         assert (await task.run()) is None
         assert len(task.state.events) == 1
 
@@ -34,7 +34,7 @@ class TestLinkStateTask:
         self, linkstatetask_with_one_link_down
     ):
         task = linkstatetask_with_one_link_down
-        task._make_events_for_new_interfaces = False
+        task.config.event.make_events_for_new_interfaces = False
         assert (await task.run()) is None
         assert len(task.state.events) == 0
 
@@ -108,7 +108,7 @@ class TestLinkStateTask:
     @pytest.mark.asyncio
     async def test_when_event_is_new_it_should_set_lasttrans(self, linkstatetask_with_one_link_down):
         task = linkstatetask_with_one_link_down
-        task._make_events_for_new_interfaces = True
+        task.config.event.make_events_for_new_interfaces = True
         await task.run()
         event = task.state.events.get(task.device.name, 2, PortStateEvent)
         assert event.lasttrans
