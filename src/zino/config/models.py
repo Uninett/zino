@@ -79,7 +79,7 @@ class TrapConfiguration(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    require_community: list[str] = ["public", "secret"]
+    require_community: list[str] = []
 
 
 class SNMPConfiguration(BaseModel):
