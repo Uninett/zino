@@ -16,7 +16,6 @@ class ReachableTask(Task):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._scheduler = get_scheduler()
-        self._make_events_for_new_devices = self.config.event.make_events_for_new_devices
 
     async def run(self):
         """Checks if device is reachable. Schedules extra reachability checks if not."""
@@ -28,7 +27,7 @@ class ReachableTask(Task):
             event = self.state.events.get_or_create_event(self.device.name, None, ReachabilityEvent)
             if event.reachability != ReachabilityState.NORESPONSE:
                 event.reachability = ReachabilityState.NORESPONSE
-                if self.device_state.reachable_in_last_run is None and self._make_events_for_new_devices:
+                if self.device_state.reachable_in_last_run is None and self.config.event.make_events_for_new_devices:
                     event.add_log(f"New device: {self.device.name} no-response")
                 else:
                     event.add_log(f"{self.device.name} no-response")
@@ -41,7 +40,7 @@ class ReachableTask(Task):
         else:
             _logger.debug("Device %s is reachable", self.device.name)
             self._update_reachability_event_as_reachable()
-            if self.device_state.reachable_in_last_run is None and self._make_events_for_new_devices:
+            if self.device_state.reachable_in_last_run is None and self.config.event.make_events_for_new_devices:
                 self._post_reachability_reachable_event_for_new_device()
             self.device_state.reachable_in_last_run = True
 
