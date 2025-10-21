@@ -12,6 +12,27 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) and the chang
 
 <!-- towncrier release notes start -->
 
+## [2.2.0] - 2025-10-21
+
+### Added
+
+- Added new config option to post reachability event when a new device is added to show that it was discovered by Zino
+
+  We recommend to keep this config option set to `False` the first run after upgrading. That way the new `reachable_in_last_run` device status can be populated. After running Zino for a couple of minutes the config option can be set to `True` and after a restart Zino will inform about new devices that are discovered. ([#377](https://github.com/Uninett/zino/issues/377))
+
+### Changed
+
+- Make the default of `snmp.trap.require_community` an empty list
+
+  For the netsnmp backend this means that trap messages are admitted, regardless of community.
+
+  For the pysnmp backend to work this needs to be changed to have at least one community string in that list. Otherwise no trap messages are admitted. ([#483](https://github.com/Uninett/zino/issues/483))
+
+### Fixed
+
+- Stop considering closed events as duplicates of open events during closed event modification ([#481](https://github.com/Uninett/zino/issues/481))
+
+
 ## [2.1.1] - 2025-09-29
 
 ### Added
