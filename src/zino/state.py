@@ -43,9 +43,10 @@ class ZinoState(BaseModel):
     def dump_state_to_file(self, filename: str):
         """Dumps the full state to a file in JSON format"""
         _log.debug("dumping state to %s", filename)
+        copied_state = self.model_copy()
         temp_file = f"{filename}.tmp"
         with open(temp_file, "w") as statefile:
-            statefile.write(self.model_dump_json(exclude_none=True, indent=2))
+            statefile.write(copied_state.model_dump_json(exclude_none=True, indent=2))
         os.replace(src=temp_file, dst=filename)
 
     @classmethod
