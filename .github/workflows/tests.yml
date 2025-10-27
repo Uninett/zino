@@ -63,7 +63,7 @@ jobs:
 
       - name: Upload test reports (${{ matrix.python-version }})
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: reports-${{ matrix.python-version }}
           path: |
@@ -89,7 +89,7 @@ jobs:
         run: |
           echo $BASE_NAME > ./extra/base_name
       - name: Upload PR info files
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: extra
           path: extra/
