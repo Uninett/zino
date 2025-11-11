@@ -16,7 +16,7 @@ IMPORTS
         FROM SNMPv2-SMI
     DisplayString, TimeStamp, TimeInterval, TEXTUAL-CONVENTION, DateAndTime
         FROM SNMPv2-TC
-    zinoMIB
+    uninettMibs
         FROM UNINETT-SMI;
 
 zinoMIB MODULE-IDENTITY
