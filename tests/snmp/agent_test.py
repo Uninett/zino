@@ -170,6 +170,147 @@ class TestZinoSnmpAgent:
         assert not agent._running
 
 
+class TestSetupEngineConfiguration:
+    """Test different configuration branches in _setup_engine method."""
+
+    @patch("zino.snmp.agent.cmdrsp")
+    @patch("zino.snmp.agent.context")
+    @patch("zino.snmp.agent.builder")
+    @patch("zino.snmp.agent.config")
+    @patch("zino.snmp.agent.AsyncioDispatcher")
+    @patch("zino.snmp.agent.engine")
+    @patch("zino.snmp.agent.udp6")
+    @patch("zino.snmp.agent.udp")
+    def test_when_address_is_ipv6_then_it_should_use_ipv6_transport(
+        self, mock_udp, mock_udp6, mock_engine, mock_dispatcher, mock_config, mock_builder, mock_context, mock_cmdrsp
+    ):
+        """Test that IPv6 addresses result in IPv6 transport configuration."""
+        agent = ZinoSnmpAgent(listen_address="::1", listen_port=8001)
+
+        mock_transport = MagicMock()
+        mock_udp6.Udp6AsyncioTransport.return_value.openServerMode.return_value = mock_transport
+        mock_snmp_engine = MagicMock()
+        mock_engine.SnmpEngine.return_value = mock_snmp_engine
+
+        with patch.object(agent, "_register_zino_uptime"):
+            agent._setup_engine()
+
+        # Verify IPv6 transport was used
+        mock_udp6.Udp6AsyncioTransport.assert_called_once()
+        mock_udp.UdpAsyncioTransport.assert_not_called()
+
+    @patch("zino.snmp.agent.cmdrsp")
+    @patch("zino.snmp.agent.context")
+    @patch("zino.snmp.agent.builder")
+    @patch("zino.snmp.agent.config")
+    @patch("zino.snmp.agent.AsyncioDispatcher")
+    @patch("zino.snmp.agent.engine")
+    @patch("zino.snmp.agent.udp6")
+    @patch("zino.snmp.agent.udp")
+    def test_when_address_is_ipv4_then_it_should_use_ipv4_transport(
+        self, mock_udp, mock_udp6, mock_engine, mock_dispatcher, mock_config, mock_builder, mock_context, mock_cmdrsp
+    ):
+        """Test that IPv4 addresses result in IPv4 transport configuration."""
+        agent = ZinoSnmpAgent(listen_address="192.168.1.1", listen_port=8001)
+
+        mock_transport = MagicMock()
+        mock_udp.UdpAsyncioTransport.return_value.openServerMode.return_value = mock_transport
+        mock_snmp_engine = MagicMock()
+        mock_engine.SnmpEngine.return_value = mock_snmp_engine
+
+        with patch.object(agent, "_register_zino_uptime"):
+            agent._setup_engine()
+
+        # Verify IPv4 transport was used
+        mock_udp.UdpAsyncioTransport.assert_called_once()
+        mock_udp6.Udp6AsyncioTransport.assert_not_called()
+
+    @patch("zino.snmp.agent.cmdrsp")
+    @patch("zino.snmp.agent.context")
+    @patch("zino.snmp.agent.builder")
+    @patch("zino.snmp.agent.config")
+    @patch("zino.snmp.agent.AsyncioDispatcher")
+    @patch("zino.snmp.agent.engine")
+    @patch("zino.snmp.agent.udp")
+    def test_when_address_is_hostname_then_it_should_use_ipv4_transport(
+        self, mock_udp, mock_engine, mock_dispatcher, mock_config, mock_builder, mock_context, mock_cmdrsp
+    ):
+        """Test that hostnames default to IPv4 transport."""
+        agent = ZinoSnmpAgent(listen_address="localhost", listen_port=8001)
+
+        mock_transport = MagicMock()
+        mock_udp.UdpAsyncioTransport.return_value.openServerMode.return_value = mock_transport
+        mock_snmp_engine = MagicMock()
+        mock_engine.SnmpEngine.return_value = mock_snmp_engine
+
+        with patch.object(agent, "_register_zino_uptime"):
+            agent._setup_engine()
+
+        # Verify IPv4 transport was used for hostname
+        mock_udp.UdpAsyncioTransport.assert_called_once()
+
+    @patch("zino.snmp.agent.cmdrsp")
+    @patch("zino.snmp.agent.context")
+    @patch("zino.snmp.agent.builder")
+    @patch("zino.snmp.agent.config")
+    @patch("zino.snmp.agent.AsyncioDispatcher")
+    @patch("zino.snmp.agent.engine")
+    @patch("zino.snmp.agent.udp")
+    def test_when_specific_community_then_it_should_only_configures_that_community(
+        self, mock_udp, mock_engine, mock_dispatcher, mock_config, mock_builder, mock_context, mock_cmdrsp
+    ):
+        """Test that specific community configuration is applied."""
+        agent = ZinoSnmpAgent(community="test-community")
+
+        mock_transport = MagicMock()
+        mock_udp.UdpAsyncioTransport.return_value.openServerMode.return_value = mock_transport
+        mock_snmp_engine = MagicMock()
+        mock_engine.SnmpEngine.return_value = mock_snmp_engine
+
+        with patch.object(agent, "_register_zino_uptime"):
+            agent._setup_engine()
+
+        # Verify specific community was configured
+        calls = mock_config.addV1System.call_args_list
+        assert len([c for c in calls if "test-community" in c[0]]) == 1
+        # Should not have added multiple communities
+        assert len([c for c in calls if "public" in c[0]]) == 0
+        assert len([c for c in calls if "private" in c[0]]) == 0
+
+    @patch("zino.snmp.agent.cmdrsp")
+    @patch("zino.snmp.agent.context")
+    @patch("zino.snmp.agent.builder")
+    @patch("zino.snmp.agent.config")
+    @patch("zino.snmp.agent.AsyncioDispatcher")
+    @patch("zino.snmp.agent.engine")
+    @patch("zino.snmp.agent.udp")
+    def test_when_no_community_then_it_should_configures_multiple_default_communities(
+        self, mock_udp, mock_engine, mock_dispatcher, mock_config, mock_builder, mock_context, mock_cmdrsp
+    ):
+        """Test that no community means multiple communities are accepted."""
+        agent = ZinoSnmpAgent(community=None)
+
+        mock_transport = MagicMock()
+        mock_udp.UdpAsyncioTransport.return_value.openServerMode.return_value = mock_transport
+        mock_snmp_engine = MagicMock()
+        mock_engine.SnmpEngine.return_value = mock_snmp_engine
+
+        with patch.object(agent, "_register_zino_uptime"):
+            agent._setup_engine()
+
+        # Verify multiple communities were configured
+        calls = mock_config.addV1System.call_args_list
+        # Should have added public, private, secret at least once each
+        assert any("public" in str(c) for c in calls)
+        assert any("private" in str(c) for c in calls)
+        assert any("secret" in str(c) for c in calls)
+
+        # Also check VACM was configured for multiple communities
+        vacm_calls = mock_config.addVacmUser.call_args_list
+        assert any("zino-agent-public" in str(c) for c in vacm_calls)
+        assert any("zino-agent-private" in str(c) for c in vacm_calls)
+
+
 @pytest.mark.asyncio
 async def test_when_agent_is_queried_then_it_should_return_uptime(running_agent):
     """Integration test that the agent responds to SNMP queries using Zino's SNMP backend."""
