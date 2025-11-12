@@ -1,20 +1,14 @@
 """Tests for the SNMP agent module."""
 
 import asyncio
+import subprocess
 import time
 from unittest.mock import MagicMock, patch
 
 import pytest
-from pysnmp.hlapi.asyncio import (
-    CommunityData,
-    ContextData,
-    ObjectIdentity,
-    ObjectType,
-    SnmpEngine,
-    UdpTransportTarget,
-    getCmd,
-)
 
+from zino.config.models import PollDevice
+from zino.snmp import SNMP
 from zino.snmp.agent import ZinoSnmpAgent
 
 
@@ -81,7 +75,7 @@ class TestZinoSnmpAgent:
             mock_setup.assert_called_once()
 
     @patch("zino.snmp.agent.builder")
-    def test_when_register_zino_uptime_called_then_it_should_load_and_export_mib_symbols(self, mock_builder):  # noqa: E501
+    def test_when_register_zino_uptime_called_then_it_should_load_and_export_mib_symbols(self, mock_builder):
         """Test that _register_zino_uptime loads required MIB modules."""
         agent = ZinoSnmpAgent()
         mock_mib_instrum = MagicMock()
@@ -177,45 +171,69 @@ class TestZinoSnmpAgent:
 
 
 @pytest.mark.asyncio
-async def test_when_snmp_get_request_sent_to_agent_then_it_should_return_correct_uptime_value():
-    """Integration test that the agent responds to SNMP queries."""
-    pytest.skip("Integration test - requires manual verification")
+async def test_when_agent_is_queried_then_it_should_return_uptime(running_agent):
+    """Integration test that the agent responds to SNMP queries using Zino's SNMP backend."""
+    port = running_agent
 
-    # Start agent
-    start_time = time.time() - 100
-    agent = ZinoSnmpAgent(
-        listen_address="127.0.0.1",
-        listen_port=18161,
-        community="public",
-        start_time=start_time,
+    # Create a PollDevice pointing to our agent
+    device = PollDevice(name="test-agent", address="127.0.0.1", port=port, community="public")
+
+    # Use Zino's SNMP backend to query the agent
+    with SNMP(device) as snmp_session:
+        # Query ZINO-MIB::zinoUpTime.0
+        response = await snmp_session.get("ZINO-MIB", "zinoUpTime", 0)
+
+        # Verify we got a response
+        assert response is not None
+        assert response.value is not None
+
+        # Check that uptime is reasonable (0-10 seconds for a just-started agent)
+        uptime = int(response.value)
+        assert 0 <= uptime <= 10, f"Unexpected uptime value: {uptime}"
+
+
+@pytest.mark.asyncio
+async def test_when_agent_runs_then_uptime_should_increase(running_agent):
+    """Test that zinoUpTime value increases over time."""
+    port = running_agent
+
+    device = PollDevice(name="test-agent", address="127.0.0.1", port=port, community="public")
+
+    with SNMP(device) as snmp_session:
+        # First query
+        response1 = await snmp_session.get("ZINO-MIB", "zinoUpTime", 0)
+        uptime1 = int(response1.value)
+
+        # Wait 2 seconds
+        await asyncio.sleep(2)
+
+        # Second query
+        response2 = await snmp_session.get("ZINO-MIB", "zinoUpTime", 0)
+        uptime2 = int(response2.value)
+
+        # Uptime should have increased by approximately 2 seconds
+        diff = uptime2 - uptime1
+        assert 1 <= diff <= 3, f"Uptime difference was {diff}, expected ~2"
+
+
+@pytest.fixture
+async def running_agent(unused_udp_port):
+    """Start the SNMP agent as a subprocess and ensure it's ready."""
+    process = subprocess.Popen(
+        ["python", "-m", "zino.snmp.agent", "--port", str(unused_udp_port)],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
     )
 
-    agent_task = asyncio.create_task(agent.open())
+    # Give the agent time to start up
     await asyncio.sleep(1)
 
     try:
-        # Query ZINO-MIB::zinoUpTime.0
-        zino_uptime_oid = (1, 3, 6, 1, 4, 1, 2428, 130, 1, 1, 1, 0)
-
-        errorIndication, errorStatus, errorIndex, varBinds = await getCmd(
-            SnmpEngine(),
-            CommunityData("public"),
-            UdpTransportTarget(("127.0.0.1", 18161)),
-            ContextData(),
-            ObjectType(ObjectIdentity(zino_uptime_oid)),
-        )
-
-        assert errorIndication is None
-        assert errorStatus == 0
-
-        for oid, val in varBinds:
-            uptime = int(val)
-            assert 99 <= uptime <= 102
-
+        yield unused_udp_port
     finally:
-        agent.close()
-        agent_task.cancel()
+        process.terminate()
         try:
-            await agent_task
-        except asyncio.CancelledError:
-            pass
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait()
