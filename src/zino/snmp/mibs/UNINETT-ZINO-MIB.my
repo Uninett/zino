@@ -1,0 +1,47 @@
+--
+-- UNINETT Zino MIB: minimal MIB for keepalive verification
+--
+-- Copyright (c) 2012, UNINETT AS
+-- All rights reserved.
+--
+-- The contents of this document are subject to change without notice.
+--
+
+
+ZINO-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY, OBJECT-TYPE, NOTIFICATION-TYPE,
+    Integer32, Gauge32, Counter32
+        FROM SNMPv2-SMI
+    DisplayString, TimeStamp, TimeInterval, TEXTUAL-CONVENTION, DateAndTime
+        FROM SNMPv2-TC
+    uninettMibs
+        FROM UNINETT-SMI;
+
+zinoMIB MODULE-IDENTITY
+    LAST-UPDATED "201201190000Z"
+    ORGANIZATION "UNINETT AS"
+    CONTACT-INFO
+            "        UNINETT AS
+		     NO-7465 Trondheim
+		     Norway
+		     E-mail: drift@uninett.no"
+    DESCRIPTION
+            "The MIB for zino keepalive / polling."
+    ::= { uninettMibs 1 }
+
+-- Objects
+
+zinoMIBObjects OBJECT IDENTIFIER ::= { zinoMIB 1 }
+
+zinoUpTime OBJECT-TYPE
+    SYNTAX Counter32
+    ACCESS read-only
+    STATUS mandatory
+    DESCRIPTION
+        "The time (in seconds) since this zino server instance
+	was re-initialized."
+    ::= { zinoMIBObjects 1 }
+
+END

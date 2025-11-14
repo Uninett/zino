@@ -36,6 +36,14 @@ backend = "netsnmp"
 # backend will not function properly unless there is at least one community string in the list.
 trap.require_community = []
 
+# SNMP agent configuration for responding to uptime queries from clients
+# This agent is used by clients like EMT for failover detection
+agent.enabled = true  # Enable/disable the SNMP agent (default: true)
+agent.port = 8000  # Port to listen on (default: 8000)
+agent.address = "0.0.0.0"  # Address to bind to (default: "0.0.0.0")
+# agent.community = "public"  # SNMP community string to accept (default: public)
+
+
 [event]
 # Whether to create portstate events for newly discovered interfaces that are operationally down
 make_events_for_new_interfaces = false
