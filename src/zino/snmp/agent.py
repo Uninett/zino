@@ -48,7 +48,7 @@ class ZinoSnmpAgent:
         """
         self.listen_address = listen_address
         self.listen_port = listen_port
-        self.community = community
+        self.community = community or "public"
         self.start_time = start_time or time.time()
         self.snmp_engine = None
         self.transport_dispatcher = None
@@ -84,29 +84,11 @@ class ZinoSnmpAgent:
         config.addTransport(self.snmp_engine, udp.domainName, transport)
 
         # Configure SNMPv1 and SNMPv2c
-        if self.community:
-            # If community is specified, only accept that community
-            config.addV1System(self.snmp_engine, "zino-agent", self.community)
-        else:
-            # Accept any community (similar to netsnmp trap receiver behavior)
-            config.addV1System(self.snmp_engine, "zino-agent", "public")
-            # Note: PySNMP doesn't have a direct "accept any community" mode,
-            # but we can add multiple common communities
-            for comm in ["public", "private", "secret"]:
-                try:
-                    config.addV1System(self.snmp_engine, f"zino-agent-{comm}", comm)
-                except Exception:
-                    pass  # Ignore if already added
+        config.addV1System(self.snmp_engine, "zino-agent", self.community)
 
         # Configure vacm to allow access
         config.addVacmUser(self.snmp_engine, 2, "zino-agent", "noAuthNoPriv", (), (), ())  # SNMPv2c
         config.addVacmUser(self.snmp_engine, 1, "zino-agent", "noAuthNoPriv", (), (), ())  # SNMPv1
-
-        # If we're accepting any community, add VACM entries for additional communities
-        if not self.community:
-            for comm in ["public", "private", "secret"]:
-                config.addVacmUser(self.snmp_engine, 2, f"zino-agent-{comm}", "noAuthNoPriv", (), (), ())
-                config.addVacmUser(self.snmp_engine, 1, f"zino-agent-{comm}", "noAuthNoPriv", (), (), ())
 
         # Get MIB controller and builder
         mib_instrum = self.snmp_engine.msgAndPduDsp.mibInstrumController

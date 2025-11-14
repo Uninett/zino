@@ -90,7 +90,7 @@ class AgentConfiguration(BaseModel):
     enabled: bool = True
     port: int = 8000
     address: str = "0.0.0.0"
-    community: Optional[str] = None  # None means accept any community
+    community: Optional[str] = "public"
 
 
 class SNMPConfiguration(BaseModel):

@@ -20,7 +20,7 @@ class TestZinoSnmpAgent:
         agent = ZinoSnmpAgent()
         assert agent.listen_address == "0.0.0.0"
         assert agent.listen_port == 8000
-        assert agent.community is None
+        assert agent.community == "public"
         assert agent.start_time is not None
         assert not agent._running
         assert agent.snmp_engine is None
@@ -256,7 +256,7 @@ class TestSetupEngineConfiguration:
     @patch("zino.snmp.agent.AsyncioDispatcher")
     @patch("zino.snmp.agent.engine")
     @patch("zino.snmp.agent.udp")
-    def test_when_specific_community_then_it_should_only_configures_that_community(
+    def test_when_specific_community_then_it_should_only_configure_that_community(
         self, mock_udp, mock_engine, mock_dispatcher, mock_config, mock_builder, mock_context, mock_cmdrsp
     ):
         """Test that specific community configuration is applied."""
@@ -273,9 +273,8 @@ class TestSetupEngineConfiguration:
         # Verify specific community was configured
         calls = mock_config.addV1System.call_args_list
         assert len([c for c in calls if "test-community" in c[0]]) == 1
-        # Should not have added multiple communities
+        # Should not have added default community value
         assert len([c for c in calls if "public" in c[0]]) == 0
-        assert len([c for c in calls if "private" in c[0]]) == 0
 
     @patch("zino.snmp.agent.cmdrsp")
     @patch("zino.snmp.agent.context")
@@ -284,7 +283,7 @@ class TestSetupEngineConfiguration:
     @patch("zino.snmp.agent.AsyncioDispatcher")
     @patch("zino.snmp.agent.engine")
     @patch("zino.snmp.agent.udp")
-    def test_when_no_community_then_it_should_configures_multiple_default_communities(
+    def test_when_no_community_then_it_should_configure_public_community(
         self, mock_udp, mock_engine, mock_dispatcher, mock_config, mock_builder, mock_context, mock_cmdrsp
     ):
         """Test that no community means multiple communities are accepted."""
@@ -298,17 +297,8 @@ class TestSetupEngineConfiguration:
         with patch.object(agent, "_register_zino_uptime"):
             agent._setup_engine()
 
-        # Verify multiple communities were configured
         calls = mock_config.addV1System.call_args_list
-        # Should have added public, private, secret at least once each
         assert any("public" in str(c) for c in calls)
-        assert any("private" in str(c) for c in calls)
-        assert any("secret" in str(c) for c in calls)
-
-        # Also check VACM was configured for multiple communities
-        vacm_calls = mock_config.addVacmUser.call_args_list
-        assert any("zino-agent-public" in str(c) for c in vacm_calls)
-        assert any("zino-agent-private" in str(c) for c in vacm_calls)
 
 
 @pytest.mark.asyncio

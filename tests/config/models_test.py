@@ -20,7 +20,7 @@ class TestAgentConfiguration:
         assert config.enabled is True
         assert config.port == 8000
         assert config.address == "0.0.0.0"
-        assert config.community is None
+        assert config.community == "public"
 
     def test_init_should_accept_custom_values(self):
         """Test that AgentConfiguration accepts custom values."""
