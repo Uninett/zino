@@ -82,11 +82,23 @@ class TrapConfiguration(BaseModel):
     require_community: list[str] = []
 
 
+class AgentConfiguration(BaseModel):
+    """SNMP agent configuration for responding to uptime queries"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    enabled: bool = True
+    port: int = 8000
+    address: str = "0.0.0.0"
+    community: Optional[str] = "public"
+
+
 class SNMPConfiguration(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     backend: Literal["pysnmp", "netsnmp"] = "netsnmp"
     trap: TrapConfiguration = TrapConfiguration()
+    agent: AgentConfiguration = AgentConfiguration()
 
 
 class EventConfiguration(BaseModel):

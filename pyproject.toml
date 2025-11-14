@@ -116,7 +116,7 @@ exclude_also = [
 
 [tool.coverage.run]
 source = ["src"]
-omit = ["**/zino/version.py"]
+omit = ["**/zino/version.py", "**/zino/snmp/mibdumps/*.py"]
 patch = ["subprocess"]
 
 [tool.towncrier]

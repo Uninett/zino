@@ -22,6 +22,7 @@ from zino.api.server import ZinoServer
 from zino.config import InvalidConfigurationError, read_configuration
 from zino.scheduler import get_scheduler, load_and_schedule_polldevs
 from zino.snmp import import_snmp_backend
+from zino.snmp.agent import ZinoSnmpAgent
 from zino.statemodels import Event
 from zino.trapd import import_trap_backend
 
@@ -128,6 +129,16 @@ def init_event_loop(args: argparse.Namespace, loop: Optional[AbstractEventLoop] 
 
     server = ZinoServer(loop=loop, state=state.state, polldevs=state.polldevs, config=state.config)
     server.serve()
+
+    # Start SNMP agent if enabled
+    if state.config.snmp.agent.enabled:
+        snmp_agent = ZinoSnmpAgent(
+            listen_address=state.config.snmp.agent.address,
+            listen_port=state.config.snmp.agent.port,
+            community=state.config.snmp.agent.community,
+        )
+        # Schedule the SNMP agent to start as a coroutine
+        loop.create_task(snmp_agent.open())
 
     try:
         loop.run_forever()
