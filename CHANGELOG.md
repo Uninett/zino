@@ -12,6 +12,13 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) and the chang
 
 <!-- towncrier release notes start -->
 
+## [2.3.0] - 2025-11-14
+
+### Added
+
+- Added an SNMP agent to respond to client queries for Zino uptime (to properly enable failover mechanisms in legacy clients) ([#487](https://github.com/Uninett/zino/issues/487))
+
+
 ## [2.2.0] - 2025-10-21
 
 ### Added
