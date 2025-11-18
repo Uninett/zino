@@ -20,6 +20,7 @@ from pydantic import ValidationError
 from zino import flaps, state
 from zino.api.server import ZinoServer
 from zino.config import InvalidConfigurationError, read_configuration
+from zino.job_tracker import get_job_tracker
 from zino.scheduler import get_scheduler, load_and_schedule_polldevs
 from zino.snmp import import_snmp_backend
 from zino.snmp.agent import ZinoSnmpAgent
@@ -153,6 +154,11 @@ def setup_initial_job_schedule(loop: AbstractEventLoop, args: argparse.Namespace
     """Schedules all recurring and single-run jobs"""
     scheduler = get_scheduler()
     scheduler.start()
+
+    # Register job tracker to monitor running jobs
+    job_tracker = get_job_tracker()
+    job_tracker.register_with_scheduler(scheduler)
+    job_tracker.setup_signal_handler(loop)
 
     scheduler.add_job(
         func=load_and_schedule_polldevs,
