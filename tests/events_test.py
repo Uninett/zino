@@ -172,15 +172,14 @@ class TestEvents:
         events.commit(event)
         assert events.get_closed_event(*identifiers) == event
 
-    def test_commit_should_set_updated_when_closing_event(self):
+    def test_commit_should_not_set_updated_when_closing_event(self):
         identifiers = "foobar", None, ReachabilityEvent
         events = Events()
         event = events.get_or_create_event(*identifiers)
         event.set_state(EventState.CLOSED)
         previous_updated = event.updated
         events.commit(event)
-        assert (now() - timedelta(minutes=1)) < event.updated < (now())
-        assert event.updated != previous_updated
+        assert event.updated == previous_updated
 
     def test_delete_expired_events_should_delete_old_closed_event(self, tmp_path):
         events = Events()

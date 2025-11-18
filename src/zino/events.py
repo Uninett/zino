@@ -158,12 +158,12 @@ class Events(BaseModel):
                 raise EventExistsError(f"{index} belongs to {indexed_event.id}, cannot commit {event.id} over it")
         self.events[event.id] = event
 
-        # If event is set to closed, move it to the closed index and set updated
+        # If event is set to closed, move it to the closed index and set its close time
         if event.state == EventState.CLOSED:
             if self._events_by_index.get(index) and event.id == self._events_by_index[index].id:
                 del self._events_by_index[index]
                 self._closed_events_by_index[index] = event
-            event.updated = now()
+                event.closed = now()
         else:
             self._events_by_index[index] = event
 
