@@ -70,6 +70,7 @@ def main():
     import_trap_backend(state.config.snmp.backend)
 
     state.state = state.ZinoState.load_state_from_file(state.config.persistence.file) or state.ZinoState()
+    state.clean_state(state.state)
     init_event_loop(args)
 
 
