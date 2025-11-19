@@ -31,6 +31,20 @@ class JobTracker:
         loop.add_signal_handler(signal.SIGUSR1, self._handle_sigusr1)
         _log.debug("SIGUSR1 handler registered for job tracking")
 
+    def _format_duration(self, total_seconds):
+        """Format duration as [Dd ]HH:MM:SS.mmm"""
+        days = int(total_seconds // 86400)
+        remaining = total_seconds % 86400
+        hours = int(remaining // 3600)
+        remaining = remaining % 3600
+        minutes = int(remaining // 60)
+        seconds = remaining % 60
+
+        if days > 0:
+            return f"{days}d {hours:02d}:{minutes:02d}:{seconds:06.3f}"
+        else:
+            return f"{hours:02d}:{minutes:02d}:{seconds:06.3f}"
+
     def _handle_sigusr1(self):
         """Handle SIGUSR1 signal by logging currently running jobs."""
         _log.info("=" * 80)
@@ -49,41 +63,34 @@ class JobTracker:
 
             for job_id, info in self.running_jobs.items():
                 start_time = info["start_time"]
-                scheduled_time = info["scheduled_run_time"]
-                duration = (current_time - start_time).total_seconds()
+                duration_seconds = (current_time - start_time).total_seconds()
 
                 rows.append(
                     {
                         "job_id": job_id,
-                        "duration": f"{duration:.1f}s",
-                        "started": start_time.strftime("%H:%M:%S.%f")[:-3],
-                        "scheduled": scheduled_time.strftime("%H:%M:%S.%f")[:-3],
+                        "duration_seconds": duration_seconds,
+                        "duration": self._format_duration(duration_seconds),
+                        "started": start_time.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3],
                     }
                 )
+
+            # Sort by duration (longest running first)
+            rows.sort(key=lambda x: x["duration_seconds"], reverse=True)
 
             # Calculate column widths
             job_width = max(len("Job ID"), max(len(r["job_id"]) for r in rows))
             dur_width = max(len("Duration"), max(len(r["duration"]) for r in rows))
-            start_width = len("HH:MM:SS.mmm")
-            sched_width = len("HH:MM:SS.mmm")
+            start_width = max(len("Started"), len("YYYY-MM-DD HH:MM:SS.mmm"))
 
             # Print header
-            header = (
-                f"{'Job ID':<{job_width}} | "
-                f"{'Duration':>{dur_width}} | "
-                f"{'Started':<{start_width}} | "
-                f"{'Scheduled':<{sched_width}}"
-            )
+            header = f"{'Job ID':<{job_width}} | {'Duration':>{dur_width}} | {'Started':<{start_width}}"
             _log.info(header)
             _log.info("-" * len(header))
 
             # Print rows
             for row in rows:
                 _log.info(
-                    f"{row['job_id']:<{job_width}} | "
-                    f"{row['duration']:>{dur_width}} | "
-                    f"{row['started']:<{start_width}} | "
-                    f"{row['scheduled']:<{sched_width}}"
+                    f"{row['job_id']:<{job_width}} | {row['duration']:>{dur_width}} | {row['started']:<{start_width}}"
                 )
 
         _log.info("=" * 80)
