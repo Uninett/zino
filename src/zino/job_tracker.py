@@ -23,6 +23,7 @@ class JobTracker:
     def __init__(self):
         self.running_jobs: dict[str, dict] = {}
         self.loop: Optional[asyncio.AbstractEventLoop] = None
+        self.scheduler = None
 
     def setup_signal_handler(self, loop: asyncio.AbstractEventLoop):
         """Setup SIGUSR1 signal handler for debugging using asyncio."""
@@ -30,6 +31,20 @@ class JobTracker:
         # Use asyncio's add_signal_handler for proper event loop integration
         loop.add_signal_handler(signal.SIGUSR1, self._handle_sigusr1)
         _log.debug("SIGUSR1 handler registered for job tracking")
+
+    def _get_job_name(self, job_id: str) -> Optional[str]:
+        """Get the job name from scheduler if available."""
+        if not self.scheduler:
+            return None
+
+        try:
+            job = self.scheduler.get_job(job_id)
+            if job:
+                return job.name
+        except Exception as e:
+            _log.debug(f"Could not fetch job details for {job_id}: {e}")
+
+        return None
 
     def _format_duration(self, total_seconds):
         """Format duration as [Dd ]HH:MM:SS.mmm"""
@@ -65,9 +80,16 @@ class JobTracker:
                 start_time = info["start_time"]
                 duration_seconds = (current_time - start_time).total_seconds()
 
+                # Format job identifier with optional name
+                job_name = info.get("job_name")
+                if job_name and job_name != job_id:
+                    job_display = f"{job_id} ({job_name})"
+                else:
+                    job_display = job_id
+
                 rows.append(
                     {
-                        "job_id": job_id,
+                        "job_id": job_display,
                         "duration_seconds": duration_seconds,
                         "duration": self._format_duration(duration_seconds),
                         "started": start_time.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3],
@@ -101,10 +123,14 @@ class JobTracker:
         # Jobs can have multiple scheduled run times if they were missed
         scheduled_time = event.scheduled_run_times[0] if event.scheduled_run_times else datetime.now()
 
+        # Get the job name if available
+        job_name = self._get_job_name(job_id)
+
         self.running_jobs[job_id] = {
             "start_time": datetime.now(),
             "scheduled_run_time": scheduled_time,
             "jobstore": event.jobstore,
+            "job_name": job_name,
         }
         _log.debug(f"Job {job_id} started execution")
 
@@ -128,6 +154,7 @@ class JobTracker:
 
     def register_with_scheduler(self, scheduler):
         """Register event listeners with the scheduler."""
+        self.scheduler = scheduler
         scheduler.add_listener(self.on_job_submitted, EVENT_JOB_SUBMITTED)
         scheduler.add_listener(self.on_job_executed, EVENT_JOB_EXECUTED)
         scheduler.add_listener(self.on_job_error, EVENT_JOB_ERROR)
