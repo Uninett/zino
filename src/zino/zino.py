@@ -162,6 +162,7 @@ def setup_initial_job_schedule(loop: AbstractEventLoop, args: argparse.Namespace
 
     scheduler.add_job(
         func=load_and_schedule_polldevs,
+        id="load_and_schedule_polldevs",
         trigger="interval",
         args=(state.config.polling.file,),
         minutes=state.config.polling.period,
@@ -179,6 +180,7 @@ def setup_initial_job_schedule(loop: AbstractEventLoop, args: argparse.Namespace
     # Schedule planned maintenance
     scheduler.add_job(
         func=state.state.planned_maintenances.update_pm_states,
+        id="update_pm_states",
         trigger="interval",
         args=(state.state,),
         minutes=1,
@@ -187,6 +189,7 @@ def setup_initial_job_schedule(loop: AbstractEventLoop, args: argparse.Namespace
     # Schedule periodic flap statistics aging
     scheduler.add_job(
         func=flaps.age_flapping_states,
+        id="age_flapping_states",
         args=(state.state, state.polldevs),
         trigger="interval",
         seconds=flaps.FLAP_DECREMENT_INTERVAL_SECONDS,
@@ -198,12 +201,14 @@ def setup_initial_job_schedule(loop: AbstractEventLoop, args: argparse.Namespace
     # Schedule removing events that have been closed for a certain time
     scheduler.add_job(
         func=state.state.events.delete_expired_events,
+        id="delete_expired_events",
         trigger="interval",
         minutes=30,
     )
 
     scheduler.add_job(
         func=log_snmp_session_stats,
+        id="log_snmp_session_stats",
         trigger="interval",
         minutes=1,
     )
