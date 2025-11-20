@@ -215,7 +215,13 @@ def setup_initial_job_schedule(loop: AbstractEventLoop, args: argparse.Namespace
 
     if args.stop_in:
         _log.info("Instructed to stop in %s seconds", args.stop_in)
-        scheduler.add_job(func=loop.stop, trigger="date", run_date=datetime.now() + timedelta(seconds=args.stop_in))
+        scheduler.add_job(
+            func=loop.stop,
+            trigger="date",
+            run_date=datetime.now() + timedelta(seconds=args.stop_in),
+            name="Stop server on timeout",
+            id="stop-process",
+        )
 
 
 def switch_to_user(username: str):
