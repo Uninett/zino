@@ -47,12 +47,15 @@ class ReachableTask(Task):
     async def _run_extra_job(self):
         try:
             # This runs outside a job context, so we need to ensure we clean up low-level SNMP resources
+            _logger.debug("verify-reachability: running extra reachability job for device %s", self.device.name)
             with self.snmp:
+                _logger.debug("verify-reachability: getting uptime for device %s", self.device.name)
                 await self._get_uptime()
+                _logger.debug("verify-reachability: got uptime response for device %s", self.device.name)
         except TimeoutError:
             return
         else:
-            _logger.debug("Device %s is reachable", self.device.name)
+            _logger.debug("verify-reachability: Device %s is reachable", self.device.name)
             self._update_reachability_event_as_reachable()
             self._deschedule_extra_job()
 
