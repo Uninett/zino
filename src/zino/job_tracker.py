@@ -9,6 +9,8 @@ from typing import Optional
 from apscheduler.events import (
     EVENT_JOB_ERROR,
     EVENT_JOB_EXECUTED,
+    EVENT_JOB_MAX_INSTANCES,
+    EVENT_JOB_MISSED,
     EVENT_JOB_SUBMITTED,
     JobExecutionEvent,
     JobSubmissionEvent,
@@ -120,6 +122,12 @@ class JobTracker:
     def on_job_submitted(self, event: JobSubmissionEvent):
         """Track when a job starts executing."""
         job_id = event.job_id
+
+        # Check if this job is already running (shouldn't happen with max_instances=1, but let's be safe)
+        if job_id in self.running_jobs:
+            _log.debug(f"Job {job_id} submitted but already in running jobs list - possible long-running job")
+            return
+
         # Jobs can have multiple scheduled run times if they were missed
         scheduled_time = event.scheduled_run_times[0] if event.scheduled_run_times else datetime.now()
 
@@ -152,12 +160,44 @@ class JobTracker:
             _log.debug(f"Job {job_id} failed with error after {duration:.2f}s: {event.exception}")
             del self.running_jobs[job_id]
 
+    def on_job_missed(self, event: JobExecutionEvent):
+        """Track when a job's scheduled run time was missed.
+
+        This means the job didn't run at all (e.g., scheduler was down).
+        It shouldn't be in running_jobs, but check just in case.
+        """
+        job_id = event.job_id
+        if job_id in self.running_jobs:
+            # This shouldn't happen, but if it does, remove it
+            _log.debug(f"Job {job_id} was missed but was in running jobs list - removing")
+            del self.running_jobs[job_id]
+        else:
+            _log.debug(f"Job {job_id} missed its scheduled run time")
+
+    def on_job_max_instances(self, event: JobExecutionEvent):
+        """Track when a job couldn't run due to max_instances limit.
+
+        This means an instance is already running and a new one was blocked.
+        The running instance should remain in our list.
+        """
+        job_id = event.job_id
+        if job_id in self.running_jobs:
+            # Expected - the job is still running, which is why the new instance was blocked
+            start_time = self.running_jobs[job_id]["start_time"]
+            duration = (datetime.now() - start_time).total_seconds()
+            _log.debug(f"Job {job_id} skipped due to max_instances - existing instance running for {duration:.1f}s")
+        else:
+            # This could happen if we missed the EVENT_JOB_SUBMITTED for the running instance
+            _log.debug(f"Job {job_id} hit max_instances limit but not in running jobs list")
+
     def register_with_scheduler(self, scheduler):
         """Register event listeners with the scheduler."""
         self.scheduler = scheduler
         scheduler.add_listener(self.on_job_submitted, EVENT_JOB_SUBMITTED)
         scheduler.add_listener(self.on_job_executed, EVENT_JOB_EXECUTED)
         scheduler.add_listener(self.on_job_error, EVENT_JOB_ERROR)
+        scheduler.add_listener(self.on_job_missed, EVENT_JOB_MISSED)
+        scheduler.add_listener(self.on_job_max_instances, EVENT_JOB_MAX_INSTANCES)
         _log.debug("Job tracker registered with scheduler")
 
 
