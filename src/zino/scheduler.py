@@ -32,7 +32,7 @@ def get_scheduler() -> AsyncIOScheduler:
         }
         job_defaults = {
             "max_instances": 1,  # Never allow same job to run simultaneously
-            "misfire_grace_time": 10,  # Allow jobs to run up to 10 seconds late
+            "misfire_grace_time": state.config.scheduler.misfire_grace_time,
         }
         _scheduler = AsyncIOScheduler(
             event_loop=asyncio.get_event_loop(),
