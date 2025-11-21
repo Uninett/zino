@@ -53,7 +53,7 @@ test = [
     "pytest-cov",
     "pytest-timeout",
     "retry",
-    "snmpsim>=1.0,!=1.1.6",
+    "snmpsim>=1.0,!=1.1.6,<1.2",
     "tox",
 ]
 maintenance = [
