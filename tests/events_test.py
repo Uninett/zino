@@ -201,6 +201,18 @@ class TestEvents:
         events.commit(event)
         assert event.closed == original_closed
 
+    def test_given_closed_event_without_closed_timestamp_then_delete_expired_events_should_set_closed_timestamp(
+        self, tmp_path
+    ):
+        events = Events()
+        event = events.get_or_create_event("foobar", None, ReachabilityEvent)
+        event.set_state(EventState.CLOSED)
+        events.commit(event)
+        event.closed = None
+        with patch("zino.config.models.EVENT_DUMP_DIR", tmp_path):
+            events.delete_expired_events()
+        assert event.closed <= now()
+
     def test_delete_expired_events_should_delete_old_closed_event(self, tmp_path):
         events = Events()
         event = events.get_or_create_event("foobar", None, ReachabilityEvent)
