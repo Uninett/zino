@@ -101,6 +101,14 @@ class SNMPConfiguration(BaseModel):
     agent: AgentConfiguration = AgentConfiguration()
 
 
+class SchedulerConfiguration(BaseModel):
+    """Options to control the job scheduler behavior"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    misfire_grace_time: int = 10  # Seconds
+
+
 class EventConfiguration(BaseModel):
     """Options to control how events are created"""
 
@@ -121,6 +129,7 @@ class Configuration(BaseModel):
     persistence: Persistence = Persistence()
     polling: Polling = Polling()
     snmp: SNMPConfiguration = SNMPConfiguration()
+    scheduler: SchedulerConfiguration = SchedulerConfiguration()
     event: EventConfiguration = EventConfiguration()
     logging: dict[str, Any] = {
         "version": 1,

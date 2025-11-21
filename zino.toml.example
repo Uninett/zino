@@ -43,6 +43,10 @@ agent.port = 8000  # Port to listen on (default: 8000)
 agent.address = "0.0.0.0"  # Address to bind to (default: "0.0.0.0")
 # agent.community = "public"  # SNMP community string to accept (default: public)
 
+[scheduler]
+# When Zino is very busy, some scheduled recurring jobs may be delayed from running on their exactly scheduled
+# time.  This setting controls how delayed a job is allowed to be and still be run.  The default is 10 seconds.
+# misfire_grace_time = 10
 
 [event]
 # Whether to create portstate events for newly discovered interfaces that are operationally down
