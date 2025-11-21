@@ -23,9 +23,13 @@ class Task(ABC):
     async def run(self):
         """Runs job asynchronously"""
 
-    async def _get_uptime(self) -> int:
-        """Polls and returns the device sysuptime value"""
-        response = await self.snmp.get("SNMPv2-MIB", "sysUpTime", 0)
+    async def _get_uptime(self, snmp=None) -> int:
+        """Polls and returns the device sysuptime value
+
+        :param snmp: Optional SNMP session to use. If None, uses self.snmp
+        """
+        session = snmp if snmp is not None else self.snmp
+        response = await session.get("SNMPv2-MIB", "sysUpTime", 0)
         uptime = response.value
         return uptime
 

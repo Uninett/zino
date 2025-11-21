@@ -45,12 +45,17 @@ class ReachableTask(Task):
             self.device_state.reachable_in_last_run = True
 
     async def _run_extra_job(self):
+        # Create a fresh SNMP session for this extra job to avoid interleaved session issues
+        from zino.snmp import get_snmp_session
+
+        fresh_snmp = get_snmp_session(device=self.device)
+
         try:
             # This runs outside a job context, so we need to ensure we clean up low-level SNMP resources
             _logger.debug("verify-reachability: running extra reachability job for device %s", self.device.name)
-            with self.snmp:
+            with fresh_snmp:
                 _logger.debug("verify-reachability: getting uptime for device %s", self.device.name)
-                await self._get_uptime()
+                await self._get_uptime(snmp=fresh_snmp)
                 _logger.debug("verify-reachability: got uptime response for device %s", self.device.name)
         except TimeoutError:
             return
