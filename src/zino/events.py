@@ -158,12 +158,13 @@ class Events(BaseModel):
                 raise EventExistsError(f"{index} belongs to {indexed_event.id}, cannot commit {event.id} over it")
         self.events[event.id] = event
 
-        # If event is set to closed, move it to the closed index and set updated
+        # If event is set to closed, move it to the closed index and set its close time
         if event.state == EventState.CLOSED:
             if self._events_by_index.get(index) and event.id == self._events_by_index[index].id:
                 del self._events_by_index[index]
                 self._closed_events_by_index[index] = event
-            event.updated = now()
+            if not event.closed:
+                event.closed = now()
         else:
             self._events_by_index[index] = event
 
@@ -192,9 +193,13 @@ class Events(BaseModel):
 
     def delete_expired_events(self):
         """Deletes all events that have been closed for a certain time"""
-        event_list = list(self.events.values())
-        for event in event_list:
-            if event.state == EventState.CLOSED and now() > (event.updated + EVENT_EXPIRY):
+        closed_events = list(event for event in self.events.values() if event.state == EventState.CLOSED)
+        for event in closed_events:
+            if not event.closed:
+                # Fixup close time for events that were closed but never had a close time set, to ensure it will
+                # expire eventually
+                event.closed = now()
+            if now() > (event.closed + EVENT_EXPIRY):
                 self._delete(event)
 
     def add_event_observer(self, observer: EventObserver):

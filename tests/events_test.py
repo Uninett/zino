@@ -172,22 +172,53 @@ class TestEvents:
         events.commit(event)
         assert events.get_closed_event(*identifiers) == event
 
-    def test_commit_should_set_updated_when_closing_event(self):
+    def test_commit_should_not_set_updated_when_closing_event(self):
         identifiers = "foobar", None, ReachabilityEvent
         events = Events()
         event = events.get_or_create_event(*identifiers)
         event.set_state(EventState.CLOSED)
         previous_updated = event.updated
         events.commit(event)
-        assert (now() - timedelta(minutes=1)) < event.updated < (now())
-        assert event.updated != previous_updated
+        assert event.updated == previous_updated
+
+    def test_when_closing_an_event_then_commit_should_set_closed_timestamp(self):
+        identifiers = "foobar", None, ReachabilityEvent
+        events = Events()
+        event = events.get_or_create_event(*identifiers)
+        event.set_state(EventState.CLOSED)
+        assert event.closed is None
+        events.commit(event)
+        assert event.closed is not None
+        assert event.closed <= now()
+
+    def test_when_modifying_already_closed_event_then_commit_should_not_change_closed_timestamp(self):
+        identifiers = "foobar", None, ReachabilityEvent
+        events = Events()
+        event = events.get_or_create_event(*identifiers)
+        event.set_state(EventState.CLOSED)
+        original_closed = now() - timedelta(hours=1)
+        event.closed = original_closed
+        events.commit(event)
+        assert event.closed == original_closed
+
+    def test_given_closed_event_without_closed_timestamp_then_delete_expired_events_should_set_closed_timestamp(
+        self, tmp_path
+    ):
+        events = Events()
+        event = events.get_or_create_event("foobar", None, ReachabilityEvent)
+        event.set_state(EventState.CLOSED)
+        events.commit(event)
+        event.closed = None
+        with patch("zino.config.models.EVENT_DUMP_DIR", tmp_path):
+            events.delete_expired_events()
+        assert event.closed <= now()
 
     def test_delete_expired_events_should_delete_old_closed_event(self, tmp_path):
         events = Events()
         event = events.get_or_create_event("foobar", None, ReachabilityEvent)
         event.set_state(EventState.CLOSED)
         events.commit(event)
-        event.updated = now() - timedelta(days=1)
+        event.closed = now() - timedelta(days=1)
         with patch("zino.config.models.EVENT_DUMP_DIR", tmp_path):
             events.delete_expired_events()
         assert event.id not in events.events.keys()
@@ -200,7 +231,7 @@ class TestEvents:
         event.set_state(EventState.CLOSED)
         events.commit(event)
         assert events.get_closed_event(*index), "event wasn't added to closed index in the first place"
-        event.updated = now() - timedelta(days=1)
+        event.closed = now() - timedelta(days=1)
         with patch("zino.config.models.EVENT_DUMP_DIR", tmp_path):
             events.delete_expired_events()
         assert not events.get_closed_event(*index)
