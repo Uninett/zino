@@ -163,6 +163,7 @@ class Events(BaseModel):
             if self._events_by_index.get(index) and event.id == self._events_by_index[index].id:
                 del self._events_by_index[index]
                 self._closed_events_by_index[index] = event
+            if not event.closed:
                 event.closed = now()
         else:
             self._events_by_index[index] = event

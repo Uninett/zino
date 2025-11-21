@@ -181,6 +181,26 @@ class TestEvents:
         events.commit(event)
         assert event.updated == previous_updated
 
+    def test_when_closing_an_event_then_commit_should_set_closed_timestamp(self):
+        identifiers = "foobar", None, ReachabilityEvent
+        events = Events()
+        event = events.get_or_create_event(*identifiers)
+        event.set_state(EventState.CLOSED)
+        assert event.closed is None
+        events.commit(event)
+        assert event.closed is not None
+        assert event.closed <= now()
+
+    def test_when_modifying_already_closed_event_then_commit_should_not_change_closed_timestamp(self):
+        identifiers = "foobar", None, ReachabilityEvent
+        events = Events()
+        event = events.get_or_create_event(*identifiers)
+        event.set_state(EventState.CLOSED)
+        original_closed = now() - timedelta(hours=1)
+        event.closed = original_closed
+        events.commit(event)
+        assert event.closed == original_closed
+
     def test_delete_expired_events_should_delete_old_closed_event(self, tmp_path):
         events = Events()
         event = events.get_or_create_event("foobar", None, ReachabilityEvent)
