@@ -256,6 +256,7 @@ class Event(BaseModel):
     state: EventState = EventState.EMBRYONIC
     opened: datetime.datetime = Field(default_factory=now)
     updated: Optional[datetime.datetime] = None
+    closed: Optional[datetime.datetime] = None
     priority: int = 100
     lastevent: Optional[str] = None
 
