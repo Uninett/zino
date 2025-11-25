@@ -70,52 +70,54 @@ class JobTracker:
 
         if not self.running_jobs:
             _log.info("No jobs currently running")
-        else:
-            _log.info(f"Total running jobs: {len(self.running_jobs)}")
-            _log.info("")
+            _log.info("=" * 80)
+            return
 
-            # Prepare table data
-            current_time = datetime.now()
-            rows = []
+        _log.info("Total running jobs: %d", len(self.running_jobs))
+        _log.info("")
 
-            for job_id, info in self.running_jobs.items():
-                start_time = info["start_time"]
-                duration_seconds = (current_time - start_time).total_seconds()
+        # Prepare table data
+        current_time = datetime.now()
+        rows = []
 
-                # Format job identifier with optional name
-                job_name = info.get("job_name")
-                if job_name and job_name != job_id:
-                    job_display = f"{job_id} ({job_name})"
-                else:
-                    job_display = job_id
+        for job_id, info in self.running_jobs.items():
+            start_time = info["start_time"]
+            duration_seconds = (current_time - start_time).total_seconds()
 
-                rows.append(
-                    {
-                        "job_id": job_display,
-                        "duration_seconds": duration_seconds,
-                        "duration": self._format_duration(duration_seconds),
-                        "started": start_time.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3],
-                    }
-                )
+            # Format job identifier with optional name
+            job_name = info.get("job_name")
+            if job_name and job_name != job_id:
+                job_display = f"{job_id} ({job_name})"
+            else:
+                job_display = job_id
 
-            # Sort by duration (longest running first)
-            rows.sort(key=lambda x: x["duration_seconds"], reverse=True)
+            rows.append(
+                {
+                    "job_id": job_display,
+                    "duration_seconds": duration_seconds,
+                    "duration": self._format_duration(duration_seconds),
+                    "started": start_time.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3],
+                }
+            )
 
-            # Calculate column widths
-            job_width = max(len("Job ID"), max(len(r["job_id"]) for r in rows))
-            dur_width = max(len("Duration"), max(len(r["duration"]) for r in rows))
-            start_width = max(len("Started"), len("YYYY-MM-DD HH:MM:SS.mmm"))
+        # Sort by duration (longest running first)
+        rows.sort(key=lambda x: x["duration_seconds"], reverse=True)
 
-            # Print header
-            header = f"{'Job ID':<{job_width}} | {'Duration':>{dur_width}} | {'Started':<{start_width}}"
-            _log.info(header)
-            _log.info("-" * len(header))
+        # Calculate column widths
+        job_width = max(len("Job ID"), max(len(r["job_id"]) for r in rows))
+        dur_width = max(len("Duration"), max(len(r["duration"]) for r in rows))
+        start_width = max(len("Started"), len("YYYY-MM-DD HH:MM:SS.mmm"))
 
-            # Print rows
-            for row in rows:
-                _log.info(
-                    f"{row['job_id']:<{job_width}} | {row['duration']:>{dur_width}} | {row['started']:<{start_width}}"
-                )
+        # Print header
+        header = f"{'Job ID':<{job_width}} | {'Duration':>{dur_width}} | {'Started':<{start_width}}"
+        _log.info(header)
+        _log.info("-" * len(header))
+
+        # Print rows
+        for row in rows:
+            _log.info(
+                f"{row['job_id']:<{job_width}} | {row['duration']:>{dur_width}} | {row['started']:<{start_width}}"
+            )
 
         _log.info("=" * 80)
 
@@ -125,7 +127,7 @@ class JobTracker:
 
         # Check if this job is already running (shouldn't happen with max_instances=1, but let's be safe)
         if job_id in self.running_jobs:
-            _log.debug(f"Job {job_id} submitted but already in running jobs list - possible long-running job")
+            _log.debug("Job %s submitted but already in running jobs list - possible long-running job", job_id)
             return
 
         # Jobs can have multiple scheduled run times if they were missed
@@ -140,15 +142,15 @@ class JobTracker:
             "jobstore": event.jobstore,
             "job_name": job_name,
         }
-        _log.debug(f"Job {job_id} started execution")
+        _log.debug("Job %s started execution", job_id)
 
     def on_job_executed(self, event: JobExecutionEvent):
         """Track when a job completes execution."""
         job_id = event.job_id
         if job_id in self.running_jobs:
             start_time = self.running_jobs[job_id]["start_time"]
-            duration = (datetime.now() - start_time).total_seconds()
-            _log.debug(f"Job {job_id} completed execution after {duration:.2f}s")
+            duration = datetime.now() - start_time
+            _log.debug("Job %s completed execution after %s", job_id, duration)
             del self.running_jobs[job_id]
 
     def on_job_error(self, event: JobExecutionEvent):
@@ -156,8 +158,8 @@ class JobTracker:
         job_id = event.job_id
         if job_id in self.running_jobs:
             start_time = self.running_jobs[job_id]["start_time"]
-            duration = (datetime.now() - start_time).total_seconds()
-            _log.debug(f"Job {job_id} failed with error after {duration:.2f}s: {event.exception}")
+            duration = datetime.now() - start_time
+            _log.debug("Job %s failed with error after %s: %s", job_id, duration, event.exception)
             del self.running_jobs[job_id]
 
     def on_job_missed(self, event: JobExecutionEvent):
@@ -169,10 +171,10 @@ class JobTracker:
         job_id = event.job_id
         if job_id in self.running_jobs:
             # This shouldn't happen, but if it does, remove it
-            _log.debug(f"Job {job_id} was missed but was in running jobs list - removing")
+            _log.debug("Job %s was missed but was in running jobs list - removing", job_id)
             del self.running_jobs[job_id]
         else:
-            _log.debug(f"Job {job_id} missed its scheduled run time")
+            _log.debug("Job %s missed its scheduled run time", job_id)
 
     def on_job_max_instances(self, event: JobExecutionEvent):
         """Track when a job couldn't run due to max_instances limit.
@@ -184,11 +186,11 @@ class JobTracker:
         if job_id in self.running_jobs:
             # Expected - the job is still running, which is why the new instance was blocked
             start_time = self.running_jobs[job_id]["start_time"]
-            duration = (datetime.now() - start_time).total_seconds()
-            _log.debug(f"Job {job_id} skipped due to max_instances - existing instance running for {duration:.1f}s")
+            duration = datetime.now() - start_time
+            _log.debug("Job %s skipped due to max_instances - existing instance running for %s", job_id, duration)
         else:
             # This could happen if we missed the EVENT_JOB_SUBMITTED for the running instance
-            _log.debug(f"Job {job_id} hit max_instances limit but not in running jobs list")
+            _log.debug("Job %s hit max_instances limit but not in running jobs list", job_id)
 
     def register_with_scheduler(self, scheduler):
         """Register event listeners with the scheduler."""
