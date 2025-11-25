@@ -96,14 +96,14 @@ class TestJobTracker:
 
     @patch("zino.job_tracker.datetime")
     @patch("zino.job_tracker._log")
-    def test_when_jobs_are_executing_sigusr1_should_log_formatted_table(self, mock_log, mock_datetime):
+    def test_when_jobs_are_executing_sigusr1_should_log_jobs(self, mock_log, mock_datetime):
         """Test SIGUSR1 handler with running jobs."""
         job_tracker = JobTracker()
         # Set up mock time
         current_time = datetime(2024, 1, 1, 12, 0, 0)
         mock_datetime.now.return_value = current_time
 
-        # Add some running jobs
+        # Add some running jobs with different characteristics
         job_tracker.running_jobs = {
             "job1": {
                 "start_time": current_time - timedelta(seconds=120),
@@ -121,10 +121,74 @@ class TestJobTracker:
 
         job_tracker._handle_sigusr1()
 
-        # Verify logging was called with job information
-        mock_log.info.assert_any_call(f"Total running jobs: {len(job_tracker.running_jobs)}")
-        # Check that the table was printed (header should be present)
-        assert any("Job ID" in str(call) and "Duration" in str(call) for call in mock_log.info.call_args_list)
+        # Convert all log calls to strings for easier checking
+        log_output = " ".join(str(call) for call in mock_log.info.call_args_list)
+
+        # Verify the summary line - note it's called with a format string and argument
+        mock_log.info.assert_any_call("Total running jobs: %d", 3)
+
+        # Verify table header is logged
+        assert "Job ID" in log_output and "Duration" in log_output and "Started" in log_output
+
+        # Verify each job appears in the output
+        assert "job1 (TestJob1)" in log_output, "job1 with name TestJob1 should appear"
+        assert "job2" in log_output, "job2 should appear"
+        assert "job3" in log_output, "job3 should appear"
+        # job3 shouldn't show name in parentheses since it matches the ID
+        assert "job3 (job3)" not in log_output, "job3 should not show redundant name in parentheses"
+
+    @patch("zino.job_tracker.datetime")
+    @patch("zino.job_tracker._log")
+    def test_sigusr1_should_format_job_table_sorted_by_duration(self, mock_log, mock_datetime):
+        """Test the formatted output of SIGUSR1 handler is sorted by duration."""
+        job_tracker = JobTracker()
+        current_time = datetime(2024, 1, 1, 12, 0, 0)
+        mock_datetime.now.return_value = current_time
+
+        # Add jobs with varying durations
+        job_tracker.running_jobs = {
+            "job1": {
+                "start_time": current_time - timedelta(days=1, hours=2, minutes=30, seconds=45.123),
+                "job_name": "LongRunningTask",
+            },
+            "job2": {
+                "start_time": current_time - timedelta(minutes=5, seconds=30.5),
+                "job_name": "QuickTask",
+            },
+            "job3": {
+                "start_time": current_time - timedelta(hours=1),
+                "job_name": None,
+            },
+        }
+
+        job_tracker._handle_sigusr1()
+
+        # Verify the summary line with parametrized logging
+        mock_log.info.assert_any_call("Total running jobs: %d", 3)
+
+        # Verify the output includes all jobs and is properly formatted
+        info_calls = [str(call) for call in mock_log.info.call_args_list]
+        output = "\n".join(info_calls)
+        assert "Job ID" in output
+        assert "Duration" in output
+        assert "Started" in output
+        assert "LongRunningTask" in output
+        assert "QuickTask" in output
+
+        # Verify jobs are sorted by duration (longest first)
+        # Find the positions of each job in the output
+        longrunning_pos = output.find("LongRunningTask")
+        job3_pos = output.find("job3")
+        quicktask_pos = output.find("QuickTask")
+
+        # All jobs should be present
+        assert longrunning_pos != -1, "LongRunningTask not found in output"
+        assert job3_pos != -1, "job3 not found in output"
+        assert quicktask_pos != -1, "QuickTask not found in output"
+
+        # Verify order: LongRunningTask (1d 2h) should come before job3 (1h) which should come before QuickTask (5m)
+        assert longrunning_pos < job3_pos, "LongRunningTask should appear before job3 (sorted by duration)"
+        assert job3_pos < quicktask_pos, "job3 should appear before QuickTask (sorted by duration)"
 
     def test_on_job_submitted_should_track_new_job(self, mock_scheduler):
         """Test tracking when a new job starts."""
@@ -165,9 +229,13 @@ class TestJobTracker:
         # Should not update the existing entry
         assert job_tracker.running_jobs["job123"] == original_info
 
-    def test_when_no_scheduled_time_on_job_submitted_should_use_current_time(self):
+    @patch("zino.job_tracker.datetime")
+    def test_when_no_scheduled_time_on_job_submitted_should_use_current_time(self, mock_datetime):
         """Test when job has no scheduled run times."""
         job_tracker = JobTracker()
+        current_time = datetime(2024, 1, 1, 12, 0, 0)
+        mock_datetime.now.return_value = current_time
+
         event = Mock(spec=JobSubmissionEvent)
         event.job_id = "job123"
         event.scheduled_run_times = []
@@ -176,7 +244,7 @@ class TestJobTracker:
         job_tracker.on_job_submitted(event)
 
         assert "job123" in job_tracker.running_jobs
-        assert "scheduled_run_time" in job_tracker.running_jobs["job123"]
+        assert job_tracker.running_jobs["job123"]["scheduled_run_time"] == current_time
 
     @patch("zino.job_tracker.datetime")
     def test_on_job_executed_should_remove_job_from_running(self, mock_datetime):
@@ -272,6 +340,7 @@ class TestJobTracker:
 
         # Job should still be in running list
         assert "job123" in job_tracker.running_jobs
+        assert job_tracker.running_jobs["job123"]["start_time"] == start_time
 
     def test_when_max_instances_reached_for_untracked_job_it_should_stay_untracked(self):
         """Test max_instances event when job is not in running list."""
@@ -302,58 +371,6 @@ class TestJobTracker:
         assert calls[3][0][1] == EVENT_JOB_MISSED
         assert calls[4][0][0] == job_tracker.on_job_max_instances
         assert calls[4][0][1] == EVENT_JOB_MAX_INSTANCES
-
-    @patch("zino.job_tracker.datetime")
-    @patch("zino.job_tracker._log")
-    def test_sigusr1_should_format_job_table_sorted_by_duration(self, mock_log, mock_datetime):
-        """Test the formatted output of SIGUSR1 handler is sorted by duration."""
-        job_tracker = JobTracker()
-        current_time = datetime(2024, 1, 1, 12, 0, 0)
-        mock_datetime.now.return_value = current_time
-
-        # Add jobs with varying durations
-        job_tracker.running_jobs = {
-            "job1": {
-                "start_time": current_time - timedelta(days=1, hours=2, minutes=30, seconds=45.123),
-                "job_name": "LongRunningTask",
-            },
-            "job2": {
-                "start_time": current_time - timedelta(minutes=5, seconds=30.5),
-                "job_name": "QuickTask",
-            },
-            "job3": {
-                "start_time": current_time - timedelta(hours=1),
-                "job_name": None,
-            },
-        }
-
-        job_tracker._handle_sigusr1()
-
-        # Verify the output includes all jobs and is properly formatted
-        info_calls = [str(call) for call in mock_log.info.call_args_list]
-        output = "\n".join(info_calls)
-
-        assert "Total running jobs: 3" in output
-        assert "Job ID" in output
-        assert "Duration" in output
-        assert "Started" in output
-        assert "LongRunningTask" in output
-        assert "QuickTask" in output
-
-        # Verify jobs are sorted by duration (longest first)
-        # Find the positions of each job in the output
-        longrunning_pos = output.find("LongRunningTask")
-        job3_pos = output.find("job3")
-        quicktask_pos = output.find("QuickTask")
-
-        # All jobs should be present
-        assert longrunning_pos != -1, "LongRunningTask not found in output"
-        assert job3_pos != -1, "job3 not found in output"
-        assert quicktask_pos != -1, "QuickTask not found in output"
-
-        # Verify order: LongRunningTask (1d 2h) should come before job3 (1h) which should come before QuickTask (5m)
-        assert longrunning_pos < job3_pos, "LongRunningTask should appear before job3 (sorted by duration)"
-        assert job3_pos < quicktask_pos, "job3 should appear before QuickTask (sorted by duration)"
 
 
 class TestJobTrackerSingleton:
