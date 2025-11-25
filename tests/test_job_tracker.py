@@ -83,21 +83,21 @@ class TestJobTracker:
         assert job_tracker._format_duration(86400 * 10 + 7200 + 180 + 1.234) == "10d 02:03:01.234"
 
     @patch("zino.job_tracker.datetime")
-    @patch("zino.job_tracker._log")
-    def test_when_no_jobs_executing_sigusr1_should_log_empty_message(self, mock_log, mock_datetime):
+    def test_when_no_jobs_executing_sigusr1_should_log_empty_message(self, mock_datetime, caplog):
         """Test SIGUSR1 handler when no jobs are running."""
+        caplog.set_level("INFO")
         job_tracker = JobTracker()
         mock_datetime.now.return_value = datetime(2024, 1, 1, 12, 0, 0)
 
         job_tracker._handle_sigusr1()
 
         # Check that it logs "No jobs currently running"
-        mock_log.info.assert_any_call("No jobs currently running")
+        assert "No jobs currently running" in caplog.text
 
     @patch("zino.job_tracker.datetime")
-    @patch("zino.job_tracker._log")
-    def test_when_jobs_are_executing_sigusr1_should_log_jobs(self, mock_log, mock_datetime):
+    def test_when_jobs_are_executing_sigusr1_should_log_jobs(self, mock_datetime, caplog):
         """Test SIGUSR1 handler with running jobs."""
+        caplog.set_level("INFO")
         job_tracker = JobTracker()
         # Set up mock time
         current_time = datetime(2024, 1, 1, 12, 0, 0)
@@ -121,26 +121,25 @@ class TestJobTracker:
 
         job_tracker._handle_sigusr1()
 
-        # Convert all log calls to strings for easier checking
-        log_output = " ".join(str(call) for call in mock_log.info.call_args_list)
-
-        # Verify the summary line - note it's called with a format string and argument
-        mock_log.info.assert_any_call("Total running jobs: %d", 3)
+        # Verify the summary line
+        assert "Total running jobs: 3" in caplog.text
 
         # Verify table header is logged
-        assert "Job ID" in log_output and "Duration" in log_output and "Started" in log_output
+        assert "Job ID" in caplog.text
+        assert "Duration" in caplog.text
+        assert "Started" in caplog.text
 
         # Verify each job appears in the output
-        assert "job1 (TestJob1)" in log_output, "job1 with name TestJob1 should appear"
-        assert "job2" in log_output, "job2 should appear"
-        assert "job3" in log_output, "job3 should appear"
+        assert "job1 (TestJob1)" in caplog.text, "job1 with name TestJob1 should appear"
+        assert "job2" in caplog.text, "job2 should appear"
+        assert "job3" in caplog.text, "job3 should appear"
         # job3 shouldn't show name in parentheses since it matches the ID
-        assert "job3 (job3)" not in log_output, "job3 should not show redundant name in parentheses"
+        assert "job3 (job3)" not in caplog.text, "job3 should not show redundant name in parentheses"
 
     @patch("zino.job_tracker.datetime")
-    @patch("zino.job_tracker._log")
-    def test_sigusr1_should_format_job_table_sorted_by_duration(self, mock_log, mock_datetime):
+    def test_sigusr1_should_format_job_table_sorted_by_duration(self, mock_datetime, caplog):
         """Test the formatted output of SIGUSR1 handler is sorted by duration."""
+        caplog.set_level("INFO")
         job_tracker = JobTracker()
         current_time = datetime(2024, 1, 1, 12, 0, 0)
         mock_datetime.now.return_value = current_time
@@ -163,23 +162,21 @@ class TestJobTracker:
 
         job_tracker._handle_sigusr1()
 
-        # Verify the summary line with parametrized logging
-        mock_log.info.assert_any_call("Total running jobs: %d", 3)
+        # Verify the summary line
+        assert "Total running jobs: 3" in caplog.text
 
         # Verify the output includes all jobs and is properly formatted
-        info_calls = [str(call) for call in mock_log.info.call_args_list]
-        output = "\n".join(info_calls)
-        assert "Job ID" in output
-        assert "Duration" in output
-        assert "Started" in output
-        assert "LongRunningTask" in output
-        assert "QuickTask" in output
+        assert "Job ID" in caplog.text
+        assert "Duration" in caplog.text
+        assert "Started" in caplog.text
+        assert "LongRunningTask" in caplog.text
+        assert "QuickTask" in caplog.text
 
         # Verify jobs are sorted by duration (longest first)
         # Find the positions of each job in the output
-        longrunning_pos = output.find("LongRunningTask")
-        job3_pos = output.find("job3")
-        quicktask_pos = output.find("QuickTask")
+        longrunning_pos = caplog.text.find("LongRunningTask")
+        job3_pos = caplog.text.find("job3")
+        quicktask_pos = caplog.text.find("QuickTask")
 
         # All jobs should be present
         assert longrunning_pos != -1, "LongRunningTask not found in output"
