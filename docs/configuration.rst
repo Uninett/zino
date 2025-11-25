@@ -95,6 +95,13 @@ enable automatic log rotation every time the log file exceeds 1GB in size:
     # Avoid duplicate log message by disabling propagation to the root logger
     propagate = false
 
+.. tip::
+
+   Zino can also be manually made to log its list of currently executing
+   polling jobs (including their start times and runtime duration) by sending
+   it the ``USR1`` signal to a running Zino process, for example by using a
+   command like ``pkill -SIGUSR1 zino``.
+
 .. _configuring-api-users:
 
 Configuring API users
