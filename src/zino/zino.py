@@ -20,6 +20,7 @@ from pydantic import ValidationError
 from zino import flaps, state
 from zino.api.server import ZinoServer
 from zino.config import InvalidConfigurationError, read_configuration
+from zino.job_tracker import get_job_tracker
 from zino.scheduler import get_scheduler, load_and_schedule_polldevs
 from zino.snmp import import_snmp_backend
 from zino.snmp.agent import ZinoSnmpAgent
@@ -154,8 +155,14 @@ def setup_initial_job_schedule(loop: AbstractEventLoop, args: argparse.Namespace
     scheduler = get_scheduler()
     scheduler.start()
 
+    # Register job tracker to monitor running jobs
+    job_tracker = get_job_tracker()
+    job_tracker.register_with_scheduler(scheduler)
+    job_tracker.setup_signal_handler(loop)
+
     scheduler.add_job(
         func=load_and_schedule_polldevs,
+        id="load_and_schedule_polldevs",
         trigger="interval",
         args=(state.config.polling.file,),
         minutes=state.config.polling.period,
@@ -173,6 +180,7 @@ def setup_initial_job_schedule(loop: AbstractEventLoop, args: argparse.Namespace
     # Schedule planned maintenance
     scheduler.add_job(
         func=state.state.planned_maintenances.update_pm_states,
+        id="update_pm_states",
         trigger="interval",
         args=(state.state,),
         minutes=1,
@@ -181,6 +189,7 @@ def setup_initial_job_schedule(loop: AbstractEventLoop, args: argparse.Namespace
     # Schedule periodic flap statistics aging
     scheduler.add_job(
         func=flaps.age_flapping_states,
+        id="age_flapping_states",
         args=(state.state, state.polldevs),
         trigger="interval",
         seconds=flaps.FLAP_DECREMENT_INTERVAL_SECONDS,
@@ -192,19 +201,27 @@ def setup_initial_job_schedule(loop: AbstractEventLoop, args: argparse.Namespace
     # Schedule removing events that have been closed for a certain time
     scheduler.add_job(
         func=state.state.events.delete_expired_events,
+        id="delete_expired_events",
         trigger="interval",
         minutes=30,
     )
 
     scheduler.add_job(
         func=log_snmp_session_stats,
+        id="log_snmp_session_stats",
         trigger="interval",
         minutes=1,
     )
 
     if args.stop_in:
         _log.info("Instructed to stop in %s seconds", args.stop_in)
-        scheduler.add_job(func=loop.stop, trigger="date", run_date=datetime.now() + timedelta(seconds=args.stop_in))
+        scheduler.add_job(
+            func=loop.stop,
+            trigger="date",
+            run_date=datetime.now() + timedelta(seconds=args.stop_in),
+            name="Stop server on timeout",
+            id="stop-process",
+        )
 
 
 def switch_to_user(username: str):

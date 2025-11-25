@@ -422,13 +422,16 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
 
         scheduler = get_scheduler()
 
+        timestamp_suffix = datetime.now().strftime("%H%M%S")
         job_name = f"{router_name}-api-triggered"
+        job_id = f"{job_name}-{timestamp_suffix}"
         scheduler.add_job(
             func=run_all_tasks,
             trigger="date",
             args=(device, self._state, self._config),
             run_date=datetime.now(),
             name=job_name,
+            id=job_id,
         )
 
         return self._respond_ok()

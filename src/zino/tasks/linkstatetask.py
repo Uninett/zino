@@ -147,13 +147,16 @@ class LinkStateTask(Task):
     ):
         """Schedules a verification of a single port at a given time in the future"""
         verification_time = datetime.datetime.now() + deadline
+        timestamp_suffix = verification_time.strftime("%H%M%S")
         job_name = f"{self.device.name}-{reason}-{ifindex}-state"
+        job_id = f"{job_name}-{timestamp_suffix}"
         self._scheduler.add_job(
             func=self.poll_single_interface,
             args=(ifindex,),
             trigger="date",
             run_date=verification_time,
             name=job_name,
+            id=job_id,
         )
 
     def _get_or_create_port(self, ifindex: int):
