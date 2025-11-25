@@ -12,6 +12,24 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) and the chang
 
 <!-- towncrier release notes start -->
 
+## [2.3.1] - 2025-11-25
+
+### Added
+
+- Added `scheduler.misfire_grace_time` setting to enable control over APScheduler options
+- Dump list of running jobs to log when USR1 signal is received
+
+### Changed
+
+- Bump `netsnmp-cffi` requirement to version 0.1.4 (to avoid frozen jobs)
+
+### Fixed
+
+- Fixed an issue where duplicate events could exist in persisted state from older Zino versions. At Zino startup these are
+  now automatically resolved, keeping only the oldest (original) event open while closing the duplicates. ([#488](https://github.com/Uninett/zino/issues/488))
+- Stop modifying event `updated` timestamp on event closure. Instead, track event closure through new `closed` attribute, in order to remain consistent with Zino 1 ([#490](https://github.com/Uninett/zino/issues/490))
+
+
 ## [2.3.0] - 2025-11-14
 
 ### Added
