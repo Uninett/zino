@@ -17,7 +17,15 @@ async def run_all_tasks(device, state, config):
 async def run_registered_tasks(device, state, config):
     for task_class in get_registered_tasks():
         task = task_class(device, state, config)
-        await task.run()
+        try:
+            await task.run()
+        except TimeoutError:
+            _log.error(
+                "%s: %s raised an unexpected TimeoutError mid-run, cancelling remaining tasks in this run",
+                device.name,
+                task_class.__name__,
+            )
+            return
 
 
 def get_registered_tasks():
