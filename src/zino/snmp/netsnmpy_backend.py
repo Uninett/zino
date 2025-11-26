@@ -2,6 +2,7 @@
 
 import logging
 import os
+import threading
 from collections import defaultdict
 from typing import Any, Optional, Sequence, Tuple, Union
 
@@ -91,6 +92,7 @@ class SNMP:
             retries=device.retries,
         )
         self._is_open = False
+        self._lock = threading.RLock()
 
     def open(self):
         """Opens a low-level SNMP session"""
@@ -105,10 +107,15 @@ class SNMP:
             self._is_open = False
 
     def __enter__(self):
+        self._lock.acquire()
         self.open()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        self._lock.release()
+        # Silly internal access, but RLock did not gain the `locked()` method until Python 3.14:
+        if self._lock._is_owned():
+            return  # Only close when no more locks are held
         self.close()
 
     def _open_if_closed(self):
