@@ -1,0 +1,22 @@
+services:
+  zino:
+    # Option 1: Use locally available zino image if it is available
+    # When it isn't available, build it from local Dockerfile (and source code)
+    build: .
+    image: zino:latest
+    # Option 2: Fetch image externally
+    #image: ghcr.io/uninett/zino:latest
+    volumes:
+      # Mount the current directory into /zino inside the container
+      # It needs to contain the various necessary configuration files
+      - ./:/zino
+    ports:
+      # Map the dynamic trap port
+      #- "1162:1162"
+      # Default trap port
+      - "162:162"
+      # Map the API and notification ports
+      - "8001:8001"
+      - "8002:8002"
+    # Example custom trap port configuration, must match with port mapping
+    #command: "--trap-port 1162"
