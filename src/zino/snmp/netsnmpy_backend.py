@@ -231,7 +231,7 @@ class SNMP:
         var_binds = await self.session.agetbulk(objid, max_repetitions=max_repetitions)
         return [MibObject(*var_bind) for var_bind in var_binds]
 
-    async def getbulk2(self, *variables: Sequence[str], max_repetitions: int = 10) -> list[list[SNMPVarBind]]:
+    async def getbulk2(self, *variables: Sequence[str], max_repetitions: int = 5) -> list[list[SNMPVarBind]]:
         """Issues a GET-BULK request for a set of multiple variables, returning the response in a slightly different
          format than getbulk.
 
@@ -256,7 +256,7 @@ class SNMP:
 
         return [[_convert_snmp_variable(var_bind) for var_bind in chunk] for chunk in response_chunks]
 
-    async def bulkwalk(self, *oid: str, max_repetitions: int = 10) -> list[MibObject]:
+    async def bulkwalk(self, *oid: str, max_repetitions: int = 5) -> list[MibObject]:
         """Uses SNMP-BULK calls to get all objects in the subtree with oid as root
         Example usage:
             bulkwalk("IF-MIB", "ifName", max_repetitions=5)
@@ -280,7 +280,7 @@ class SNMP:
                 results.append(MibObject(oid, value))
         return results
 
-    async def sparsewalk(self, *variables: Sequence[str], max_repetitions: int = 10) -> SparseWalkResponse:
+    async def sparsewalk(self, *variables: Sequence[str], max_repetitions: int = 5) -> SparseWalkResponse:
         """Bulkwalks and returns a "sparse" table.
 
         A sparse walk is just a walk operation that returns selected columns of table (or, from multiple tables that
