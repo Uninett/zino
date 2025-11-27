@@ -1,5 +1,6 @@
 import logging
 
+from zino.debug import debug_log_timeout_error
 from zino.snmp import get_snmp_session
 from zino.tasks.errors import DeviceUnreachableError
 
@@ -25,6 +26,7 @@ async def run_registered_tasks(device, state, config):
                 device.name,
                 task_class.__name__,
             )
+            debug_log_timeout_error(device.name, task_class, logger=_log)
             return
 
 
