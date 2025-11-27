@@ -12,6 +12,23 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) and the chang
 
 <!-- towncrier release notes start -->
 
+## [2.3.2] - 2025-11-27
+
+### Added
+
+- Details about timed out SNMP requests are now logged as debug-level messages in the `zino.tasks` logger
+- Documented how to configure Zino's logging output
+
+### Changed
+
+- Reduced default `max-repetitions` of SNMP GET-BULK operations from 10 to 5 to avoid spurious timeouts
+
+### Fixed
+
+- Allow re-entrant use of SNMP sessions (avoiding unnecessary `CancelledError` exceptions) ([#503](https://github.com/Uninett/zino/issues/503))
+- Unexpected timeouts in task runs are now handled and logged without a complete (scary-looking) traceback
+
+
 ## [2.3.1] - 2025-11-25
 
 ### Added
