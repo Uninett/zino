@@ -284,3 +284,21 @@ class TestVarBindErrors:
 
         with pytest.raises(exception):
             await snmp_client.get(*query)
+
+
+class TestSnmpContextManager:
+    @pytest.fixture
+    def snmp_session(self):
+        device = PollDevice(name="localhost", address="127.0.0.1", port=161)
+        yield SNMP(device)
+
+    def test_enter_and_exit_should_work(self, snmp_session):
+        with snmp_session as snmp:
+            assert snmp is snmp_session
+
+    def test_reentrant_contexts_should_not_close_prematurely(self, snmp_session):
+        with snmp_session as snmp1:
+            assert snmp1._is_open, "first context did not open session"
+            with snmp_session as snmp2:
+                assert snmp2._is_open, "second context closed the session"
+            assert snmp1._is_open, "second session exit close the session prematurely"
