@@ -43,6 +43,65 @@ Zino does not currently check ``zino.toml`` for changes on a scheduled
 interval while it’s running, so Zino needs to be restarted for changes
 to take effect.
 
+.. _configuring-logging:
+
+Configuring logging
+-------------------
+
+Zino uses the logging framework provided by the Python standard library. Most
+aspects of how Zino handles logging can also be controlled through
+:file:`zino.toml`. Specifically, Zino automatically feeds everything under the
+`logging` section of :file:`zino.toml` to Python's
+:py:func:`logging.config.dictConfig`. For a complete overview of which options
+exist, please refer to `Python's documentation of the configuration dictionary
+schema
+<https://docs.python.org/3/library/logging.config.html#logging-config-dictschema>`_.
+The Zino example config includes comments that show Zino's default logging
+setup.
+
+Zino's log output is organized into a hierarchy of loggers that correspond to
+the internal Python module hierarchy of Zino, which means that the log level of
+different parts of Zino can be controlled individually.  If, for example, you
+specifically wanted the reachability task to log debug message, you could add
+this to the configuration:
+
+.. code-block:: toml
+   :caption: zino.toml
+
+    [logging.loggers."zino.tasks.reachabletask"]
+    level = "DEBUG"
+
+A more complex example could be to specifically output all kinds of debug-level
+information from `netsnmp-cffi` and the Net-SNMP C library to *a separate
+file*. Due to the sheer volume of debug logs, it could even be desirable to
+enable automatic log rotation every time the log file exceeds 1GB in size:
+
+.. code-block:: toml
+   :caption: zino.toml
+
+    # Separate file handler for netsnmpy debug logs
+    [logging.handlers.netsnmp_file]
+    class = "logging.handlers.RotatingFileHandler"
+    formatter = "standard"
+    filename = "netsnmp-debug.log"
+    maxBytes = 1073741824  # 1GB
+    # Keep 3 backup files
+    backupCount = 3
+
+    # Send netsnmpy debug logs to a separate file to avoid console spam
+    [logging.loggers.netsnmpy]
+    level = "DEBUG"
+    handlers = ["netsnmp_file"]
+    # Avoid duplicate log message by disabling propagation to the root logger
+    propagate = false
+
+.. tip::
+
+   Zino can also be manually made to log its list of currently executing
+   polling jobs (including their start times and runtime duration) by sending
+   it the ``USR1`` signal to a running Zino process, for example by using a
+   command like ``pkill -SIGUSR1 zino``.
+
 .. _configuring-api-users:
 
 Configuring API users
