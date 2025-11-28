@@ -15,6 +15,7 @@ from zino.stateconverter.utils import load_state_to_dict, parse_ip
 from zino.statemodels import CISCO_ENTERPRISE_ID, JUNIPER_ENTERPRISE_ID, AlarmType
 
 _log = logging.getLogger(__name__)
+_ignored_router_addrs: set[str] = set()
 
 
 def create_state(old_state_file: str) -> ZinoState:
@@ -47,6 +48,8 @@ def create_state(old_state_file: str) -> ZinoState:
     # Load address to router mapping
     for linedata in old_state["::AddrToRouter"]:
         set_addr_to_router(linedata, new_state)
+    if _ignored_router_addrs:
+        _log.error("Ignored invalid router addresses when converting AddrToRouter: %r", _ignored_router_addrs)
 
     # Load timestamps for when events were closed
     for linedata in old_state["::EventCloseTimes"]:
@@ -91,7 +94,7 @@ def set_addr_to_router(linedata: LineData, state: ZinoState):
     try:
         ip = parse_ip(ip_string)
     except ValueError:
-        _log.error(f"Could not parse ip {ip_string}")
+        _ignored_router_addrs.add(ip_string)
         return
     device_name = linedata.value
     state.addresses[ip] = device_name

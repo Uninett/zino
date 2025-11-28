@@ -6,6 +6,7 @@ from zino.stateconverter.utils import OldState, parse_ip
 from zino.statemodels import BGPAdminStatus, BGPOperState, BGPPeerSession, IPAddress
 
 _log = logging.getLogger(__name__)
+_invalid_bgp_addrs: set[str] = set()
 
 
 def set_bgp_state(
@@ -32,6 +33,9 @@ class BGPDevicePeerIndex(NamedTuple):
 def _get_bgp_sessions(old_state: OldState) -> Generator[tuple[BGPDevicePeerIndex, BGPPeerSession], None, None]:
     """Parses old state for BGP sessions and maps them to the correct device and peer IP"""
     bgp_data = _group_bgp_data_by_index(old_state)
+    if _invalid_bgp_addrs:
+        _log.error("Ignored invalid BGP peer addresses when converting BGP sessions: %r", _invalid_bgp_addrs)
+
     for index, data in bgp_data.items():
         bgp_session = BGPPeerSession(
             uptime=int(data.get("::bgpPeerUpTime", 0)),
@@ -50,7 +54,7 @@ def _group_bgp_data_by_index(old_state: OldState) -> dict[BGPDevicePeerIndex, di
                 ip = parse_ip(linedata.identifiers[1])
             except ValueError:
                 # There is a bug in zino1 statedump where invalid IPv6 addresses are dumped
-                _log.error(f"Could not parse ip {linedata.identifiers[1]}")
+                _invalid_bgp_addrs.add(linedata.identifiers[1])
                 continue
             device_name = linedata.identifiers[0]
             index = BGPDevicePeerIndex(device_name, ip)
