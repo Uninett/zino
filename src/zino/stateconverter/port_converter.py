@@ -22,9 +22,6 @@ def _set_interface_state(linedata: LineData, state: ZinoState):
     ifindex = int(linedata.identifiers[1])
     if ifindex not in device.ports:
         device.ports[ifindex] = Port(ifindex=ifindex)
-    if linedata.value == "flapping":
-        _log.info("flapping port state is not supported")
-        return
     device.ports[ifindex].state = InterfaceState(linedata.value)
 
 

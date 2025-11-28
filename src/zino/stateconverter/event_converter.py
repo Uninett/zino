@@ -12,6 +12,7 @@ from zino.statemodels import (
     BGPEvent,
     BGPOperState,
     EventState,
+    FlapState,
     InterfaceState,
     PortStateEvent,
     ReachabilityEvent,
@@ -93,9 +94,9 @@ def _set_event_attrs(linedata: LineData, state: ZinoState, id_to_type: dict[int,
     elif event_field == "descr":
         event.descr = linedata.value
     elif event_field == "flaps":
-        _log.info("flaps is not a supported event field")
+        event.flaps = int(linedata.value)
     elif event_field == "flapstate":
-        _log.info("flapstate is not a supported event field")
+        event.flapstate = FlapState(linedata.value)
     elif event_field == "ifindex":
         event.ifindex = int(linedata.value)
     elif event_field == "portstate":
