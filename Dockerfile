@@ -10,14 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /zino
-
-COPY src /zino/src
-COPY pyproject.toml /zino/pyproject.toml
-
-# Copied to allow for version inference
-COPY .git/HEAD /zino/.git/HEAD
-COPY .git/refs /zino/.git/refs
-COPY .git/objects /zino/.git/objects
+COPY . /zino
 
 RUN python -m venv /venv
 RUN /venv/bin/pip install --upgrade pip setuptools wheel
@@ -29,7 +22,6 @@ FROM python:3.12-slim
 WORKDIR /zino
 
 COPY --from=build /venv /venv
-COPY --from=build /zino /zino
 
 ENV PATH="/venv/bin:$PATH"
 
