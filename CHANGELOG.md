@@ -12,6 +12,17 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) and the chang
 
 <!-- towncrier release notes start -->
 
+## [2.3.3] - 2025-12-01
+
+### Fixed
+
+- Added the last remaining missing items to the `zinoconv` state converter:
+  - Event close times are now converted.
+  - Flapping state data is now converted.
+  - Flapping port states are now converted.
+- `zinoconv` verbosity about invalid IPv6 addresses in old state has been reduced
+- Use microsecond timestamps in job identifiers where it is likely that two instances of the same one-shot job may be scheduled within a single second (to avoid `ConflictingError` exceptions observed in logs)
+
 ## [2.3.2] - 2025-11-27
 
 ### Added
