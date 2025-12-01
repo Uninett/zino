@@ -147,7 +147,7 @@ class LinkStateTask(Task):
     ):
         """Schedules a verification of a single port at a given time in the future"""
         verification_time = datetime.datetime.now() + deadline
-        timestamp_suffix = verification_time.strftime("%H%M%S")
+        timestamp_suffix = verification_time.strftime("%H%M%S.%f")
         job_name = f"{self.device.name}-{reason}-{ifindex}-state"
         job_id = f"{job_name}-{timestamp_suffix}"
         self._scheduler.add_job(

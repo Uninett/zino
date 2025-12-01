@@ -1,0 +1,1 @@
+Use microsecond timestamps in job identifiers where it is likely that two instances of the same one-shot job may be scheduled within a single second (to avoid `ConflictingError` esceptions observed in logs)
