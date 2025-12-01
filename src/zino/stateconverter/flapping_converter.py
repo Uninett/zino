@@ -36,7 +36,7 @@ def _set_flap_hist_val(linedata: LineData, state: ZinoState):
 
 
 def _set_flapped_above_threshold(linedata: LineData, state: ZinoState):
-    _get_flapping_state_for(linedata, state).last_age = bool(int(linedata.value))
+    _get_flapping_state_for(linedata, state).flapped_above_threshold = bool(int(linedata.value))
 
 
 def _set_flapping(linedata: LineData, state: ZinoState):
