@@ -101,9 +101,7 @@ def set_addr_to_router(linedata: LineData, state: ZinoState):
 
 
 def set_event_close_times(linedata: LineData, state: ZinoState):
-    """Records when event was closed, not currently supported in Zino2.
-    Might be supported in the future.
-    """
+    """Records when event was closed"""
     event_id = int(linedata.identifiers[0])
     event = state.events.events.get(event_id)
     if not event:
