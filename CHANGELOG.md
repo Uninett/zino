@@ -12,6 +12,14 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) and the chang
 
 <!-- towncrier release notes start -->
 
+## [2.3.4] - 2025-12-03
+
+### Fixed
+
+- Fixed bug where all recent portstate events were incorrectly considered as transitioning from a flapping state to its actual state ([#509](https://github.com/Uninett/zino/issues/509))
+- Fall back to decoding incoming server protocol messages as ISO-8859-1 if UTF-8 decoding fails
+
+
 ## [2.3.3] - 2025-12-01
 
 ### Fixed
