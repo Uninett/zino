@@ -2,7 +2,7 @@ import ipaddress
 import logging
 from asyncio import Future
 from datetime import timedelta
-from unittest.mock import Mock
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
@@ -285,6 +285,25 @@ class TestAgeSingleInterfaceFlappingState:
         )
 
         assert not state_with_flapstats.flapping.interfaces
+
+    async def test_when_flap_has_transitioned_from_flapping_to_below_threshold_it_should_stabilize_flapping_state(
+        self, mocked_out_poll_single_interface, state_with_flapstats, polldevs_dict
+    ):
+        port: Port = next(iter(state_with_flapstats.devices.devices["localhost"].ports.values()))
+        flapping_state = state_with_flapstats.flapping.interfaces[("localhost", port.ifindex)]
+        flapping_state.hist_val = FLAP_THRESHOLD
+        # Simulate that this interface was previously marked as flapping
+        flapping_state.flapped_above_threshold = True
+
+        with patch("zino.flaps.stabilize_flapping_state", new_callable=AsyncMock) as mock_stabilize:
+            await age_single_interface_flapping_state(
+                flapping_state, ("localhost", port.ifindex), state=state_with_flapstats, polldevs=polldevs_dict
+            )
+
+            mock_stabilize.assert_called_once()
+            args = mock_stabilize.call_args[0]
+            assert args[0] is flapping_state
+            assert args[1] == ("localhost", port.ifindex)
 
 
 class TestStabilizeFlappingState:
