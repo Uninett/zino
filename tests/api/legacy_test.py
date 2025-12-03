@@ -87,10 +87,13 @@ class TestZino1BaseServerProtocol:
         assert not mocked.called
 
     def test_when_garbage_data_is_received_then_transport_should_be_closed(self):
+        """Tests the theoretically impossible scenario that incoming data cannot even be decoded as latin-1"""
         protocol = Zino1BaseServerProtocol()
         fake_transport = Mock()
         protocol.connection_made(fake_transport)
-        protocol.data_received(b"\xff\xf4\xff\xfd\x06\r\n")
+
+        with patch("zino.api.legacy.decode_data", side_effect=UnicodeDecodeError("latin-1", b"", 0, 1, "reason")):
+            protocol.data_received(b"\xff\xf4\xff\xfd\x06\r\n")
 
         assert fake_transport.close.called
 
