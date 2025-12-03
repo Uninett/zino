@@ -117,11 +117,21 @@ class TestFlappingStates:
 
         assert not flapping_states.is_flapping(1)
 
-    def test_when_flapping_stats_exist_was_flapping_should_return_true(self):
+    def test_when_flapping_stats_is_marked_as_above_threshold_was_flapping_should_return_true(self):
         flapping_states = FlappingStates()
-        flapping_states.interfaces[1] = FlappingState()
+        flap = FlappingState()
+        flap.flapped_above_threshold = True
+        flapping_states.interfaces[1] = flap
 
         assert flapping_states.was_flapping(1)
+
+    def test_when_flapping_stats_is_not_marked_as_above_threshold_was_flapping_should_return_false(self):
+        flapping_states = FlappingStates()
+        flap = FlappingState()
+        flap.flapped_above_threshold = False
+        flapping_states.interfaces[1] = flap
+
+        assert not flapping_states.was_flapping(1)
 
     def test_when_flapping_stats_do_not_exist_was_flapping_should_return_false(self):
         flapping_states = FlappingStates()
