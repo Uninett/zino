@@ -137,8 +137,12 @@ class FlappingStates(BaseModel):
         return self.interfaces[interface].is_flapping()
 
     def was_flapping(self, interface: PortIndex) -> bool:
-        """Seems to answer whether there exists any flapping tracking stats for a port from before"""
-        return interface in self.interfaces
+        """Answers whether a flapping threshold was ever exceeded in the lifetime of this stats instance.
+
+        Once a port has been marked as non-flapping by aging below threshold, its stats record will be removed,
+        and this will once again return False.
+        """
+        return interface in self.interfaces and self.interfaces[interface].flapped_above_threshold
 
     def get_flap_count(self, interface: PortIndex) -> int:
         """Returns the current flap count of an interface, or 0 if no flapping stats exist for it."""

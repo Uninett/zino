@@ -2,7 +2,7 @@ import ipaddress
 import logging
 from asyncio import Future
 from datetime import timedelta
-from unittest.mock import Mock
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
@@ -117,11 +117,21 @@ class TestFlappingStates:
 
         assert not flapping_states.is_flapping(1)
 
-    def test_when_flapping_stats_exist_was_flapping_should_return_true(self):
+    def test_when_flapping_stats_is_marked_as_above_threshold_was_flapping_should_return_true(self):
         flapping_states = FlappingStates()
-        flapping_states.interfaces[1] = FlappingState()
+        flap = FlappingState()
+        flap.flapped_above_threshold = True
+        flapping_states.interfaces[1] = flap
 
         assert flapping_states.was_flapping(1)
+
+    def test_when_flapping_stats_is_not_marked_as_above_threshold_was_flapping_should_return_false(self):
+        flapping_states = FlappingStates()
+        flap = FlappingState()
+        flap.flapped_above_threshold = False
+        flapping_states.interfaces[1] = flap
+
+        assert not flapping_states.was_flapping(1)
 
     def test_when_flapping_stats_do_not_exist_was_flapping_should_return_false(self):
         flapping_states = FlappingStates()
@@ -275,6 +285,25 @@ class TestAgeSingleInterfaceFlappingState:
         )
 
         assert not state_with_flapstats.flapping.interfaces
+
+    async def test_when_flap_has_transitioned_from_flapping_to_below_threshold_it_should_stabilize_flapping_state(
+        self, mocked_out_poll_single_interface, state_with_flapstats, polldevs_dict
+    ):
+        port: Port = next(iter(state_with_flapstats.devices.devices["localhost"].ports.values()))
+        flapping_state = state_with_flapstats.flapping.interfaces[("localhost", port.ifindex)]
+        flapping_state.hist_val = FLAP_THRESHOLD
+        # Simulate that this interface was previously marked as flapping
+        flapping_state.flapped_above_threshold = True
+
+        with patch("zino.flaps.stabilize_flapping_state", new_callable=AsyncMock) as mock_stabilize:
+            await age_single_interface_flapping_state(
+                flapping_state, ("localhost", port.ifindex), state=state_with_flapstats, polldevs=polldevs_dict
+            )
+
+            mock_stabilize.assert_called_once()
+            args = mock_stabilize.call_args[0]
+            assert args[0] is flapping_state
+            assert args[1] == ("localhost", port.ifindex)
 
 
 class TestStabilizeFlappingState:
