@@ -127,7 +127,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         while b"\n" in self._input_buffer:
             line, self._input_buffer = self._input_buffer.split(b"\n", 1)
             try:
-                self.message_received(line.rstrip(b"\r").decode())
+                self.message_received(decode_data(line.rstrip(b"\r")))
             except UnicodeDecodeError:
                 _logger.error("Received garbage server input from %s: %r", self.peer_name, line)
                 self.transport.close()
@@ -624,3 +624,11 @@ class ZinoTestProtocol(Zino1ServerProtocol):
         that exceptions that go unhandled by a command responder is handled by the protocol engine.
         """
         1 / 0  # noqa
+
+
+def decode_data(data: bytes) -> str:
+    """Decodes Zino 1 protocol data from bytes to string, assuming utf-8 encoding and falling back to latin1."""
+    try:
+        return data.decode("utf-8")
+    except UnicodeDecodeError:
+        return data.decode("latin-1")

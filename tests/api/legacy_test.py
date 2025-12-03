@@ -12,6 +12,7 @@ from zino.api.legacy import (
     Zino1BaseServerProtocol,
     Zino1ServerProtocol,
     ZinoTestProtocol,
+    decode_data,
     requires_authentication,
 )
 from zino.api.server import ZinoServer
@@ -1239,3 +1240,21 @@ def authenticated_protocol(buffered_fake_transport) -> Zino1ServerProtocol:
     protocol.connection_made(buffered_fake_transport)
     protocol.user = "fake"
     yield protocol
+
+
+class TestDecodeData:
+    def test_when_data_is_valid_utf8_it_should_decode_as_utf8(self):
+        data = "hello world".encode("utf-8")
+        assert decode_data(data) == "hello world"
+
+    def test_when_data_is_valid_latin1_it_should_decode_as_latin1(self):
+        data = "café".encode("latin-1")
+        assert decode_data(data) == "café"
+
+    def test_when_data_contains_non_ascii_utf8_it_should_decode_correctly(self):
+        data = "æøå".encode("utf-8")
+        assert decode_data(data) == "æøå"
+
+    def test_when_data_contains_non_ascii_latin1_it_should_decode_correctly(self):
+        data = bytes([0xE6, 0xF8, 0xE5])
+        assert decode_data(data) == "æøå"
