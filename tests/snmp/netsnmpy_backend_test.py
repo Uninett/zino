@@ -3,7 +3,8 @@ import os
 from unittest.mock import Mock, patch
 
 import pytest
-from netsnmpy import netsnmp
+
+netsnmp = pytest.importorskip("netsnmpy.netsnmp", reason="netsnmp-cffi not available")
 from netsnmpy.netsnmp import EndOfMibView, NoSuchInstance, NoSuchObject, SNMPVariable
 from netsnmpy.oids import OID
 
