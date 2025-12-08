@@ -5,7 +5,7 @@ from os import R_OK, access
 from os.path import isfile
 from typing import Any, Literal, Optional, Union
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from pydantic.functional_validators import AfterValidator
 from typing_extensions import Annotated
 
@@ -46,6 +46,7 @@ class PollDevice(BaseModel):
     snmpversion: Literal["v1", "v2c"] = "v2c"
     do_bgp: bool = True
     port: int = 161
+    max_repetitions: Optional[int] = Field(default=None, ge=1)  # When None, SNMP methods use their own defaults
 
 
 class Archiving(BaseModel):

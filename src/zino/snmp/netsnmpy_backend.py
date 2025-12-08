@@ -223,22 +223,24 @@ class SNMP:
             results.append(MibObject(current_oid, value))
         return results
 
-    async def getbulk(self, *oid: str, max_repetitions: int = 1) -> list[MibObject]:
+    async def getbulk(self, *oid: str, max_repetitions: int = None) -> list[MibObject]:
         """SNMP-BULKs the given oid
         Example usage:
             getbulk("IF-MIB", "ifName", max_repetitions=5)
             getbulk("1.3.6.1.2.1.31.1.1.1.1")
 
         :param oid: Symbolic MIB object to query.  Multiple formats supported.
-        :param max_repetitions: Max amount of MIB objects to retrieve
+        :param max_repetitions: Max amount of MIB objects to retrieve. Defaults to device's configured value, or 1.
         :return: A list of MibObjects representing the resulting MIB variables
         """
+        if max_repetitions is None:
+            max_repetitions = self.device.max_repetitions if self.device.max_repetitions is not None else 1
         objid = resolve_symbol(oid)
         self._open_if_closed()
         var_binds = await self.session.agetbulk(objid, max_repetitions=max_repetitions)
         return [MibObject(*var_bind) for var_bind in var_binds]
 
-    async def getbulk2(self, *variables: Sequence[str], max_repetitions: int = 5) -> list[list[SNMPVarBind]]:
+    async def getbulk2(self, *variables: Sequence[str], max_repetitions: int = None) -> list[list[SNMPVarBind]]:
         """Issues a GET-BULK request for a set of multiple variables, returning the response in a slightly different
          format than getbulk.
 
@@ -251,9 +253,11 @@ class SNMP:
               (Identifier(mib='IF-MIB', object='ifDescr', index=OID('.2')), 'GigabitEthernet0/2')]]
 
         :param variables: Variables to fetch, either as OIDs or symbolic names
-        :param max_repetitions: Max amount of MIB objects to retrieve
+        :param max_repetitions: Max amount of MIB objects to retrieve. Defaults to device's configured value, or 5.
         :return: A sequence of two-tuples that represent the response varbinds
         """
+        if max_repetitions is None:
+            max_repetitions = self.device.max_repetitions if self.device.max_repetitions is not None else 5
         oid_objects = [resolve_symbol(v) for v in variables]
         self._open_if_closed()
         var_binds = await self.session.agetbulk(*oid_objects, max_repetitions=max_repetitions)
@@ -263,16 +267,19 @@ class SNMP:
 
         return [[_convert_snmp_variable(var_bind) for var_bind in chunk] for chunk in response_chunks]
 
-    async def bulkwalk(self, *oid: str, max_repetitions: int = 5) -> list[MibObject]:
+    async def bulkwalk(self, *oid: str, max_repetitions: int = None) -> list[MibObject]:
         """Uses SNMP-BULK calls to get all objects in the subtree with oid as root
         Example usage:
             bulkwalk("IF-MIB", "ifName", max_repetitions=5)
             bulkwalk("1.3.6.1.2.1.31.1.1.1.1")
 
         :param oid: Symbolic MIB object to query.  Multiple formats supported.
-        :param max_repetitions: Max amount of MIB objects to retrieve per SNMP-BULK call
+        :param max_repetitions: Max amount of MIB objects to retrieve per SNMP-BULK call. Defaults to device's
+            configured value, or 5.
         :return: A list of MibObjects representing the resulting MIB variables
         """
+        if max_repetitions is None:
+            max_repetitions = self.device.max_repetitions if self.device.max_repetitions is not None else 5
         results = []
         start_oid = query_oid = resolve_symbol(oid)
         self._open_if_closed()
@@ -287,7 +294,7 @@ class SNMP:
                 results.append(MibObject(oid, value))
         return results
 
-    async def sparsewalk(self, *variables: Sequence[str], max_repetitions: int = 5) -> SparseWalkResponse:
+    async def sparsewalk(self, *variables: Sequence[str], max_repetitions: int = None) -> SparseWalkResponse:
         """Bulkwalks and returns a "sparse" table.
 
         A sparse walk is just a walk operation that returns selected columns of table (or, from multiple tables that
@@ -298,7 +305,13 @@ class SNMP:
             >>> snmp.sparsewalk(("IF-MIB", "ifName"), ("IF-MIB", "ifAlias"))
             {OID('.1'): {"ifname": "1", "ifAlias": "uplink"},
              OID('.2'): {"ifName": "2", "ifAlias": "next-sw.example.org"}}
+
+        :param variables: Variables to fetch, either as OIDs or symbolic names
+        :param max_repetitions: Max amount of MIB objects to retrieve per SNMP-BULK call. Defaults to device's
+            configured value, or 5.
         """
+        if max_repetitions is None:
+            max_repetitions = self.device.max_repetitions if self.device.max_repetitions is not None else 5
         # See section 4.2.3 of RFC 3416 for reference.  This method does not support
         # non-repeaters values.
         query_objects = roots = [resolve_symbol(symbol) for symbol in variables]

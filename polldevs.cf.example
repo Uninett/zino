@@ -35,3 +35,11 @@ interval: 2
 name: example-gw4
 address: 192.168.42.4
 community: foobar
+
+# example-gw5 uses a lower max-repetitions value for SNMP GET-BULK requests.
+# This can help avoid timeouts on devices with slow SNMP agents. The default
+# value is 10. Lower values reduce load on the SNMP agent but may increase
+# the number of requests needed to complete a walk operation.
+name: example-gw5
+address: 192.168.42.5
+max-repetitions: 3

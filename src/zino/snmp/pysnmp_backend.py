@@ -275,7 +275,7 @@ class SNMP:
             results.append(mib_object)
         return results
 
-    async def getbulk(self, *oid: str, max_repetitions: int = 1) -> list[MibObject]:
+    async def getbulk(self, *oid: str, max_repetitions: int = None) -> list[MibObject]:
         """SNMP-BULKs the given oid
         Example usage:
             getbulk("IF-MIB", "ifName", max_repetitions=5)
@@ -283,9 +283,11 @@ class SNMP:
 
         :param oid: Values for defining an OID. For detailed use see
             https://github.com/pysnmp/pysnmp/blob/bc1fb3c39764f36c1b7c9551b52ef8246b9aea7c/pysnmp/smi/rfc1902.py#L35-L49
-        :param max_repetitions: Max amount of MIB objects to retrieve
+        :param max_repetitions: Max amount of MIB objects to retrieve. Defaults to device's configured value, or 1.
         :return: A list of MibObjects representing the resulting MIB variables
         """
+        if max_repetitions is None:
+            max_repetitions = self.device.max_repetitions if self.device.max_repetitions is not None else 1
         oid_object = self._oid_to_object_type(*oid)
         objecttypes = await self._getbulk(oid_object, max_repetitions)
         results = []
@@ -311,7 +313,7 @@ class SNMP:
         self._raise_errors(error_indication, error_status, error_index, object_type)
         return var_binds[0]
 
-    async def getbulk2(self, *variables: Sequence[str], max_repetitions: int = 10) -> list[list[SNMPVarBind]]:
+    async def getbulk2(self, *variables: Sequence[str], max_repetitions: int = None) -> list[list[SNMPVarBind]]:
         """Issues a GET-BULK request for a set of multiple variables, returning the response in a slightly different
          format than getbulk.
 
@@ -324,9 +326,11 @@ class SNMP:
               (Identifier(mib='IF-MIB', object='ifDescr', index=OID('.2')), 'GigabitEthernet0/2')]]
 
         :param variables: Variables to fetch, either as OIDs or symbolic names
-        :param max_repetitions: Max amount of MIB objects to retrieve
+        :param max_repetitions: Max amount of MIB objects to retrieve. Defaults to device's configured value, or 10.
         :return: A sequence of two-tuples that represent the response varbinds
         """
+        if max_repetitions is None:
+            max_repetitions = self.device.max_repetitions if self.device.max_repetitions is not None else 10
         oid_objects = [self._oid_to_object_type(*var) for var in variables]
         var_bind_table = await self._getbulk2(*oid_objects, max_repetitions=max_repetitions)
 
@@ -349,7 +353,7 @@ class SNMP:
         self._raise_errors(error_indication, error_status, error_index, *variables)
         return var_bind_table
 
-    async def bulkwalk(self, *oid: str, max_repetitions: int = 10) -> list[MibObject]:
+    async def bulkwalk(self, *oid: str, max_repetitions: int = None) -> list[MibObject]:
         """Uses SNMP-BULK calls to get all objects in the subtree with oid as root
         Example usage:
             bulkwalk("IF-MIB", "ifName", max_repetitions=5)
@@ -357,9 +361,12 @@ class SNMP:
 
         :param oid: Values for defining an OID. For detailed use see
             https://github.com/pysnmp/pysnmp/blob/bc1fb3c39764f36c1b7c9551b52ef8246b9aea7c/pysnmp/smi/rfc1902.py#L35-L49
-        :param max_repetitions: Max amount of MIB objects to retrieve per SNMP-BULK call
+        :param max_repetitions: Max amount of MIB objects to retrieve per SNMP-BULK call. Defaults to device's
+            configured value, or 10.
         :return: A list of MibObjects representing the resulting MIB variables
         """
+        if max_repetitions is None:
+            max_repetitions = self.device.max_repetitions if self.device.max_repetitions is not None else 10
         results = []
         query_object = self._oid_to_object_type(*oid)
         self._resolve_object(query_object)
@@ -376,7 +383,7 @@ class SNMP:
                 results.append(mib_object)
         return results
 
-    async def sparsewalk(self, *variables: Sequence[str], max_repetitions: int = 10) -> SparseWalkResponse:
+    async def sparsewalk(self, *variables: Sequence[str], max_repetitions: int = None) -> SparseWalkResponse:
         """Bulkwalks and returns a "sparse" table.
 
         A sparse walk is just a walk operation that returns selected columns of table (or, from multiple tables that
@@ -387,7 +394,13 @@ class SNMP:
             >>> snmp.sparsewalk(("IF-MIB", "ifName"), ("IF-MIB", "ifAlias"))
             {OID('.1'): {"ifname": "1", "ifAlias": "uplink"},
              OID('.2'): {"ifName": "2", "ifAlias": "next-sw.example.org"}}
+
+        :param variables: Variables to fetch, either as OIDs or symbolic names
+        :param max_repetitions: Max amount of MIB objects to retrieve per SNMP-BULK call. Defaults to device's
+            configured value, or 10.
         """
+        if max_repetitions is None:
+            max_repetitions = self.device.max_repetitions if self.device.max_repetitions is not None else 10
         query_objects = [self._oid_to_object_type(*var) for var in variables]
         [self._resolve_object(obj) for obj in query_objects]
 
