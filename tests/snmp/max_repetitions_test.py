@@ -35,8 +35,7 @@ class TestNetsnmpyBackendMaxRepetitions:
     # getbulk tests (default: 1)
 
     @pytest.mark.asyncio
-    async def test_getbulk_uses_device_config(self, device_with_max_repetitions):
-        """Tests that getbulk uses max_repetitions from the device config"""
+    async def test_when_device_has_max_repetitions_getbulk_should_use_it(self, device_with_max_repetitions):
         from zino.snmp.netsnmpy_backend import SNMP as NetSnmp
 
         snmp = NetSnmp(device_with_max_repetitions)
@@ -49,8 +48,7 @@ class TestNetsnmpyBackendMaxRepetitions:
             )
 
     @pytest.mark.asyncio
-    async def test_getbulk_parameter_overrides_device_config(self, device_with_max_repetitions):
-        """Tests that getbulk uses max_repetitions from the parameter over device config"""
+    async def test_when_parameter_is_given_getbulk_should_override_device_config(self, device_with_max_repetitions):
         from zino.snmp.netsnmpy_backend import SNMP as NetSnmp
 
         snmp = NetSnmp(device_with_max_repetitions)
@@ -63,8 +61,7 @@ class TestNetsnmpyBackendMaxRepetitions:
             )
 
     @pytest.mark.asyncio
-    async def test_getbulk_uses_default_when_not_configured(self, device_without_max_repetitions):
-        """Tests that getbulk uses default value (1) when no config is set"""
+    async def test_when_device_has_no_max_repetitions_getbulk_should_use_default(self, device_without_max_repetitions):
         from zino.snmp.netsnmpy_backend import SNMP as NetSnmp
 
         snmp = NetSnmp(device_without_max_repetitions)
@@ -79,8 +76,7 @@ class TestNetsnmpyBackendMaxRepetitions:
     # getbulk2 tests (default: 5)
 
     @pytest.mark.asyncio
-    async def test_getbulk2_uses_device_config(self, device_with_max_repetitions):
-        """Tests that getbulk2 uses max_repetitions from the device config"""
+    async def test_when_device_has_max_repetitions_getbulk2_should_use_it(self, device_with_max_repetitions):
         from zino.snmp.netsnmpy_backend import SNMP as NetSnmp
 
         snmp = NetSnmp(device_with_max_repetitions)
@@ -92,8 +88,7 @@ class TestNetsnmpyBackendMaxRepetitions:
             assert kwargs["max_repetitions"] == 15
 
     @pytest.mark.asyncio
-    async def test_getbulk2_parameter_overrides_device_config(self, device_with_max_repetitions):
-        """Tests that getbulk2 uses max_repetitions from the parameter over device config"""
+    async def test_when_parameter_is_given_getbulk2_should_override_device_config(self, device_with_max_repetitions):
         from zino.snmp.netsnmpy_backend import SNMP as NetSnmp
 
         snmp = NetSnmp(device_with_max_repetitions)
@@ -105,8 +100,7 @@ class TestNetsnmpyBackendMaxRepetitions:
             assert kwargs["max_repetitions"] == 25
 
     @pytest.mark.asyncio
-    async def test_getbulk2_uses_default_when_not_configured(self, device_without_max_repetitions):
-        """Tests that getbulk2 uses default value (5) when no config is set"""
+    async def test_when_device_has_no_max_repetitions_getbulk2_should_use_default(self, device_without_max_repetitions):
         from zino.snmp.netsnmpy_backend import SNMP as NetSnmp
 
         snmp = NetSnmp(device_without_max_repetitions)
@@ -120,8 +114,7 @@ class TestNetsnmpyBackendMaxRepetitions:
     # bulkwalk tests (default: 5)
 
     @pytest.mark.asyncio
-    async def test_bulkwalk_uses_device_config(self, device_with_max_repetitions):
-        """Tests that bulkwalk uses max_repetitions from the device config"""
+    async def test_when_device_has_max_repetitions_bulkwalk_should_use_it(self, device_with_max_repetitions):
         from zino.snmp.netsnmpy_backend import SNMP as NetSnmp
 
         snmp = NetSnmp(device_with_max_repetitions)
@@ -133,8 +126,7 @@ class TestNetsnmpyBackendMaxRepetitions:
             assert kwargs["max_repetitions"] == 15
 
     @pytest.mark.asyncio
-    async def test_bulkwalk_parameter_overrides_device_config(self, device_with_max_repetitions):
-        """Tests that bulkwalk uses max_repetitions from the parameter over device config"""
+    async def test_when_parameter_is_given_bulkwalk_should_override_device_config(self, device_with_max_repetitions):
         from zino.snmp.netsnmpy_backend import SNMP as NetSnmp
 
         snmp = NetSnmp(device_with_max_repetitions)
@@ -146,8 +138,7 @@ class TestNetsnmpyBackendMaxRepetitions:
             assert kwargs["max_repetitions"] == 30
 
     @pytest.mark.asyncio
-    async def test_bulkwalk_uses_default_when_not_configured(self, device_without_max_repetitions):
-        """Tests that bulkwalk uses default value (5) when no config is set"""
+    async def test_when_device_has_no_max_repetitions_bulkwalk_should_use_default(self, device_without_max_repetitions):
         from zino.snmp.netsnmpy_backend import SNMP as NetSnmp
 
         snmp = NetSnmp(device_without_max_repetitions)
@@ -161,8 +152,7 @@ class TestNetsnmpyBackendMaxRepetitions:
     # sparsewalk tests (default: 5)
 
     @pytest.mark.asyncio
-    async def test_sparsewalk_uses_device_config(self, device_with_max_repetitions):
-        """Tests that sparsewalk uses max_repetitions from the device config"""
+    async def test_when_device_has_max_repetitions_sparsewalk_should_use_it(self, device_with_max_repetitions):
         from zino.snmp.netsnmpy_backend import SNMP as NetSnmp
 
         snmp = NetSnmp(device_with_max_repetitions)
@@ -174,8 +164,7 @@ class TestNetsnmpyBackendMaxRepetitions:
             assert kwargs["max_repetitions"] == 15
 
     @pytest.mark.asyncio
-    async def test_sparsewalk_parameter_overrides_device_config(self, device_with_max_repetitions):
-        """Tests that sparsewalk uses max_repetitions from the parameter over device config"""
+    async def test_when_parameter_is_given_sparsewalk_should_override_device_config(self, device_with_max_repetitions):
         from zino.snmp.netsnmpy_backend import SNMP as NetSnmp
 
         snmp = NetSnmp(device_with_max_repetitions)
@@ -187,8 +176,7 @@ class TestNetsnmpyBackendMaxRepetitions:
             assert kwargs["max_repetitions"] == 35
 
     @pytest.mark.asyncio
-    async def test_sparsewalk_uses_default_when_not_configured(self, device_without_max_repetitions):
-        """Tests that sparsewalk uses default value (5) when no config is set"""
+    async def test_when_device_has_no_max_repetitions_sparsewalk_should_use_default(self, device_without_max_repetitions):
         from zino.snmp.netsnmpy_backend import SNMP as NetSnmp
 
         snmp = NetSnmp(device_without_max_repetitions)
@@ -214,8 +202,7 @@ class TestPysnmpBackendMaxRepetitions:
     # getbulk tests (default: 1)
 
     @pytest.mark.asyncio
-    async def test_getbulk_uses_device_config(self, device_with_max_repetitions):
-        """Tests that getbulk uses max_repetitions from the device config"""
+    async def test_when_device_has_max_repetitions_getbulk_should_use_it(self, device_with_max_repetitions):
         from zino.snmp.pysnmp_backend import SNMP as PySnmp
 
         snmp = PySnmp(device_with_max_repetitions)
@@ -227,8 +214,7 @@ class TestPysnmpBackendMaxRepetitions:
             assert args[1] == 15  # max_repetitions is second positional arg
 
     @pytest.mark.asyncio
-    async def test_getbulk_parameter_overrides_device_config(self, device_with_max_repetitions):
-        """Tests that getbulk uses max_repetitions from the parameter over device config"""
+    async def test_when_parameter_is_given_getbulk_should_override_device_config(self, device_with_max_repetitions):
         from zino.snmp.pysnmp_backend import SNMP as PySnmp
 
         snmp = PySnmp(device_with_max_repetitions)
@@ -240,8 +226,7 @@ class TestPysnmpBackendMaxRepetitions:
             assert args[1] == 20
 
     @pytest.mark.asyncio
-    async def test_getbulk_uses_default_when_not_configured(self, device_without_max_repetitions):
-        """Tests that getbulk uses default value (1) when no config is set"""
+    async def test_when_device_has_no_max_repetitions_getbulk_should_use_default(self, device_without_max_repetitions):
         from zino.snmp.pysnmp_backend import SNMP as PySnmp
 
         snmp = PySnmp(device_without_max_repetitions)
@@ -255,8 +240,7 @@ class TestPysnmpBackendMaxRepetitions:
     # getbulk2 tests (default: 10)
 
     @pytest.mark.asyncio
-    async def test_getbulk2_uses_device_config(self, device_with_max_repetitions):
-        """Tests that getbulk2 uses max_repetitions from the device config"""
+    async def test_when_device_has_max_repetitions_getbulk2_should_use_it(self, device_with_max_repetitions):
         from zino.snmp.pysnmp_backend import SNMP as PySnmp
 
         snmp = PySnmp(device_with_max_repetitions)
@@ -268,8 +252,7 @@ class TestPysnmpBackendMaxRepetitions:
             assert kwargs["max_repetitions"] == 15
 
     @pytest.mark.asyncio
-    async def test_getbulk2_parameter_overrides_device_config(self, device_with_max_repetitions):
-        """Tests that getbulk2 uses max_repetitions from the parameter over device config"""
+    async def test_when_parameter_is_given_getbulk2_should_override_device_config(self, device_with_max_repetitions):
         from zino.snmp.pysnmp_backend import SNMP as PySnmp
 
         snmp = PySnmp(device_with_max_repetitions)
@@ -281,8 +264,7 @@ class TestPysnmpBackendMaxRepetitions:
             assert kwargs["max_repetitions"] == 25
 
     @pytest.mark.asyncio
-    async def test_getbulk2_uses_default_when_not_configured(self, device_without_max_repetitions):
-        """Tests that getbulk2 uses default value (10) when no config is set"""
+    async def test_when_device_has_no_max_repetitions_getbulk2_should_use_default(self, device_without_max_repetitions):
         from zino.snmp.pysnmp_backend import SNMP as PySnmp
 
         snmp = PySnmp(device_without_max_repetitions)
@@ -296,8 +278,7 @@ class TestPysnmpBackendMaxRepetitions:
     # bulkwalk tests (default: 10)
 
     @pytest.mark.asyncio
-    async def test_bulkwalk_uses_device_config(self, device_with_max_repetitions):
-        """Tests that bulkwalk uses max_repetitions from the device config"""
+    async def test_when_device_has_max_repetitions_bulkwalk_should_use_it(self, device_with_max_repetitions):
         from zino.snmp.pysnmp_backend import SNMP as PySnmp
 
         snmp = PySnmp(device_with_max_repetitions)
@@ -309,8 +290,7 @@ class TestPysnmpBackendMaxRepetitions:
             assert args[1] == 15
 
     @pytest.mark.asyncio
-    async def test_bulkwalk_parameter_overrides_device_config(self, device_with_max_repetitions):
-        """Tests that bulkwalk uses max_repetitions from the parameter over device config"""
+    async def test_when_parameter_is_given_bulkwalk_should_override_device_config(self, device_with_max_repetitions):
         from zino.snmp.pysnmp_backend import SNMP as PySnmp
 
         snmp = PySnmp(device_with_max_repetitions)
@@ -322,8 +302,7 @@ class TestPysnmpBackendMaxRepetitions:
             assert args[1] == 30
 
     @pytest.mark.asyncio
-    async def test_bulkwalk_uses_default_when_not_configured(self, device_without_max_repetitions):
-        """Tests that bulkwalk uses default value (10) when no config is set"""
+    async def test_when_device_has_no_max_repetitions_bulkwalk_should_use_default(self, device_without_max_repetitions):
         from zino.snmp.pysnmp_backend import SNMP as PySnmp
 
         snmp = PySnmp(device_without_max_repetitions)
@@ -337,8 +316,7 @@ class TestPysnmpBackendMaxRepetitions:
     # sparsewalk tests (default: 10)
 
     @pytest.mark.asyncio
-    async def test_sparsewalk_uses_device_config(self, device_with_max_repetitions):
-        """Tests that sparsewalk uses max_repetitions from the device config"""
+    async def test_when_device_has_max_repetitions_sparsewalk_should_use_it(self, device_with_max_repetitions):
         from zino.snmp.pysnmp_backend import SNMP as PySnmp
 
         snmp = PySnmp(device_with_max_repetitions)
@@ -350,8 +328,7 @@ class TestPysnmpBackendMaxRepetitions:
             assert kwargs["max_repetitions"] == 15
 
     @pytest.mark.asyncio
-    async def test_sparsewalk_parameter_overrides_device_config(self, device_with_max_repetitions):
-        """Tests that sparsewalk uses max_repetitions from the parameter over device config"""
+    async def test_when_parameter_is_given_sparsewalk_should_override_device_config(self, device_with_max_repetitions):
         from zino.snmp.pysnmp_backend import SNMP as PySnmp
 
         snmp = PySnmp(device_with_max_repetitions)
@@ -363,8 +340,7 @@ class TestPysnmpBackendMaxRepetitions:
             assert kwargs["max_repetitions"] == 35
 
     @pytest.mark.asyncio
-    async def test_sparsewalk_uses_default_when_not_configured(self, device_without_max_repetitions):
-        """Tests that sparsewalk uses default value (10) when no config is set"""
+    async def test_when_device_has_no_max_repetitions_sparsewalk_should_use_default(self, device_without_max_repetitions):
         from zino.snmp.pysnmp_backend import SNMP as PySnmp
 
         snmp = PySnmp(device_without_max_repetitions)
