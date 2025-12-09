@@ -19,8 +19,77 @@ example of the configuration format, reproduced below:
 .. literalinclude:: ../polldevs.cf.example
 
 Zino will check :file:`polldevs.cf` for changes on a scheduled interval
-while it’s running, so any changes made while Zino is running should be
+while it's running, so any changes made while Zino is running should be
 picked up without requiring a restart of the process.
+
+polldevs.cf reference
+---------------------
+
+The following settings can be configured either as global defaults (prefixed with
+``default``) or per-device overrides:
+
+.. list-table:: polldevs.cf settings
+   :widths: 20 15 65
+   :header-rows: 1
+
+   * - Setting
+     - Default
+     - Description
+   * - ``community``
+     - ``public``
+     - SNMP community string
+   * - ``snmpversion``
+     - ``v2c``
+     - SNMP version (``v1`` or ``v2c``)
+   * - ``port``
+     - ``161``
+     - SNMP UDP port
+   * - ``timeout``
+     - ``5``
+     - SNMP request timeout in seconds
+   * - ``retries``
+     - ``3``
+     - Number of SNMP request retries
+   * - ``interval``
+     - ``5``
+     - Polling interval in minutes
+   * - ``priority``
+     - ``100``
+     - Scheduling priority (higher = more frequent)
+   * - ``domain``
+     - (none)
+     - DNS domain suffix
+   * - ``statistics``
+     - ``yes``
+     - Collect interface statistics
+   * - ``do_bgp``
+     - ``yes``
+     - Monitor BGP sessions
+   * - ``ignorepat``
+     - (none)
+     - Regex pattern for interfaces to ignore
+   * - ``watchpat``
+     - (none)
+     - Regex pattern for interfaces to monitor (if set, only matching interfaces are monitored)
+   * - ``max-repetitions``
+     - (backend-specific)
+     - Maximum number of variable bindings returned per SNMP GET-BULK request.
+       Lower values reduce load on SNMP agents but may increase the number of
+       requests needed to complete walk operations. Useful for devices with slow
+       SNMP agents that may timeout with higher values. If not set, each SNMP
+       method uses its own default (typically 5 for netsnmp, 10 for pysnmp).
+
+Example with ``max-repetitions``:
+
+.. code-block:: none
+
+   # Global default: use lower max-repetitions for all devices
+   default max-repetitions: 5
+
+   # Device with an especially slow SNMP agent
+   name: slow-router
+   address: 192.168.1.1
+   max-repetitions: 3
 
 The :file:`secrets` file is of a much simpler format, see
 :ref:`configuring-api-users`. If it is readable for other users than the one

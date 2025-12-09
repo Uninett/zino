@@ -25,7 +25,7 @@ def read_polldevs(filename: str) -> Tuple[dict[str, PollDevice], dict[str, str]]
                     continue
 
                 try:
-                    device = PollDevice(**(defaults | section))
+                    device = PollDevice(**(defaults | _normalize_keys(section)))
                     devices[device.name] = device
                 except ValidationError as error:
                     first_error = error.errors()[0]
@@ -77,7 +77,18 @@ def _contains_defaults(section: dict) -> bool:
 
 
 def _parse_defaults(section: dict) -> dict:
-    return {key.split(" ", maxsplit=1)[1]: value for key, value in section.items() if key.startswith("default ")}
+    return _normalize_keys(
+        {key.split(" ", maxsplit=1)[1]: value for key, value in section.items() if key.startswith("default ")}
+    )
+
+
+def _normalize_keys(section: dict) -> dict:
+    """Normalizes config keys by replacing hyphens with underscores.
+
+    This allows config files to use hyphenated keys (e.g., ``max-repetitions``)
+    while the Python model uses underscores (e.g., ``max_repetitions``).
+    """
+    return {key.replace("-", "_"): value for key, value in section.items()}
 
 
 class InvalidConfiguration(Exception):

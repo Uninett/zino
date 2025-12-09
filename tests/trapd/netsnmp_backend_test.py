@@ -7,6 +7,8 @@ from collections import Counter
 from unittest.mock import Mock, patch
 
 import pytest
+
+pytest.importorskip("netsnmpy", reason="netsnmp-cffi not available")
 from netsnmpy.netsnmp import SNMPVariable
 from netsnmpy.oids import OID as NS_OID
 from netsnmpy.trapsession import SNMPTrap

@@ -5,10 +5,12 @@ import logging
 import os
 import pwd
 import secrets
+import shutil
 import subprocess
 import time
 from argparse import Namespace
 from datetime import timedelta
+from importlib.util import find_spec
 from unittest.mock import Mock, patch
 
 import pexpect
@@ -17,6 +19,8 @@ import pytest
 from zino import zino
 from zino.scheduler import get_scheduler
 from zino.time import now
+
+HAVE_NETSNMP = find_spec("netsnmpy") is not None
 
 
 def test_zino_version_should_be_available():
@@ -253,6 +257,7 @@ class TestCountReachableObjects:
 
 
 class TestLogSnmpSessionState:
+    @pytest.mark.skipif(not HAVE_NETSNMP, reason="netsnmp-cffi not available")
     def test_when_netsnmpy_is_backend_it_should_log_low_level_details(self, state_with_localhost, caplog):
         import zino.snmp.netsnmpy_backend as backend
 
@@ -273,6 +278,7 @@ class TestLogSnmpSessionState:
                     zino.log_snmp_session_stats()
                     assert "gc reachable (low-level)=" not in caplog.text
 
+    @pytest.mark.skipif(not HAVE_NETSNMP, reason="netsnmp-cffi not available")
     def test_when_debug_logging_is_not_enabled_it_should_not_log_anything(self, state_with_localhost, caplog):
         import zino.snmp.netsnmpy_backend as backend
 
@@ -285,6 +291,7 @@ class TestLogSnmpSessionState:
 
 
 class TestSecretsFileConfiguration:
+    @pytest.mark.skipif(not shutil.which("telnet"), reason="telnet not available")
     def test_users_from_secrets_file_should_be_able_to_authenticate(
         self, polldevs_conf_with_no_routers, zino_conf, secrets_file
     ):

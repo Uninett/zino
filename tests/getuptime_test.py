@@ -1,10 +1,14 @@
 """Simple tests for the getuptime example program"""
 
 import subprocess
+from importlib.util import find_spec
 
 import pytest
 
+HAVE_NETSNMP = find_spec("netsnmpy") is not None
 
+
+@pytest.mark.skipif(not HAVE_NETSNMP, reason="getuptime uses default netsnmp backend")
 def test_get_uptime_should_run_without_error(polldevs_with_localhost, snmpsim):
     confdir = polldevs_with_localhost.parent
     assert subprocess.check_call(["python3", "-m", "zino.getuptime", "localhost"], cwd=confdir) == 0

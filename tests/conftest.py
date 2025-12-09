@@ -19,31 +19,44 @@ from zino.statemodels import (
     PortStateMaintenance,
 )
 from zino.time import now
-from zino.trapd import netsnmpy_backend, pysnmp_backend
+from zino.trapd import pysnmp_backend
+
+# Check if netsnmp backend is available (not available on macOS/arm64)
+try:
+    from zino.trapd import netsnmpy_backend
+
+    HAVE_NETSNMP = True
+except ImportError:
+    HAVE_NETSNMP = False
+    netsnmpy_backend = None
 
 
 def pytest_configure(config):
     import os
 
-    # Load the default SNMP back-end for the test suite.  Tests for specific back-end will import directly from those.
     from zino.snmp import import_snmp_backend
     from zino.trapd import import_trap_backend
 
-    import_snmp_backend()
-    import_trap_backend()
+    # Use pysnmp backend when netsnmp is not available
+    backend = None if HAVE_NETSNMP else "pysnmp"
+    import_snmp_backend(backend)
+    import_trap_backend(backend)
 
-    from netsnmpy import netsnmp
+    if HAVE_NETSNMP:
+        from netsnmpy import netsnmp
 
-    from zino.snmp import get_vendored_mib_directory
+        from zino.snmp import get_vendored_mib_directory
 
-    # Ensure that the vendored MIBs are loaded
-    os.environ["MIBS"] = "ALL"
-    vendored_mibs = get_vendored_mib_directory()
-    print(f"Setting MIBDIRS to {vendored_mibs}")
-    os.environ["MIBDIRS"] = f"{vendored_mibs}"
-    netsnmp.load_mibs()
-    modules = ", ".join(sorted(netsnmp.get_loaded_mibs()))
-    print(f"Loaded MIB modules: {modules}")
+        # Ensure that the vendored MIBs are loaded
+        os.environ["MIBS"] = "ALL"
+        vendored_mibs = get_vendored_mib_directory()
+        print(f"Setting MIBDIRS to {vendored_mibs}")
+        os.environ["MIBDIRS"] = f"{vendored_mibs}"
+        netsnmp.load_mibs()
+        modules = ", ".join(sorted(netsnmp.get_loaded_mibs()))
+        print(f"Loaded MIB modules: {modules}")
+    else:
+        print("netsnmp-cffi not available, using pysnmp backend for tests")
 
     # Every test should operate with a fresh SNMP session object:
     # Disable re-use of SNMP sessions for testing purposes
@@ -131,6 +144,7 @@ def secrets_file(tmp_path):
 @pytest.fixture
 def zino_conf(tmp_path, polldevs_conf_with_no_routers, secrets_file):
     name = tmp_path / "zino.toml"
+    snmp_backend = 'backend = "pysnmp"' if not HAVE_NETSNMP else ""
     with open(name, "w") as conf:
         conf.write(
             f"""
@@ -138,6 +152,8 @@ def zino_conf(tmp_path, polldevs_conf_with_no_routers, secrets_file):
             file = "{secrets_file}"
             [polling]
             file = "{polldevs_conf_with_no_routers}"
+            [snmp]
+            {snmp_backend}
             """
         )
     yield name
@@ -236,7 +252,8 @@ async def snmpsim(snmpsimd_path, snmp_fixture_directory, snmp_test_port):
 @pytest.fixture(scope="session")
 def snmpsimd_path():
     snmpsimd = which("snmpsim-command-responder")
-    assert snmpsimd, "Could not find snmpsim-command-responder"
+    if not snmpsimd:
+        pytest.skip("snmpsim-command-responder not found")
     yield snmpsimd
 
 
@@ -275,10 +292,10 @@ async def localhost_pysnmp_receiver(state_with_localhost, unused_udp_port, event
 
 
 @pytest_asyncio.fixture
-async def localhost_netsnmpy_receiver(
-    state_with_localhost, unused_udp_port, event_loop
-) -> netsnmpy_backend.TrapReceiver:
+async def localhost_netsnmpy_receiver(state_with_localhost, unused_udp_port, event_loop):
     """Yields a TrapReceiver instance with a standardized setup for running external tests on localhost"""
+    if not HAVE_NETSNMP:
+        pytest.skip("netsnmp-cffi not available")
     receiver = netsnmpy_backend.TrapReceiver(
         address="127.0.0.1", port=unused_udp_port, loop=event_loop, state=state_with_localhost
     )
