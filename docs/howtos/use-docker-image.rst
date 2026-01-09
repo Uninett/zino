@@ -1,13 +1,16 @@
-=============================================
+=================================
 How to: Use the Zino Docker image
-=============================================
+=================================
 
-The repository includes a Dockerfile and a docker-compose file that you can use to build and run the Zino application as a Docker container.
+The repository includes a Dockerfile and a docker-compose file.
+You can use these to build and run the Zino application as a Docker container.
 The following steps show how to get started:
 
 1. **Build the Docker Image**:
 
-   If you have the Zino source code and Dockerfile in the current directory, you can build the Docker image locally. This is done using the `docker-compose` command:
+   If you have the Zino source code and Dockerfile in the current directory,
+   you can build the Docker image locally.
+   This is done using the `docker-compose` command:
 
    .. code:: shell
 
@@ -23,11 +26,14 @@ The following steps show how to get started:
 
       docker-compose up
 
-   This will start the Zino container and expose the necessary ports as configured in the docker-compose file.
+   This will start the Zino container,
+   exposing necessary ports as configured in the docker-compose file.
 
 3. **Configuration Files**:
 
-   The `docker-compose` file is configured to mount the current directory (`./`) into the `/zino` directory inside the container. Ensure that the current directory contains all the required configuration files for Zino to function properly.
+   The `docker-compose` file is configured to mount the current directory (`./`)
+    into the `/zino` directory inside the container. 
+   Ensure that the current directory contains all necessary Zino configuration files.
 
 4. **Port Mapping**:
 
@@ -36,7 +42,9 @@ The following steps show how to get started:
    - Port `8001` (API port)
    - Port `8002` (Notification port)
 
-   If you wish to specify the trap port, you can uncomment and modify the `command` field in the `docker-compose` file to specify a custom trap port. For example:
+   If you wish to specify the trap port, 
+   uncomment and modify the `command` field in the `docker-compose` file accordingly.
+   For example:
 
    .. code:: yaml
 
@@ -44,7 +52,10 @@ The following steps show how to get started:
 
 5. **External Image Option**:
 
-   If you do not wish to build the image locally, you can instead use the pre-built image available on GitHub Container Registry. To do this, comment out the `build` and `image: zino:latest` lines in the `docker-compose` file, and uncomment the following line:
+   If you do not wish to build the image locally, 
+   you can instead use the pre-built image available on GitHub Container Registry. 
+   To do this, comment out the `build` and `image: zino:latest` lines in the `docker-compose` file,
+   and uncomment the following line:
 
    .. code:: yaml
 
