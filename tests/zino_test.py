@@ -159,6 +159,20 @@ async def test_when_args_specify_user_zino_init_event_loop_should_attempt_to_swi
             pass
 
 
+@patch("zino.zino.os.geteuid", return_value=0)
+async def test_when_running_as_root_without_user_config_should_log_warning(mock_geteuid, event_loop, caplog):
+    """When running as root without a user configured for privilege dropping, a warning should be logged."""
+    import logging
+
+    with caplog.at_level(logging.WARNING):
+        try:
+            zino.init_event_loop(args=Mock(trap_port=0, user=None, stop_in=None), loop=event_loop)
+        except Exception:
+            pass
+
+    assert "Zino is running with root privileges" in caplog.text
+
+
 class TestZinoRescheduleDumpStateOnCommit:
     def test_when_more_than_10_seconds_remains_until_next_dump_it_should_reschedule(self):
         scheduler = get_scheduler()
