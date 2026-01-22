@@ -124,8 +124,16 @@ def init_event_loop(args: argparse.Namespace, loop: Optional[AbstractEventLoop] 
                 args.trap_port,
             )
             sys.exit(errno.EACCES)
-    if args.user:
-        switch_to_user(args.user)
+    # Drop privileges if running as root and a target user is configured
+    target_user = args.user if args.user else state.config.process.user
+    if os.geteuid() == 0:
+        if target_user:
+            switch_to_user(target_user)
+        else:
+            _log.warning(
+                "Zino is running with root privileges. It is recommended to configure a user to drop privileges to "
+                "using the --user option or the process.user setting in the configuration file."
+            )
 
     setup_initial_job_schedule(loop, args)
 

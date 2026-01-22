@@ -1,7 +1,7 @@
 import pydantic
 import pytest
 
-from zino.config.models import AgentConfiguration, PollDevice, SNMPConfiguration
+from zino.config.models import AgentConfiguration, Configuration, PollDevice, ProcessConfiguration, SNMPConfiguration
 
 
 class TestPollDevice:
@@ -42,3 +42,22 @@ class TestAgentConfiguration:
         assert isinstance(snmp_config.agent, AgentConfiguration)
         assert snmp_config.agent.enabled is True
         assert snmp_config.agent.port == 8000
+
+
+class TestProcessConfiguration:
+    def test_init_should_use_defaults(self):
+        """Test that ProcessConfiguration uses sensible defaults."""
+        config = ProcessConfiguration()
+        assert config.user is None
+
+    def test_init_should_accept_user(self):
+        """Test that ProcessConfiguration accepts a user value."""
+        config = ProcessConfiguration(user="zino")
+        assert config.user == "zino"
+
+    def test_configuration_includes_process(self):
+        """Test that Configuration includes process configuration."""
+        config = Configuration()
+        assert hasattr(config, "process")
+        assert isinstance(config.process, ProcessConfiguration)
+        assert config.process.user is None
