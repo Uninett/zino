@@ -118,6 +118,14 @@ class EventConfiguration(BaseModel):
     make_events_for_new_devices: bool = False
 
 
+class ProcessConfiguration(BaseModel):
+    """Options to control process behavior"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    user: Optional[str] = None
+
+
 class Configuration(BaseModel):
     """Class for keeping track of the configuration set by zino.toml"""
 
@@ -128,6 +136,7 @@ class Configuration(BaseModel):
     authentication: Authentication = Authentication()
     persistence: Persistence = Persistence()
     polling: Polling = Polling()
+    process: ProcessConfiguration = ProcessConfiguration()
     snmp: SNMPConfiguration = SNMPConfiguration()
     scheduler: SchedulerConfiguration = SchedulerConfiguration()
     event: EventConfiguration = EventConfiguration()

@@ -26,6 +26,12 @@ file = "polldevs.cf"
 # default 1 min
 period = 1
 
+[process]
+# User to switch to after binding to privileged ports.  When Zino starts as root, it will drop privileges to
+# this user once protected ports (like the SNMP trap port 162) are bound.  Can be overridden by --user on the
+# command line.  Default: not set (no privilege dropping).
+# user = "zino"
+
 [snmp]
 # Zino supports two SNMP back-ends: "netsnmp" and "pysnmp".  The default is "netsnmp" (which requires the Net-SNMP C
 # library to be installed on your system).  "pysnmp" selects the pure Python library PySNMP, which is less performant.
