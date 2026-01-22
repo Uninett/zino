@@ -17,7 +17,7 @@ from typing import Any, Optional
 import tzlocal
 from pydantic import ValidationError
 
-from zino import flaps, state
+from zino import flaps, state, version
 from zino.api.server import ZinoServer
 from zino.config import InvalidConfigurationError, read_configuration
 from zino.job_tracker import get_job_tracker
@@ -335,6 +335,11 @@ def _count_reachable_objects(*types):
 
 def parse_args(arguments=None):
     parser = argparse.ArgumentParser(description="Zino is not OpenView")
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"zino {version.__version__}",
+    )
     parser.add_argument(
         "--polldevs",
         type=str,
