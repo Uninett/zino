@@ -137,8 +137,11 @@ def test_when_unprivileged_user_asks_for_privileged_port_zino_should_exit_with_e
         )
 
 
+@patch("zino.zino.os.geteuid", return_value=0)
 @patch("zino.zino.switch_to_user")
-async def test_when_args_specify_user_zino_init_event_loop_should_attempt_to_switch_users(switch_to_user, event_loop):
+async def test_when_args_specify_user_zino_init_event_loop_should_attempt_to_switch_users(
+    switch_to_user, mock_geteuid, event_loop
+):
     """Detect attempt to user switching by patching in a mock exception.  This is to avoid setting up the full Zino
     daemon and mucking up the event loop and state, by ensuring we exit as soon as switch_to_user is called.
     """
@@ -154,6 +157,20 @@ async def test_when_args_specify_user_zino_init_event_loop_should_attempt_to_swi
             raise
         except Exception:
             pass
+
+
+@patch("zino.zino.os.geteuid", return_value=0)
+async def test_when_running_as_root_without_user_config_should_log_warning(mock_geteuid, event_loop, caplog):
+    """When running as root without a user configured for privilege dropping, a warning should be logged."""
+    import logging
+
+    with caplog.at_level(logging.WARNING):
+        try:
+            zino.init_event_loop(args=Mock(trap_port=0, user=None, stop_in=None), loop=event_loop)
+        except Exception:
+            pass
+
+    assert "Zino is running with root privileges" in caplog.text
 
 
 class TestZinoRescheduleDumpStateOnCommit:

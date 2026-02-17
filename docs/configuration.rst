@@ -40,8 +40,26 @@ settings that can be configured and their default values, reproduced below:
 .. literalinclude:: ../zino.toml.example
 
 Zino does not currently check ``zino.toml`` for changes on a scheduled
-interval while it’s running, so Zino needs to be restarted for changes
+interval while it's running, so Zino needs to be restarted for changes
 to take effect.
+
+.. _configuring-process:
+
+Process configuration
+---------------------
+
+The ``[process]`` section controls process-level behavior.
+
+.. code-block:: toml
+
+   [process]
+   user = "zino"
+
+``user``
+   Username to switch to after binding to privileged ports. When Zino starts
+   as root, it will drop privileges to this user once protected ports (like
+   the SNMP trap port 162) are bound. This can be overridden by the ``--user``
+   command-line option. Default: not set (no privilege dropping).
 
 .. _configuring-logging:
 
