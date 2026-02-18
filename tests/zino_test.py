@@ -393,6 +393,16 @@ class TestDumpStateWithFork:
         zino._reap_dump_child()
         assert zino._dump_child_pid == 0
 
+    def test_reap_dump_child_should_log_error_when_child_killed_by_signal(self, caplog):
+        fake_pid = 99999
+        zino._dump_child_pid = fake_pid
+        signal_status = signal.SIGKILL  # On Linux, WIFSIGNALED status for SIGKILL
+        with patch("os.waitpid", return_value=(fake_pid, signal_status)):
+            with caplog.at_level(logging.ERROR):
+                zino._reap_dump_child()
+        assert zino._dump_child_pid == 0
+        assert f"killed by signal {signal.SIGKILL}" in caplog.text
+
     def test_reap_dump_child_should_handle_child_process_error(self):
         """_reap_dump_child should handle ChildProcessError gracefully."""
         zino._dump_child_pid = 99999999

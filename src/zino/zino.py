@@ -174,7 +174,7 @@ async def fork_and_dump_state(filename: str):
         return
 
     pid = os.fork()
-    if pid == 0:
+    if pid == 0:  # pragma: no cover
         # Child process — serialize and exit
         try:
             state.state.dump_state_to_file(filename)
