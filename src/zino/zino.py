@@ -225,7 +225,7 @@ def setup_initial_job_schedule(loop: AbstractEventLoop, args: argparse.Namespace
     # Schedule state dumping as often as configured in
     # 'config.persistence.period' and reschedule whenever events are committed
     scheduler.add_job(
-        func=state.state.dump_state_to_file,
+        func=fork_and_dump_state,
         trigger="interval",
         args=(state.config.persistence.file,),
         id=STATE_DUMP_JOB_ID,
