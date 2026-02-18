@@ -5,6 +5,7 @@ import logging
 import os
 import pwd
 import secrets
+import signal
 import subprocess
 import time
 from argparse import Namespace
@@ -14,8 +15,9 @@ from unittest.mock import Mock, patch
 import pexpect
 import pytest
 
-from zino import zino
+from zino import state, zino
 from zino.scheduler import get_scheduler
+from zino.state import ZinoState
 from zino.time import now
 
 
@@ -324,3 +326,76 @@ class TestSecretsFileConfiguration:
 
         finally:
             zino_process.terminate()
+
+
+class TestDumpStateWithFork:
+    async def test_should_produce_valid_state_file(self, tmp_path):
+        """fork_and_dump_state should fork a child that writes a valid JSON state file."""
+        filename = str(tmp_path / "state.json")
+        with patch.object(state, "state", new=ZinoState()):
+            zino._dump_child_pid = 0
+            await zino.fork_and_dump_state(filename)
+            # Wait for the child to finish
+            os.waitpid(zino._dump_child_pid, 0)
+            zino._dump_child_pid = 0
+
+        assert os.path.exists(filename)
+        loaded = ZinoState.load_state_from_file(filename)
+        assert loaded is not None
+
+    async def test_should_skip_when_previous_child_still_running(self, tmp_path, caplog):
+        """A second call while a child is still running should log a warning and skip."""
+        filename = str(tmp_path / "state.json")
+        with patch.object(state, "state", new=ZinoState()):
+            zino._dump_child_pid = 0
+            # Fork a child that sleeps so it's still running when we call again
+            pid = os.fork()
+            if pid == 0:
+                time.sleep(10)
+                os._exit(0)
+            try:
+                zino._dump_child_pid = pid
+                with caplog.at_level(logging.WARNING):
+                    await zino.fork_and_dump_state(filename)
+                assert "still running, skipping" in caplog.text
+                assert not os.path.exists(filename)
+            finally:
+                os.kill(pid, signal.SIGKILL)
+                os.waitpid(pid, 0)
+                zino._dump_child_pid = 0
+
+    def test_reap_dump_child_should_reap_finished_child(self):
+        """_reap_dump_child should reap a finished child and reset the PID."""
+        pid = os.fork()
+        if pid == 0:
+            os._exit(0)
+        # Wait briefly for the child to actually exit
+        time.sleep(0.1)
+        zino._dump_child_pid = pid
+        zino._reap_dump_child()
+        assert zino._dump_child_pid == 0
+
+    def test_reap_dump_child_should_log_error_on_nonzero_exit(self, caplog):
+        """_reap_dump_child should log an error when the child exits with a non-zero status."""
+        pid = os.fork()
+        if pid == 0:
+            os._exit(1)
+        time.sleep(0.1)
+        zino._dump_child_pid = pid
+        with caplog.at_level(logging.ERROR):
+            zino._reap_dump_child()
+        assert zino._dump_child_pid == 0
+        assert "exited with status 1" in caplog.text
+
+    def test_reap_dump_child_should_noop_when_no_child(self):
+        """_reap_dump_child should be a no-op when there is no child PID tracked."""
+        zino._dump_child_pid = 0
+        zino._reap_dump_child()
+        assert zino._dump_child_pid == 0
+
+    def test_reap_dump_child_should_handle_child_process_error(self):
+        """_reap_dump_child should handle ChildProcessError gracefully."""
+        zino._dump_child_pid = 99999999
+        with patch("os.waitpid", side_effect=ChildProcessError):
+            zino._reap_dump_child()
+        assert zino._dump_child_pid == 0

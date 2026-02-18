@@ -43,6 +43,8 @@ MINIMUM_STATE_DUMP_INTERVAL = timedelta(seconds=10)
 DEFAULT_CONFIG_FILE = "zino.toml"
 _log = logging.getLogger("zino")
 
+_dump_child_pid: int = 0
+
 
 def main():
     args = parse_args()
@@ -156,6 +158,50 @@ def init_event_loop(args: argparse.Namespace, loop: Optional[AbstractEventLoop] 
         pass
 
     return True
+
+
+async def fork_and_dump_state(filename: str):
+    """Forks a child process to dump state without blocking the event loop.
+
+    The child inherits a COW memory snapshot and calls the regular dump_state_to_file.
+    Must be a coroutine so that APScheduler's `AsyncIOExecutor` runs it on the event loop rather than in a thread
+    pool, which would risk concurrent modification of state data structures during serialization.
+    """
+    global _dump_child_pid
+    _reap_dump_child()
+    if _dump_child_pid:
+        _log.warning("Previous state dump (pid %d) still running, skipping", _dump_child_pid)
+        return
+
+    pid = os.fork()
+    if pid == 0:
+        # Child process — serialize and exit
+        try:
+            state.state.dump_state_to_file(filename)
+        except Exception:
+            os._exit(1)
+        os._exit(0)
+    else:
+        _dump_child_pid = pid
+        _log.debug("Forked child process %d to dump state", pid)
+
+
+def _reap_dump_child():
+    """Checks if the dump child process has finished and reaps it."""
+    global _dump_child_pid
+    if not _dump_child_pid:
+        return
+    try:
+        pid, status = os.waitpid(_dump_child_pid, os.WNOHANG)
+    except ChildProcessError:
+        _dump_child_pid = 0
+        return
+    if pid:
+        _dump_child_pid = 0
+        if os.WIFEXITED(status) and os.WEXITSTATUS(status) != 0:
+            _log.error("State dump child (pid %d) exited with status %d", pid, os.WEXITSTATUS(status))
+        elif os.WIFSIGNALED(status):
+            _log.error("State dump child (pid %d) killed by signal %d", pid, os.WTERMSIG(status))
 
 
 def setup_initial_job_schedule(loop: AbstractEventLoop, args: argparse.Namespace) -> None:
