@@ -409,3 +409,104 @@ class TestDumpStateWithFork:
         with patch("os.waitpid", side_effect=ChildProcessError):
             zino._reap_dump_child()
         assert zino._dump_child_pid == 0
+
+
+class TestWaitForDumpChild:
+    def test_when_no_child_it_should_noop(self):
+        zino._dump_child_pid = 0
+        zino._wait_for_dump_child()
+        assert zino._dump_child_pid == 0
+
+    def test_it_should_wait_for_running_child(self):
+        pid = os.fork()
+        if pid == 0:
+            time.sleep(0.2)
+            os._exit(0)
+        zino._dump_child_pid = pid
+        zino._wait_for_dump_child()
+        assert zino._dump_child_pid == 0
+
+    def test_it_should_handle_child_process_error(self):
+        zino._dump_child_pid = 99999999
+        with patch("os.waitpid", side_effect=ChildProcessError):
+            zino._wait_for_dump_child()
+        assert zino._dump_child_pid == 0
+
+
+class TestFinalStateDumpOnShutdown:
+    @pytest.fixture()
+    def _skip_init_side_effects(self):
+        """Patches out setup_initial_job_schedule and ZinoServer so that
+        init_event_loop only exercises the startup/shutdown path."""
+        with (
+            patch.object(zino, "setup_initial_job_schedule"),
+            patch.object(zino, "ZinoServer"),
+        ):
+            yield
+
+    @pytest.mark.usefixtures("_skip_init_side_effects")
+    def test_it_should_dump_state_on_shutdown(self, tmp_path):
+        state_file = str(tmp_path / "state.json")
+        mock_config = Mock()
+        mock_config.persistence.file = state_file
+        mock_config.process.user = None
+        mock_config.snmp.agent.enabled = False
+
+        loop = Mock()
+        loop.run_forever.side_effect = KeyboardInterrupt
+        mock_state = ZinoState()
+
+        with (
+            patch.object(state, "state", new=mock_state),
+            patch.object(state, "config", new=mock_config),
+            patch.object(zino, "_dump_child_pid", 0),
+        ):
+            zino.init_event_loop(args=Mock(trap_port=0, user=None, stop_in=None), loop=loop)
+
+        assert os.path.exists(state_file)
+        loaded = ZinoState.load_state_from_file(state_file)
+        assert loaded is not None
+
+    @pytest.mark.usefixtures("_skip_init_side_effects")
+    def test_when_dump_fails_it_should_log_exception(self, tmp_path, caplog):
+        """init_event_loop should log but not raise if the final dump fails."""
+        mock_config = Mock()
+        mock_config.persistence.file = "/nonexistent/path/state.json"
+        mock_config.process.user = None
+        mock_config.snmp.agent.enabled = False
+
+        loop = Mock()
+        loop.run_forever.side_effect = KeyboardInterrupt
+        mock_state = Mock()
+        mock_state.dump_state_to_file.side_effect = OSError("disk full")
+
+        with (
+            patch.object(state, "state", new=mock_state),
+            patch.object(state, "config", new=mock_config),
+            patch.object(zino, "_dump_child_pid", 0),
+            caplog.at_level(logging.ERROR),
+        ):
+            zino.init_event_loop(args=Mock(trap_port=0, user=None, stop_in=None), loop=loop)
+
+        assert "Final state dump failed" in caplog.text
+
+    @pytest.mark.usefixtures("_skip_init_side_effects")
+    def test_it_should_wait_for_dump_child_before_final_dump(self, tmp_path):
+        state_file = str(tmp_path / "state.json")
+        mock_config = Mock()
+        mock_config.persistence.file = state_file
+        mock_config.process.user = None
+        mock_config.snmp.agent.enabled = False
+
+        loop = Mock()
+        loop.run_forever.side_effect = KeyboardInterrupt
+        mock_state = ZinoState()
+
+        with (
+            patch.object(state, "state", new=mock_state),
+            patch.object(state, "config", new=mock_config),
+            patch.object(zino, "_wait_for_dump_child") as mock_wait,
+        ):
+            zino.init_event_loop(args=Mock(trap_port=0, user=None, stop_in=None), loop=loop)
+
+        mock_wait.assert_called_once()
