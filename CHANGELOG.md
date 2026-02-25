@@ -12,6 +12,21 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) and the chang
 
 <!-- towncrier release notes start -->
 
+## [2.4.0] - 2026-02-25
+
+### Added
+
+- Added Dockerfile and Docker compose to facilitate running as a container ([#492](https://github.com/Uninett/zino/issues/492))
+- Added documentation on how to use docker image ([#502](https://github.com/Uninett/zino/issues/502))
+- Added the `--version` option to the Zino CLI ([#521](https://github.com/Uninett/zino/issues/521))
+- Added `[process]` configuration section with `user` option to specify which user to drop privileges to after binding to privileged ports. ([#522](https://github.com/Uninett/zino/issues/522))
+
+### Fixed
+
+- State serialization now runs in a forked child process, preventing `PanicException` from concurrent modification of state data structures during JSON serialization. ([#468](https://github.com/Uninett/zino/issues/468))
+- Perform a final synchronous state dump on Zino shutdown so that state changes since the last periodic dump are not lost.
+
+
 ## [2.3.4] - 2025-12-03
 
 ### Fixed
