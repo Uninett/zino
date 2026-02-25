@@ -157,6 +157,13 @@ def init_event_loop(args: argparse.Namespace, loop: Optional[AbstractEventLoop] 
     except (KeyboardInterrupt, SystemExit):
         pass
 
+    _log.info("Shutting down, performing final state dump")
+    _wait_for_dump_child()
+    try:
+        state.state.dump_state_to_file(state.config.persistence.file)
+    except Exception:
+        _log.exception("Final state dump failed")
+
     return True
 
 
@@ -203,6 +210,23 @@ def _reap_dump_child():
             _log.error("State dump child (pid %d) exited with status %d", pid, os.WEXITSTATUS(status))
         elif os.WIFSIGNALED(status):
             _log.error("State dump child (pid %d) killed by signal %d", pid, os.WTERMSIG(status))
+
+
+def _wait_for_dump_child():
+    """Waits (blocking) for a running dump child process to finish.
+
+    Called during shutdown so that the final synchronous state dump does not
+    race with a previously forked dump child writing to the same file.
+    """
+    global _dump_child_pid
+    if not _dump_child_pid:
+        return
+    _log.debug("Waiting for dump child (pid %d) to finish before final dump", _dump_child_pid)
+    try:
+        os.waitpid(_dump_child_pid, 0)
+    except ChildProcessError:
+        pass
+    _dump_child_pid = 0
 
 
 def setup_initial_job_schedule(loop: AbstractEventLoop, args: argparse.Namespace) -> None:
