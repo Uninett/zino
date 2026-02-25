@@ -179,6 +179,7 @@ async def fork_and_dump_state(filename: str):
         try:
             state.state.dump_state_to_file(filename)
         except Exception:
+            _log.exception("State dump failed in child process")
             os._exit(1)
         os._exit(0)
     else:
