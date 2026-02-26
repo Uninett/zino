@@ -18,15 +18,16 @@ _log = logging.getLogger(__name__)
 _ignored_router_addrs: set[str] = set()
 
 
-def create_state(old_state_file: str) -> ZinoState:
+def create_state(old_state_file: str, include_bfd: bool = False) -> ZinoState:
     new_state = ZinoState()
     # The returned dictionary defaults to empty list, so we dont need to check if the key exists
     # or manually set default value to avoid crashing if a variable is missing in the state file
     old_state = load_state_to_dict(old_state_file)
 
-    set_bfd_state(old_state, new_state)
+    if include_bfd:
+        set_bfd_state(old_state, new_state)
     set_bgp_state(old_state, new_state)
-    set_event_state(old_state, new_state)
+    set_event_state(old_state, new_state, include_bfd=include_bfd)
     set_port_state(old_state, new_state)
     set_flapping_state(old_state, new_state)
     set_pm_state(old_state, new_state)
@@ -121,6 +122,12 @@ def get_parser():
         "output",
         help="Absolute path to where the new Zino2 state should be dumped",
     )
+    parser.add_argument(
+        "--include-bfd",
+        action="store_true",
+        default=False,
+        help="Include BFD session state and events in the converted state (skipped by default)",
+    )
     return parser
 
 
@@ -128,7 +135,7 @@ def main():
     logging.basicConfig(format="%(message)s", level=logging.INFO)
     parser = get_parser()
     args = parser.parse_args()
-    state = create_state(args.input)
+    state = create_state(args.input, include_bfd=args.include_bfd)
     state.dump_state_to_file(args.output)
 
 
