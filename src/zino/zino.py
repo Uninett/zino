@@ -256,12 +256,15 @@ def setup_initial_job_schedule(loop: AbstractEventLoop, args: argparse.Namespace
         id=STATE_DUMP_JOB_ID,
         minutes=state.config.persistence.period,
     )
+
     # Schedule planned maintenance
+    async def _async_update_pm_states():
+        state.state.planned_maintenances.update_pm_states(state.state)
+
     scheduler.add_job(
-        func=state.state.planned_maintenances.update_pm_states,
+        func=_async_update_pm_states,
         id="update_pm_states",
         trigger="interval",
-        args=(state.state,),
         minutes=1,
         next_run_time=datetime.now(),
     )
@@ -278,8 +281,11 @@ def setup_initial_job_schedule(loop: AbstractEventLoop, args: argparse.Namespace
     state.state.planned_maintenances.add_pm_observer(reschedule_dump_state_on_pm_change)
 
     # Schedule removing events that have been closed for a certain time
+    async def _async_delete_expired_events():
+        state.state.events.delete_expired_events()
+
     scheduler.add_job(
-        func=state.state.events.delete_expired_events,
+        func=_async_delete_expired_events,
         id="delete_expired_events",
         trigger="interval",
         minutes=30,
@@ -371,7 +377,7 @@ def reschedule_dump_state(log_msg: str) -> None:
         job.modify(next_run_time=next_run)
 
 
-def log_snmp_session_stats():
+async def log_snmp_session_stats():
     """Logs debug information about the current number of SNMP session objects"""
     logger = logging.getLogger("zino.snmp")
     if not logger.isEnabledFor(logging.DEBUG):
