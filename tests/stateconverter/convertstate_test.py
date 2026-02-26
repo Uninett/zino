@@ -26,9 +26,15 @@ def test_state_should_be_parsed_without_crashing(save_state_path):
     assert state
 
 
+def test_bfd_events_should_not_be_present_by_default(save_state_path):
+    state = create_state(save_state_path)
+    for event in state.events.events.values():
+        assert not isinstance(event, BFDEvent), "BFD events should be skipped by default"
+
+
 class TestEvents:
     def test_bfd_event_should_be_created_correctly(self, save_state_path):
-        state = create_state(save_state_path)
+        state = create_state(save_state_path, include_bfd=True)
         event = state.events.checkout(200)
         assert isinstance(event, BFDEvent)
         assert event.type == "bfd"
@@ -119,17 +125,17 @@ def test_jnx_alarms_should_be_set_correctly(save_state_path):
 
 class TestBFD:
     def test_sess_addr_should_be_set_correctly(self, save_state_path):
-        state = create_state(save_state_path)
+        state = create_state(save_state_path, include_bfd=True)
         device = state.devices.get("blaafjell-gw2")
         device.ports[30].bfd_state.session_addr is None
 
     def test_sess_discr_should_be_set_correctly(self, save_state_path):
-        state = create_state(save_state_path)
+        state = create_state(save_state_path, include_bfd=True)
         device = state.devices.get("blaafjell-gw2")
         device.ports[30].bfd_state.session_discr == 0
 
     def test_sess_state_should_be_set_correctly(self, save_state_path):
-        state = create_state(save_state_path)
+        state = create_state(save_state_path, include_bfd=True)
         device = state.devices.get("blaafjell-gw2")
         device.ports[30].bfd_state.session_state == BFDSessState.DOWN
 
