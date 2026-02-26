@@ -374,8 +374,8 @@ def _convert_snmp_variable(variable: SNMPVariable) -> SNMPVarBind:
     prefix = netsnmp.symbol_to_oid(f"{mib}::{obj}")
     suffix = variable.oid.strip_prefix(prefix)
 
-    if variable.enum_value is not None:
-        value = variable.enum_value
+    if (enum_value := variable.enum_value) is not None:
+        value = enum_value
     elif variable.textual_convention == "DisplayString":
         value = variable.value.decode("utf-8")
     else:
