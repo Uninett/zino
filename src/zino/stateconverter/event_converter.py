@@ -34,15 +34,25 @@ event_name_to_type = {
 def set_event_state(
     old_state: OldState,
     new_state: ZinoState,
+    include_bfd: bool = False,
 ):
     id_to_type = {}
 
-    # Register event type per id
+    # Register event type per id and track last_event_id for all events (including skipped BFD)
     for linedata in old_state["::EventAttrs"]:
         if linedata.identifiers[0] == "type":
-            id_to_type[int(linedata.identifiers[1])] = linedata.value
+            event_id = int(linedata.identifiers[1])
+            id_to_type[event_id] = linedata.value
+            new_state.events.last_event_id = max(new_state.events.last_event_id, event_id)
+
+    skipped_bfd_ids = set()
+    if not include_bfd:
+        skipped_bfd_ids = {eid for eid, etype in id_to_type.items() if etype == "bfd"}
 
     for linedata in old_state["::EventAttrs"]:
+        event_id = int(linedata.identifiers[1])
+        if event_id in skipped_bfd_ids:
+            continue
         try:
             _set_event_attrs(linedata, new_state, id_to_type)
         except ValueError as e:
