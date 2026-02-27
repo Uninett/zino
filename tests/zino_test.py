@@ -272,34 +272,34 @@ class TestCountReachableObjects:
 
 
 class TestLogSnmpSessionState:
-    def test_when_netsnmpy_is_backend_it_should_log_low_level_details(self, state_with_localhost, caplog):
+    async def test_when_netsnmpy_is_backend_it_should_log_low_level_details(self, state_with_localhost, caplog):
         import zino.snmp.netsnmpy_backend as backend
 
         with patch.object(zino.state, attribute="state", new=state_with_localhost):
             with patch.object(zino, attribute="import_snmp_backend") as import_snmp_backend:
                 import_snmp_backend.return_value = backend
                 with caplog.at_level(logging.DEBUG):
-                    zino.log_snmp_session_stats()
+                    await zino.log_snmp_session_stats()
                     assert "gc reachable (low-level)=" in caplog.text
 
-    def test_when_pysnmp_is_backend_it_should_not_log_low_level_details(self, state_with_localhost, caplog):
+    async def test_when_pysnmp_is_backend_it_should_not_log_low_level_details(self, state_with_localhost, caplog):
         import zino.snmp.pysnmp_backend as backend
 
         with patch.object(zino.state, attribute="state", new=state_with_localhost):
             with patch.object(zino, attribute="import_snmp_backend") as import_snmp_backend:
                 import_snmp_backend.return_value = backend
                 with caplog.at_level(logging.DEBUG):
-                    zino.log_snmp_session_stats()
+                    await zino.log_snmp_session_stats()
                     assert "gc reachable (low-level)=" not in caplog.text
 
-    def test_when_debug_logging_is_not_enabled_it_should_not_log_anything(self, state_with_localhost, caplog):
+    async def test_when_debug_logging_is_not_enabled_it_should_not_log_anything(self, state_with_localhost, caplog):
         import zino.snmp.netsnmpy_backend as backend
 
         with patch.object(zino.state, attribute="state", new=state_with_localhost):
             with patch.object(zino, attribute="import_snmp_backend") as import_snmp_backend:
                 import_snmp_backend.return_value = backend
                 with caplog.at_level(logging.INFO):
-                    zino.log_snmp_session_stats()
+                    await zino.log_snmp_session_stats()
                     assert "gc reachable" not in caplog.text
 
 
