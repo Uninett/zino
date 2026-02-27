@@ -12,6 +12,17 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) and the chang
 
 <!-- towncrier release notes start -->
 
+## [2.4.1] - 2026-02-27
+
+### Changed
+
+- `zinoconv` now skips BFD session state and BFD events by default. Use `--include-bfd` to opt in.
+
+### Fixed
+
+- Run all scheduled jobs on the event loop instead of in worker threads, preventing concurrent modification of shared state.
+
+
 ## [2.4.0] - 2026-02-25
 
 ### Added

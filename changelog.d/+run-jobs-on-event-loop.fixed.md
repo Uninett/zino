@@ -1,1 +1,0 @@
-Run all scheduled jobs on the event loop instead of in worker threads, preventing concurrent modification of shared state.
