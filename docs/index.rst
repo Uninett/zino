@@ -6,14 +6,26 @@
 Zino documentation
 ==================
 
-Zino is a robust network management system for large backbone networks.
+Zino is a robust network state monitor for large backbone networks, originally
+developed at Uninett in the 1990s and now rewritten in Python.
 
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Understanding Zino:
+
+   explanation/index
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Using Zino:
 
    installation
    configuration
-   development
    howtos
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Contributing:
+
+   development
