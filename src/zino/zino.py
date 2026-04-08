@@ -120,11 +120,7 @@ def init_event_loop(args: argparse.Namespace, loop: Optional[AbstractEventLoop] 
             trap_receiver.add_community(community)
         trap_receiver.auto_subscribe_observers()
 
-        try:
-            loop.run_until_complete(trap_receiver.open())
-        except OSError as error:
-            _log.fatal("Failed to connect to %s trap multiplexer: %s", trap_config.source, error)
-            sys.exit(1)
+        loop.run_until_complete(trap_receiver.open())
 
     elif args.trap_port:
         trap_backend = import_trap_backend()
