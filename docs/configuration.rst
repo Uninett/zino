@@ -61,6 +61,63 @@ The ``[process]`` section controls process-level behavior.
    the SNMP trap port 162) are bound. This can be overridden by the ``--user``
    command-line option. Default: not set (no privilege dropping).
 
+.. _configuring-trap-reception:
+
+Configuring trap reception
+--------------------------
+
+By default, Zino binds directly to a UDP port (default 162) to receive SNMP
+traps.  This requires Zino to start as root (or with the
+``CAP_NET_BIND_SERVICE`` capability on Linux).
+
+Alternatively, Zino can receive traps through an external SNMP trap
+multiplexer.  A trap multiplexer can run as root and bind to port 162, then
+re-broadcasts incoming raw trap packets to connected clients.  This allows Zino
+(and an arbitrary number of other programs) to receive traps without having
+elevated privileges.
+
+Two multiplexer protocols are supported:
+
+``straps``
+   The original trap multiplexer from the `Scotty
+   <https://github.com/flightaware/scotty>`_ project (version 2.1.x).  It
+   creates a UNIX domain socket at ``/tmp/.straps-<port>`` (e.g.
+   ``/tmp/.straps-162``) and forwards framed trap packets to all connected
+   clients.  The straps source can be found in the `scotty 2.1.11 tarball
+   <https://fossies.org/linux/misc/old/scotty-2.1.11.tar.gz>`_ at
+   ``tnm/snmp/straps.c`` — it is a self-contained C program with no external
+   dependencies.
+
+``nmtrapd``
+   The newer variant from `FlightAware's scotty fork
+   <https://github.com/flightaware/scotty>`_.  It uses a TCP socket on
+   localhost port 1702 instead of a UNIX domain socket.  The source is at
+   ``tnm/unix/nmtrapd.c`` in the repository.
+
+To use a trap multiplexer, configure the ``[snmp.trap]`` section:
+
+.. code-block:: toml
+   :caption: zino.toml
+
+   [snmp.trap]
+   source = "straps"
+   # straps_socket = "/tmp/.straps-162"  # default
+
+For nmtrapd:
+
+.. code-block:: toml
+   :caption: zino.toml
+
+   [snmp.trap]
+   source = "nmtrapd"
+   # nmtrapd_host = "localhost"  # default
+   # nmtrapd_port = 1702  # default
+
+When using a multiplexer, the ``--trap-port`` command-line option is ignored.
+Zino will automatically reconnect if the multiplexer connection is lost, and
+includes a watchdog that detects silent connections (inspired by Zino 1's
+``TrapWatchdog``).
+
 .. _configuring-logging:
 
 Configuring logging

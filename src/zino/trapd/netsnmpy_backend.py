@@ -21,38 +21,15 @@ from zino.trapd.base import (
 _logger = logging.getLogger(__name__)
 
 
-class TrapReceiver(TrapReceiverBase):
-    """Zino Adapter for SNMP trap reception using netsnmp-cffi.
+class NetsnmpTrapProcessorMixin:
+    """Mixin that converts netsnmpy SNMPTrap objects into Zino TrapMessages and dispatches them.
 
-    Zino 1 accepts traps with any community string, as long as its origin is any one of the devices configured in
-    the pollfile.  The PySNMP back-end will only accept traps with one of the configured community strings.  *This*
-    back-end, however, will accept and pass on traps with any community string until `add_community()` is called
-    to configure at least one filter.
+    This mixin is shared between the direct UDP trap receiver and the straps/nmtrapd relay backend.
+    It expects to be mixed into a class that inherits from TrapReceiverBase.
     """
 
-    def __init__(
-        self,
-        address: str = "0.0.0.0",
-        port: int = 162,
-        loop: Optional[asyncio.AbstractEventLoop] = None,
-        state: Optional[zino.state.ZinoState] = None,
-        polldevs: Optional[Dict[str, PollDevice]] = None,
-    ):
-        super().__init__(address, port, loop, state, polldevs)
-        self._session = SNMPTrapSession(ip_address(address), port)
-
-    async def open(self):
-        """Opens the UDP transport socket and starts receiving traps"""
-        self._session.add_observer(self.trap_received)
-        self._session.open()
-        _logger.info("Listening for incoming SNMP traps on %r", (self.address, self.port))
-
-    def close(self):
-        """Closes the running SNMP engine and its associated ports"""
-        self._session.close()
-
-    def trap_received(self, trap: SNMPTrap):
-        """Callback function that receives all trap messages from the Net-SNMP transport"""
+    def process_snmp_trap(self, trap: SNMPTrap):
+        """Processes a netsnmpy SNMPTrap: verifies it, converts variables, and dispatches to observers."""
         router = self._lookup_device(trap.source)
         # netsnmpy doesn't currently provide the source port:
         origin = TrapOriginator(address=trap.source, port=None, device=router)
@@ -97,6 +74,7 @@ class TrapReceiver(TrapReceiverBase):
         asyncio.ensure_future(self.dispatch_trap(zino_trap))
 
     def _verify_trap(self, netsnmp_trap: SNMPTrap, origin: TrapOriginator) -> bool:
+        """Verifies that an SNMPTrap is from a known device and has required fields."""
         if not origin.device:
             _logger.debug("ignored trap from %s (not a box we monitor?)", origin.address)
             return False
@@ -116,3 +94,38 @@ class TrapReceiver(TrapReceiverBase):
             return False
 
         return True
+
+
+class TrapReceiver(NetsnmpTrapProcessorMixin, TrapReceiverBase):
+    """Zino Adapter for SNMP trap reception using netsnmp-cffi.
+
+    Zino 1 accepts traps with any community string, as long as its origin is any one of the devices configured in
+    the pollfile.  The PySNMP back-end will only accept traps with one of the configured community strings.  *This*
+    back-end, however, will accept and pass on traps with any community string until `add_community()` is called
+    to configure at least one filter.
+    """
+
+    def __init__(
+        self,
+        address: str = "0.0.0.0",
+        port: int = 162,
+        loop: Optional[asyncio.AbstractEventLoop] = None,
+        state: Optional[zino.state.ZinoState] = None,
+        polldevs: Optional[Dict[str, PollDevice]] = None,
+    ):
+        super().__init__(address, port, loop, state, polldevs)
+        self._session = SNMPTrapSession(ip_address(address), port)
+
+    async def open(self):
+        """Opens the UDP transport socket and starts receiving traps"""
+        self._session.add_observer(self.trap_received)
+        self._session.open()
+        _logger.info("Listening for incoming SNMP traps on %r", (self.address, self.port))
+
+    def close(self):
+        """Closes the running SNMP engine and its associated ports"""
+        self._session.close()
+
+    def trap_received(self, trap: SNMPTrap):
+        """Callback function that receives all trap messages from the Net-SNMP transport"""
+        self.process_snmp_trap(trap)

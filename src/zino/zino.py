@@ -111,10 +111,21 @@ def init_event_loop(args: argparse.Namespace, loop: Optional[AbstractEventLoop] 
     if not loop:
         loop = asyncio.get_event_loop()
 
-    if args.trap_port:
+    trap_config = state.config.snmp.trap
+    if trap_config.source in ("straps", "nmtrapd"):
+        from zino.trapd.straps_backend import StrapsTrapReceiver
+
+        trap_receiver = StrapsTrapReceiver(trap_config=trap_config, loop=loop, state=state.state)
+        for community in trap_config.require_community:
+            trap_receiver.add_community(community)
+        trap_receiver.auto_subscribe_observers()
+
+        loop.run_until_complete(trap_receiver.open())
+
+    elif args.trap_port:
         trap_backend = import_trap_backend()
         trap_receiver = trap_backend.TrapReceiver(port=args.trap_port, loop=loop, state=state.state)
-        for community in state.config.snmp.trap.require_community:
+        for community in trap_config.require_community:
             trap_receiver.add_community(community)
         trap_receiver.auto_subscribe_observers()
 

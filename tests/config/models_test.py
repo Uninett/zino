@@ -1,7 +1,14 @@
 import pydantic
 import pytest
 
-from zino.config.models import AgentConfiguration, Configuration, PollDevice, ProcessConfiguration, SNMPConfiguration
+from zino.config.models import (
+    AgentConfiguration,
+    Configuration,
+    PollDevice,
+    ProcessConfiguration,
+    SNMPConfiguration,
+    TrapConfiguration,
+)
 
 
 class TestPollDevice:
@@ -42,6 +49,28 @@ class TestAgentConfiguration:
         assert isinstance(snmp_config.agent, AgentConfiguration)
         assert snmp_config.agent.enabled is True
         assert snmp_config.agent.port == 8000
+
+
+class TestTrapConfiguration:
+    def test_when_source_is_omitted_then_default_should_be_direct(self):
+        config = TrapConfiguration()
+        assert config.source == "direct"
+
+    def test_when_source_is_straps_then_config_should_accept_it(self):
+        config = TrapConfiguration(source="straps")
+        assert config.source == "straps"
+
+    def test_when_source_is_nmtrapd_then_config_should_accept_it(self):
+        config = TrapConfiguration(source="nmtrapd")
+        assert config.source == "nmtrapd"
+
+    def test_when_straps_socket_is_set_then_config_should_store_it(self):
+        config = TrapConfiguration(source="straps", straps_socket="/var/run/straps.sock")
+        assert config.straps_socket == "/var/run/straps.sock"
+
+    def test_when_source_is_invalid_then_it_should_raise_validation_error(self):
+        with pytest.raises(pydantic.ValidationError):
+            TrapConfiguration(source="bogus")
 
 
 class TestProcessConfiguration:

@@ -80,6 +80,10 @@ class TrapConfiguration(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     require_community: list[str] = []
+    source: Literal["direct", "straps", "nmtrapd"] = "direct"
+    straps_socket: Optional[str] = None
+    nmtrapd_host: str = "localhost"
+    nmtrapd_port: int = 1702
 
 
 class AgentConfiguration(BaseModel):

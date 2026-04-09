@@ -37,17 +37,32 @@ period = 1
 # library to be installed on your system).  "pysnmp" selects the pure Python library PySNMP, which is less performant.
 backend = "netsnmp"
 
+[snmp.trap]
 # Only accept SNMP trap messages with any community string in this list. The default value is [].
 # The netsnmp backend will accept an empty list to mean: Admit any trap message, regardless of community.  The pysnmp
 # backend will not function properly unless there is at least one community string in the list.
-trap.require_community = []
+require_community = []
 
+# Trap source mode.  "direct" (default) means Zino binds its own UDP port for trap reception.
+# "straps" connects to a straps UNIX domain socket, and "nmtrapd" connects to an nmtrapd TCP socket.
+# Using a trap multiplexer allows Zino to receive traps without starting as root.
+# source = "direct"
+
+# Path to the straps UNIX socket (only used when source = "straps").
+# Default: "/tmp/.straps-162"
+# straps_socket = "/tmp/.straps-162"
+
+# Host and port for nmtrapd TCP connection (only used when source = "nmtrapd").
+# nmtrapd_host = "localhost"
+# nmtrapd_port = 1702
+
+[snmp.agent]
 # SNMP agent configuration for responding to uptime queries from clients
 # This agent is used by clients like EMT for failover detection
-agent.enabled = true  # Enable/disable the SNMP agent (default: true)
-agent.port = 8000  # Port to listen on (default: 8000)
-agent.address = "0.0.0.0"  # Address to bind to (default: "0.0.0.0")
-# agent.community = "public"  # SNMP community string to accept (default: public)
+enabled = true  # Enable/disable the SNMP agent (default: true)
+port = 8000  # Port to listen on (default: 8000)
+address = "0.0.0.0"  # Address to bind to (default: "0.0.0.0")
+# community = "public"  # SNMP community string to accept (default: public)
 
 [scheduler]
 # When Zino is very busy, some scheduled recurring jobs may be delayed from running on their exactly scheduled
