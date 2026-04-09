@@ -39,6 +39,7 @@ dynamic = ["version"]
 [project.scripts]
 zino = "zino.zino:main"
 zinoconv = "zino.stateconverter.convertstate:main"
+zping = "zino.zping:main"
 
 [project.optional-dependencies]
 docs = ["sphinx>=2.2.0"]
