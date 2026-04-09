@@ -84,12 +84,18 @@ def load_config(args: argparse.Namespace) -> Optional[state.Configuration]:
     Returns the configuration specified by the config file and None if no config file
     name was specified as argument and no default config file exists
     """
+    config_file = args.config_file or DEFAULT_CONFIG_FILE
     try:
-        return read_configuration(args.config_file or DEFAULT_CONFIG_FILE, args.polldevs)
+        with open(config_file, mode="rb"):
+            pass
     except OSError:
         if args.config_file:
             _log.fatal(f"No config file with the name {args.config_file} found.")
             sys.exit(1)
+        else:
+            _log.info("No config file found, using default configuration.")
+    try:
+        return read_configuration(config_file, args.polldevs)
     except InvalidConfigurationError:
         _log.fatal(f"Configuration file with the name {args.config_file or DEFAULT_CONFIG_FILE} is invalid TOML.")
         sys.exit(1)
