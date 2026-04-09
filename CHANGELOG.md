@@ -12,6 +12,17 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) and the chang
 
 <!-- towncrier release notes start -->
 
+## [2.5.0] - 2026-04-09
+
+### Added
+
+- Added support for receiving SNMP traps through a `straps` or `nmtrapd` trap multiplexer as an alternative to direct UDP binding (for maximum compatibility with existing Zino 1 deployments) ([#362](https://github.com/Uninett/zino/issues/362))
+
+### Changed
+
+- The minimum required version of `netsnmp-cffi` is now *0.2.0*. ([#362](https://github.com/Uninett/zino/issues/362))
+
+
 ## [2.4.1] - 2026-02-27
 
 ### Changed
