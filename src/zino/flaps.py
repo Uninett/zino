@@ -270,5 +270,5 @@ async def stabilize_flapping_state(
     poll = LinkStateTask(device=polldev, state=state, config=config)
     try:
         await poll.poll_single_interface(ifindex)
-    except Exception:  # noqa
+    except Exception:  # noqa: BLE001
         port.state = old_state
