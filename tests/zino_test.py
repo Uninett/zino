@@ -157,7 +157,7 @@ async def test_when_args_specify_user_zino_init_event_loop_should_attempt_to_swi
             zino.init_event_loop(args=Mock(trap_port=0, user="nobody"), loop=event_loop)
         except MockError:
             raise
-        except Exception:
+        except Exception:  # noqa: BLE001
             pass
 
 
@@ -169,7 +169,7 @@ async def test_when_running_as_root_without_user_config_should_log_warning(mock_
     with caplog.at_level(logging.WARNING):
         try:
             zino.init_event_loop(args=Mock(trap_port=0, user=None, stop_in=None), loop=event_loop)
-        except Exception:
+        except Exception:  # noqa: BLE001
             pass
 
     assert "Zino is running with root privileges" in caplog.text
@@ -187,7 +187,7 @@ async def test_when_trap_source_is_straps_then_init_event_loop_should_create_str
     ):
         try:
             zino.init_event_loop(args=Mock(trap_port=0, user=None, stop_in=None), loop=event_loop)
-        except Exception:
+        except Exception:  # noqa: BLE001
             pass
 
     mock_cls.assert_called_once()
@@ -207,7 +207,7 @@ async def test_when_straps_is_unavailable_then_init_event_loop_should_not_exit(m
     ):
         try:
             zino.init_event_loop(args=Mock(trap_port=0, user=None, stop_in=None), loop=event_loop)
-        except Exception:
+        except Exception:  # noqa: BLE001
             pass
 
     mock_receiver.open.assert_called_once()

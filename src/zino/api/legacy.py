@@ -179,7 +179,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         """Runs a command responder function asynchronously, ensuring that unhandled exceptions are dealt with"""
         try:
             await asyncio.ensure_future(responder(*args))
-        except Exception as error:  # noqa
+        except Exception as error:  # noqa: BLE001
             _logger.exception("unhandled exception raised during processing of %s command: %r", command, error)
             self._respond(500, "internal error")
         finally:
