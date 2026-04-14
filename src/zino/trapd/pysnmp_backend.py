@@ -95,7 +95,7 @@ class TrapReceiver(TrapReceiverBase):
             _logger.debug("(%r, %r, %s) = %s", mib, label, instance, raw_value.prettyPrint())
             try:
                 value = mib_value_to_python(raw_value)
-            except Exception:  # noqa
+            except Exception:  # noqa: BLE001
                 value = None
             trap.variables.append(TrapVarBind(OID(var), mib, label, instance, raw_value, value))
             if label == "snmpTrapOID":

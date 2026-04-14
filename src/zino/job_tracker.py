@@ -43,7 +43,7 @@ class JobTracker:
             job = self.scheduler.get_job(job_id)
             if job:
                 return job.name
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             _log.debug(f"Could not fetch job details for {job_id}: {e}")
 
         return None

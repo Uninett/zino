@@ -172,7 +172,7 @@ def init_event_loop(args: argparse.Namespace, loop: Optional[AbstractEventLoop] 
     _wait_for_dump_child()
     try:
         state.state.dump_state_to_file(state.config.persistence.file)
-    except Exception:
+    except Exception:  # noqa: BLE001
         _log.exception("Final state dump failed")
 
     return True
@@ -196,7 +196,7 @@ async def fork_and_dump_state(filename: str):
         # Child process — serialize and exit
         try:
             state.state.dump_state_to_file(filename)
-        except Exception:
+        except Exception:  # noqa: BLE001
             _log.exception("State dump failed in child process")
             os._exit(1)
         os._exit(0)

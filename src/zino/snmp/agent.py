@@ -145,7 +145,7 @@ class ZinoSnmpAgent:
             self._setup_engine()
             self._running = True
             _log.info("SNMP agent started on %s:%d", self.listen_address, self.listen_port)
-        except Exception as error:
+        except Exception as error:  # noqa: BLE001
             _log.error("Failed to start SNMP agent: %s", error)
             self._running = False
             raise

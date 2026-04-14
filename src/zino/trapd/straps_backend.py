@@ -159,7 +159,7 @@ class StrapsTrapReceiver(NetsnmpTrapProcessorMixin, TrapReceiverBase):
                     return
                 _logger.warning("Connection to %s multiplexer lost (EOF)", self._trap_config.source)
                 await self._reconnect_with_backoff()
-            except Exception:
+            except Exception:  # noqa: BLE001
                 if self._closing:
                     return
                 _logger.exception("Error reading from %s multiplexer", self._trap_config.source)
@@ -256,7 +256,7 @@ class StrapsTrapReceiver(NetsnmpTrapProcessorMixin, TrapReceiverBase):
         if self._writer:
             try:
                 self._writer.close()
-            except Exception:
+            except Exception:  # noqa: BLE001
                 pass
             self._writer = None
         self._reader = None

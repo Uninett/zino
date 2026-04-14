@@ -159,7 +159,7 @@ class TrapReceiverBase:
             try:
                 if not await observer.handle_trap(trap):
                     return
-            except Exception:  # noqa
+            except Exception:  # noqa: BLE001
                 _logger.exception("Unhandled exception in trap observer %r", observer)
 
     def _lookup_device(self, address: IPAddress) -> Optional[DeviceState]:
