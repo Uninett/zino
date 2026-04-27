@@ -11,13 +11,6 @@
 This is the modern Python re-implementation of the battle-proven Zino network
 state monitor, first implemented in Tcl/Scotty at Uninett in the 1990s.
 
-An incomplete list of features that have yet to be ported from legacy Zino:
-
-- No support for reading trap messages from a trap multiplexer like
-  `straps`/`nmtrapd`.  This type of functionality may potentially be achieved
-  by employing general packet multiplexers.  See issue
-  [#362](https://github.com/Uninett/zino/issues/362) for more details.
-
 Development of Zino 2.0 is fully sponsored by [NORDUnet](https://nordu.net/),
 on behalf of the nordic NRENs.
 
