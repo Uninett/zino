@@ -13,6 +13,8 @@ services:
     ports:
       # Default trap port
       - "162:162/udp"
+      # SNMP "ping" agent, for clients that want to verify Zino uptime
+      - "8000:8000/udp"
       # Map the API and notification ports
       - "8001:8001"
       - "8002:8002"
