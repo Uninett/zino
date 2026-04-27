@@ -19,7 +19,7 @@ from pydantic import ValidationError
 
 from zino import flaps, state, version
 from zino.api.server import ZinoServer
-from zino.config import InvalidConfigurationError, read_configuration
+from zino.config import InvalidConfigurationError, format_validation_error, read_configuration
 from zino.job_tracker import get_job_tracker
 from zino.scheduler import get_scheduler, load_and_schedule_polldevs
 from zino.snmp import import_snmp_backend
@@ -93,8 +93,8 @@ def load_config(args: argparse.Namespace) -> Optional[state.Configuration]:
     except InvalidConfigurationError as error:
         _log.fatal("Configuration file %s is not valid TOML: %s", args.config_file or DEFAULT_CONFIG_FILE, error)
         sys.exit(1)
-    except ValidationError as e:
-        _log.fatal(e)
+    except ValidationError as error:
+        _log.fatal("%s", "\n".join(format_validation_error(error)))
         sys.exit(1)
 
 
