@@ -90,8 +90,8 @@ def load_config(args: argparse.Namespace) -> Optional[state.Configuration]:
         if args.config_file:
             _log.fatal(f"No config file with the name {args.config_file} found.")
             sys.exit(1)
-    except InvalidConfigurationError:
-        _log.fatal(f"Configuration file with the name {args.config_file or DEFAULT_CONFIG_FILE} is invalid TOML.")
+    except InvalidConfigurationError as error:
+        _log.fatal("Configuration file %s is not valid TOML: %s", args.config_file or DEFAULT_CONFIG_FILE, error)
         sys.exit(1)
     except ValidationError as e:
         _log.fatal(e)

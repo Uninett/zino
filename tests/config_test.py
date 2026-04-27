@@ -23,6 +23,15 @@ class TestReadConfiguration:
         with pytest.raises(InvalidConfigurationError):
             read_configuration(invalid_zino_conf)
 
+    def test_when_toml_is_invalid_then_error_should_carry_underlying_message(self, invalid_zino_conf):
+        with pytest.raises(InvalidConfigurationError) as excinfo:
+            read_configuration(invalid_zino_conf)
+
+        # The underlying tomllib message names a line and column.
+        message = str(excinfo.value)
+        assert "line" in message
+        assert "column" in message
+
     def test_raises_error_on_invalid_config_values(self, invalid_values_zino_conf):
         with pytest.raises(ValidationError) as excinfo:
             read_configuration(invalid_values_zino_conf)

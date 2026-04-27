@@ -26,8 +26,8 @@ def read_configuration(config_file_name: str, poll_file_name: Optional[str] = No
     with open(config_file_name, mode="rb") as cf:
         try:
             config_dict = load(cf)
-        except TOMLDecodeError:
-            raise InvalidConfigurationError
+        except TOMLDecodeError as error:
+            raise InvalidConfigurationError(str(error)) from error
 
     # Polldevs by command line argument will override config file entry
     if poll_file_name:
