@@ -93,6 +93,12 @@ def test_when_args_specified_config_file_does_not_exist_then_load_config_should_
         zino.load_config(args)
 
 
+def test_when_no_config_file_specified_then_load_config_should_return_default_config(tmp_path):
+    args = Mock(config_file=tmp_path / "non_existent_file.toml")
+    config = zino.load_config(args)
+    assert config, "load_config did not return default config for missing config file"
+
+
 def test_when_logging_config_is_invalid_then_apply_logging_config_should_exit():
     with pytest.raises(SystemExit):
         zino.apply_logging_config({"loggers": {"zino": {"level": "invalid"}}})
