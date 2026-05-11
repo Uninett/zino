@@ -30,3 +30,9 @@ sphinx:
 # python:
 #    install:
 #    - requirements: docs/requirements.txt
+python:
+  install:
+    - method: uv
+      command: sync
+      groups:
+        - docs
