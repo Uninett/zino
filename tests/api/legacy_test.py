@@ -262,6 +262,33 @@ class TestZino1BaseServerProtocol:
 
         assert protocol not in server.active_clients
 
+    async def test_when_command_response_has_many_lines_then_it_should_be_emitted_as_a_single_write(self):
+        """Each command's response must be coalesced into a single
+        ``transport.write`` call. This is what prevents the per-line TCP
+        segment pattern that interacts pathologically with Nagle plus
+        delayed-ACK on real network links.
+        """
+
+        class TestProtocol(Zino1BaseServerProtocol):
+            async def do_multi(self):
+                self._respond(300, "line one of many")
+                self._respond_raw("line two")
+                self._respond_raw("line three")
+                self._respond_raw(".")
+
+        protocol = TestProtocol()
+        fake_transport = Mock()
+        protocol.connection_made(fake_transport)
+        fake_transport.write.reset_mock()  # discard the greeting write
+
+        await protocol.message_received("MULTI")
+
+        assert fake_transport.write.call_count == 1, (
+            f"expected one coalesced write, got {fake_transport.write.call_count}"
+        )
+        payload = fake_transport.write.call_args[0][0]
+        assert payload == b"300 line one of many\r\nline two\r\nline three\r\n.\r\n"
+
 
 class TestZino1ServerProtocolTranslateCaseIdToEvent:
     async def test_when_caseid_exists_it_should_return_event_object(self):
@@ -823,7 +850,7 @@ class TestZino1TestProtocol:
         protocol = MockProtocol()
         protocol.connection_made(buffered_fake_transport)
 
-        await protocol.do_multitest()
+        await protocol.message_received("MULTITEST")
         assert b"302 " in buffered_fake_transport.data_buffer.getvalue()
         assert b"200 ok" in buffered_fake_transport.data_buffer.getvalue()
 
