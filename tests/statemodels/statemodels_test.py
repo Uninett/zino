@@ -5,11 +5,13 @@ import os
 import pytest
 
 from zino.statemodels import (
+    BFDEvent,
     DeviceState,
     DeviceStates,
     Event,
     EventState,
     LogEntry,
+    PortStateEvent,
     ReachabilityEvent,
     regex_search,
 )
@@ -50,6 +52,32 @@ class TestEvent:
         attrs = fake_event.model_dump_simple_attrs()
 
         assert attrs["ac-down"] == "42"
+
+    def test_given_none_valued_field_with_non_none_default_when_dumping_then_default_should_be_emitted(self):
+        """Clients (ritz, curitz) expect certain attributes (e.g. `port` on portstate events) to always be
+        present.  A None value must therefore be replaced with the field's declared default rather than dropped
+        from the serialized output.
+        """
+        event = PortStateEvent(router="example-gw.example.org")
+        event.port = None
+
+        attrs = event.model_dump_simple_attrs()
+
+        assert "port" in attrs
+        assert attrs["port"] == ""
+
+    def test_optional_field_with_none_default_should_remain_omitted_from_output(self):
+        """Regression guard.  Fields whose declared default is None (e.g. `BFDEvent.bfdaddr`) are genuinely
+        optional on the wire and should remain absent when unset, rather than appearing as the literal string
+        ``"None"``.  Without this guard, future refactors of `model_dump_simple_attrs()` could silently start
+        emitting None-valued, None-default fields.
+        """
+        event = BFDEvent(router="example-gw.example.org")
+
+        attrs = event.model_dump_simple_attrs()
+
+        assert "bfdAddr" not in attrs
+        assert "bfdaddr" not in attrs
 
     def test_zinoify_value_when_value_is_enum_it_should_return_its_real_value(self):
         assert Event.zinoify_value(EventState.OPEN) == "open"

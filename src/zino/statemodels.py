@@ -2,6 +2,7 @@
 
 import datetime
 import fnmatch
+import functools
 import logging
 import pathlib
 import re
@@ -22,6 +23,7 @@ from typing import (
 )
 
 from pydantic import BaseModel, ConfigDict, Field
+from pydantic_core import PydanticUndefined
 
 from zino.compat import StrEnum
 from zino.time import now
@@ -309,12 +311,36 @@ class Event(BaseModel):
 
         "Simple" attributes are typically "single line" public attributes, i.e. anything but `log` or `history`.
 
+        Fields whose value is None are omitted unless the field declares a non-None default, in which case the
+        default is emitted instead.  This honors the implicit contract that fields like `port: Optional[str] = ""`
+        are always present on the wire (clients expect them), while still letting genuinely optional fields be absent
+        when not applicable.
+
         It would be nice to be able to attach custom serializers to fields, but we need to support multiple
         serialization formats (one for JSON state dumps, one for the legacy Zino protocol), and it's not clear how
         Pydantic can support that.
         """
-        attrs = self.model_dump(mode="python", exclude={"log", "history"}, exclude_none=True, by_alias=True)
-        return {attr.replace("_", "-"): self.zinoify_value(value) for attr, value in attrs.items()}
+        excluded = {"log", "history"}
+        attrs = self.model_dump(mode="python", exclude=excluded, by_alias=True)
+        defaults = self._non_none_field_defaults_by_alias()
+        result = {}
+        for name, value in attrs.items():
+            if value is None:
+                value = defaults.get(name)
+                if value is None:
+                    continue
+            result[name.replace("_", "-")] = self.zinoify_value(value)
+        return result
+
+    @classmethod
+    @functools.cache
+    def _non_none_field_defaults_by_alias(cls) -> dict[str, Any]:
+        """Returns a mapping of (alias-or-name → declared default) for fields with a non-None default."""
+        return {
+            (info.alias or name): info.default
+            for name, info in cls.model_fields.items()
+            if info.default is not PydanticUndefined and info.default is not None
+        }
 
     @staticmethod
     def zinoify_value(value: Any) -> str:
