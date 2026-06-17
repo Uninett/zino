@@ -234,6 +234,19 @@ class TestBaseInterfaceRow:
             mock_getnext2.side_effect = TimeoutError
             assert await linkstatetask_with_one_link_down.poll_single_interface(42) is None
 
+    async def test_when_interface_no_longer_exists_poll_single_interface_should_not_crash(
+        self, linkstatetask_with_one_link_down
+    ):
+        """Regression test.  When the target interface is absent from the IF-MIB, the GET-NEXT started from ifindex-1
+        returns a higher (or different-column) instance.  poll_single_interface should detect the mismatch and return
+        gracefully instead of raising, mirroring Zino 1's behaviour.
+        """
+        nonexistent_index = 5  # the linksdown fixture only has interfaces 1 and 2
+        assert await linkstatetask_with_one_link_down.poll_single_interface(nonexistent_index) is None
+
+        device_state = linkstatetask_with_one_link_down.state.devices.get(linkstatetask_with_one_link_down.device.name)
+        assert nonexistent_index not in device_state.ports
+
 
 @pytest.fixture
 def linkstatetask_with_links_up(snmpsim, snmp_test_port):
