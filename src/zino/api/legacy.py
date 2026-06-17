@@ -84,6 +84,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         self._multiline_buffer: List[str] = []
         self._authentication_challenge: Optional[str] = None
         self._responders = self._get_all_responders()
+        self._output_buffer = bytearray()
 
         self._state = state if state is not None else ZinoState()
         self._config = config if config else zino.state.config
@@ -114,6 +115,8 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
             self.server.active_clients.add(self)
         self._authentication_challenge = auth.get_challenge()
         self._respond_ok(f"{self._authentication_challenge} Hello, there")
+        # No dispatcher wraps this, so flush the greeting explicitly.
+        self._flush_response()
 
     def connection_lost(self, exc: Optional[Exception]) -> None:
         _logger.info("Client disconnected: %s", self.peer_name)
@@ -149,6 +152,17 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         return self._dispatch_command(message)
 
     def _dispatch_command(self, message: str):
+        task = self._dispatch_to_responder(message)
+        if task is None:
+            # Sync error paths returned without scheduling a task; flush
+            # here. Async paths flush in `_run_async_responder`'s `finally`.
+            self._flush_response()
+        return task
+
+    def _dispatch_to_responder(self, message: str):
+        """Resolves the responder, validates args, and either schedules an async
+        task or sends a synchronous error. Returns the task or None.
+        """
         responder, args = self._get_responder(message)
         if not responder:
             return self._respond_error(f'unknown command: "{message}"')
@@ -183,6 +197,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
             _logger.exception("unhandled exception raised during processing of %s command: %r", command, error)
             self._respond(500, "internal error")
         finally:
+            self._flush_response()
             self._current_task = None
 
     def _get_responder(self, message: str) -> tuple[Optional[Responder], List[str]]:
@@ -239,8 +254,15 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         self._respond_raw(f"{code} {message}")
 
     def _respond_raw(self, message: str):
-        """Encodes and sends a response line to the connected client"""
-        self.transport.write(f"{message}\r\n".encode("utf-8"))
+        """Buffers a response line until the next `_flush_response` call."""
+        self._output_buffer.extend(f"{message}\r\n".encode("utf-8"))
+
+    def _flush_response(self):
+        """Writes any buffered response bytes to the transport."""
+        if not self._output_buffer:
+            return
+        self.transport.write(bytes(self._output_buffer))
+        self._output_buffer.clear()
 
 
 class Zino1ServerProtocol(Zino1BaseServerProtocol):
@@ -263,6 +285,7 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
     async def do_quit(self):
         """Implements the QUIT command"""
         self._respond(205, "Bye")
+        self._flush_response()
         self.transport.close()
 
     async def do_help(self):
