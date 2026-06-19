@@ -233,6 +233,8 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         loop = asyncio.get_running_loop()
         self._multiline_future = loop.create_future()
         self._multiline_future.add_done_callback(self._end_multiline_input_mode)
+        # Deliver any prompt now; the awaiting responder won't reach its flush until input completes.
+        self._flush_response()
         return self._multiline_future
 
     def _end_multiline_input_mode(self, future: asyncio.Future):
