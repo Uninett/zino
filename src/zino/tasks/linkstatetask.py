@@ -76,8 +76,12 @@ class LinkStateTask(Task):
         self.device_state.set_boot_time_from_uptime(self.sysuptime)
         _logger.debug("poll_single_interface %s result: %r", self.device.name, result)
 
-        assert all(ident.index == OID(f".{ifindex}") for ident, value in result)
-        row = {ident.object: value for ident, value in result}
+        # The GET-NEXT starts from ifindex-1, so keep only columns that match the requested index; if the interface
+        # no longer exists, none will match and we bail gracefully (cf. Zino 1's `filterLowestMatching`).
+        row = {ident.object: value for ident, value in result if ident.index == OID(f".{ifindex}")}
+        if not row:
+            _logger.info("%s: no match polling single interface %s", self.device.name, ifindex)
+            return
 
         self._update_single_interface(row)
 
