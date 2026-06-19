@@ -12,6 +12,23 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) and the chang
 
 <!-- towncrier release notes start -->
 
+## [2.5.1] - 2026-06-19
+
+### Added
+
+- Add `zping` CLI utility to check if a Zino daemon is alive by querying its SNMP agent for uptime. ([#528](https://github.com/Uninett/zino/issues/528))
+
+### Changed
+
+- Configuration errors in `zino.toml` now report the underlying parser message (with line and column) for syntax errors, and friendlier messages — including key suggestions — for validation errors. ([#539](https://github.com/Uninett/zino/issues/539))
+
+### Fixed
+
+- Single-interface link state verification no longer crashes with an `AssertionError` when the target interface has disappeared from the `IF-MIB` (e.g. removed between a link trap firing and its reverification); the poll is now skipped gracefully. ([#263](https://github.com/Uninett/zino/issues/263))
+- Fix slow case-fetching for existing clients (`curitz`, `zinolib`) over real networks. The legacy API server now coalesces each response into a single `transport.write()` instead of one per protocol line, eliminating a Nagle/delayed-ACK stall that added ~40 ms per command on non-loopback links. ([#543](https://github.com/Uninett/zino/issues/543))
+- Fix legacy Zino-1 protocol clients (`ritz`, `curitz`, `zinolib`-based) crashing when a portstate event lacks a `port` attribute on the wire.  The API now always emits the attribute, falling back to an empty value when needed. ([#546](https://github.com/Uninett/zino/issues/546))
+
+
 ## [2.5.0] - 2026-04-09
 
 ### Added
