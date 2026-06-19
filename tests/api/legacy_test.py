@@ -1,3 +1,4 @@
+import asyncio
 import re
 from datetime import timedelta
 from io import BytesIO
@@ -130,6 +131,18 @@ class TestZino1BaseServerProtocol:
         data = await future
 
         assert data == ["line one", "line two"]
+
+    async def test_when_entering_multiline_mode_then_buffered_output_should_be_flushed(self):
+        protocol = Zino1BaseServerProtocol()
+        fake_transport = Mock()
+        protocol.connection_made(fake_transport)
+        protocol._respond(302, "prompt")
+        fake_transport.write.reset_mock()
+
+        protocol._read_multiline()
+
+        written = b"".join(call.args[0] for call in fake_transport.write.call_args_list)
+        assert b"302 prompt" in written, "the buffered prompt must reach the transport before awaiting input"
 
     def test_when_command_is_unknown_then_dispatcher_should_respond_with_error(self):
         protocol = Zino1BaseServerProtocol()
@@ -569,6 +582,34 @@ class TestZino1ServerProtocolAddhistCommand:
 
         output = authenticated_protocol.transport.data_buffer.getvalue().decode()
         assert "\r\n500 " in output
+
+    @pytest.mark.timeout(5)
+    async def test_when_addhist_awaits_input_then_prompt_should_reach_client_first(self, authenticated_protocol):
+        """A real client will not send the history entry until it has received
+        the 302 prompt. Since the responder coroutine suspends on the multi-line
+        future, the prompt must be flushed before we await, or the session
+        deadlocks (regression from the response-coalescing change).
+        """
+        state = authenticated_protocol._state
+        event = state.events.create_event("foo", None, ReachabilityEvent)
+        state.events.commit(event)
+        pre_count = len(event.history)
+
+        authenticated_protocol.data_received(f"ADDHIST {event.id}\r\n".encode())
+        # Wait until the responder has actually entered multiline mode, rather than guessing
+        # how many scheduler turns that takes; the timeout marker guards against it never happening.
+        while authenticated_protocol._multiline_future is None:
+            await asyncio.sleep(0)
+
+        assert b"302 " in authenticated_protocol.transport.data_buffer.getvalue(), (
+            "the 302 prompt must reach the client before the server awaits multi-line input"
+        )
+
+        authenticated_protocol.data_received(b"a note\r\n.\r\n")
+        await authenticated_protocol._current_task
+
+        assert b"200 ok" in authenticated_protocol.transport.data_buffer.getvalue()
+        assert len(state.events[event.id].history) > pre_count
 
 
 class TestZino1ServerProtocolSetstateCommand:
