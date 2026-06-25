@@ -7,6 +7,11 @@ on:
       - published
       - edited
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version to (re)build, e.g. 2.5.1. Defaults to the latest release."
+        required: false
+        type: string
 
 env:
   REGISTRY: ghcr.io
@@ -25,9 +30,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
           if [ "${{ github.event_name }}" = "release" ]; then
             tag="$RELEASE_TAG"
+          elif [ -n "$INPUT_VERSION" ]; then
+            tag="$INPUT_VERSION"
           else
             tag=$(gh release view --repo "${{ github.repository }}" --json tagName -q .tagName)
           fi
