@@ -3,10 +3,11 @@ Description=Zino
 After=network.target
 
 [Service]
-User=root
-Group=nogroup
+User=zino
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
 WorkingDirectory=/home/zino
-ExecStart=/home/zino/.zino/bin/zino --user zino
+ExecStart=/home/zino/.zino/bin/zino
 Restart=always
 RestartSec=5
 StandardOutput=journal
