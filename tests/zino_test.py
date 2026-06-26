@@ -295,6 +295,44 @@ class TestSwitchUser:
 
         assert not zino.switch_to_user(random_username)
 
+    @patch("os.getuid", return_value=0)
+    @patch("os.setgid")
+    @patch("os.setgroups")
+    @patch("os.setuid")
+    def test_when_given_numeric_uid_and_gid_it_should_switch_to_both(self, *_):
+        assert zino.switch_to_user("4321:100")
+        os.setuid.assert_called_once_with(4321)
+        os.setgid.assert_called_once_with(100)
+        os.setgroups.assert_not_called()
+
+    @patch("os.getuid", return_value=0)
+    @patch("pwd.getpwuid", side_effect=KeyError)
+    @patch("os.setgid")
+    @patch("os.setgroups")
+    @patch("os.setuid")
+    def test_when_given_numeric_uid_without_passwd_entry_it_should_reuse_uid_as_gid(self, *_):
+        assert zino.switch_to_user("4321")
+        os.setuid.assert_called_once_with(4321)
+        os.setgid.assert_called_once_with(4321)
+
+    @patch("os.getuid", return_value=0)
+    @patch("pwd.getpwuid")
+    @patch("grp.getgrall")
+    @patch("os.setgid")
+    @patch("os.setgroups")
+    @patch("os.setuid")
+    def test_when_given_numeric_uid_with_passwd_entry_it_should_use_its_gid_and_groups(self, *_):
+        pwd.getpwuid.return_value = Mock(pw_uid=4321, pw_gid=200, pw_name="someuser")
+        grp.getgrall.return_value = [Mock(gr_gid=4242, gr_mem=["someuser"])]
+
+        assert zino.switch_to_user("4321")
+        os.setuid.assert_called_once_with(4321)
+        os.setgid.assert_called_once_with(200)
+        os.setgroups.assert_called_once_with([4242])
+
+    def test_when_given_invalid_user_spec_it_should_return_false(self):
+        assert not zino.switch_to_user("not:numeric")
+
 
 class TestCountReachableObjects:
     def test_it_should_count_queried_classes(self):

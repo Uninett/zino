@@ -56,10 +56,12 @@ The ``[process]`` section controls process-level behavior.
    user = "zino"
 
 ``user``
-   Username to switch to after binding to privileged ports. When Zino starts
-   as root, it will drop privileges to this user once protected ports (like
-   the SNMP trap port 162) are bound. This can be overridden by the ``--user``
-   command-line option. Default: not set (no privilege dropping).
+   User to switch to after binding to privileged ports. When Zino starts as
+   root, it drops privileges to this user once protected ports (like the SNMP
+   trap port 162) are bound. May be a user name, a numeric ``UID``, or a numeric
+   ``UID:GID`` pair; the numeric forms are useful in containers, where the
+   target UID may have no entry in ``/etc/passwd``. This can be overridden by
+   the ``--user`` command-line option. Default: not set (no privilege dropping).
 
 .. _configuring-trap-reception:
 
