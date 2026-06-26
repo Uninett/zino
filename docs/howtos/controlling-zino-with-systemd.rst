@@ -30,8 +30,18 @@ To start Zino in the background now, run:
 
     sudo systemctl start zino
 
-This will start ``zino`` as root; ``zino`` will drop its root privileges by
-itself as soon as port 162 is open for listening.
+This starts Zino directly as the unprivileged ``zino`` user.  Zino still needs
+to bind the SNMP trap port (UDP 162), and ports below 1024 normally require
+root.  Rather than starting as root, the unit grants Zino the single Linux
+capability that permits binding a privileged port — ``CAP_NET_BIND_SERVICE`` —
+through the ``AmbientCapabilities`` directive, while ``CapabilityBoundingSet``
+restricts the service to that one capability.  This way Zino can listen on port
+162 without ever running with root privileges.
+
+If you would rather have Zino start as root and drop its privileges afterwards
+(for example on a system without ``AmbientCapabilities`` support), set ``user``
+in the ``[process]`` section of ``zino.toml`` (see :ref:`configuring-process`)
+and change the unit to run as ``User=root`` instead.
 
 
 Removing redundant timestamps in logs
