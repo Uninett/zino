@@ -320,47 +320,74 @@ def setup_initial_job_schedule(loop: AbstractEventLoop, args: argparse.Namespace
         )
 
 
-def switch_to_user(username: str):
-    """Switch the process to another user (aka. drop privileges)"""
+def switch_to_user(user: str) -> bool:
+    """Switch the process to another user, i.e. drop privileges.
 
-    # Get UID/GID of current user
+    The target may be a user name, a numeric ``UID``, or a numeric ``UID:GID``
+    pair.  The numeric forms are useful in containers, where the desired UID
+    often has no matching entry in ``/etc/passwd``.
+
+    :param user: Target user as a name, ``UID``, or ``UID:GID``.
+    :return: True if privileges were dropped (or were already dropped).
+    """
+    resolved = _resolve_user_spec(user)
+    if resolved is None:
+        return False
+    uid, gid, supplementary_groups = resolved
+
     old_uid = os.getuid()
     old_gid = os.getgid()
-
-    try:
-        # Try to get information about the given username
-        user = pwd.getpwnam(username)
-    except KeyError:
-        _log.error("Could not find user %s", username)
-        return False
-
-    if old_uid == user.pw_uid:
-        # Already running as the given user
+    if old_uid == uid:
         _log.debug("Already running as uid/gid %d/%d.", old_uid, old_gid)
         return True
 
     try:
-        # Set primary group
-        os.setgid(user.pw_gid)
-
-        # Set non-primary groups
-        gids = [g.gr_gid for g in grp.getgrall() if username in g.gr_mem]
-        if gids:
-            os.setgroups(gids)
-
-        # Set user id
-        os.setuid(user.pw_uid)
+        os.setgid(gid)
+        if supplementary_groups:
+            os.setgroups(supplementary_groups)
+        os.setuid(uid)
     except OSError as error:
-        # Failed changing uid/gid
-        _log.error(
-            "Failed changing uid/gid from %d/%d to %d/%d (%s)", old_uid, old_gid, user.pw_uid, user.pw_gid, error
-        )
+        _log.error("Failed changing uid/gid from %d/%d to %d/%d (%s)", old_uid, old_gid, uid, gid, error)
         return False
 
-    # Switch successful
-    _log.info("Dropped privileges to user %s", username)
-    _log.debug("uid/gid changed from %d/%d to %d/%d.", old_uid, old_gid, user.pw_uid, user.pw_gid)
+    _log.info("Dropped privileges to %s (uid/gid %d/%d)", user, uid, gid)
     return True
+
+
+def _resolve_user_spec(user: str) -> Optional[tuple[int, int, list[int]]]:
+    """Resolve a user spec to a ``(uid, gid, supplementary group ids)`` tuple.
+
+    :param user: Target user as a name, a numeric ``UID``, or ``UID:GID``.
+    :return: The resolved ``(uid, gid, supplementary_groups)``, or None if the
+        spec was invalid or a named user could not be found.
+    """
+    if ":" in user:
+        uid, _, gid = user.partition(":")
+        if uid.isdigit() and gid.isdigit():
+            return int(uid), int(gid), []
+        _log.error("Invalid user specification %r; expected a name, UID, or UID:GID", user)
+        return None
+
+    if user.isdigit():
+        uid = int(user)
+        try:
+            entry = pwd.getpwuid(uid)
+        except KeyError:
+            # No passwd entry (common in containers); reuse the UID as the GID
+            return uid, uid, []
+        return entry.pw_uid, entry.pw_gid, _supplementary_groups(entry.pw_name)
+
+    try:
+        entry = pwd.getpwnam(user)
+    except KeyError:
+        _log.error("Could not find user %s", user)
+        return None
+    return entry.pw_uid, entry.pw_gid, _supplementary_groups(user)
+
+
+def _supplementary_groups(username: str) -> list[int]:
+    """Return the GIDs of the supplementary groups ``username`` belongs to."""
+    return [group.gr_gid for group in grp.getgrall() if username in group.gr_mem]
 
 
 def reschedule_dump_state_on_commit(new_event: Event, old_event: Optional[Event] = None) -> None:
@@ -465,7 +492,9 @@ def parse_args(arguments=None):
         "privileges.  Setting to 0 disables SNMP trap monitoring.",
     )
     parser.add_argument(
-        "--user", metavar="USER", help="Switch to this user immediately after binding to privileged ports"
+        "--user",
+        metavar="USER",
+        help="Switch to this user (name, UID, or UID:GID) immediately after binding to privileged ports",
     )
     args = parser.parse_args(args=arguments)
     return args
