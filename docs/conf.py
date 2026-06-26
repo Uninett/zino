@@ -5,11 +5,12 @@
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
+import datetime
 import os.path
 import sys
 
 project = 'Zino'
-copyright = '2024-2025, Sikt - The Norwegian Agency for Shared Services in Education and Research'
+copyright = f'2024-{datetime.date.today().year}, Sikt - The Norwegian Agency for Shared Services in Education and Research'
 author = 'Morten Brekkevold, Johanna England, Simon Tveit'
 try:
     sys.path.insert(0, os.path.join(os.path.abspath('..'), 'src'))
@@ -40,3 +41,9 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 html_theme = 'alabaster'
 html_static_path = ['_static']
+# Alabaster renders the sidebar logo from this theme option, not from
+# Sphinx's html_logo. Set the logo the new theme's way if you switch themes.
+html_theme_options = {
+    'logo': 'zino-logo.svg',
+    'logo_name': False,  # wordmark already includes the project name
+}
