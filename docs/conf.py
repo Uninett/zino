@@ -40,3 +40,9 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 html_theme = 'alabaster'
 html_static_path = ['_static']
+# Alabaster renders the sidebar logo from this theme option, not from
+# Sphinx's html_logo. Set the logo the new theme's way if you switch themes.
+html_theme_options = {
+    'logo': 'zino-logo.svg',
+    'logo_name': False,  # wordmark already includes the project name
+}
