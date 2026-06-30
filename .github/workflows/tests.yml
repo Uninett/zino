@@ -36,6 +36,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # Disable shallow clone for improved SonarCloud analysis
 
       - name: Cache
         uses: actions/cache@v6
@@ -70,27 +72,10 @@ jobs:
           path: |
             reports/**/*
 
-  upload-pr-info:
-    name: Save extra PR info in artifact
-    runs-on: ubuntu-latest
-    if: ${{ github.event.number && always() }}
-    env:
-      PR_NUMBER: ${{ github.event.number }}
-      BASE_SHA: ${{ github.event.pull_request.base.sha }}
-      BASE_NAME: ${{ github.base_ref }}
-    steps:
-      - name: Make PR number file
-        run: |
-          mkdir -p ./extra
-          echo $PR_NUMBER > ./extra/pr_number
-      - name: Make base SHA file
-        run: |
-          echo $BASE_SHA > ./extra/base_sha
-      - name: Make base name file
-        run: |
-          echo $BASE_NAME > ./extra/base_name
-      - name: Upload PR info files
-        uses: actions/upload-artifact@v7
+      - name: Upload coverage reports to Codecov
+        if: github.repository_owner == 'Uninett'
+        uses: codecov/codecov-action@v7
         with:
-          name: extra
-          path: extra/
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
