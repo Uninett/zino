@@ -1,0 +1,1 @@
+`--user` and the `process.user` setting now accept a numeric `UID` or `UID:GID` or, as previously, a user name, so Zino can drop privileges to a UID that has no entry in `/etc/passwd` (e.g. inside a container)

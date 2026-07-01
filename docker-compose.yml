@@ -6,17 +6,20 @@ services:
     image: zino:latest
     # Option 2: Fetch image externally
     #image: ghcr.io/uninett/zino:latest
+    # Host networking is required so Zino sees the real source address of
+    # incoming SNMP traps. With bridge networking and published ports, Docker
+    # rewrites the source to the gateway address and Zino ignores the traps,
+    # because it matches them to devices by source address. See
+    # docs/howtos/use-docker-image.rst for the full explanation.
+    network_mode: host
     volumes:
-      # Mount the current directory into /zino inside the container
-      # It needs to contain the various necessary configuration files
+      # Mount the current directory into /zino inside the container.
+      # It needs to contain the various necessary configuration files.
       - ./:/zino
-    ports:
-      # Default trap port
-      - "162:162/udp"
-      # SNMP "ping" agent, for clients that want to verify Zino uptime
-      - "8000:8000/udp"
-      # Map the API and notification ports
-      - "8001:8001"
-      - "8002:8002"
-    # Example custom trap port configuration, must match with port mapping
-    #command: "--trap-port 1162"
+    # Zino starts as root to bind the privileged trap port (162), then drops
+    # privileges. By default it drops to the built-in unprivileged "zino" user
+    # (uid 1000); it never keeps running as root. Set HOST_UID/HOST_GID to your
+    # own ids instead, so the mounted config and the state files Zino writes are
+    # owned by (and writable by) you, e.g.:
+    #   HOST_UID=$(id -u) HOST_GID=$(id -g) docker compose up
+    command: "--user ${HOST_UID:-1000}:${HOST_GID:-1000}"

@@ -1,0 +1,1 @@
+The bundled Docker Compose setup now uses host networking, so Zino receives SNMP traps with their real source addresses; under bridge networking Docker rewrote the source to the gateway and Zino silently dropped every trap
