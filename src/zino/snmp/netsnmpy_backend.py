@@ -108,7 +108,11 @@ class SNMP:
 
     def __enter__(self):
         self._lock.acquire()
-        self.open()
+        try:
+            self.open()
+        except Exception:
+            self._lock.release()
+            raise
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
