@@ -1,4 +1,5 @@
 import asyncio
+import errno
 import os
 from unittest.mock import Mock, patch
 
@@ -302,3 +303,21 @@ class TestSnmpContextManager:
             with snmp_session as snmp2:
                 assert snmp2._is_open, "second context closed the session"
             assert snmp1._is_open, "second session exit close the session prematurely"
+
+    def test_when_open_raises_the_lock_should_not_remain_held(self, snmp_session):
+        with patch.object(snmp_session, "open", side_effect=OSError(errno.EMFILE, "Too many open files")):
+            with pytest.raises(OSError):
+                with snmp_session:
+                    pass
+        assert not snmp_session._lock._is_owned(), "lock was left acquired after open() raised in __enter__"
+
+    def test_when_open_raises_a_later_successful_context_should_still_close(self, snmp_session):
+        with patch.object(snmp_session, "open", side_effect=OSError(errno.EMFILE, "Too many open files")):
+            with pytest.raises(OSError):
+                with snmp_session:
+                    pass
+
+        with snmp_session as snmp:
+            assert snmp._is_open
+
+        assert not snmp_session._is_open, "session was never closed after a prior failed open wedged the lock"
