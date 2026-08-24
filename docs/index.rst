@@ -23,6 +23,7 @@ developed at Uninett in the 1990s and now rewritten in Python.
    installation
    configuration
    howtos
+   clients
 
 .. toctree::
    :maxdepth: 2
