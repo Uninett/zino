@@ -168,18 +168,39 @@ PMs are defined with:
 - Device name or pattern (glob matching)
 - Description of the maintenance activity
 
+
+Alerts and notifications
+------------------------
+
+As Zino only concerns itself with tracking state changes, it does not handle
+dispatching of notifications to end users. Notification systems must be
+implemented as Zino API clients.
+
+Once such official client, EMT (E-Mail Trigger), written in Tcl, is shipped in
+the `original Zino 1 source code
+<https://ftp.nordu.net/nordunet/NORDstat/zino-1.0.tar.gz>`_.
+
+These days, however, we recommend integrating Zino with `Argus
+<https://network.geant.org/argus/>`_, using `the zino-argus-glue service
+<https://github.com/Uninett/zino-argus-glue/>`_, and letting Argus handle
+notifications for you (as well as serving as your GUI for incident management).
+
+These clients both support automatic failover from a primary to a secondary
+Zino instance in redundant server configurations.
+
+
 Flapping Detection
 ------------------
 
 A link that bounces up and down repeatedly is **flapping**. Flapping can
-generate excessive events and masks the real problem.
+generate excessive log messages, masking the real problem.
 
 Zino detects flapping by tracking state change frequency. When a port exceeds a
 threshold of transitions within a time window, Zino:
 
 1. Marks the port as ``flapping``
-2. Stops creating new events for each individual transition
-3. Creates or updates a single event noting the flapping condition
+2. Stops adding event log messages for each individual transition
+3. Creates or updates a single event, noting the flapping condition
 
 When the port stabilizes (stays in one state long enough), the flapping
 designation is cleared.

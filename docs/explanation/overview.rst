@@ -27,8 +27,8 @@ battle-tested over decades of production use.
 Adoption beyond Norway came in 1999 when SUNET (the Swedish NREN) began using
 Zino at their Network Operations Center. NORDUnet, the collaboration that
 interconnects the Nordic NRENs, also adopted Zino for monitoring its backbone.
-Today, Zino is used by Uninett (now Sikt), NORDUnet, SUNET, and FUNET (the
-Finnish NREN).
+Today, Zino is used by Uninett (now Sikt), NORDUnet, SUNET, and RHNet (the
+Icelandic NREN).
 
 The Python Rewrite
 ------------------
@@ -53,6 +53,7 @@ Unlike metric-focused systems (Prometheus, Graphite) that collect and graph
 time-series data, or availability monitors (Nagios, Icinga) that check whether
 services respond, Zino tracks *state transitions* in network infrastructure:
 
+- A router is unreachable (or reachable again)
 - A link goes down (or comes back up)
 - A BGP session drops (or re-establishes)
 - A BFD session fails
@@ -75,7 +76,7 @@ Several principles guide Zino's design:
 
 **Human-in-the-loop**
     Events don't auto-close when a link recovers. An operator must acknowledge
-    and close each case. This ensures issues are investigated, not just
+    or comment and close each case. This ensures issues are investigated, not just
     observed, and creates an audit trail of network incidents.
 
 **Trap-directed polling**
@@ -86,14 +87,31 @@ Several principles guide Zino's design:
     model improves reliability.
 
 **Minimal footprint**
-    The original fit in 5,000 lines of Tcl. The Python rewrite is larger but
-    remains focused. Zino has few dependencies, runs as a single process, and
-    stores state in a simple JSON file. No database server required.
+    The original fit in about 5,000 lines of Tcl. The Python rewrite is
+    about 5100 lines as of this writing. Zino has few dependencies, runs as
+    a single process, and stores state in a simple JSON file. No database
+    server required.
 
-**Protocol compatibility**
-    The legacy SMTP-like client/server protocol is preserved exactly, so
-    existing user interfaces and integrations continue to work.
 
+**Client/server architecture**
+    Zino, by design, features *no* GUI: It is purely a back-end
+    monitor. Instead, Zino provides a simple, SMTP-like protocol for clients
+    to interact with the server. Zino 2 preserves the Zino 1 protocol, so
+    that existing user interfaces and integrations can continue to work.
+Zino user interfaces
+--------------------
+
+* **curitz** - a curses/terminal-based remote interface to Zino. Curitz is
+  implemented in Python and is easy to install and use. See the `curitz GitHub
+  repository for more information <https://github.com/Uninett/curitz/>`_.
+* **Argus** - a web based interface. `Argus is a general purpose incident
+  management tool <https://network.geant.org/argus/>`_ that can be integrated
+  with many monitoring tools.  A `two-way zino-argus integration is available
+  <https://github.com/Uninett/zino-argus-glue/>`_. 
+* **Ritz** - the original, X11-based *Remote Interface To Zino*, implemented in
+  Tcl. The Ritz client is part of the original Zino 1 codebase, which is
+  currently only available as `a tarball at the NORDUnet FTP site
+  <https://ftp.nordu.net/nordunet/NORDstat/zino-1.0.tar.gz>`_.
 How Zino Fits In
 ----------------
 
