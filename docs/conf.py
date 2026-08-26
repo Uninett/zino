@@ -25,6 +25,7 @@ except ImportError:
 
 extensions = [
     'sphinx.ext.intersphinx',
+    'sphinxcontrib.mermaid',
 ]
 
 intersphinx_mapping = {
