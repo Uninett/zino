@@ -3,8 +3,8 @@ What is Zino?
 
 **Zino Is Not OpenView.**
 
-That recursive acronym—a reference to HP OpenView (a dominant commercial network
-management platform of the 1990s)—captures both Zino's origin and its
+That recursive acronym, a reference to HP OpenView (a dominant commercial network
+management platform of the 1990s), captures both Zino's origin and its
 philosophy: a lightweight, focused alternative to heavyweight enterprise
 solutions. The self-referential name follows a tradition beloved by Unix
 hackers, in the spirit of GNU ("GNU's Not Unix").
@@ -39,7 +39,7 @@ difficult and onboarding new developers nearly impossible. In response,
 NORDUnet sponsored a complete rewrite in Python, with the goal that all Nordic
 NRENs would use the modernized version.
 
-This project—Zino 2—preserves the original's design philosophy and maintains
+This project (Zino 2) preserves the original's design philosophy and maintains
 backwards compatibility with the legacy client/server protocol, allowing
 existing tools like *Ritz* and *curitz* to continue working unchanged.
 
@@ -88,7 +88,7 @@ Several principles guide Zino's design:
 
 **Minimal footprint**
     The original fit in about 5,000 lines of Tcl. The Python rewrite is
-    about 5100 lines as of this writing. Zino has few dependencies, runs as
+    about 5,100 lines as of this writing. Zino 2 has few dependencies, runs as
     a single process, and stores state in a simple JSON file. No database
     server required.
 
@@ -98,6 +98,7 @@ Several principles guide Zino's design:
     monitor. Instead, Zino provides a simple, SMTP-like protocol for clients
     to interact with the server. Zino 2 preserves the Zino 1 protocol, so
     that existing user interfaces and integrations can continue to work.
+
 Zino user interfaces
 --------------------
 
@@ -107,11 +108,12 @@ Zino user interfaces
 * **Argus** - a web based interface. `Argus is a general purpose incident
   management tool <https://network.geant.org/argus/>`_ that can be integrated
   with many monitoring tools.  A `two-way zino-argus integration is available
-  <https://github.com/Uninett/zino-argus-glue/>`_. 
+  <https://github.com/Uninett/zino-argus-glue/>`_.
 * **Ritz** - the original, X11-based *Remote Interface To Zino*, implemented in
   Tcl. The Ritz client is part of the original Zino 1 codebase, which is
   currently only available as `a tarball at the NORDUnet FTP site
   <https://ftp.nordu.net/nordunet/NORDstat/zino-1.0.tar.gz>`_.
+
 How Zino Fits In
 ----------------
 
