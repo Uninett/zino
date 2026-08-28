@@ -232,7 +232,8 @@ Extending Zino
 
 **Adding a new task type**
     Create a new class inheriting from ``Task``, implement the ``run()`` method,
-    and register it in the scheduler setup.
+    and register it in the scheduler setup in ``get_registered_tasks`` in
+    ``zino/tasks/__init__.py``.
 
 **Adding a new trap observer**
     Create a module in ``zino/trapobservers/``, define handler functions with

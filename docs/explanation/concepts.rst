@@ -8,8 +8,8 @@ Events (Cases)
 --------------
 
 The **event** is Zino's fundamental abstraction. When something noteworthy
-happens on the network—a link goes down, a BGP session drops, a router becomes
-unreachable—Zino creates an event to track it.
+happens on the network (a link goes down, a BGP session drops, a router becomes
+unreachable) Zino creates an event to track it.
 
 Events are sometimes called **cases** (the terms are interchangeable). This
 terminology reflects their purpose: each event represents a case that needs
