@@ -213,18 +213,26 @@ Zino instance in redundant server configurations.
 Flapping Detection
 ------------------
 
-A link that bounces up and down repeatedly is **flapping**. Flapping can
-generate excessive log messages, masking the real problem.
+A link that bounces up and down repeatedly is **flapping**. Zino never creates
+more than one simultaneous event per port, so flapping doesn't multiply
+events - the problem is notification volume.  Without suppression, every
+operational state transition would be logged to the event and pushed out over
+the notification channel, and an on-call operator would receive an SMS or a
+push notification for each one.
 
-Zino detects flapping by tracking state change frequency. When a port exceeds a
-threshold of transitions within a time window, Zino:
+Flapping is therefore tracked as a state of the port's own event. A dynamic
+threshold algorithm decides when that state is entered and when it is resolved:
+the more frequently a port changes state, the sooner it is declared flapping,
+and it stays in the flapping state until it has been stable for long enough.
 
-1. Marks the port as ``flapping``
-2. Stops adding event log messages for each individual transition
-3. Creates or updates a single event, noting the flapping condition
+While the event is in the flapping state, Zino records only the number of
+flaps. No event updates are pushed for the individual state transitions, which
+means no notifications are sent. The event still carries both the flapping
+state and the running flap count, so clients can see that the port is flapping
+and how badly.
 
-When the port stabilizes (stays in one state long enough), the flapping
-designation is cleared.
+Once the port stabilizes, the flapping state is resolved, and per-transition
+logging and notification resumes as normal.
 
 Notifications
 -------------
