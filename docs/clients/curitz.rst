@@ -9,7 +9,7 @@ User interface
 
 The UI displays states and alarms of monitored equipment/ports in your network, these are referred to as an "event" or a "case". All events are ordered chronologically from bottom to top, allowing the event with the most recent operational state change to be at the top of the event list. 
 
-Polled information regarding each event is divided into seven columns. In addition to polled information, each event can be updated from the user side with comments and working states. 
+Polled information regarding each event is divided into columns. In addition to polled information, each event can be updated from the user side with comments and working states. 
 
 Column descriptors
 __________________
@@ -32,7 +32,7 @@ __________________
 States
 ______
 
-The operational (*OpState*) and administrative state (*AdmState*) dictate the color of an event row and how the event row behaves. 
+The operational (*OpState*) and administrative state (*AdmState*) determine the color of an event row and how the event row behaves. 
 
 .. figure:: curitz-images/allcolors.png
 
@@ -93,15 +93,15 @@ It's worth noting that the behaviour of an ALRM yellow/red event row is not deci
 For # of alarms larger than zero, the event row is comparable to the PORT down/lower combinations in the above table. For # of alarms equal to zero (no alarms), the event row is comparable to that of a PORT open event row.
 
 .. tip::
-   The default cursor is a blue line spanning all columns. If you prefer a simpler cursor, use the :--arrow: flag when starting cuRitz.
+   The default cursor is a blue line spanning all columns. If you prefer a simpler cursor, use the ``--arrow`` flag when starting cuRitz.
 
 Workflow
 --------
 
-The bottom of the terminal window displays possible actions and their corresponding keys.
-
 Navigate cuRitz using the UP and DOWN arrow keys, Page Up and Page Down can be used to move to the top and bottom of the event list.
-A possible workflow might look as follows:
+
+The bottom of the terminal window displays possible actions and their corresponding keys.
+The following workflow presents some of the most used keys:
 
 - Investigate an event by looking at logs *(press l)*
 
@@ -125,7 +125,7 @@ A possible workflow might look as follows:
 
 - Clear all closed events *(press y)*
 
-To update AdmState and/or add a comment to more than one event, select using *x*. Selected events are marked by an asterisk. To deselect, press *x* again og *c* to deselect everything. 
+To update *AdmState* and/or add a comment to more than one event, select using *x* before pressing *u*, *s* or *U*. Selected events are marked by an asterisk. To deselect, press *x* again og *c* to deselect everything. 
 
 Events can be filtered based on description. Press *f* and type to filter, press *f* again and remove query to remove filter.
 
