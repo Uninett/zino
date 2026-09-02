@@ -141,7 +141,7 @@ Zino uses a **trap-directed polling** model:
 
 **SNMP Polling** (pull)
     Zino periodically queries each device for its current state. Polling is
-    slower but reliable—it catches issues even if traps were never sent.
+    slower but reliable - it catches issues even if traps were never sent.
 
 The combination provides both speed and reliability:
 
