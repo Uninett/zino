@@ -154,19 +154,40 @@ The combination provides both speed and reliability:
 Planned Maintenance
 -------------------
 
-**Planned Maintenance** (PM) windows allow operators to suppress event creation
-during scheduled work. When a PM is active for a device or pattern:
+**Planned Maintenance** (PM) windows let operators suppress notifications for
+routers or ports they are planning to work on, so the state changes caused by
+the work itself don't wake anyone up.
 
-- State changes are still detected and logged
-- But new events may be suppressed or automatically marked as related to
-  maintenance
-- This prevents the NOC from being flooded with alerts during known work
+A PM doesn't stop Zino from polling or from tracking state. Instead, when the
+PM window opens, Zino creates the events the maintenance is expected to affect
+(if they don't already exist) and immediately puts them in the ``ignored``
+state.  Any already existing matching event is moved to the ``ignored`` state
+as well. Notification clients, like EMT, will suppress notifications for events
+in the ``ignored`` administrative state, so operational state transitions
+inside the window stay quiet.
 
-PMs are defined with:
+When the PM window closes, the affected events are returned to the ``open``
+state. They then require manual closure like any other event - but if the
+underlying condition has cleared by then, no new alert is produced.
 
-- Start and end times
-- Device name or pattern (glob matching)
-- Description of the maintenance activity
+There are two kinds of PM, distinguished by what they match:
+
+**Device PMs**
+    Match on device name, either as a regular expression (``regexp``), a glob
+    pattern (``str``) or a literal name (``exact``). They cover reachability
+    and Juniper chassis alarm events for the matching devices.
+
+**Port state PMs**
+    Match interfaces, and cover port state events. Matching is either on the
+    interface description field (``ifAlias``), as a regular expression or a
+    glob pattern, or - with the ``intf-regexp`` match type - on a device
+    name pattern combined with an interface name (``ifDescr``) pattern.
+
+Matching on the interface description field is particularly useful if you
+register circuit IDs there: a single PM can then cover every interface carrying
+a circuit that is due for maintenance, across all your devices.
+
+BGP and BFD events are not currently covered by planned maintenance.
 
 
 Alerts and notifications
