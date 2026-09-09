@@ -51,6 +51,8 @@ Zino monitors several categories of network state:
     Track whether Zino can reach a router at all. Created when SNMP polling
     fails repeatedly. No subindex (the whole device is affected).
 
+.. _event-lifecycle:
+
 Event Lifecycle
 ---------------
 
