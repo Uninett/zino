@@ -64,7 +64,7 @@ models.
 Task System
 ^^^^^^^^^^^
 
-Polling is implemented through **tasks**—async functions scheduled to run
+Polling is implemented through **tasks** - async functions scheduled to run
 periodically for each device. The base class ``Task`` (in ``zino.tasks.task``)
 provides common functionality; concrete tasks implement the ``run()`` method.
 
@@ -114,8 +114,8 @@ Trap Handling
 The trap daemon (``zino.trapd``) listens for incoming SNMP traps on a
 configured port (default: 162, or 1162 for non-root operation).
 
-When a trap arrives, it's dispatched to **trap observers**—handler functions
-registered for specific trap types:
+When a trap arrives, it's dispatched to **trap observers** - handler
+functions registered for specific trap types:
 
 - ``link_traps``: Handles linkUp/linkDown notifications
 - ``bgp_traps``: Handles BGP state change traps
@@ -132,8 +132,8 @@ API Server
 The API server (``zino.api``) provides two TCP interfaces:
 
 **Command Interface (port 8001)**
-    Implements the legacy Zino protocol—a text-based, SMTP-like protocol where
-    clients send commands and receive responses. Commands include:
+    Implements the legacy Zino protocol - a text-based, SMTP-like protocol
+    where clients send commands and receive responses. Commands include:
 
     - ``CASEIDS``: List all event IDs
     - ``GETATTRS <id>``: Get event attributes
