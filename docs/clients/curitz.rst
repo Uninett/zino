@@ -90,7 +90,7 @@ The event row color is determined by one of the following combinations:
 
 It's worth noting that the behaviour of an ALRM yellow/red event row is not decided by the *OpState*, but rather the *Description* column, which will showcase how many alarms are active on the equipment. 
 
-For # of alarms larger than zero, the event row is comparable to the PORT down/lower combinations in the above table. For # of alarms equal to zero (no alarms), the event row is comparable to that of a PORT open event row.
+For number of alarms larger than zero, the event row is comparable to the PORT down/lower combinations in the above table. For no alarms, the event row is comparable to that of a PORT open event row.
 
 .. tip::
    The default cursor is a blue line spanning all columns. If you prefer a simpler cursor, use the ``--arrow`` flag when starting cuRitz.
@@ -125,7 +125,7 @@ The following workflow presents some of the most used keys:
 
 - Clear all closed events *(press y)*
 
-To update *AdmState* and/or add a comment to more than one event, select using *x* before pressing *u*, *s* or *U*. Selected events are marked by an asterisk. To deselect, press *x* again og *c* to deselect everything. 
+To update *AdmState* and/or add a comment to more than one event, select using *x* before pressing *u*, *s* or *U*. Selected events are marked by an asterisk. To deselect, press *x* again and *c* to deselect everything. 
 
 Events can be filtered based on description. Press *f* and type to filter, press *f* again and remove query to remove filter.
 
