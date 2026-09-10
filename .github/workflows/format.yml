@@ -19,6 +19,8 @@ jobs:
     name: Verify Python formatting
     steps:
     - uses: actions/checkout@v7
+      with:
+        persist-credentials: false
 
     - uses: astral-sh/ruff-action@v3
       with:
