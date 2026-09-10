@@ -20,9 +20,8 @@ jobs:
         fetch-depth: 0
         persist-credentials: false
 
-    - name: Install towncrier
-      run: |
-        sudo apt-get install -y pipx
-        pipx install towncrier
+    - name: Set up uv
+      uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+
     - name: Check for changelog file
-      run: towncrier check --compare-with origin/master
+      run: uvx towncrier@26.9.0 check --compare-with origin/master
