@@ -2,7 +2,7 @@
 exclude: 'mibdumps/.*|mibs/.*'
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       - id: trailing-whitespace
       - id: mixed-line-ending
@@ -10,7 +10,7 @@ repos:
         exclude: &exclude_pattern '^changelog.d/'
       - id: debug-statements
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.13
+    rev: v0.16.6
     hooks:
         # Run the linter
       - id: ruff

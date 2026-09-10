@@ -6,19 +6,22 @@ on:
       # synchronize = PR's head branch was updated
       types: [labeled, unlabeled, opened, reopened, synchronize]
 
+permissions:
+  contents: read
+
 jobs:
   towncrier:
     if: ${{ github.actor != 'dependabot[bot]' && !contains(github.event.pull_request.labels.*.name, 'nonews') && !contains(github.event.pull_request.labels.*.name, 'github_actions') }}
     runs-on: ubuntu-latest
     name: Towncrier check
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         fetch-depth: 0
+        persist-credentials: false
 
-    - name: Install towncrier
-      run: |
-        sudo apt-get install -y pipx
-        pipx install towncrier
+    - name: Set up uv
+      uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+
     - name: Check for changelog file
-      run: towncrier check --compare-with origin/master
+      run: uvx towncrier@26.9.0 check --compare-with origin/master
