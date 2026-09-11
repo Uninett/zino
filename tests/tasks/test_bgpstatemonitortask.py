@@ -1,7 +1,7 @@
 import logging
 from datetime import timedelta
 from ipaddress import IPv4Address
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
@@ -13,9 +13,12 @@ from zino.statemodels import (
     BGPOperState,
     BGPPeerSession,
     BGPStyle,
+    DeviceState,
 )
 from zino.tasks.bgpstatemonitortask import BaseBGPRow, BGPStateMonitorTask
 from zino.time import now
+from zino.trapd.base import TrapMessage, TrapOriginator
+from zino.trapobservers.bgp_traps import BgpTrapObserver
 
 PEER_ADDRESS = IPv4Address("10.0.0.1")
 DEFAULT_REMOTE_AS = 20
@@ -178,6 +181,28 @@ class TestBGPStateMonitorTask:
         assert event.remote_address == PEER_ADDRESS
         assert event.remote_as == DEFAULT_REMOTE_AS
         assert event.peer_uptime == 1000000
+
+    @pytest.mark.parametrize("task", ["juniper-bgp-oper-down"], indirect=True)
+    async def test_when_a_trap_reported_the_session_down_first_it_should_still_create_a_down_event(self, task):
+        """A backward transition trap must not keep the task from reporting the session as down.
+
+        See https://github.com/Uninett/zino/issues/575
+        """
+        # set initial state
+        task.device_state.bgp_peers = {
+            PEER_ADDRESS: BGPPeerSession(
+                uptime=DEFAULT_UPTIME, admin_status=BGPAdminStatus.START, oper_state=BGPOperState.ESTABLISHED
+            )
+        }
+        observer = BgpTrapObserver(state=task.state)
+        await observer.handle_trap(trap=make_backward_transition_trap(task.device_state))
+
+        await task.run()
+
+        event = task.state.events.get(device_name=task.device.name, subindex=PEER_ADDRESS, event_class=BGPEvent)
+        assert event
+        assert event.operational_state == BGPOperState.DOWN
+        assert event.lastevent == "peer is down"
 
     @pytest.mark.parametrize(
         "task", ["general-bgp-oper-down", "cisco-bgp-oper-down", "juniper-bgp-oper-down"], indirect=True
@@ -370,6 +395,19 @@ class TestDisabledBGPDevice:
         with caplog.at_level(logging.DEBUG):
             await task_with_bgp_disabled_device.run()
             assert f"Skipping BGP scanning for {router} due to config" in caplog.text
+
+
+def make_backward_transition_trap(device: DeviceState) -> TrapMessage:
+    """Returns a backward transition trap reporting that PEER_ADDRESS is no longer established"""
+    originator = TrapOriginator(address=IPv4Address("127.0.0.1"), port=162, device=device)
+    trap = TrapMessage(agent=originator, mib="BGP4-V2-MIB-JUNIPER", name="jnxBgpM2BackwardTransition")
+    trap.variables = [
+        Mock(var="jnxBgpM2PeerLocalAddrType", value=1),
+        Mock(var="jnxBgpM2PeerRemoteAddrType", value=1),
+        Mock(var="jnxBgpM2PeerRemoteAddr", raw_value=PEER_ADDRESS.packed),
+        Mock(var="jnxBgpM2PeerState", value="idle"),
+    ]
+    return trap
 
 
 @pytest.fixture
