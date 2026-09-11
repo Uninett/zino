@@ -23,7 +23,6 @@ dependencies = [
     "pydantic>=2.7.0",
     "pysnmp~=6.2",
     "aiodns>=3.6.1",
-    "tomli; python_version < '3.11'",
     "netsnmp-cffi>=0.2.0",
 ]
 dynamic = ["version"]
