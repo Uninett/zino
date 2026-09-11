@@ -2,12 +2,8 @@ import re
 from difflib import get_close_matches
 from typing import Optional
 
-try:
-    from tomllib import TOMLDecodeError, load
-except ImportError:
-    from tomli import TOMLDecodeError, load
-
 from pydantic import BaseModel, ValidationError
+from tomllib import TOMLDecodeError, load
 
 from .models import Configuration
 
