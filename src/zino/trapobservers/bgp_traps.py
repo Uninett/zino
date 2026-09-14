@@ -20,7 +20,7 @@ import logging
 from ipaddress import ip_address
 from typing import Optional, Tuple
 
-from zino.statemodels import BGPOperState, BGPPeerSession, IPAddress
+from zino.statemodels import BGPOperState, IPAddress
 from zino.trapd.base import TrapMessage, TrapObserver
 
 _logger = logging.getLogger(__name__)
@@ -53,6 +53,7 @@ class BgpTrapObserver(TrapObserver):
             return True
 
     def handle_backward_transition(self, trap: TrapMessage, peer: IPAddress, state: BGPOperState):
+        """Logs that a BGP peering session was lost"""
         _logger.debug("BGP backward transition trap received: %r", trap)
         bgp_peers = trap.agent.device.bgp_peers
         prev_state = bgp_peers[peer].oper_state if peer in bgp_peers else "unknown"
@@ -60,12 +61,10 @@ class BgpTrapObserver(TrapObserver):
         if state != BGPOperState.ESTABLISHED and prev_state == BGPOperState.ESTABLISHED:
             _logger.info("%s Lost BGP peer: %s state %s", trap.agent.device.name, peer, state)
 
-        bgp_peers.setdefault(peer, BGPPeerSession()).oper_state = state
-
     def handle_established(self, trap: TrapMessage, peer: IPAddress, state: BGPOperState):
         _logger.debug("BGP established trap received: %r", trap)
-        # TODO Zino 1 does not actually update the internal peering state here, we should verify that this is really
-        #  the desired behavior
+        # Zino 1 does not update the internal peering state here either, and this was confirmed with its author to
+        # be the desired behavior
         _logger.info("%s BGP peer up: %s state %s", trap.agent.device.name, peer, state)
 
     def _pre_parse_trap(self, trap: TrapMessage) -> Tuple[IPAddress, BGPOperState]:

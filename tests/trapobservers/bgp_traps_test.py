@@ -10,9 +10,21 @@ from zino.trapobservers.bgp_traps import BgpTrapObserver
 
 
 class TestBgpTrapObserver:
-    async def test_when_backward_transition_trap_is_received_it_should_change_bgp_peer_state(
+    async def test_when_backward_transition_trap_is_received_it_should_log_the_lost_peer(
+        self, backward_transition_trap, caplog
+    ):
+        observer = BgpTrapObserver(state=Mock())
+        with caplog.at_level(logging.INFO):
+            await observer.handle_trap(trap=backward_transition_trap)
+
+        assert "Lost BGP peer" in caplog.text
+
+    async def test_when_backward_transition_trap_is_received_it_should_not_change_bgp_peer_state(
         self, backward_transition_trap
     ):
+        """`BGPStateMonitorTask` needs the stored state to recognize a session that has just gone down, so the trap
+        must leave it alone.  See https://github.com/Uninett/zino/issues/575
+        """
         device = backward_transition_trap.agent.device
         peer = next(iter(device.bgp_peers.keys()))
 
@@ -20,44 +32,44 @@ class TestBgpTrapObserver:
         await observer.handle_trap(trap=backward_transition_trap)
 
         assert len(device.bgp_peers) == 1
-        assert device.bgp_peers[peer].oper_state == BGPOperState.ACTIVE
+        assert device.bgp_peers[peer].oper_state == BGPOperState.ESTABLISHED
 
-    async def test_when_trap_is_missing_required_varbinds_it_should_do_nothing(self, backward_transition_trap):
-        device = backward_transition_trap.agent.device
-        peer = next(iter(device.bgp_peers.keys()))
+    async def test_when_trap_is_missing_required_varbinds_it_should_ignore_it_silently(
+        self, backward_transition_trap, caplog
+    ):
         addr_type = backward_transition_trap.get_all("jnxBgpM2PeerLocalAddrType")[0]
         backward_transition_trap.variables.remove(addr_type)
 
         observer = BgpTrapObserver(state=Mock())
-        await observer.handle_trap(trap=backward_transition_trap)
+        with caplog.at_level(logging.INFO):
+            await observer.handle_trap(trap=backward_transition_trap)
 
-        assert len(device.bgp_peers) == 1
-        assert device.bgp_peers[peer].oper_state == BGPOperState.ESTABLISHED
+        assert not caplog.text
 
-    async def test_when_trap_has_invalid_remote_addr_it_should_do_nothing(self, backward_transition_trap):
-        device = backward_transition_trap.agent.device
-        peer = next(iter(device.bgp_peers.keys()))
+    async def test_when_trap_has_invalid_remote_addr_it_should_warn_about_the_address(
+        self, backward_transition_trap, caplog
+    ):
         backward_transition_trap.get_all("jnxBgpM2PeerRemoteAddr")[0].raw_value = b"INVALID"
 
         observer = BgpTrapObserver(state=Mock())
-        await observer.handle_trap(trap=backward_transition_trap)
+        with caplog.at_level(logging.WARNING):
+            await observer.handle_trap(trap=backward_transition_trap)
 
-        assert len(device.bgp_peers) == 1
-        assert device.bgp_peers[peer].oper_state == BGPOperState.ESTABLISHED
+        assert "invalid peer address" in caplog.text
 
-    async def test_when_trap_has_invalid_oper_state_it_should_do_nothing(self, backward_transition_trap):
-        device = backward_transition_trap.agent.device
-        peer = next(iter(device.bgp_peers.keys()))
+    async def test_when_trap_has_invalid_oper_state_it_should_warn_about_the_state(
+        self, backward_transition_trap, caplog
+    ):
         backward_transition_trap.get_all("jnxBgpM2PeerState")[0].value = "INVALIDFOOBAR"
 
         observer = BgpTrapObserver(state=Mock())
-        await observer.handle_trap(trap=backward_transition_trap)
+        with caplog.at_level(logging.WARNING):
+            await observer.handle_trap(trap=backward_transition_trap)
 
-        assert len(device.bgp_peers) == 1
-        assert device.bgp_peers[peer].oper_state == BGPOperState.ESTABLISHED
+        assert "invalid peer state" in caplog.text
 
     async def test_when_established_trap_is_received_it_should_just_log_it(self, established_trap, caplog):
-        """This requirement is disputed until Håvard E confirms it"""
+        """Zino 1 only logs this trap without touching its peering state, confirmed with its author"""
         observer = BgpTrapObserver(state=Mock())
         with caplog.at_level(logging.INFO):
             await observer.handle_trap(trap=established_trap)
