@@ -49,3 +49,6 @@ Events progress through a defined set of states:
 **CLOSED**
     The event is resolved. Closed events are archived and eventually removed
     from active state.
+
+Events accumulate a **history log** as they progress, recording state changes,
+operator comments, and related network events.
