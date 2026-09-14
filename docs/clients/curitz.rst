@@ -51,7 +51,7 @@ The *AdmState* column holds the current state of the event lifecycle.
 .. include:: /_shared/event_lifecycle.rst
 
 The *embryonic* state is internal to the server and
-will never be visible in *Curitz*.
+will never be visible in cuRitz.
 
 The event row color is determined by one of the following combinations:
 
