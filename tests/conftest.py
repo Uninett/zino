@@ -1,6 +1,10 @@
 import asyncio
+import importlib.metadata
 import ipaddress
 import os
+import signal
+import subprocess
+import sys
 from datetime import timedelta
 from shutil import which
 
@@ -207,21 +211,20 @@ def event_loop():
 
 
 @pytest_asyncio.fixture(scope="session")
-async def snmpsim(snmpsimd_path, snmp_fixture_directory, snmp_test_port):
+async def snmpsim(snmpsim_command, snmp_test_port):
     """Sets up an external snmpsimd process so that SNMP communication can be simulated
     by the test that declares a dependency to this fixture. Data fixtures are loaded
     from the snmp_fixtures subdirectory.
     """
-    arguments = [
-        f"--data-dir={snmp_fixture_directory}",
-        "--log-level=error",
-        f"--agent-udpv4-endpoint=127.0.0.1:{snmp_test_port}",
-    ]
-    print(f"Running {snmpsimd_path} with args: {arguments!r}")
-    proc = await asyncio.create_subprocess_exec(snmpsimd_path, *arguments)
+    print(f"Running {snmpsim_command}")
+    # uvx spawns snmpsim as a grandchild, so put it in its own process group to
+    # ensure the whole tree can be killed on teardown
+    proc = await asyncio.create_subprocess_exec(*snmpsim_command, start_new_session=True)
 
     @retry(Exception, tries=3, delay=0.5, backoff=2)
     async def _wait_for_snmpsimd():
+        if proc.returncode is not None:
+            pytest.fail(f"snmpsim process exited prematurely (exit code {proc.returncode})")
         if await _verify_localhost_snmp_response(snmp_test_port):
             return True
         else:
@@ -230,7 +233,7 @@ async def snmpsim(snmpsimd_path, snmp_fixture_directory, snmp_test_port):
     await _wait_for_snmpsimd()
 
     yield
-    proc.kill()
+    _kill_process_group(proc)
 
 
 @pytest.fixture(scope="session")
@@ -251,6 +254,80 @@ def snmp_fixture_directory():
 @pytest.fixture(scope="session")
 def snmp_test_port():
     yield 1024
+
+
+@pytest.fixture(scope="session")
+def snmpsim_command(snmpsimd_path, snmp_fixture_directory, snmp_test_port):
+    """Returns the command list to start snmpsim-command-responder.
+
+    Prefers running via uvx in an isolated Python 3.11 environment to avoid a
+    known performance regression in snmpsim on Python 3.13+
+    (https://github.com/lextudio/pysnmp/issues/223).  Falls back to a locally
+    installed snmpsim-command-responder if uvx is not available.
+    """
+    snmpsim_args = [
+        f"--data-dir={snmp_fixture_directory}",
+        "--log-level=error",
+        f"--agent-udpv4-endpoint=127.0.0.1:{snmp_test_port}",
+    ]
+
+    if which("uvx") and _uv_has_python("3.11"):
+        return [
+            "uvx",
+            "--python=3.11",
+            # pysnmp needs cryptography, but only declares it as a dev dependency
+            f"--with={_get_installed_spec('cryptography')}",
+            # snmpsim.utils imports pysmi, but nothing pulls it in
+            f"--with={_get_installed_spec('pysmi')}",
+            f"--from={_get_installed_spec('snmpsim')}",
+            "snmpsim-command-responder",
+        ] + snmpsim_args
+
+    if sys.version_info >= (3, 13):
+        import warnings
+
+        warnings.warn(
+            "Running snmpsim under Python 3.13+ without uvx. "
+            "This is known to be extremely slow due to a dbm.sqlite3 "
+            "performance regression "
+            "(https://github.com/lextudio/pysnmp/issues/223). "
+            "Expect many SNMP-dependent tests to fail with timeouts. "
+            "Install uv to run snmpsim in an isolated Python 3.11 "
+            "environment automatically.",
+            stacklevel=1,
+        )
+
+    return [snmpsimd_path] + snmpsim_args
+
+
+def _kill_process_group(proc):
+    """Kills an entire process group, ignoring processes that are already gone."""
+    try:
+        os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+
+
+def _uv_has_python(version):
+    """Returns True if uv can find the given Python version."""
+    result = subprocess.run(
+        ["uv", "python", "find", version],
+        capture_output=True,
+    )
+    return result.returncode == 0
+
+
+def _get_installed_spec(package_name: str) -> str:
+    """Returns a pip specifier for the locally installed version of a package.
+
+    :param package_name: The name of the package to look up
+    :return: A pinned specifier, or an unpinned one if the package is not installed
+    """
+    try:
+        version = importlib.metadata.version(package_name)
+        return f"{package_name}=={version}"
+    except importlib.metadata.PackageNotFoundError:
+        return package_name
 
 
 @pytest.fixture
