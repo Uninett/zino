@@ -32,11 +32,14 @@ __________________
 States
 ______
 
-The operational (*OpState*) and administrative state (*AdmState*) determine the color and behavior of an event row.
+The operational (*OpState*) and administrative state (*AdmState*) determine the color and behaviour of an event row.
 
 .. figure:: curitz-images/allcolors.png
 
    cuRitz displaying several events with different OpStates and AdmStates. Sensitive information has been blurred.
+
+OpState
+.......
 
 The *OpState* column holds the current state of the affected equipment, corresponding to one of the following values:
 
@@ -46,12 +49,18 @@ The *OpState* column holds the current state of the affected equipment, correspo
 - ALRM yellow/red
 - no-response/reachable
 
+AdmState
+........
+
 The *AdmState* column holds the current state of the event lifecycle. 
 
 .. include:: /_shared/event_lifecycle.rst
 
 The *embryonic* state is internal to the server and
 will never be visible in cuRitz.
+
+Color and behaviour
+...................
 
 The event row color is determined by one of the following combinations:
 
