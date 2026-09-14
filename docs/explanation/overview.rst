@@ -76,8 +76,11 @@ Several principles guide Zino's design:
 
 **Human-in-the-loop**
     Events don't auto-close when a link recovers. An operator must acknowledge
-    or comment and close each case. This ensures issues are investigated, not just
-    observed, and creates an audit trail of network incidents.
+    or comment and close each case. This is a deliberate policy choice in
+    support of normal NOC practice: auto-closing would hide problems that are
+    operationally up again but whose root cause was never found, and finding
+    and eliminating root causes is the point. Manual closure also leaves an
+    audit trail of network incidents.
 
 **Trap-directed polling**
     Zino uses a hybrid approach: it listens for SNMP traps (immediate
