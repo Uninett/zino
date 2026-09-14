@@ -12,6 +12,23 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) and the chang
 
 <!-- towncrier release notes start -->
 
+## [2.5.2] - 1980-01-01
+
+### Added
+
+- Added explanation section to documentation covering Zino's history, core concepts, and technical architecture ([#435](https://github.com/Uninett/zino/issues/435))
+- Added documentation for cuRitz, with screenshots. ([#568](https://github.com/Uninett/zino/issues/568))
+- `--user` and the `process.user` setting now accept a numeric `UID` or `UID:GID` or, as previously, a user name, so Zino can drop privileges to a UID that has no entry in `/etc/passwd` (e.g. inside a container)
+
+### Fixed
+
+- BGP sessions that go down are reported again. On routers that send Zino an SNMP trap when a session drops, the drop was only written to the log and never turned into an event, so the outage went unreported ([#575](https://github.com/Uninett/zino/issues/575))
+- Fixed a bug where a failed SNMP session open operation (e.g. due to file descriptor exhaustion) could permanently wedge that device's session lock, silently disabling closure of a concurrently-opened, shared session for the same device and leaking a file descriptor.
+- Fixed the release workflow so that Docker images are actually built and published to the GitHub Container Registry when a release is made
+- Reworked the systemd howto-guide to suggest binding the privileged SNMP trap port via the `CAP_NET_BIND_SERVICE` capability, so Zino runs as an unprivileged user instead of starting as root
+- The bundled Docker Compose setup now uses host networking, so Zino receives SNMP traps with their real source addresses; under bridge networking Docker rewrote the source to the gateway and Zino silently dropped every trap
+
+
 ## [2.5.1] - 2026-06-19
 
 ### Added
