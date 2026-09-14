@@ -12,7 +12,7 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) and the chang
 
 <!-- towncrier release notes start -->
 
-## [2.5.2] - 1980-01-01
+## [2.5.2] - 2026-09-14
 
 ### Added
 
