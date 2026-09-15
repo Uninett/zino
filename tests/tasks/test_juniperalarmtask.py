@@ -21,7 +21,7 @@ class TestJuniperalarmTask:
 
         assert device_state.alarms is None
 
-    async def test_task_does_nothing_for_no_result(self, caplog, snmp_test_port):
+    async def test_task_does_nothing_for_no_result(self, caplog, snmpsim, snmp_test_port):
         device = PollDevice(
             name="buick.lab.example.org",
             address="127.0.0.1",
@@ -42,7 +42,7 @@ class TestJuniperalarmTask:
             not in caplog.text
         )
 
-    async def test_task_logs_error_for_non_int_result(self, caplog, snmp_test_port):
+    async def test_task_logs_error_for_non_int_result(self, caplog, snmpsim, snmp_test_port):
         device = PollDevice(
             name="buick.lab.example.org",
             address="127.0.0.1",
@@ -183,7 +183,7 @@ class TestJuniperalarmTask:
         assert not yellow_event
         assert not red_event
 
-    async def test_task_does_not_create_alarm_events_on_alarm_count_zero_on_first_run(self, snmp_test_port):
+    async def test_task_does_not_create_alarm_events_on_alarm_count_zero_on_first_run(self, snmpsim, snmp_test_port):
         device = PollDevice(
             name="buick.lab.example.org",
             address="127.0.0.1",
