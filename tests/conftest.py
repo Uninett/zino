@@ -365,7 +365,7 @@ async def localhost_netsnmpy_receiver(
     receiver.close()
 
 
-async def _verify_localhost_snmp_response(port: int):
+async def _verify_localhost_snmp_response(port: int) -> bool:
     """Verifies that the snmpsimd fixture process is responding, by using PySNMP directly to query it."""
 
     from pysnmp.hlapi.asyncio import (
@@ -378,14 +378,15 @@ async def _verify_localhost_snmp_response(port: int):
         nextCmd,
     )
 
-    responses = await nextCmd(
+    error_indication, _, _, var_binds = await nextCmd(
         SnmpEngine(),
         CommunityData("public"),
         UdpTransportTarget(("localhost", port)),
         ContextData(),
         ObjectType(ObjectIdentity("SNMPv2-MIB", "sysObjectID")),
     )
-    return responses
+    # nextCmd always returns a (truthy) 4-tuple, also on timeout
+    return not error_indication and bool(var_binds)
 
 
 @pytest.fixture
