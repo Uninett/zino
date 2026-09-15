@@ -21,7 +21,7 @@ class TestJuniperalarmTask:
 
         assert device_state.alarms is None
 
-    async def test_task_does_nothing_for_no_result(self, caplog, snmp_test_port):
+    async def test_task_does_nothing_for_no_result(self, caplog, snmpsim, snmp_test_port):
         device = PollDevice(
             name="buick.lab.example.org",
             address="127.0.0.1",
@@ -42,7 +42,7 @@ class TestJuniperalarmTask:
             not in caplog.text
         )
 
-    async def test_task_logs_error_for_non_int_result(self, caplog, snmp_test_port):
+    async def test_task_logs_error_for_non_int_result(self, caplog, snmpsim, snmp_test_port):
         device = PollDevice(
             name="buick.lab.example.org",
             address="127.0.0.1",
