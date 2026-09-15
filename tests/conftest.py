@@ -1,5 +1,5 @@
 import asyncio
-import importlib
+import importlib.metadata
 import ipaddress
 import os
 import subprocess
