@@ -223,6 +223,8 @@ async def snmpsim(snmpsim_command, snmp_test_port):
 
     @retry(Exception, tries=3, delay=0.5, backoff=2)
     async def _wait_for_snmpsimd():
+        if proc.returncode is not None:
+            pytest.fail(f"snmpsim process exited prematurely (exit code {proc.returncode})")
         if await _verify_localhost_snmp_response(snmp_test_port):
             return True
         else:
