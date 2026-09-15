@@ -267,11 +267,14 @@ def snmpsim_command(snmpsimd_path, snmp_fixture_directory, snmp_test_port):
     ]
 
     if which("uvx") and _uv_has_python("3.11"):
-        snmpsim_pkg = _get_installed_snmpsim_spec()
         return [
             "uvx",
             "--python=3.11",
-            f"--from={snmpsim_pkg}",
+            # pysnmp needs cryptography, but only declares it as a dev dependency
+            f"--with={_get_installed_spec('cryptography')}",
+            # snmpsim.utils imports pysmi, but nothing pulls it in
+            f"--with={_get_installed_spec('pysmi')}",
+            f"--from={_get_installed_spec('snmpsim')}",
             "snmpsim-command-responder",
         ] + snmpsim_args
 
@@ -301,16 +304,17 @@ def _uv_has_python(version):
     return result.returncode == 0
 
 
-def _get_installed_snmpsim_spec():
-    """Returns a pip specifier for the locally installed snmpsim version.
+def _get_installed_spec(package_name: str) -> str:
+    """Returns a pip specifier for the locally installed version of a package.
 
-    Falls back to an unpinned 'snmpsim' if the package is not installed.
+    :param package_name: The name of the package to look up
+    :return: A pinned specifier, or an unpinned one if the package is not installed
     """
     try:
-        version = importlib.metadata.version("snmpsim")
-        return f"snmpsim=={version}"
+        version = importlib.metadata.version(package_name)
+        return f"{package_name}=={version}"
     except importlib.metadata.PackageNotFoundError:
-        return "snmpsim"
+        return package_name
 
 
 @pytest.fixture
