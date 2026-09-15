@@ -2,6 +2,7 @@ import asyncio
 import importlib.metadata
 import ipaddress
 import os
+import signal
 import subprocess
 import sys
 from datetime import timedelta
@@ -216,7 +217,9 @@ async def snmpsim(snmpsim_command, snmp_test_port):
     from the snmp_fixtures subdirectory.
     """
     print(f"Running {snmpsim_command}")
-    proc = await asyncio.create_subprocess_exec(*snmpsim_command)
+    # uvx spawns snmpsim as a grandchild, so put it in its own process group to
+    # ensure the whole tree can be killed on teardown
+    proc = await asyncio.create_subprocess_exec(*snmpsim_command, start_new_session=True)
 
     @retry(Exception, tries=3, delay=0.5, backoff=2)
     async def _wait_for_snmpsimd():
@@ -228,7 +231,7 @@ async def snmpsim(snmpsim_command, snmp_test_port):
     await _wait_for_snmpsimd()
 
     yield
-    proc.kill()
+    _kill_process_group(proc)
 
 
 @pytest.fixture(scope="session")
@@ -293,6 +296,14 @@ def snmpsim_command(snmpsimd_path, snmp_fixture_directory, snmp_test_port):
         )
 
     return [snmpsimd_path] + snmpsim_args
+
+
+def _kill_process_group(proc):
+    """Kills an entire process group, ignoring processes that are already gone."""
+    try:
+        os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+    except ProcessLookupError:
+        pass
 
 
 def _uv_has_python(version):
