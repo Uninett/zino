@@ -210,7 +210,7 @@ def event_loop():
 
 
 @pytest_asyncio.fixture(scope="session")
-async def snmpsim(snmpsim_command):
+async def snmpsim(snmpsim_command, snmp_test_port):
     """Sets up an external snmpsimd process so that SNMP communication can be simulated
     by the test that declares a dependency to this fixture. Data fixtures are loaded
     from the snmp_fixtures subdirectory.
