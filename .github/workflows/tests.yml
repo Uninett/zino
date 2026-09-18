@@ -55,7 +55,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          uv pip install --system tox tox-gh-actions coverage
+          uv pip install --system tox tox-gh-actions tox-uv coverage
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends snmp libsnmp-dev
 
