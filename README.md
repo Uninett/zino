@@ -81,6 +81,9 @@ the standby every 24 hours and then restarting the standby from the master's
 state dump.  Zino clients can be typically be configured to automatically
 switch to using a standby server if the master is unavailable.
 
+More information about Zino can be found on
+[Read the Docs](https://zino.readthedocs.io/en/latest/).
+
 ## Installing Zino
 
 You need a supported Python version, and these days a virtualenv for
