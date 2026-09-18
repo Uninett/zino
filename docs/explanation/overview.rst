@@ -106,8 +106,9 @@ Zino user interfaces
 --------------------
 
 * **curitz** - a curses/terminal-based remote interface to Zino. Curitz is
-  implemented in Python and is easy to install and use. See the `curitz GitHub
-  repository for more information <https://github.com/Uninett/curitz/>`_.
+  implemented in Python and is easy to install and use. See the
+  :ref:`curitz documentation <curitz>` or the `curitz GitHub repository
+  <https://github.com/Uninett/curitz/>`_ for more information.
 * **Argus** - a web based interface. `Argus is a general purpose incident
   management tool <https://network.geant.org/argus/>`_ that can be integrated
   with many monitoring tools.  A `two-way zino-argus integration is available
