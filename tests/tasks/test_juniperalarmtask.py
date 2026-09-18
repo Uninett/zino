@@ -183,7 +183,7 @@ class TestJuniperalarmTask:
         assert not yellow_event
         assert not red_event
 
-    async def test_task_does_not_create_alarm_events_on_alarm_count_zero_on_first_run(self, snmp_test_port):
+    async def test_task_does_not_create_alarm_events_on_alarm_count_zero_on_first_run(self, snmpsim, snmp_test_port):
         device = PollDevice(
             name="buick.lab.example.org",
             address="127.0.0.1",
