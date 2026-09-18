@@ -47,4 +47,11 @@ html_static_path = ['_static']
 html_theme_options = {
     'logo': 'zino-logo.svg',
     'logo_name': False,  # wordmark already includes the project name
+    'description': 'Robust network management system for large backbone networks',
+    'github_user': 'Uninett',
+    'github_repo': 'zino',
+    'fixed_sidebar': True,
+    'github_banner': True,
+    'github_button': True,
+    'github_count': False,
 }
