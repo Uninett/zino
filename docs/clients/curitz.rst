@@ -27,20 +27,23 @@ __________________
 :*Router*:
         Source of event (equipment).
 :*Port*:
-        Source of event (port). Displays AS-number or IP for BGP and BFD events.
+        Source of event (port). Displays AS-number, or IP for BGP and BFD events.
 :*Description*:
         Port or event description.
 
 States
 ______
 
-The operational (*OpState*) and administrative state (*AdmState*) determine the color of an event row and how the event row behaves.
+The operational (*OpState*) and administrative state (*AdmState*) determine the color and behaviour of an event row.
 
 .. figure:: curitz-images/allcolors.png
 
    cuRitz displaying several events with different OpStates and AdmStates. Sensitive information has been blurred.
 
-The *OpState* column displays one of the following values:
+OpState
+.......
+
+The *OpState* column holds the current state of the affected equipment, corresponding to one of the following values:
 
 - PORT down/lower/open
 - BGP  down/activ/conne/estab
@@ -48,40 +51,54 @@ The *OpState* column displays one of the following values:
 - ALRM yellow/red
 - no-response/reachable
 
-The *AdmState* column holds the current state of the event lifecycle, see
-:ref:`event-lifecycle`. The *embryonic* state is internal to the server and
-will never be visible in *Curitz*.
+AdmState
+........
+
+The *AdmState* column holds the current state of the event lifecycle. 
+
+.. include:: /_shared/event_lifecycle.rst
+
+The *embryonic* state is internal to the server and
+will never be visible in cuRitz.
+
+Color and behaviour
+...................
 
 The event row color is determined by one of the following combinations:
 
-+----------------+------------------------+-------+
-| OpState        | AdmState               | Color |
-+================+========================+=======+
-| Open           | | PORT down/lower      | red   |
-|                | | BGP down             |       |
-|                | | BFD down             |       |
-|                | | no-response          |       |
-+----------------+------------------------+-------+
-| Open           | | PORT open            | white |
-|                | | BGP activ/conne/estab|       |
-|                | | BFD up               |       |
-|                | | reachable            |       |
-+----------------+------------------------+-------+
-| Working/waiting| | PORT down/lower      | yellow|
-|                | | BGP down             |       |
-|                | | BFD down             |       |
-|                | | no-response          |       |
-+----------------+------------------------+-------+
-| Confirm-wait   | any state              | white |
-+----------------+------------------------+-------+
-| Ignored        | any state              | blue  |
-+----------------+------------------------+-------+
-| Closed         | any state              | green |
-+----------------+------------------------+-------+
++----------------+------------------------+--------+
+| OpState        | AdmState               | Color  |
++================+========================+========+
+| Open           | | PORT down/lower      | red    |
+|                | | BGP down             |        |                
+|                | | BFD down             |        |
+|                | | no-response          |        |
+|                | | ALRM yellow/red > 0  |        |
++----------------+------------------------+--------+
+| Open           | | PORT open            | white  |
+|                | | BGP activ/conne/estab|        |
+|                | | BFD up               |        |
+|                | | reachable            |        |
+|                | | ALRM yellow/red = 0  |        |
++----------------+------------------------+--------+
+| Working/waiting| | PORT down/lower      | yellow |
+|                | | BGP down             |        |
+|                | | BFD down             |        |
+|                | | no-response          |        |
+|                | | ALRM yellow/red > 0  |        |
++----------------+------------------------+--------+
+| Confirm-wait   | any state              | white  |
++----------------+------------------------+--------+
+| Ignored        | any state              | blue   |
++----------------+------------------------+--------+
+| Closed         | any state              | green  |
++----------------+------------------------+--------+
 
-It's worth noting that the behaviour of an ALRM yellow/red event row is not decided by the *OpState*, but rather the *Description* column, which will showcase how many alarms are active on the equipment.
+It's worth noting that the behaviour of an ALRM yellow/red event row is not decided by the *OpState*, but rather the number of active alarms, as visible in its *Description* column.
 
-For number of alarms larger than zero, the event row is comparable to the PORT down/lower combinations in the above table. For no alarms, the event row is comparable to that of a PORT open event row.
+Closed events are automatically cleared upon closing cuRitz or by pressing *y*. The state of a closed event cannot be changed.
+
+Ignored events are pinned to the bottom of the UI regardless of *OpState* changes.
 
 .. tip::
    The default cursor is a blue line spanning all columns. If you prefer a simpler cursor, use the ``--arrow`` flag when starting cuRitz.
@@ -116,7 +133,7 @@ The following workflow presents some of the most used keys:
 
 - Clear all closed events *(press y)*
 
-To update *AdmState* and/or add a comment to more than one event, select using *x* before pressing *u*, *s* or *U*. Selected events are marked by an asterisk. To deselect, press *x* again and *c* to deselect everything.
+To update *AdmState* and/or add a comment to more than one event, select using *x* before pressing *u*, *s* or *U*. Selected events are marked by an asterisk. To deselect, press *x* again or *c* to deselect everything.
 
 Events can be filtered based on description. Press *f* and type to filter, press *f* again and remove query to remove filter.
 

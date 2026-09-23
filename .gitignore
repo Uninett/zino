@@ -4,6 +4,7 @@
 .venv/
 .tox/
 .pytest_cache/
+.vscode/
 reports/
 build/
 dist/
