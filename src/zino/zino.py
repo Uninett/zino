@@ -109,7 +109,8 @@ def apply_logging_config(logging_config: dict[str, Any]) -> None:
 
 def init_event_loop(args: argparse.Namespace, loop: Optional[AbstractEventLoop] = None):
     if not loop:
-        loop = asyncio.get_event_loop()
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
 
     trap_config = state.config.snmp.trap
     if trap_config.source in ("straps", "nmtrapd"):
