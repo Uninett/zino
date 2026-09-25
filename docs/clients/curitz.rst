@@ -135,6 +135,8 @@ The following workflow presents some of the most used keys:
 
 To update *AdmState* and/or add a comment to more than one event, select using *x* before pressing *u*, *s* or *U*. Selected events are marked by an asterisk. To deselect, press *x* again or *c* to deselect everything.
 
+Selecting a run of events one *x* and one arrow key at a time gets tedious, so *\** both selects the event under the cursor and moves down to the next one, leaving the arrow keys out of it. It deselects an already selected event the same way, and it stops on the last event rather than wrapping around. Available from cuRitz 0.10.
+
 Events can be filtered based on description. Press *f* and type to filter, press *f* again and remove query to remove filter.
 
 All actions can be cancelled using *Ctrl+C*.
