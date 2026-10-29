@@ -26,6 +26,26 @@ class TestBFDTrapObserver:
 
         assert bfdtask_run.call_count == 4
 
+    async def test_when_bfd_trap_has_been_handled_then_its_snmp_session_should_be_closed(
+        self, bfd_session_down_trap, monkeypatch
+    ):
+        device = bfd_session_down_trap.agent.device
+        polldevs_dict = {device.name: PollDevice(name=device.name, address=ipaddress.IPv4Address("127.0.0.1"))}
+        used_sessions = []
+
+        async def run_and_open_session(task, session_index=None):
+            # Any SNMP request implicitly opens the session, like this:
+            task.snmp.open()
+            used_sessions.append(task.snmp)
+
+        monkeypatch.setattr("zino.tasks.bfdtask.BFDTask.run", run_and_open_session)
+
+        observer = BFDTrapObserver(state=Mock(), polldevs=polldevs_dict)
+        await observer.handle_trap(trap=bfd_session_down_trap)
+
+        assert used_sessions
+        assert not any(session._is_open for session in used_sessions)
+
     async def test_when_polldevs_config_is_missing_it_should_do_nothing(
         self, bfd_session_down_trap, monkeypatch, event_loop
     ):
