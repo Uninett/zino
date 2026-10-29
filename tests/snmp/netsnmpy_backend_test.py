@@ -1,5 +1,7 @@
 import asyncio
 import errno
+import gc
+import logging
 import os
 from unittest.mock import Mock, patch
 
@@ -7,6 +9,7 @@ import pytest
 from netsnmpy import netsnmp
 from netsnmpy.netsnmp import EndOfMibView, NoSuchInstance, NoSuchObject, SNMPVariable
 from netsnmpy.oids import OID
+from netsnmpy.session import Session
 
 from zino.config.models import PollDevice
 from zino.snmp.base import (
@@ -321,3 +324,52 @@ class TestSnmpContextManager:
             assert snmp._is_open
 
         assert not snmp_session._is_open, "session was never closed after a prior failed open wedged the lock"
+
+
+class TestSessionFinalization:
+    def test_when_an_open_session_is_garbage_collected_outside_an_event_loop_then_it_should_be_closed(self):
+        snmp = _open_localhost_snmp()
+        low_level_session = snmp.session
+
+        del snmp
+        gc.collect()
+
+        assert id(low_level_session) not in Session.session_map
+
+    async def test_when_an_open_session_is_garbage_collected_in_a_running_event_loop_then_it_should_be_closed_by_the_loop(
+        self,
+    ):
+        snmp = _open_localhost_snmp()
+        low_level_session = snmp.session
+
+        del snmp
+        gc.collect()
+        assert id(low_level_session) in Session.session_map, "session was closed during garbage collection"
+        await asyncio.sleep(0)
+
+        assert id(low_level_session) not in Session.session_map
+
+    def test_when_an_open_session_is_garbage_collected_then_a_warning_should_be_logged(self, caplog):
+        snmp = _open_localhost_snmp()
+
+        with caplog.at_level(logging.WARNING):
+            del snmp
+            gc.collect()
+
+        assert "garbage collected while still open" in caplog.text
+
+    def test_when_a_closed_session_is_garbage_collected_then_no_warning_should_be_logged(self, caplog):
+        snmp = _open_localhost_snmp()
+        snmp.close()
+
+        with caplog.at_level(logging.WARNING):
+            del snmp
+            gc.collect()
+
+        assert "garbage collected while still open" not in caplog.text
+
+
+def _open_localhost_snmp() -> SNMP:
+    snmp = SNMP(PollDevice(name="localhost", address="127.0.0.1", port=161))
+    snmp.open()
+    return snmp
