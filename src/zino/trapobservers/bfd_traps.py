@@ -42,8 +42,10 @@ class BFDTrapObserver(TrapObserver):
             return False
 
         updater = BFDTask(device=polldev, state=self.state)
-        for bfd_session_index in affected_indexes:
-            await updater.run(bfd_session_index)
+        # This runs outside a job context, so we need to ensure we clean up low-level SNMP resources
+        with updater.snmp:
+            for bfd_session_index in affected_indexes:
+                await updater.run(bfd_session_index)
 
         return False
 
