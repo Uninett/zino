@@ -1,6 +1,6 @@
 import asyncio
 from datetime import timedelta
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -24,10 +24,18 @@ class TestZino1NotificationProtocol:
         expected = "foobar"
         protocol = Zino1NotificationProtocol()
         fake_transport = Mock()
-        fake_transport.get_extra_info.return_value = expected
+        fake_transport.get_extra_info.side_effect = {"peername": expected}.get
         protocol.connection_made(fake_transport)
 
         assert protocol.peer_name == expected
+
+    async def test_when_connected_then_keepalive_should_be_enabled(self):
+        protocol = Zino1NotificationProtocol()
+        fake_transport = Mock()
+        with patch("zino.api.notify.enable_keepalive") as enable_keepalive:
+            protocol.connection_made(fake_transport)
+
+        enable_keepalive.assert_called_once_with(fake_transport)
 
     async def test_when_connected_it_should_register_instance_in_server(self, event_loop):
         server = ZinoServer(loop=event_loop, state=ZinoState(), polldevs=dict())

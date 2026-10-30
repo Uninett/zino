@@ -10,6 +10,7 @@ import logging
 from typing import TYPE_CHECKING, Any, Iterator, NamedTuple, Optional
 
 from zino.api import auth
+from zino.api.sockets import enable_keepalive
 from zino.state import ZinoState
 from zino.statemodels import Event, EventState
 
@@ -55,6 +56,7 @@ class Zino1NotificationProtocol(asyncio.Protocol):
     def connection_made(self, transport: asyncio.Transport):
         self.transport = transport
         _logger.debug("New notification channel from %s", self.peer_name)
+        enable_keepalive(transport)
         self.nonce = auth.get_challenge()  # Challenges are also useful as nonces
         if self.server:
             self.server.notification_channels[self.nonce] = self

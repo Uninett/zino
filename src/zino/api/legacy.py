@@ -18,6 +18,7 @@ import zino.state
 from zino import version
 from zino.api import auth
 from zino.api.notify import Zino1NotificationProtocol
+from zino.api.sockets import enable_keepalive
 from zino.config.models import Configuration, PollDevice
 from zino.scheduler import get_scheduler
 from zino.state import ZinoState
@@ -111,6 +112,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
     def connection_made(self, transport: asyncio.Transport):
         self.transport = transport
         _logger.info("New server connection from %s", self.peer_name)
+        enable_keepalive(transport)
         if self.server:
             self.server.active_clients.add(self)
         self._authentication_challenge = auth.get_challenge()
