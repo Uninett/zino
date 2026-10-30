@@ -31,6 +31,8 @@ class Notification(NamedTuple):
 class Zino1NotificationProtocol(asyncio.Protocol):
     """Basic implementation of the Zino 1 notification protocol"""
 
+    TIE_TIMEOUT_SECONDS = 30
+
     def __init__(self, server: Optional["ZinoServer"] = None, state: Optional[ZinoState] = None):
         """Initializes a protocol instance.
 
@@ -44,6 +46,7 @@ class Zino1NotificationProtocol(asyncio.Protocol):
 
         self._state = state if state is not None else ZinoState()
         self._tied_to: "Zino1ServerProtocol" = None
+        self._tie_timer: Optional[asyncio.TimerHandle] = None
 
     @property
     def peer_name(self) -> Optional[str]:
@@ -56,11 +59,24 @@ class Zino1NotificationProtocol(asyncio.Protocol):
         if self.server:
             self.server.notification_channels[self.nonce] = self
         self._respond_raw(self.nonce)
+        self._tie_timer = asyncio.get_running_loop().call_later(self.TIE_TIMEOUT_SECONDS, self._close_if_untied)
 
     def connection_lost(self, exc: Optional[Exception]) -> None:
         _logger.info("Lost connection from %s: %s", self.peer_name, exc)
+        if self._tie_timer:
+            self._tie_timer.cancel()
         if self.server:
-            del self.server.notification_channels[self.nonce]
+            self.server.notification_channels.pop(self.nonce, None)
+
+    def _close_if_untied(self) -> None:
+        """Closes this channel if no client session has tied itself to it, like Zino 1 does"""
+        if self.tied_to:
+            return
+        _logger.info("Closing notification channel from %s: timeout waiting for it to be tied", self.peer_name)
+        if self.server:
+            self.server.notification_channels.pop(self.nonce, None)
+        self._respond_raw("Timeout waiting for action, closing...")
+        self.transport.close()
 
     def goodbye(self):
         """Called by the tied server channel when that closes to gracefully close this channel too"""
