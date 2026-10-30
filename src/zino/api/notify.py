@@ -67,6 +67,8 @@ class Zino1NotificationProtocol(asyncio.Protocol):
             self._tie_timer.cancel()
         if self.server:
             self.server.notification_channels.pop(self.nonce, None)
+        if self.tied_to:
+            self.tied_to.notification_channel_lost(self)
 
     def _close_if_untied(self) -> None:
         """Closes this channel if no client session has tied itself to it, like Zino 1 does"""
