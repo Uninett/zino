@@ -16,6 +16,7 @@ from zino.api.legacy import (
     decode_data,
     requires_authentication,
 )
+from zino.api.notify import Zino1NotificationProtocol
 from zino.api.server import ZinoServer
 from zino.config.models import PollDevice
 from zino.state import ZinoState
@@ -793,6 +794,38 @@ class TestZino1ServerProtocolNtieCommand:
 
         assert channel.tied_to is existing_session
         assert authenticated_protocol.notification_channel is None
+
+    async def test_when_session_ties_a_new_channel_then_its_previous_channel_should_be_untied(
+        self, event_loop, authenticated_protocol
+    ):
+        server = ZinoServer(loop=event_loop, state=ZinoState(), polldevs=dict())
+        nonce = get_challenge()
+        server.notification_channels[nonce] = Mock(tied_to=None)
+        previous_channel = Mock(spec=Zino1NotificationProtocol)
+        authenticated_protocol.notification_channel = previous_channel
+        authenticated_protocol.server = server
+
+        await authenticated_protocol.message_received(f"NTIE {nonce}")
+
+        assert previous_channel.untie.called
+
+    async def test_when_session_has_retied_to_a_new_channel_then_losing_the_old_channel_should_not_close_session(
+        self, event_loop, authenticated_protocol
+    ):
+        server = ZinoServer(loop=event_loop, state=ZinoState(), polldevs=dict())
+        authenticated_protocol.server = server
+        old_channel, new_channel = Zino1NotificationProtocol(server=server), Zino1NotificationProtocol(server=server)
+        old_channel.connection_made(Mock())
+        new_channel.connection_made(Mock())
+        await authenticated_protocol.message_received(f"NTIE {old_channel.nonce}")
+        await authenticated_protocol.message_received(f"NTIE {new_channel.nonce}")
+        assert old_channel.tied_to is None, "old channel would still receive notifications"
+
+        old_channel.connection_lost(exc=None)
+        assert not authenticated_protocol.transport.close.called, "session closed when its old channel was lost"
+        new_channel.connection_lost(exc=None)
+
+        assert authenticated_protocol.transport.close.called
 
 
 class TestZino1ServerProtocolPollrtrCommand:
