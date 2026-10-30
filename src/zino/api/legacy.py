@@ -122,8 +122,17 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         _logger.info("Client disconnected: %s", self.peer_name)
         if self.server:
             self.server.active_clients.remove(self)
-        if self.notification_channel:
-            self.notification_channel.goodbye()
+        channel, self.notification_channel = self.notification_channel, None
+        if channel:
+            channel.goodbye()
+
+    def notification_channel_lost(self, channel: Zino1NotificationProtocol) -> None:
+        """Called by a tied notification channel when it is lost, to close this session too, like Zino 1 does"""
+        if channel is not self.notification_channel:
+            return  # This session has already said goodbye to that channel, or tied itself to another one
+        _logger.info("Closing session from %s: its notification channel was lost", self.peer_name)
+        self.notification_channel = None
+        self.transport.close()
 
     def data_received(self, data):
         self._input_buffer.extend(data)

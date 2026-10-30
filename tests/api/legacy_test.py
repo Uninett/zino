@@ -275,6 +275,42 @@ class TestZino1BaseServerProtocol:
 
         assert protocol not in server.active_clients
 
+    def test_when_notification_channel_is_lost_then_session_should_be_closed(self):
+        protocol = Zino1BaseServerProtocol()
+        fake_transport = Mock()
+        protocol.connection_made(fake_transport)
+        channel = Mock()
+        protocol.notification_channel = channel
+
+        protocol.notification_channel_lost(channel)
+
+        assert fake_transport.close.called
+
+    def test_when_a_channel_other_than_the_current_one_is_lost_then_session_should_stay_open(self):
+        protocol = Zino1BaseServerProtocol()
+        fake_transport = Mock()
+        protocol.connection_made(fake_transport)
+        protocol.notification_channel = Mock()
+
+        protocol.notification_channel_lost(Mock())
+
+        assert not fake_transport.close.called
+
+    def test_when_session_has_said_goodbye_to_its_notification_channel_then_losing_that_channel_should_not_close_session_again(
+        self,
+    ):
+        protocol = Zino1BaseServerProtocol()
+        fake_transport = Mock()
+        protocol.connection_made(fake_transport)
+        channel = Mock()
+        protocol.notification_channel = channel
+        protocol.connection_lost(exc=None)
+
+        protocol.notification_channel_lost(channel)
+
+        assert channel.goodbye.called
+        assert not fake_transport.close.called
+
     async def test_when_command_response_has_many_lines_then_it_should_be_emitted_as_a_single_write(self):
         """Each command's response must be coalesced into a single
         ``transport.write`` call. This is what prevents the per-line TCP

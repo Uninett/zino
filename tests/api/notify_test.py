@@ -4,6 +4,7 @@ from unittest.mock import Mock
 
 import pytest
 
+from zino.api.legacy import Zino1ServerProtocol
 from zino.api.notify import Notification, Zino1NotificationProtocol
 from zino.api.server import ZinoServer
 from zino.state import ZinoState
@@ -45,6 +46,16 @@ class TestZino1NotificationProtocol:
         protocol.connection_lost(exc=None)
 
         assert protocol.nonce not in server.notification_channels
+
+    async def test_when_tied_channel_is_lost_then_its_session_should_be_notified_of_the_loss(self):
+        protocol = Zino1NotificationProtocol()
+        protocol.connection_made(Mock())
+        session = Mock(spec=Zino1ServerProtocol)
+        protocol.tied_to = session
+
+        protocol.connection_lost(exc=None)
+
+        session.notification_channel_lost.assert_called_once_with(protocol)
 
     async def test_notify_should_output_text_line(self):
         protocol = Zino1NotificationProtocol()
