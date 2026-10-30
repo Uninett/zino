@@ -2,7 +2,7 @@ import ipaddress
 import logging
 import shutil
 from collections import Counter
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
@@ -125,12 +125,10 @@ class TestTrapReceiverExternally:
             assert "mocked exception" in caplog.text
 
     async def test_when_early_observer_returns_false_it_should_not_call_later_observers(
-        self, localhost_pysnmp_receiver, event_loop
+        self, localhost_pysnmp_receiver
     ):
         early_observer = Mock()
-        false_result = event_loop.create_future()
-        false_result.set_result(False)
-        early_observer.handle_trap.return_value = false_result
+        early_observer.handle_trap = AsyncMock(return_value=False)
         late_observer = Mock()
         localhost_pysnmp_receiver.observe(early_observer, ("BGP4-MIB", "bgpBackwardTransition"))
         localhost_pysnmp_receiver.observe(late_observer, ("BGP4-MIB", "bgpBackwardTransition"))

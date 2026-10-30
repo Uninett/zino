@@ -1,6 +1,6 @@
 import ipaddress
 import logging
-from unittest.mock import Mock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 
@@ -12,13 +12,11 @@ from zino.trapobservers.bfd_traps import BFDTrapObserver
 
 class TestBFDTrapObserver:
     async def test_when_bfd_trap_is_received_it_should_poll_all_affected_sessions(
-        self, bfd_session_down_trap, monkeypatch, event_loop
+        self, bfd_session_down_trap, monkeypatch
     ):
         device = bfd_session_down_trap.agent.device
         polldevs_dict = {device.name: PollDevice(name=device.name, address=ipaddress.IPv4Address("127.0.0.1"))}
-        called_future = event_loop.create_future()
-        called_future.set_result(None)
-        bfdtask_run = Mock(return_value=called_future)
+        bfdtask_run = AsyncMock()
         monkeypatch.setattr("zino.tasks.bfdtask.BFDTask.run", bfdtask_run)
 
         observer = BFDTrapObserver(state=Mock(), polldevs=polldevs_dict)
@@ -26,12 +24,8 @@ class TestBFDTrapObserver:
 
         assert bfdtask_run.call_count == 4
 
-    async def test_when_polldevs_config_is_missing_it_should_do_nothing(
-        self, bfd_session_down_trap, monkeypatch, event_loop
-    ):
-        called_future = event_loop.create_future()
-        called_future.set_result(None)
-        bfdtask_run = Mock(return_value=called_future)
+    async def test_when_polldevs_config_is_missing_it_should_do_nothing(self, bfd_session_down_trap, monkeypatch):
+        bfdtask_run = AsyncMock()
         monkeypatch.setattr("zino.tasks.bfdtask.BFDTask.run", bfdtask_run)
 
         observer = BFDTrapObserver(state=Mock(), polldevs={})
@@ -43,14 +37,11 @@ class TestBFDTrapObserver:
         self,
         malformed_bfd_session_down_trap,
         monkeypatch,
-        event_loop,
         caplog,
     ):
         device = malformed_bfd_session_down_trap.agent.device
         polldevs_dict = {device.name: PollDevice(name=device.name, address=ipaddress.IPv4Address("127.0.0.1"))}
-        called_future = event_loop.create_future()
-        called_future.set_result(None)
-        bfdtask_run = Mock(return_value=called_future)
+        bfdtask_run = AsyncMock()
         monkeypatch.setattr("zino.tasks.bfdtask.BFDTask.run", bfdtask_run)
 
         observer = BFDTrapObserver(state=Mock(), polldevs=polldevs_dict)
