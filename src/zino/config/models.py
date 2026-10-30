@@ -5,7 +5,7 @@ from os import R_OK, access
 from os.path import isfile
 from typing import Any, Literal, Optional, Union
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from pydantic.functional_validators import AfterValidator
 from typing_extensions import Annotated
 
@@ -84,6 +84,8 @@ class TrapConfiguration(BaseModel):
     straps_socket: Optional[str] = None
     nmtrapd_host: str = "localhost"
     nmtrapd_port: int = 1702
+    start_multiplexer: bool = True
+    multiplexer_command: Optional[Annotated[list[str], Field(min_length=1)]] = None
 
 
 class AgentConfiguration(BaseModel):

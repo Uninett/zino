@@ -56,9 +56,13 @@ on the host as-is.
 
 If host networking is not an option, receive traps through an SNMP trap
 multiplexer such as **nmtrapd** running on the host, outside Docker: the
-multiplexer binds port 162 and forwards traps — with their original source
-address — to Zino.  Point Zino at it with the ``[snmp.trap]`` ``source`` setting
-(see :ref:`configuring-trap-reception`).
+multiplexer binds port 162 and forwards traps to Zino, with their original
+source address intact.  Point Zino at it with the ``[snmp.trap]`` ``source``
+setting (see :ref:`configuring-trap-reception`).  Since Zino cannot start a
+multiplexer outside its own container, also set ``start_multiplexer = false``.
+Keeping the multiplexer running is then up to you: a stock ``nmtrapd`` exits
+once its last client disconnects, so you must arrange for it to be restarted
+automatically.
 
 Running as your own user
 ------------------------

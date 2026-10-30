@@ -56,6 +56,15 @@ require_community = []
 # nmtrapd_host = "localhost"
 # nmtrapd_port = 1702
 
+# Start the multiplexer if Zino cannot connect to it (only used when source is "straps" or "nmtrapd").
+# The multiplexer exits by itself once Zino disconnects.
+# Default: true
+# start_multiplexer = true
+
+# Command line used to start the multiplexer.
+# Default: "straps" or "nmtrapd" (matching source), looked up on PATH
+# multiplexer_command = ["/usr/pkg/bin/straps"]
+
 [snmp.agent]
 # SNMP agent configuration for responding to uptime queries from clients
 # This agent is used by clients like EMT for failover detection
