@@ -5,6 +5,8 @@ import signal
 import subprocess
 import time
 
+import pytest
+
 
 def test_zino_help_screen_runs_without_error():
     assert subprocess.check_call(["zino", "--help"]) == 0
@@ -20,13 +22,28 @@ def test_polltest_help_runs_without_error(polldevs_conf, monkeypatch):
     assert subprocess.check_call(["python", "-m", "zino.polltest", "-h"]) == 0
 
 
-def test_when_interrupted_by_ctrl_c_zino_should_exit_cleanly(zino_conf):
-    process = subprocess.Popen(["zino", "--trap-port", "0"], cwd=zino_conf.parent)
-    time.sleep(1)
-    process.send_signal(signal.SIGINT)
-    process.wait()
+@pytest.mark.parametrize("sig", [signal.SIGINT, signal.SIGTERM])
+def test_when_stopped_by_signal_then_zino_should_exit_cleanly_and_dump_state(zino_conf, start_zino, sig):
+    process = start_zino()
+    process.send_signal(sig)
+    process.communicate(timeout=30)
 
     assert process.returncode == 0, f"Process exited with code {process.returncode}"
+    assert (zino_conf.parent / "zino-state.json").exists()
+
+
+@pytest.mark.parametrize("sig", [signal.SIGINT, signal.SIGTERM])
+def test_when_signalled_twice_then_zino_should_log_that_it_aborted_the_final_state_dump(zino_conf, start_zino, sig):
+    # Opening a FIFO for writing blocks until a reader appears, which holds Zino in its final state dump
+    os.mkfifo(zino_conf.parent / "zino-state.json.tmp")
+    process = start_zino()
+    process.send_signal(sig)
+    time.sleep(0.5)
+    process.send_signal(sig)
+    _, stderr = process.communicate(timeout=30)
+
+    assert process.returncode == -sig, stderr.decode()
+    assert b"aborting final state dump" in stderr
 
 
 def test_when_run_from_empty_directory_it_should_log_error_and_exit(tmp_path_factory):
@@ -34,3 +51,20 @@ def test_when_run_from_empty_directory_it_should_log_error_and_exit(tmp_path_fac
     expected_error = b"No such file or directory: 'secrets'"
     result = subprocess.run(["zino", "--trap-port", "0"], cwd=cwd, capture_output=True)
     assert expected_error in result.stderr
+
+
+@pytest.fixture
+def start_zino(zino_conf):
+    """Returns a function that starts Zino in the background, killing every Zino it started on teardown"""
+    processes = []
+
+    def start():
+        process = subprocess.Popen(["zino", "--trap-port", "0"], cwd=zino_conf.parent, stderr=subprocess.PIPE)
+        processes.append(process)
+        time.sleep(1)
+        return process
+
+    yield start
+    for process in processes:
+        process.kill()
+        process.communicate()
