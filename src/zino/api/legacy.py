@@ -444,6 +444,8 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         if channel.tied_to:  # Zino 1 forgets a nonce once it has been tied
             return self._respond_error("Could not find your notify socket")
 
+        if self.notification_channel:
+            self.notification_channel.untie()
         self.notification_channel = channel
         channel.tied_to = self
         _logger.info("Client %s tied to notification channel %s", self.peer_name, channel.peer_name)

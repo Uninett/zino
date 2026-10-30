@@ -115,6 +115,18 @@ class TestZino1NotificationProtocol:
 
         assert not fake_transport.close.called
 
+    async def test_when_channel_is_untied_then_it_should_be_closed_after_the_timeout(self, monkeypatch):
+        protocol = Zino1NotificationProtocol()
+        fake_transport = Mock()
+        protocol.connection_made(fake_transport)
+        protocol.tied_to = Mock()
+        monkeypatch.setattr(Zino1NotificationProtocol, "TIE_TIMEOUT_SECONDS", 0)
+
+        protocol.untie()
+        await asyncio.sleep(0.01)
+
+        assert fake_transport.close.called
+
     async def test_when_channel_is_lost_before_the_timeout_then_the_timeout_should_not_close_it(self, monkeypatch):
         monkeypatch.setattr(Zino1NotificationProtocol, "TIE_TIMEOUT_SECONDS", 0)
         protocol = Zino1NotificationProtocol()
