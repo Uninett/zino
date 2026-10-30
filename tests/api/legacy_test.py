@@ -710,7 +710,7 @@ class TestZino1ServerProtocolNtieCommand:
     async def test_when_nonce_exists_it_should_respond_with_ok(self, event_loop, authenticated_protocol):
         server = ZinoServer(loop=event_loop, state=ZinoState(), polldevs=dict())
         nonce = get_challenge()
-        mock_channel = Mock()
+        mock_channel = Mock(tied_to=None)
         server.notification_channels[nonce] = mock_channel
         authenticated_protocol.server = server
 
@@ -722,13 +722,41 @@ class TestZino1ServerProtocolNtieCommand:
     async def test_when_nonce_exists_it_should_tie_the_corresponding_channel(self, event_loop, authenticated_protocol):
         server = ZinoServer(loop=event_loop, state=ZinoState(), polldevs=dict())
         nonce = get_challenge()
-        mock_channel = Mock()
+        mock_channel = Mock(tied_to=None)
         server.notification_channels[nonce] = mock_channel
         authenticated_protocol.server = server
 
         await authenticated_protocol.message_received(f"NTIE {nonce}")
 
         assert mock_channel.tied_to is authenticated_protocol
+
+    async def test_when_nonce_belongs_to_an_already_tied_channel_then_it_should_respond_with_error(
+        self, event_loop, authenticated_protocol
+    ):
+        server = ZinoServer(loop=event_loop, state=ZinoState(), polldevs=dict())
+        nonce = get_challenge()
+        server.notification_channels[nonce] = Mock(tied_to=Mock())
+        authenticated_protocol.server = server
+
+        await authenticated_protocol.message_received(f"NTIE {nonce}")
+
+        output = authenticated_protocol.transport.data_buffer.getvalue().decode()
+        assert "\r\n500 " in output
+
+    async def test_when_nonce_belongs_to_an_already_tied_channel_then_the_existing_tie_should_be_kept(
+        self, event_loop, authenticated_protocol
+    ):
+        server = ZinoServer(loop=event_loop, state=ZinoState(), polldevs=dict())
+        nonce = get_challenge()
+        existing_session = Mock()
+        channel = Mock(tied_to=existing_session)
+        server.notification_channels[nonce] = channel
+        authenticated_protocol.server = server
+
+        await authenticated_protocol.message_received(f"NTIE {nonce}")
+
+        assert channel.tied_to is existing_session
+        assert authenticated_protocol.notification_channel is None
 
 
 class TestZino1ServerProtocolPollrtrCommand:
