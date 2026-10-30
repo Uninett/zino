@@ -1,3 +1,4 @@
+import asyncio
 import getpass
 import grp
 import hashlib
@@ -509,6 +510,17 @@ class TestWaitForDumpChild:
         assert zino._dump_child_pid == 0
 
 
+@pytest.mark.parametrize("sig", [signal.SIGINT, signal.SIGTERM])
+def test_when_shutdown_signal_is_received_then_event_loop_should_stop(sig):
+    loop = asyncio.new_event_loop()
+    try:
+        zino.add_shutdown_signal_handlers(loop)
+        loop.call_soon(os.kill, os.getpid(), sig)
+        loop.run_forever()
+    finally:
+        loop.close()
+
+
 class TestFinalStateDumpOnShutdown:
     @pytest.fixture()
     def _skip_init_side_effects(self):
@@ -529,7 +541,6 @@ class TestFinalStateDumpOnShutdown:
         mock_config.snmp.agent.enabled = False
 
         loop = Mock()
-        loop.run_forever.side_effect = KeyboardInterrupt
         mock_state = ZinoState()
 
         with (
@@ -552,7 +563,6 @@ class TestFinalStateDumpOnShutdown:
         mock_config.snmp.agent.enabled = False
 
         loop = Mock()
-        loop.run_forever.side_effect = KeyboardInterrupt
         mock_state = Mock()
         mock_state.dump_state_to_file.side_effect = OSError("disk full")
 
@@ -575,7 +585,6 @@ class TestFinalStateDumpOnShutdown:
         mock_config.snmp.agent.enabled = False
 
         loop = Mock()
-        loop.run_forever.side_effect = KeyboardInterrupt
         mock_state = ZinoState()
 
         with (

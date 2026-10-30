@@ -8,6 +8,7 @@ import logging
 import logging.config
 import os
 import pwd
+import signal
 import sys
 from asyncio import AbstractEventLoop
 from collections import defaultdict
@@ -164,10 +165,8 @@ def init_event_loop(args: argparse.Namespace, loop: Optional[AbstractEventLoop] 
         # Schedule the SNMP agent to start as a coroutine
         loop.create_task(snmp_agent.open())
 
-    try:
-        loop.run_forever()
-    except (KeyboardInterrupt, SystemExit):
-        pass
+    add_shutdown_signal_handlers(loop)
+    loop.run_forever()
 
     _log.info("Shutting down, performing final state dump")
     _wait_for_dump_child()
@@ -177,6 +176,18 @@ def init_event_loop(args: argparse.Namespace, loop: Optional[AbstractEventLoop] 
         _log.exception("Final state dump failed")
 
     return True
+
+
+def add_shutdown_signal_handlers(loop: AbstractEventLoop) -> None:
+    """Makes SIGINT and SIGTERM stop the event loop, so that Zino can shut down in an orderly fashion.
+
+    Loop signal handlers only run between callbacks. Unlike a `KeyboardInterrupt`, they never interrupt a callback
+    that is in the middle of mutating state.
+
+    :param loop: The event loop to stop when either signal is received
+    """
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        loop.add_signal_handler(sig, loop.stop)
 
 
 async def fork_and_dump_state(filename: str):

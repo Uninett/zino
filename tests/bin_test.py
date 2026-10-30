@@ -5,6 +5,8 @@ import signal
 import subprocess
 import time
 
+import pytest
+
 
 def test_zino_help_screen_runs_without_error():
     assert subprocess.check_call(["zino", "--help"]) == 0
@@ -20,13 +22,15 @@ def test_polltest_help_runs_without_error(polldevs_conf, monkeypatch):
     assert subprocess.check_call(["python", "-m", "zino.polltest", "-h"]) == 0
 
 
-def test_when_interrupted_by_ctrl_c_zino_should_exit_cleanly(zino_conf):
+@pytest.mark.parametrize("sig", [signal.SIGINT, signal.SIGTERM])
+def test_when_stopped_by_signal_then_zino_should_exit_cleanly_and_dump_state(zino_conf, sig):
     process = subprocess.Popen(["zino", "--trap-port", "0"], cwd=zino_conf.parent)
     time.sleep(1)
-    process.send_signal(signal.SIGINT)
+    process.send_signal(sig)
     process.wait()
 
     assert process.returncode == 0, f"Process exited with code {process.returncode}"
+    assert (zino_conf.parent / "zino-state.json").exists()
 
 
 def test_when_run_from_empty_directory_it_should_log_error_and_exit(tmp_path_factory):
