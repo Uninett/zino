@@ -1,0 +1,2 @@
+#!/bin/sh
+exec setuidgid zino multilog s10485760 n20 /var/log/zino
