@@ -13,6 +13,7 @@ import sys
 from asyncio import AbstractEventLoop
 from collections import defaultdict
 from datetime import datetime, timedelta
+from types import FrameType
 from typing import Any, Optional
 
 import tzlocal
@@ -41,6 +42,7 @@ from zino.utils import file_is_world_readable
 STATE_DUMP_JOB_ID = "zino.dump_state"
 # Never try to dump state more often than this:
 MINIMUM_STATE_DUMP_INTERVAL = timedelta(seconds=10)
+SHUTDOWN_SIGNALS = (signal.SIGINT, signal.SIGTERM)
 DEFAULT_CONFIG_FILE = "zino.toml"
 _log = logging.getLogger("zino")
 
@@ -167,13 +169,10 @@ def init_event_loop(args: argparse.Namespace, loop: Optional[AbstractEventLoop] 
 
     add_shutdown_signal_handlers(loop)
     loop.run_forever()
-
-    _log.info("Shutting down, performing final state dump")
-    _wait_for_dump_child()
     try:
-        state.state.dump_state_to_file(state.config.persistence.file)
-    except Exception:  # noqa: BLE001
-        _log.exception("Final state dump failed")
+        dump_final_state(loop)
+    except FinalDumpAborted as aborted:
+        abort_shutdown(aborted.signum)
 
     return True
 
@@ -186,8 +185,76 @@ def add_shutdown_signal_handlers(loop: AbstractEventLoop) -> None:
 
     :param loop: The event loop to stop when either signal is received
     """
-    for sig in (signal.SIGINT, signal.SIGTERM):
+    for sig in SHUTDOWN_SIGNALS:
         loop.add_signal_handler(sig, loop.stop)
+
+
+def dump_final_state(loop: AbstractEventLoop) -> None:
+    """Dumps the state one final time, letting a second SIGINT or SIGTERM abort the dump.
+
+    :param loop: The stopped event loop that the shutdown signal handlers were added to
+    :raises FinalDumpAborted: When a shutdown signal is received before the state has been written
+    """
+    abort_final_dump_on_shutdown_signals(loop)
+    _log.info("Shutting down, performing final state dump")
+    _wait_for_dump_child()
+    try:
+        state.state.dump_state_to_file(state.config.persistence.file)
+    except Exception:  # noqa: BLE001
+        _log.exception("Final state dump failed")
+
+    for sig in SHUTDOWN_SIGNALS:
+        signal.signal(sig, signal.SIG_DFL)
+
+
+def abort_final_dump_on_shutdown_signals(loop: AbstractEventLoop) -> None:
+    """Makes SIGINT and SIGTERM raise `FinalDumpAborted`, instead of being ignored by the stopped event loop.
+
+    Python only runs signal handlers between bytecode instructions. The exception can interrupt waiting for a dump
+    child or writing the state file, but it is only raised after a serialization in progress has finished.
+
+    :param loop: The stopped event loop that the shutdown signal handlers were added to
+    """
+    for sig in SHUTDOWN_SIGNALS:
+        loop.remove_signal_handler(sig)
+        signal.signal(sig, _raise_final_dump_aborted)
+
+
+def _raise_final_dump_aborted(signum: int, _frame: Optional[FrameType]) -> None:
+    """Signal handler that raises `FinalDumpAborted`"""
+    raise FinalDumpAborted(signum)
+
+
+class FinalDumpAborted(BaseException):
+    """Raised when a shutdown signal aborts the final state dump.
+
+    It derives from `BaseException`, so that the error handling around the state dump does not swallow it.
+    """
+
+    def __init__(self, signum: int):
+        super().__init__(signum)
+        self.signum = signum
+
+
+def abort_shutdown(signum: int) -> None:
+    """Logs that the final state dump was aborted, then terminates Zino by the signal that aborted it.
+
+    Any running dump child is killed first, so that it cannot write a state file after Zino has exited. Dying by the
+    signal, rather than exiting with a status code, tells a supervisor such as systemd that Zino stopped as asked.
+
+    :param signum: The number of the signal that aborted the final state dump
+    """
+    for sig in SHUTDOWN_SIGNALS:
+        signal.signal(sig, signal.SIG_IGN)
+    _kill_dump_child()
+    _log.warning(
+        "Received %s during shutdown, aborting final state dump. Unsaved state changes are lost.",
+        signal.Signals(signum).name,
+    )
+    signal.signal(signum, signal.SIG_DFL)
+    os.kill(os.getpid(), signum)
+    # The kernel ignores signals with default actions sent to PID 1, e.g. in a container
+    sys.exit(128 + signum)
 
 
 async def fork_and_dump_state(filename: str):
@@ -250,6 +317,16 @@ def _wait_for_dump_child():
     except ChildProcessError:
         pass
     _dump_child_pid = 0
+
+
+def _kill_dump_child():
+    """Kills a running dump child process, without waiting for it to die."""
+    if not _dump_child_pid:
+        return
+    try:
+        os.kill(_dump_child_pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
 
 
 def setup_initial_job_schedule(loop: AbstractEventLoop, args: argparse.Namespace) -> None:
