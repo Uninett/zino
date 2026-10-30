@@ -432,6 +432,8 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
             channel = self.server.notification_channels[nonce]
         except (AttributeError, KeyError):
             return self._respond_error("Could not find your notify socket")
+        if channel.tied_to:  # Zino 1 forgets a nonce once it has been tied
+            return self._respond_error("Could not find your notify socket")
 
         self.notification_channel = channel
         channel.tied_to = self
