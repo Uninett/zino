@@ -258,16 +258,16 @@ class TestZino1BaseServerProtocol:
         await protocol.message_received("RAISEERROR")
         assert "ZeroDivisionError" in caplog.text
 
-    def test_when_connected_it_should_register_instance_in_server(self, event_loop):
-        server = ZinoServer(loop=event_loop, state=ZinoState(), polldevs=dict())
+    def test_when_connected_it_should_register_instance_in_server(self, running_loop):
+        server = ZinoServer(loop=running_loop, state=ZinoState(), polldevs=dict())
         protocol = Zino1BaseServerProtocol(server=server)
         fake_transport = Mock()
         protocol.connection_made(fake_transport)
 
         assert protocol in server.active_clients
 
-    def test_when_disconnected_it_should_deregister_instance_from_server(self, event_loop):
-        server = ZinoServer(loop=event_loop, state=ZinoState(), polldevs=dict())
+    def test_when_disconnected_it_should_deregister_instance_from_server(self, running_loop):
+        server = ZinoServer(loop=running_loop, state=ZinoState(), polldevs=dict())
         protocol = Zino1BaseServerProtocol(server=server)
         fake_transport = Mock()
         protocol.connection_made(fake_transport)
@@ -689,8 +689,8 @@ class TestZino1ServerProtocolCommunityCommand:
 
 
 class TestZino1ServerProtocolNtieCommand:
-    async def test_when_nonce_is_bogus_it_should_respond_with_error(self, event_loop, authenticated_protocol):
-        server = ZinoServer(loop=event_loop, state=ZinoState(), polldevs=dict())
+    async def test_when_nonce_is_bogus_it_should_respond_with_error(self, running_loop, authenticated_protocol):
+        server = ZinoServer(loop=running_loop, state=ZinoState(), polldevs=dict())
         server.notification_channels = dict()  # Ensure there are none for this test
         authenticated_protocol.server = server
 
@@ -699,8 +699,8 @@ class TestZino1ServerProtocolNtieCommand:
         output = authenticated_protocol.transport.data_buffer.getvalue().decode()
         assert "\r\n500 " in output
 
-    async def test_when_nonce_exists_it_should_respond_with_ok(self, event_loop, authenticated_protocol):
-        server = ZinoServer(loop=event_loop, state=ZinoState(), polldevs=dict())
+    async def test_when_nonce_exists_it_should_respond_with_ok(self, running_loop, authenticated_protocol):
+        server = ZinoServer(loop=running_loop, state=ZinoState(), polldevs=dict())
         nonce = get_challenge()
         mock_channel = Mock()
         server.notification_channels[nonce] = mock_channel
@@ -711,8 +711,10 @@ class TestZino1ServerProtocolNtieCommand:
         output = authenticated_protocol.transport.data_buffer.getvalue().decode()
         assert "\r\n200 " in output
 
-    async def test_when_nonce_exists_it_should_tie_the_corresponding_channel(self, event_loop, authenticated_protocol):
-        server = ZinoServer(loop=event_loop, state=ZinoState(), polldevs=dict())
+    async def test_when_nonce_exists_it_should_tie_the_corresponding_channel(
+        self, running_loop, authenticated_protocol
+    ):
+        server = ZinoServer(loop=running_loop, state=ZinoState(), polldevs=dict())
         nonce = get_challenge()
         mock_channel = Mock()
         server.notification_channels[nonce] = mock_channel

@@ -210,6 +210,12 @@ def event_loop():
     loop.close()
 
 
+@pytest_asyncio.fixture
+async def running_loop():
+    """Returns the event loop that runs the requesting test"""
+    return asyncio.get_running_loop()
+
+
 @pytest_asyncio.fixture(scope="session")
 async def snmpsim(snmpsim_command, snmp_test_port):
     """Sets up an external snmpsimd process so that SNMP communication can be simulated
@@ -340,10 +346,10 @@ def state_with_localhost():
 
 
 @pytest_asyncio.fixture
-async def localhost_pysnmp_receiver(state_with_localhost, unused_udp_port, event_loop) -> pysnmp_backend.TrapReceiver:
+async def localhost_pysnmp_receiver(state_with_localhost, unused_udp_port) -> pysnmp_backend.TrapReceiver:
     """Yields a TrapReceiver instance with a standardized setup for running external tests on localhost"""
     receiver = pysnmp_backend.TrapReceiver(
-        address="127.0.0.1", port=unused_udp_port, loop=event_loop, state=state_with_localhost
+        address="127.0.0.1", port=unused_udp_port, loop=asyncio.get_running_loop(), state=state_with_localhost
     )
     receiver.add_community("public")
     await receiver.open()
@@ -352,12 +358,10 @@ async def localhost_pysnmp_receiver(state_with_localhost, unused_udp_port, event
 
 
 @pytest_asyncio.fixture
-async def localhost_netsnmpy_receiver(
-    state_with_localhost, unused_udp_port, event_loop
-) -> netsnmpy_backend.TrapReceiver:
+async def localhost_netsnmpy_receiver(state_with_localhost, unused_udp_port) -> netsnmpy_backend.TrapReceiver:
     """Yields a TrapReceiver instance with a standardized setup for running external tests on localhost"""
     receiver = netsnmpy_backend.TrapReceiver(
-        address="127.0.0.1", port=unused_udp_port, loop=event_loop, state=state_with_localhost
+        address="127.0.0.1", port=unused_udp_port, loop=asyncio.get_running_loop(), state=state_with_localhost
     )
     receiver.add_community("public")
     await receiver.open()

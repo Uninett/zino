@@ -136,8 +136,8 @@ class TestTrapReceiver:
 
 @pytest.mark.skipif(not shutil.which("snmptrap"), reason=SNMPTRAP_MISSING)
 class TestTrapReceiverExternally:
-    async def test_when_trap_is_from_unknown_device_it_should_ignore_it(self, event_loop, unused_udp_port, caplog):
-        receiver = TrapReceiver(address="127.0.0.1", port=unused_udp_port, loop=event_loop)
+    async def test_when_trap_is_from_unknown_device_it_should_ignore_it(self, running_loop, unused_udp_port, caplog):
+        receiver = TrapReceiver(address="127.0.0.1", port=unused_udp_port, loop=running_loop)
         receiver.add_community("public")
         try:
             await receiver.open()
