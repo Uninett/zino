@@ -1,5 +1,4 @@
-import asyncio
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from pysnmp.hlapi.asyncio import (
@@ -42,9 +41,7 @@ def ipv6_snmp_client(snmpsim, snmp_test_port) -> SNMP:
 @pytest.fixture()
 def unreachable_snmp_client():
     mock_results = errind.RequestTimedOut(), None, None, []
-    future = asyncio.Future()
-    future.set_result(mock_results)
-    timeout_mock = Mock(return_value=future)
+    timeout_mock = AsyncMock(return_value=mock_results)
     with patch.multiple("zino.snmp.pysnmp_backend", getCmd=timeout_mock, nextCmd=timeout_mock, bulkCmd=timeout_mock):
         device = PollDevice(name="nonexist", address="127.0.0.1", community="invalid", port=666)
         yield SNMP(device)
@@ -267,9 +264,7 @@ class TestVarBindErrors:
         object_type = ObjectType(ObjectIdentity(*query), error)
 
         mock_results = None, None, None, [object_type]
-        future = asyncio.Future()
-        future.set_result(mock_results)
-        get_mock = Mock(return_value=future)
+        get_mock = AsyncMock(return_value=mock_results)
         monkeypatch.setattr("zino.snmp.pysnmp_backend.getCmd", get_mock)
 
         snmp_client._resolve_object(object_type)
@@ -318,3 +313,15 @@ class TestInitBackend:
 def test_snmp_object_should_be_usable_as_context_manager(snmp_client):
     with snmp_client as context:
         assert context is snmp_client
+
+
+@pytest.fixture(autouse=True)
+def fresh_snmp_engine():
+    """Discards the cached SNMP engine around each test.
+
+    PySNMP binds an engine's transport to the event loop that first uses it, so
+    an engine cached by an earlier test would hang when used from a new loop.
+    """
+    pysnmp_backend._local.snmp_engine = None
+    yield
+    pysnmp_backend._local.snmp_engine = None

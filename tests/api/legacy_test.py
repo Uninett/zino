@@ -3,7 +3,7 @@ import re
 from datetime import timedelta
 from io import BytesIO
 from ipaddress import IPv4Address
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
@@ -258,16 +258,16 @@ class TestZino1BaseServerProtocol:
         await protocol.message_received("RAISEERROR")
         assert "ZeroDivisionError" in caplog.text
 
-    def test_when_connected_it_should_register_instance_in_server(self, event_loop):
-        server = ZinoServer(loop=event_loop, state=ZinoState(), polldevs=dict())
+    def test_when_connected_it_should_register_instance_in_server(self, running_loop):
+        server = ZinoServer(loop=running_loop, state=ZinoState(), polldevs=dict())
         protocol = Zino1BaseServerProtocol(server=server)
         fake_transport = Mock()
         protocol.connection_made(fake_transport)
 
         assert protocol in server.active_clients
 
-    def test_when_disconnected_it_should_deregister_instance_from_server(self, event_loop):
-        server = ZinoServer(loop=event_loop, state=ZinoState(), polldevs=dict())
+    def test_when_disconnected_it_should_deregister_instance_from_server(self, running_loop):
+        server = ZinoServer(loop=running_loop, state=ZinoState(), polldevs=dict())
         protocol = Zino1BaseServerProtocol(server=server)
         fake_transport = Mock()
         protocol.connection_made(fake_transport)
@@ -545,32 +545,24 @@ class TestZino1ServerProtocolGetlogCommand:
 
 
 class TestZino1ServerProtocolAddhistCommand:
-    async def test_should_add_history_entry_to_event(self, authenticated_protocol, event_loop):
+    async def test_should_add_history_entry_to_event(self, authenticated_protocol):
         state = authenticated_protocol._state
         event = state.events.create_event("foo", None, ReachabilityEvent)
         state.events.commit(event)
 
-        def mock_multiline():
-            future = event_loop.create_future()
-            future.set_result(["one", "two"])
-            return future
-
+        mock_multiline = AsyncMock(return_value=["one", "two"])
         with patch.object(authenticated_protocol, "_read_multiline", mock_multiline):
             pre_count = len(event.history)
             await authenticated_protocol.do_addhist(event.id)
             committed_event = state.events[event.id]
             assert len(committed_event.history) > pre_count
 
-    async def test_should_prefix_history_message_with_username(self, authenticated_protocol, event_loop):
+    async def test_should_prefix_history_message_with_username(self, authenticated_protocol):
         state = authenticated_protocol._state
         event = state.events.create_event("foo", None, ReachabilityEvent)
         state.events.commit(event)
 
-        def mock_multiline():
-            future = event_loop.create_future()
-            future.set_result(["sapient foobar", "cromulent dingbat"])
-            return future
-
+        mock_multiline = AsyncMock(return_value=["sapient foobar", "cromulent dingbat"])
         with patch.object(authenticated_protocol, "_read_multiline", mock_multiline):
             await authenticated_protocol.do_addhist(event.id)
             committed_event = state.events[event.id]
@@ -697,8 +689,8 @@ class TestZino1ServerProtocolCommunityCommand:
 
 
 class TestZino1ServerProtocolNtieCommand:
-    async def test_when_nonce_is_bogus_it_should_respond_with_error(self, event_loop, authenticated_protocol):
-        server = ZinoServer(loop=event_loop, state=ZinoState(), polldevs=dict())
+    async def test_when_nonce_is_bogus_it_should_respond_with_error(self, running_loop, authenticated_protocol):
+        server = ZinoServer(loop=running_loop, state=ZinoState(), polldevs=dict())
         server.notification_channels = dict()  # Ensure there are none for this test
         authenticated_protocol.server = server
 
@@ -707,8 +699,8 @@ class TestZino1ServerProtocolNtieCommand:
         output = authenticated_protocol.transport.data_buffer.getvalue().decode()
         assert "\r\n500 " in output
 
-    async def test_when_nonce_exists_it_should_respond_with_ok(self, event_loop, authenticated_protocol):
-        server = ZinoServer(loop=event_loop, state=ZinoState(), polldevs=dict())
+    async def test_when_nonce_exists_it_should_respond_with_ok(self, running_loop, authenticated_protocol):
+        server = ZinoServer(loop=running_loop, state=ZinoState(), polldevs=dict())
         nonce = get_challenge()
         mock_channel = Mock()
         server.notification_channels[nonce] = mock_channel
@@ -719,8 +711,10 @@ class TestZino1ServerProtocolNtieCommand:
         output = authenticated_protocol.transport.data_buffer.getvalue().decode()
         assert "\r\n200 " in output
 
-    async def test_when_nonce_exists_it_should_tie_the_corresponding_channel(self, event_loop, authenticated_protocol):
-        server = ZinoServer(loop=event_loop, state=ZinoState(), polldevs=dict())
+    async def test_when_nonce_exists_it_should_tie_the_corresponding_channel(
+        self, running_loop, authenticated_protocol
+    ):
+        server = ZinoServer(loop=running_loop, state=ZinoState(), polldevs=dict())
         nonce = get_challenge()
         mock_channel = Mock()
         server.notification_channels[nonce] = mock_channel
@@ -881,12 +875,10 @@ class TestZino1TestProtocol:
         assert fake_transport.write.called
         assert fake_transport.write.call_args[0][0].startswith(b"200 ")
 
-    async def test_multitest_should_accept_multiline_input(self, buffered_fake_transport, event_loop):
+    async def test_multitest_should_accept_multiline_input(self, buffered_fake_transport):
         class MockProtocol(ZinoTestProtocol):
-            def _read_multiline(self):
-                future = event_loop.create_future()
-                future.set_result(["one", "two"])
-                return future
+            async def _read_multiline(self):
+                return ["one", "two"]
 
         protocol = MockProtocol()
         protocol.connection_made(buffered_fake_transport)
@@ -967,15 +959,11 @@ class TestZino1ServerProtocolPmCancelCommand:
 
 
 class TestZino1ServerProtocolPmAddLogCommand:
-    async def test_should_add_log_entry_to_pm(self, authenticated_protocol, active_device_pm, event_loop):
+    async def test_should_add_log_entry_to_pm(self, authenticated_protocol, active_device_pm):
         planned_maintenances = authenticated_protocol._state.planned_maintenances.planned_maintenances
         planned_maintenances[active_device_pm.id] = active_device_pm
 
-        def mock_multiline():
-            future = event_loop.create_future()
-            future.set_result(["one", "two"])
-            return future
-
+        mock_multiline = AsyncMock(return_value=["one", "two"])
         with patch.object(authenticated_protocol, "_read_multiline", mock_multiline):
             await authenticated_protocol.do_pm_addlog(active_device_pm.id)
 

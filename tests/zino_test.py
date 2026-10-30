@@ -142,7 +142,7 @@ def test_when_unprivileged_user_asks_for_privileged_port_zino_should_exit_with_e
 @patch("zino.zino.os.geteuid", return_value=0)
 @patch("zino.zino.switch_to_user")
 async def test_when_args_specify_user_zino_init_event_loop_should_attempt_to_switch_users(
-    switch_to_user, mock_geteuid, event_loop
+    switch_to_user, mock_geteuid, running_loop
 ):
     """Detect attempt to user switching by patching in a mock exception.  This is to avoid setting up the full Zino
     daemon and mucking up the event loop and state, by ensuring we exit as soon as switch_to_user is called.
@@ -154,7 +154,7 @@ async def test_when_args_specify_user_zino_init_event_loop_should_attempt_to_swi
     zino.switch_to_user.side_effect = MockError()
     with pytest.raises(MockError):
         try:
-            zino.init_event_loop(args=Mock(trap_port=0, user="nobody"), loop=event_loop)
+            zino.init_event_loop(args=Mock(trap_port=0, user="nobody"), loop=running_loop)
         except MockError:
             raise
         except Exception:  # noqa: BLE001
@@ -162,13 +162,13 @@ async def test_when_args_specify_user_zino_init_event_loop_should_attempt_to_swi
 
 
 @patch("zino.zino.os.geteuid", return_value=0)
-async def test_when_running_as_root_without_user_config_should_log_warning(mock_geteuid, event_loop, caplog):
+async def test_when_running_as_root_without_user_config_should_log_warning(mock_geteuid, running_loop, caplog):
     """When running as root without a user configured for privilege dropping, a warning should be logged."""
     import logging
 
     with caplog.at_level(logging.WARNING):
         try:
-            zino.init_event_loop(args=Mock(trap_port=0, user=None, stop_in=None), loop=event_loop)
+            zino.init_event_loop(args=Mock(trap_port=0, user=None, stop_in=None), loop=running_loop)
         except Exception:  # noqa: BLE001
             pass
 
@@ -176,7 +176,9 @@ async def test_when_running_as_root_without_user_config_should_log_warning(mock_
 
 
 @patch("zino.zino.os.geteuid", return_value=1000)
-async def test_when_trap_source_is_straps_then_init_event_loop_should_create_straps_receiver(mock_geteuid, event_loop):
+async def test_when_trap_source_is_straps_then_init_event_loop_should_create_straps_receiver(
+    mock_geteuid, running_loop
+):
     mock_receiver = Mock()
     mock_receiver.open = AsyncMock()
     trap_config = Mock(source="straps", require_community=["public"])
@@ -186,7 +188,7 @@ async def test_when_trap_source_is_straps_then_init_event_loop_should_create_str
         patch("zino.trapd.straps_backend.StrapsTrapReceiver", return_value=mock_receiver) as mock_cls,
     ):
         try:
-            zino.init_event_loop(args=Mock(trap_port=0, user=None, stop_in=None), loop=event_loop)
+            zino.init_event_loop(args=Mock(trap_port=0, user=None, stop_in=None), loop=running_loop)
         except Exception:  # noqa: BLE001
             pass
 
@@ -196,7 +198,7 @@ async def test_when_trap_source_is_straps_then_init_event_loop_should_create_str
 
 
 @patch("zino.zino.os.geteuid", return_value=1000)
-async def test_when_straps_is_unavailable_then_init_event_loop_should_not_exit(mock_geteuid, event_loop):
+async def test_when_straps_is_unavailable_then_init_event_loop_should_not_exit(mock_geteuid, running_loop):
     mock_receiver = Mock()
     mock_receiver.open = AsyncMock()
     trap_config = Mock(source="straps", require_community=[])
@@ -206,7 +208,7 @@ async def test_when_straps_is_unavailable_then_init_event_loop_should_not_exit(m
         patch("zino.trapd.straps_backend.StrapsTrapReceiver", return_value=mock_receiver),
     ):
         try:
-            zino.init_event_loop(args=Mock(trap_port=0, user=None, stop_in=None), loop=event_loop)
+            zino.init_event_loop(args=Mock(trap_port=0, user=None, stop_in=None), loop=running_loop)
         except Exception:  # noqa: BLE001
             pass
 
