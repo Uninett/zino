@@ -72,6 +72,22 @@ class TestTrapConfiguration:
         with pytest.raises(pydantic.ValidationError):
             TrapConfiguration(source="bogus")
 
+    def test_when_start_multiplexer_is_omitted_then_it_should_default_to_true(self):
+        config = TrapConfiguration(source="straps")
+        assert config.start_multiplexer is True
+
+    def test_when_multiplexer_command_is_omitted_then_it_should_default_to_none(self):
+        config = TrapConfiguration(source="straps")
+        assert config.multiplexer_command is None
+
+    def test_when_multiplexer_command_is_set_then_config_should_store_it(self):
+        config = TrapConfiguration(source="straps", multiplexer_command=["/usr/pkg/bin/straps", "162"])
+        assert config.multiplexer_command == ["/usr/pkg/bin/straps", "162"]
+
+    def test_when_multiplexer_command_is_empty_then_it_should_raise_validation_error(self):
+        with pytest.raises(pydantic.ValidationError):
+            TrapConfiguration(source="straps", multiplexer_command=[])
+
 
 class TestProcessConfiguration:
     def test_init_should_use_defaults(self):
