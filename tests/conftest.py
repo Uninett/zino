@@ -201,22 +201,13 @@ def extra_keys_zino_conf(tmp_path):
     yield name
 
 
-@pytest.fixture(scope="session")
-def event_loop():
-    """Redefine pytest-asyncio's event_loop fixture to have a session scope"""
-    policy = asyncio.get_event_loop_policy()
-    loop = policy.new_event_loop()
-    yield loop
-    loop.close()
-
-
 @pytest_asyncio.fixture
 async def running_loop():
     """Returns the event loop that runs the requesting test"""
     return asyncio.get_running_loop()
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture(scope="session", loop_scope="session")
 async def snmpsim(snmpsim_command, snmp_test_port):
     """Sets up an external snmpsimd process so that SNMP communication can be simulated
     by the test that declares a dependency to this fixture. Data fixtures are loaded
