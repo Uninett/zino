@@ -313,3 +313,15 @@ class TestInitBackend:
 def test_snmp_object_should_be_usable_as_context_manager(snmp_client):
     with snmp_client as context:
         assert context is snmp_client
+
+
+@pytest.fixture(autouse=True)
+def fresh_snmp_engine():
+    """Discards the cached SNMP engine around each test.
+
+    PySNMP binds an engine's transport to the event loop that first uses it, so
+    an engine cached by an earlier test would hang when used from a new loop.
+    """
+    pysnmp_backend._local.snmp_engine = None
+    yield
+    pysnmp_backend._local.snmp_engine = None
