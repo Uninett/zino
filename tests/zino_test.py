@@ -513,12 +513,22 @@ class TestWaitForDumpChild:
 @pytest.mark.parametrize("sig", [signal.SIGINT, signal.SIGTERM])
 def test_when_shutdown_signal_is_received_then_event_loop_should_stop(sig):
     loop = asyncio.new_event_loop()
+    timed_out = False
+
+    def give_up():
+        nonlocal timed_out
+        timed_out = True
+        loop.stop()
+
     try:
         zino.add_shutdown_signal_handlers(loop)
         loop.call_soon(os.kill, os.getpid(), sig)
+        loop.call_later(5, give_up)
         loop.run_forever()
     finally:
         loop.close()
+
+    assert not timed_out, "event loop was not stopped by the signal"
 
 
 class TestFinalStateDumpOnShutdown:

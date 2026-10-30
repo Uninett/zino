@@ -23,11 +23,10 @@ def test_polltest_help_runs_without_error(polldevs_conf, monkeypatch):
 
 
 @pytest.mark.parametrize("sig", [signal.SIGINT, signal.SIGTERM])
-def test_when_stopped_by_signal_then_zino_should_exit_cleanly_and_dump_state(zino_conf, sig):
-    process = subprocess.Popen(["zino", "--trap-port", "0"], cwd=zino_conf.parent)
-    time.sleep(1)
+def test_when_stopped_by_signal_then_zino_should_exit_cleanly_and_dump_state(zino_conf, start_zino, sig):
+    process = start_zino()
     process.send_signal(sig)
-    process.wait()
+    process.communicate(timeout=30)
 
     assert process.returncode == 0, f"Process exited with code {process.returncode}"
     assert (zino_conf.parent / "zino-state.json").exists()
@@ -38,3 +37,20 @@ def test_when_run_from_empty_directory_it_should_log_error_and_exit(tmp_path_fac
     expected_error = b"No such file or directory: 'secrets'"
     result = subprocess.run(["zino", "--trap-port", "0"], cwd=cwd, capture_output=True)
     assert expected_error in result.stderr
+
+
+@pytest.fixture
+def start_zino(zino_conf):
+    """Returns a function that starts Zino in the background, killing every Zino it started on teardown"""
+    processes = []
+
+    def start():
+        process = subprocess.Popen(["zino", "--trap-port", "0"], cwd=zino_conf.parent, stderr=subprocess.PIPE)
+        processes.append(process)
+        time.sleep(1)
+        return process
+
+    yield start
+    for process in processes:
+        process.kill()
+        process.communicate()
