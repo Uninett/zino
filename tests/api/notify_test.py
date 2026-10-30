@@ -1,8 +1,10 @@
+import asyncio
 from datetime import timedelta
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
 
+from zino.api.legacy import Zino1ServerProtocol
 from zino.api.notify import Notification, Zino1NotificationProtocol
 from zino.api.server import ZinoServer
 from zino.state import ZinoState
@@ -18,16 +20,24 @@ class TestZino1NotificationProtocol:
         protocol = Zino1NotificationProtocol()
         assert protocol.peer_name is None
 
-    def test_when_connected_then_peer_name_should_be_available(self):
+    async def test_when_connected_then_peer_name_should_be_available(self):
         expected = "foobar"
         protocol = Zino1NotificationProtocol()
         fake_transport = Mock()
-        fake_transport.get_extra_info.return_value = expected
+        fake_transport.get_extra_info.side_effect = {"peername": expected}.get
         protocol.connection_made(fake_transport)
 
         assert protocol.peer_name == expected
 
-    def test_when_connected_it_should_register_instance_in_server(self, event_loop):
+    async def test_when_connected_then_keepalive_should_be_enabled(self):
+        protocol = Zino1NotificationProtocol()
+        fake_transport = Mock()
+        with patch("zino.api.notify.enable_keepalive") as enable_keepalive:
+            protocol.connection_made(fake_transport)
+
+        enable_keepalive.assert_called_once_with(fake_transport)
+
+    async def test_when_connected_it_should_register_instance_in_server(self, event_loop):
         server = ZinoServer(loop=event_loop, state=ZinoState(), polldevs=dict())
         protocol = Zino1NotificationProtocol(server=server)
         fake_transport = Mock()
@@ -36,7 +46,7 @@ class TestZino1NotificationProtocol:
         assert protocol.nonce in server.notification_channels
         assert server.notification_channels[protocol.nonce] is protocol
 
-    def test_when_disconnected_it_should_deregister_instance_from_server(self, event_loop):
+    async def test_when_disconnected_it_should_deregister_instance_from_server(self, event_loop):
         server = ZinoServer(loop=event_loop, state=ZinoState(), polldevs=dict())
         protocol = Zino1NotificationProtocol(server=server)
         fake_transport = Mock()
@@ -45,7 +55,17 @@ class TestZino1NotificationProtocol:
 
         assert protocol.nonce not in server.notification_channels
 
-    def test_notify_should_output_text_line(self):
+    async def test_when_tied_channel_is_lost_then_its_session_should_be_notified_of_the_loss(self):
+        protocol = Zino1NotificationProtocol()
+        protocol.connection_made(Mock())
+        session = Mock(spec=Zino1ServerProtocol)
+        protocol.tied_to = session
+
+        protocol.connection_lost(exc=None)
+
+        session.notification_channel_lost.assert_called_once_with(protocol)
+
+    async def test_notify_should_output_text_line(self):
         protocol = Zino1NotificationProtocol()
         fake_transport = Mock()
         protocol.connection_made(fake_transport)
@@ -61,13 +81,70 @@ class TestZino1NotificationProtocol:
         protocol.tied_to = server
         assert protocol.tied_to == server
 
-    def test_goodbye_should_close_transport(self, event_loop):
+    async def test_goodbye_should_close_transport(self, event_loop):
         server = ZinoServer(loop=event_loop, state=ZinoState(), polldevs=dict())
         protocol = Zino1NotificationProtocol(server=server)
         fake_transport = Mock()
         protocol.connection_made(fake_transport)
         protocol.goodbye()
         assert fake_transport.close.called
+
+    async def test_when_channel_is_not_tied_within_the_timeout_then_it_should_be_closed(self, monkeypatch):
+        monkeypatch.setattr(Zino1NotificationProtocol, "TIE_TIMEOUT_SECONDS", 0)
+        protocol = Zino1NotificationProtocol()
+        fake_transport = Mock()
+        protocol.connection_made(fake_transport)
+
+        await asyncio.sleep(0.01)
+
+        assert fake_transport.close.called
+        assert fake_transport.write.call_args[0][0].startswith(b"Timeout waiting for action")
+
+    async def test_when_channel_is_not_tied_within_the_timeout_then_it_should_no_longer_be_available_for_tying(
+        self, event_loop, monkeypatch
+    ):
+        monkeypatch.setattr(Zino1NotificationProtocol, "TIE_TIMEOUT_SECONDS", 0)
+        server = ZinoServer(loop=event_loop, state=ZinoState(), polldevs=dict())
+        protocol = Zino1NotificationProtocol(server=server)
+        protocol.connection_made(Mock())
+
+        await asyncio.sleep(0.01)
+
+        assert protocol.nonce not in server.notification_channels
+
+    async def test_when_channel_is_tied_within_the_timeout_then_it_should_stay_open(self, monkeypatch):
+        monkeypatch.setattr(Zino1NotificationProtocol, "TIE_TIMEOUT_SECONDS", 0)
+        protocol = Zino1NotificationProtocol()
+        fake_transport = Mock()
+        protocol.connection_made(fake_transport)
+        protocol.tied_to = Mock()
+
+        await asyncio.sleep(0.01)
+
+        assert not fake_transport.close.called
+
+    async def test_when_channel_is_untied_then_it_should_be_closed_after_the_timeout(self, monkeypatch):
+        protocol = Zino1NotificationProtocol()
+        fake_transport = Mock()
+        protocol.connection_made(fake_transport)
+        protocol.tied_to = Mock()
+        monkeypatch.setattr(Zino1NotificationProtocol, "TIE_TIMEOUT_SECONDS", 0)
+
+        protocol.untie()
+        await asyncio.sleep(0.01)
+
+        assert fake_transport.close.called
+
+    async def test_when_channel_is_lost_before_the_timeout_then_the_timeout_should_not_close_it(self, monkeypatch):
+        monkeypatch.setattr(Zino1NotificationProtocol, "TIE_TIMEOUT_SECONDS", 0)
+        protocol = Zino1NotificationProtocol()
+        fake_transport = Mock()
+        protocol.connection_made(fake_transport)
+        protocol.connection_lost(exc=None)
+
+        await asyncio.sleep(0.01)
+
+        assert not fake_transport.close.called
 
 
 class TestZino1NotificationProtocolBuildNotifications:
@@ -144,6 +221,12 @@ class TestZino1NotificationProtocolBuildAndSendNotifications:
         )
         assert channel1.notify.called
         assert not channel2.notify.called
+
+
+@pytest.fixture(autouse=True)
+def no_tie_timeouts_unless_requested(monkeypatch):
+    """Keeps tie timers started by one test from firing during later tests, unless a test sets its own timeout"""
+    monkeypatch.setattr(Zino1NotificationProtocol, "TIE_TIMEOUT_SECONDS", 24 * 60 * 60)
 
 
 @pytest.fixture

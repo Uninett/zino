@@ -16,6 +16,7 @@ from zino.api.legacy import (
     decode_data,
     requires_authentication,
 )
+from zino.api.notify import Zino1NotificationProtocol
 from zino.api.server import ZinoServer
 from zino.config.models import PollDevice
 from zino.state import ZinoState
@@ -48,10 +49,18 @@ class TestZino1BaseServerProtocol:
         expected = "foobar"
         protocol = Zino1BaseServerProtocol()
         fake_transport = Mock()
-        fake_transport.get_extra_info.return_value = expected
+        fake_transport.get_extra_info.side_effect = {"peername": expected}.get
         protocol.connection_made(fake_transport)
 
         assert protocol.peer_name == expected
+
+    def test_when_connected_then_keepalive_should_be_enabled(self):
+        protocol = Zino1BaseServerProtocol()
+        fake_transport = Mock()
+        with patch("zino.api.legacy.enable_keepalive") as enable_keepalive:
+            protocol.connection_made(fake_transport)
+
+        enable_keepalive.assert_called_once_with(fake_transport)
 
     def test_when_just_created_then_authenticated_should_be_false(self):
         protocol = Zino1BaseServerProtocol()
@@ -274,6 +283,42 @@ class TestZino1BaseServerProtocol:
         protocol.connection_lost(exc=None)
 
         assert protocol not in server.active_clients
+
+    def test_when_notification_channel_is_lost_then_session_should_be_closed(self):
+        protocol = Zino1BaseServerProtocol()
+        fake_transport = Mock()
+        protocol.connection_made(fake_transport)
+        channel = Mock()
+        protocol.notification_channel = channel
+
+        protocol.notification_channel_lost(channel)
+
+        assert fake_transport.close.called
+
+    def test_when_a_channel_other_than_the_current_one_is_lost_then_session_should_stay_open(self):
+        protocol = Zino1BaseServerProtocol()
+        fake_transport = Mock()
+        protocol.connection_made(fake_transport)
+        protocol.notification_channel = Mock()
+
+        protocol.notification_channel_lost(Mock())
+
+        assert not fake_transport.close.called
+
+    def test_when_session_has_said_goodbye_to_its_notification_channel_then_losing_that_channel_should_not_close_session_again(
+        self,
+    ):
+        protocol = Zino1BaseServerProtocol()
+        fake_transport = Mock()
+        protocol.connection_made(fake_transport)
+        channel = Mock()
+        protocol.notification_channel = channel
+        protocol.connection_lost(exc=None)
+
+        protocol.notification_channel_lost(channel)
+
+        assert channel.goodbye.called
+        assert not fake_transport.close.called
 
     async def test_when_command_response_has_many_lines_then_it_should_be_emitted_as_a_single_write(self):
         """Each command's response must be coalesced into a single
@@ -710,7 +755,7 @@ class TestZino1ServerProtocolNtieCommand:
     async def test_when_nonce_exists_it_should_respond_with_ok(self, event_loop, authenticated_protocol):
         server = ZinoServer(loop=event_loop, state=ZinoState(), polldevs=dict())
         nonce = get_challenge()
-        mock_channel = Mock()
+        mock_channel = Mock(tied_to=None)
         server.notification_channels[nonce] = mock_channel
         authenticated_protocol.server = server
 
@@ -722,13 +767,73 @@ class TestZino1ServerProtocolNtieCommand:
     async def test_when_nonce_exists_it_should_tie_the_corresponding_channel(self, event_loop, authenticated_protocol):
         server = ZinoServer(loop=event_loop, state=ZinoState(), polldevs=dict())
         nonce = get_challenge()
-        mock_channel = Mock()
+        mock_channel = Mock(tied_to=None)
         server.notification_channels[nonce] = mock_channel
         authenticated_protocol.server = server
 
         await authenticated_protocol.message_received(f"NTIE {nonce}")
 
         assert mock_channel.tied_to is authenticated_protocol
+
+    async def test_when_nonce_belongs_to_an_already_tied_channel_then_it_should_respond_with_error(
+        self, event_loop, authenticated_protocol
+    ):
+        server = ZinoServer(loop=event_loop, state=ZinoState(), polldevs=dict())
+        nonce = get_challenge()
+        server.notification_channels[nonce] = Mock(tied_to=Mock())
+        authenticated_protocol.server = server
+
+        await authenticated_protocol.message_received(f"NTIE {nonce}")
+
+        output = authenticated_protocol.transport.data_buffer.getvalue().decode()
+        assert "\r\n500 " in output
+
+    async def test_when_nonce_belongs_to_an_already_tied_channel_then_the_existing_tie_should_be_kept(
+        self, event_loop, authenticated_protocol
+    ):
+        server = ZinoServer(loop=event_loop, state=ZinoState(), polldevs=dict())
+        nonce = get_challenge()
+        existing_session = Mock()
+        channel = Mock(tied_to=existing_session)
+        server.notification_channels[nonce] = channel
+        authenticated_protocol.server = server
+
+        await authenticated_protocol.message_received(f"NTIE {nonce}")
+
+        assert channel.tied_to is existing_session
+        assert authenticated_protocol.notification_channel is None
+
+    async def test_when_session_ties_a_new_channel_then_its_previous_channel_should_be_untied(
+        self, event_loop, authenticated_protocol
+    ):
+        server = ZinoServer(loop=event_loop, state=ZinoState(), polldevs=dict())
+        nonce = get_challenge()
+        server.notification_channels[nonce] = Mock(tied_to=None)
+        previous_channel = Mock(spec=Zino1NotificationProtocol)
+        authenticated_protocol.notification_channel = previous_channel
+        authenticated_protocol.server = server
+
+        await authenticated_protocol.message_received(f"NTIE {nonce}")
+
+        assert previous_channel.untie.called
+
+    async def test_when_session_has_retied_to_a_new_channel_then_losing_the_old_channel_should_not_close_session(
+        self, event_loop, authenticated_protocol
+    ):
+        server = ZinoServer(loop=event_loop, state=ZinoState(), polldevs=dict())
+        authenticated_protocol.server = server
+        old_channel, new_channel = Zino1NotificationProtocol(server=server), Zino1NotificationProtocol(server=server)
+        old_channel.connection_made(Mock())
+        new_channel.connection_made(Mock())
+        await authenticated_protocol.message_received(f"NTIE {old_channel.nonce}")
+        await authenticated_protocol.message_received(f"NTIE {new_channel.nonce}")
+        assert old_channel.tied_to is None, "old channel would still receive notifications"
+
+        old_channel.connection_lost(exc=None)
+        assert not authenticated_protocol.transport.close.called, "session closed when its old channel was lost"
+        new_channel.connection_lost(exc=None)
+
+        assert authenticated_protocol.transport.close.called
 
 
 class TestZino1ServerProtocolPollrtrCommand:

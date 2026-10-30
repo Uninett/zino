@@ -18,6 +18,7 @@ import zino.state
 from zino import version
 from zino.api import auth
 from zino.api.notify import Zino1NotificationProtocol
+from zino.api.sockets import enable_keepalive
 from zino.config.models import Configuration, PollDevice
 from zino.scheduler import get_scheduler
 from zino.state import ZinoState
@@ -111,6 +112,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
     def connection_made(self, transport: asyncio.Transport):
         self.transport = transport
         _logger.info("New server connection from %s", self.peer_name)
+        enable_keepalive(transport)
         if self.server:
             self.server.active_clients.add(self)
         self._authentication_challenge = auth.get_challenge()
@@ -122,8 +124,17 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         _logger.info("Client disconnected: %s", self.peer_name)
         if self.server:
             self.server.active_clients.remove(self)
-        if self.notification_channel:
-            self.notification_channel.goodbye()
+        channel, self.notification_channel = self.notification_channel, None
+        if channel:
+            channel.goodbye()
+
+    def notification_channel_lost(self, channel: Zino1NotificationProtocol) -> None:
+        """Called by a tied notification channel when it is lost, to close this session too, like Zino 1 does"""
+        if channel is not self.notification_channel:
+            return  # This session has already said goodbye to that channel, or tied itself to another one
+        _logger.info("Closing session from %s: its notification channel was lost", self.peer_name)
+        self.notification_channel = None
+        self.transport.close()
 
     def data_received(self, data):
         self._input_buffer.extend(data)
@@ -432,7 +443,11 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
             channel = self.server.notification_channels[nonce]
         except (AttributeError, KeyError):
             return self._respond_error("Could not find your notify socket")
+        if channel.tied_to:  # Zino 1 forgets a nonce once it has been tied
+            return self._respond_error("Could not find your notify socket")
 
+        if self.notification_channel:
+            self.notification_channel.untie()
         self.notification_channel = channel
         channel.tied_to = self
         _logger.info("Client %s tied to notification channel %s", self.peer_name, channel.peer_name)
