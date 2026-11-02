@@ -263,7 +263,7 @@ class TestSwitchUser:
         assert zino.switch_to_user(username)
 
     def test_when_user_does_not_exist_it_should_return_false(self):
-        random_username = secrets.token_hex(5)
+        random_username = self._random_username()
         print(f"attempting switch to user {random_username!r}")
         assert not zino.switch_to_user(random_username)
 
@@ -275,7 +275,7 @@ class TestSwitchUser:
     def test_when_user_exists_it_should_switch_correctly_to_uid_gid_and_groups(
         self, getpwnam, getgrall, setgid, setgroups, setuid
     ):
-        random_username = secrets.token_hex(5)
+        random_username = self._random_username()
         pwd.getpwnam.return_value = Mock(pw_uid=666, pw_gid=999)
         grp.getgrall.return_value = [Mock(gr_gid=4242, gr_mem=[random_username])]
 
@@ -290,7 +290,7 @@ class TestSwitchUser:
     @patch("os.setgroups")
     @patch("os.setuid")
     def test_when_setgid_raises_oserror_it_should_return_false(self, getpwnam, getgrall, setgid, setgroups, setuid):
-        random_username = secrets.token_hex(5)
+        random_username = self._random_username()
         pwd.getpwnam.return_value = Mock(pw_uid=666, pw_gid=999)
         grp.getgrall.return_value = [Mock(gr_gid=4242, gr_mem=[random_username])]
         os.setgid.side_effect = OSError("Mock error")
@@ -334,6 +334,11 @@ class TestSwitchUser:
 
     def test_when_given_invalid_user_spec_it_should_return_false(self):
         assert not zino.switch_to_user("not:numeric")
+
+    @staticmethod
+    def _random_username() -> str:
+        """Returns a random user name that cannot be mistaken for a numeric UID"""
+        return f"user-{secrets.token_hex(5)}"
 
 
 class TestCountReachableObjects:
