@@ -1,6 +1,5 @@
 import ipaddress
 import logging
-from asyncio import Future
 from datetime import timedelta
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -400,10 +399,8 @@ class TestStabilizeFlappingState:
         assert f"{fake_ifindex} stopped flapping" in caplog.text
 
 
-async def test_age_flapping_states_should_age_all_flapping_states(monkeypatch, event_loop):
-    future = event_loop.create_future()
-    future.set_result(None)
-    mock_ager = Mock(return_value=future)
+async def test_age_flapping_states_should_age_all_flapping_states(monkeypatch):
+    mock_ager = AsyncMock()
     monkeypatch.setattr(flaps, "age_single_interface_flapping_state", mock_ager)
 
     state = ZinoState()
@@ -438,7 +435,5 @@ def polldevs_dict(polldevs_conf_with_single_router) -> dict[str, PollDevice]:
 @pytest.fixture
 def mocked_out_poll_single_interface(monkeypatch):
     """Monkey patches LinkStateTask.poll_single_interface to do essentially nothing"""
-    future = Future()
-    future.set_result(None)
-    monkeypatch.setattr(LinkStateTask, "poll_single_interface", Mock(return_value=future))
+    monkeypatch.setattr(LinkStateTask, "poll_single_interface", AsyncMock())
     yield monkeypatch

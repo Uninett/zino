@@ -79,7 +79,7 @@ class TrapObserver:
         """
         self.state = state
         self.polldevs: Dict[str, PollDevice] = polldevs or zino.state.polldevs
-        self.loop = loop if loop else asyncio.get_event_loop()
+        self.loop = loop
 
     async def handle_trap(self, trap: TrapMessage) -> Optional[bool]:
         """A trap observer receives a trap message and an optional event loop reference.  The event loop reference

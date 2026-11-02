@@ -27,8 +27,8 @@ class TestZino1NotificationProtocol:
 
         assert protocol.peer_name == expected
 
-    def test_when_connected_it_should_register_instance_in_server(self, event_loop):
-        server = ZinoServer(loop=event_loop, state=ZinoState(), polldevs=dict())
+    def test_when_connected_it_should_register_instance_in_server(self, running_loop):
+        server = ZinoServer(loop=running_loop, state=ZinoState(), polldevs=dict())
         protocol = Zino1NotificationProtocol(server=server)
         fake_transport = Mock()
         protocol.connection_made(fake_transport)
@@ -36,8 +36,8 @@ class TestZino1NotificationProtocol:
         assert protocol.nonce in server.notification_channels
         assert server.notification_channels[protocol.nonce] is protocol
 
-    def test_when_disconnected_it_should_deregister_instance_from_server(self, event_loop):
-        server = ZinoServer(loop=event_loop, state=ZinoState(), polldevs=dict())
+    def test_when_disconnected_it_should_deregister_instance_from_server(self, running_loop):
+        server = ZinoServer(loop=running_loop, state=ZinoState(), polldevs=dict())
         protocol = Zino1NotificationProtocol(server=server)
         fake_transport = Mock()
         protocol.connection_made(fake_transport)
@@ -54,15 +54,15 @@ class TestZino1NotificationProtocol:
         response = fake_transport.write.call_args[0][0]
         assert response.startswith(b"42 test data")
 
-    def test_tied_to_should_be_settable_and_gettable(self, event_loop):
-        server = ZinoServer(loop=event_loop, state=ZinoState(), polldevs=dict())
+    def test_tied_to_should_be_settable_and_gettable(self, running_loop):
+        server = ZinoServer(loop=running_loop, state=ZinoState(), polldevs=dict())
         protocol = Zino1NotificationProtocol()
 
         protocol.tied_to = server
         assert protocol.tied_to == server
 
-    def test_goodbye_should_close_transport(self, event_loop):
-        server = ZinoServer(loop=event_loop, state=ZinoState(), polldevs=dict())
+    def test_goodbye_should_close_transport(self, running_loop):
+        server = ZinoServer(loop=running_loop, state=ZinoState(), polldevs=dict())
         protocol = Zino1NotificationProtocol(server=server)
         fake_transport = Mock()
         protocol.connection_made(fake_transport)
@@ -127,8 +127,8 @@ class TestZino1NotificationProtocolBuildNotifications:
 
 
 class TestZino1NotificationProtocolBuildAndSendNotifications:
-    def test_should_send_notifications_only_to_tied_channels(self, event_loop, fake_event, changed_fake_event):
-        server = ZinoServer(loop=event_loop, state=ZinoState(), polldevs=dict())
+    def test_should_send_notifications_only_to_tied_channels(self, running_loop, fake_event, changed_fake_event):
+        server = ZinoServer(loop=running_loop, state=ZinoState(), polldevs=dict())
         channel1 = Mock()
         channel2 = Mock()
         mock_api = Mock()

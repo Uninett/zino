@@ -1,7 +1,6 @@
-import asyncio
 import errno
 import os
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from netsnmpy import netsnmp
@@ -37,9 +36,7 @@ def ipv6_snmp_client(snmpsim, snmp_test_port) -> SNMP:
 
 @pytest.fixture()
 def unreachable_snmp_client():
-    future = asyncio.Future()
-    future.set_exception(TimeoutError("Mock timeout"))
-    timeout_mock = Mock(return_value=future)
+    timeout_mock = AsyncMock(side_effect=TimeoutError("Mock timeout"))
     with patch.multiple(
         "zino.snmp.netsnmpy_backend.SNMP",
         get=timeout_mock,
@@ -278,9 +275,7 @@ class TestVarBindErrors:
         query = ("SNMPv2-MIB", "sysDescr", 0)
         oid = resolve_symbol(query)
         mock_results = [SNMPVariable(oid, error)]
-        future = asyncio.Future()
-        future.set_result(mock_results)
-        get_mock = Mock(return_value=future)
+        get_mock = AsyncMock(return_value=mock_results)
         monkeypatch.setattr("zino.snmp.netsnmpy_backend.SNMPSession.aget", get_mock)
 
         with pytest.raises(exception):

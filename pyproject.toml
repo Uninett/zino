@@ -48,8 +48,8 @@ docs = ["sphinx>2.2.0", "sphinxcontrib-mermaid>=0.9"]
 test = [
     "coverage",
     "pexpect",
-    "pytest>7,<9.2.0",
-    "pytest-asyncio<0.22.0",
+    "pytest>=8",
+    "pytest-asyncio>=1.0",
     "pytest-cov",
     "pytest-timeout",
     "retry",
