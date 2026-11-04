@@ -41,10 +41,10 @@ zinoconv = "zino.stateconverter.convertstate:main"
 zping = "zino.zping:main"
 
 [project.optional-dependencies]
-docs = ["sphinx>=2.2.0", "sphinxcontrib-mermaid>=0.9"]
+docs = ["sphinx>=9.0.4", "sphinxcontrib-mermaid>=0.9"]
 
 [dependency-groups]
-docs = ["sphinx>2.2.0", "sphinxcontrib-mermaid>=0.9"]
+docs = ["sphinx>=9.0.4", "sphinxcontrib-mermaid>=0.9"]
 test = [
     "coverage",
     "pexpect",
