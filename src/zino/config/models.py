@@ -97,10 +97,15 @@ class AgentConfiguration(BaseModel):
     community: Optional[str] = "public"
 
 
-class SNMPConfiguration(BaseModel):
+class SNMPBackendConfiguration(BaseModel):
+    """The SNMP backend selection, usable by daemons that poll with Zino's SNMP backends but receive no traps"""
+
     model_config = ConfigDict(extra="forbid")
 
     backend: Literal["pysnmp", "netsnmp"] = "netsnmp"
+
+
+class SNMPConfiguration(SNMPBackendConfiguration):
     trap: TrapConfiguration = TrapConfiguration()
     agent: AgentConfiguration = AgentConfiguration()
 

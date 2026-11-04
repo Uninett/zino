@@ -6,6 +6,7 @@ from zino.config.models import (
     Configuration,
     PollDevice,
     ProcessConfiguration,
+    SNMPBackendConfiguration,
     SNMPConfiguration,
     TrapConfiguration,
 )
@@ -49,6 +50,25 @@ class TestAgentConfiguration:
         assert isinstance(snmp_config.agent, AgentConfiguration)
         assert snmp_config.agent.enabled is True
         assert snmp_config.agent.port == 8000
+
+
+class TestSNMPBackendConfiguration:
+    def test_when_backend_is_omitted_then_default_should_be_netsnmp(self):
+        assert SNMPBackendConfiguration().backend == "netsnmp"
+
+    def test_when_trap_section_is_given_then_it_should_be_rejected(self):
+        with pytest.raises(pydantic.ValidationError):
+            SNMPBackendConfiguration.model_validate({"trap": {"source": "direct"}})
+
+
+class TestSNMPConfiguration:
+    def test_when_backend_is_omitted_then_default_should_be_netsnmp(self):
+        """vwatcher relies on this default, even though it is inherited from SNMPBackendConfiguration"""
+        assert SNMPConfiguration().backend == "netsnmp"
+
+    def test_when_unknown_key_is_given_then_it_should_be_rejected(self):
+        with pytest.raises(pydantic.ValidationError):
+            SNMPConfiguration.model_validate({"bakcend": "pysnmp"})
 
 
 class TestTrapConfiguration:
