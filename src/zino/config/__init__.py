@@ -1,17 +1,19 @@
+import logging.config
 import re
 from difflib import get_close_matches
-from typing import Optional, TypeVar
+from typing import Any, Optional, TypeVar
 
 from pydantic import BaseModel, ValidationError
 from tomllib import TOMLDecodeError, load
 
+from .models import DEFAULT_LOGGING_CONFIG as DEFAULT_LOGGING_CONFIG
 from .models import Configuration
 
 ConfigModel = TypeVar("ConfigModel", bound=BaseModel)
 
 
 class InvalidConfigurationError(Exception):
-    """The configuration file is invalid toml"""
+    """The configuration is invalid"""
 
 
 def read_configuration(
@@ -45,6 +47,18 @@ def read_configuration(
             config_dict["polling"]["file"] = poll_file_name
 
     return model.model_validate(obj=config_dict, strict=True)
+
+
+def apply_logging_config(logging_config: dict[str, Any]) -> None:
+    """Applies a logging configuration, such as the ``logging`` section of a config file.
+
+    :param logging_config: A :py:func:`logging.config.dictConfig` dictionary
+    :raises InvalidConfigurationError: If the logging configuration is invalid
+    """
+    try:
+        logging.config.dictConfig(logging_config)
+    except ValueError as error:
+        raise InvalidConfigurationError(f"Invalid logging configuration: {error}") from error
 
 
 _TYPE_NAMES = {

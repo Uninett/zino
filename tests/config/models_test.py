@@ -1,7 +1,10 @@
+from copy import deepcopy
+
 import pydantic
 import pytest
 
 from zino.config.models import (
+    DEFAULT_LOGGING_CONFIG,
     AgentConfiguration,
     Configuration,
     PollDevice,
@@ -50,6 +53,16 @@ class TestAgentConfiguration:
         assert isinstance(snmp_config.agent, AgentConfiguration)
         assert snmp_config.agent.enabled is True
         assert snmp_config.agent.port == 8000
+
+
+class TestConfiguration:
+    def test_when_instance_logging_is_changed_then_default_logging_config_should_be_unchanged(self):
+        original = deepcopy(DEFAULT_LOGGING_CONFIG)
+        config = Configuration()
+
+        config.logging["loggers"]["vwatcher"] = {"level": "DEBUG"}
+
+        assert DEFAULT_LOGGING_CONFIG == original
 
 
 class TestSNMPBackendConfiguration:

@@ -1,7 +1,16 @@
+import logging
+
 import pytest
 from pydantic import BaseModel, ConfigDict, ValidationError
 
-from zino.config import InvalidConfigurationError, _resolve_model, format_validation_error, read_configuration
+from zino.config import (
+    DEFAULT_LOGGING_CONFIG,
+    InvalidConfigurationError,
+    _resolve_model,
+    apply_logging_config,
+    format_validation_error,
+    read_configuration,
+)
 from zino.config.models import Polling
 
 
@@ -97,6 +106,21 @@ class TestReadConfigurationWithCustomModel:
             read_configuration(zino_conf, model=OtherDaemonConfiguration)
 
         assert "authentication" in str(excinfo.value)
+
+
+class TestApplyLoggingConfig:
+    def test_when_logging_config_is_valid_then_it_should_be_applied(self, test_logger):
+        apply_logging_config({"version": 1, "incremental": True, "loggers": {test_logger.name: {"level": "DEBUG"}}})
+
+        assert test_logger.level == logging.DEBUG
+
+    def test_when_logging_config_is_invalid_then_it_should_raise_invalid_configuration_error(self):
+        with pytest.raises(InvalidConfigurationError, match="Invalid logging configuration.*'zino'"):
+            apply_logging_config({"version": 1, "loggers": {"zino": {"level": "invalid"}}})
+
+
+def test_default_logging_config_should_be_importable_from_zino_config():
+    assert DEFAULT_LOGGING_CONFIG["version"] == 1
 
 
 class TestFormatValidationError:
@@ -220,6 +244,13 @@ class NoPollingConfiguration(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     greeting: str = "hi"
+
+
+@pytest.fixture
+def test_logger():
+    logger = logging.getLogger("zino.config_test")
+    yield logger
+    logger.setLevel(logging.NOTSET)
 
 
 @pytest.fixture
