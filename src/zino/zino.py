@@ -5,7 +5,6 @@ import errno
 import gc
 import grp
 import logging
-import logging.config
 import os
 import pwd
 import sys
@@ -20,6 +19,7 @@ from pydantic import ValidationError
 from zino import flaps, state, version
 from zino.api.server import ZinoServer
 from zino.config import InvalidConfigurationError, format_validation_error, read_configuration
+from zino.config import apply_logging_config as _apply_logging_config
 from zino.job_tracker import get_job_tracker
 from zino.scheduler import get_scheduler, load_and_schedule_polldevs
 from zino.snmp import import_snmp_backend
@@ -101,9 +101,9 @@ def load_config(args: argparse.Namespace) -> Optional[state.Configuration]:
 def apply_logging_config(logging_config: dict[str, Any]) -> None:
     """Applies the logging configuration, exiting the process if there are config errors"""
     try:
-        logging.config.dictConfig(logging_config)
-    except ValueError as error:
-        _log.fatal(f"Invalid logging configuration: {error}")
+        _apply_logging_config(logging_config)
+    except InvalidConfigurationError as error:
+        _log.fatal("%s", error)
         sys.exit(1)
 
 

@@ -95,7 +95,7 @@ def test_when_args_specified_config_file_does_not_exist_then_load_config_should_
 
 def test_when_logging_config_is_invalid_then_apply_logging_config_should_exit():
     with pytest.raises(SystemExit):
-        zino.apply_logging_config({"loggers": {"zino": {"level": "invalid"}}})
+        zino.apply_logging_config({"version": 1, "loggers": {"zino": {"level": "invalid"}}})
 
 
 def test_zino_should_not_run_with_invalid_conf_file(invalid_zino_conf, unused_udp_port):

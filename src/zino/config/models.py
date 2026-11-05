@@ -16,6 +16,23 @@ POLLFILE = "polldevs.cf"
 
 IPAddress = Union[IPv4Address, IPv6Address]
 
+DEFAULT_LOGGING_CONFIG: dict[str, Any] = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "loggers": {
+        "root": {"level": "INFO", "handlers": ["console"]},
+        "apscheduler": {"level": "WARNING"},
+    },
+    "formatters": {"standard": {"format": "%(asctime)s - %(levelname)s - %(name)s (%(threadName)s) - %(message)s"}},
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "standard",
+            "stream": "ext://sys.stderr",
+        }
+    },
+}
+
 
 def validate_file_can_be_opened(filename: str) -> str:
     assert isfile(filename) and access(filename, R_OK), f"File {filename} doesn't exist or isn't readable"
@@ -97,10 +114,15 @@ class AgentConfiguration(BaseModel):
     community: Optional[str] = "public"
 
 
-class SNMPConfiguration(BaseModel):
+class SNMPBackendConfiguration(BaseModel):
+    """The SNMP backend selection, usable by daemons that poll with Zino's SNMP backends but receive no traps"""
+
     model_config = ConfigDict(extra="forbid")
 
     backend: Literal["pysnmp", "netsnmp"] = "netsnmp"
+
+
+class SNMPConfiguration(SNMPBackendConfiguration):
     trap: TrapConfiguration = TrapConfiguration()
     agent: AgentConfiguration = AgentConfiguration()
 
@@ -144,19 +166,4 @@ class Configuration(BaseModel):
     snmp: SNMPConfiguration = SNMPConfiguration()
     scheduler: SchedulerConfiguration = SchedulerConfiguration()
     event: EventConfiguration = EventConfiguration()
-    logging: dict[str, Any] = {
-        "version": 1,
-        "disable_existing_loggers": False,
-        "loggers": {
-            "root": {"level": "INFO", "handlers": ["console"]},
-            "apscheduler": {"level": "WARNING"},
-        },
-        "formatters": {"standard": {"format": "%(asctime)s - %(levelname)s - %(name)s (%(threadName)s) - %(message)s"}},
-        "handlers": {
-            "console": {
-                "class": "logging.StreamHandler",
-                "formatter": "standard",
-                "stream": "ext://sys.stderr",
-            }
-        },
-    }
+    logging: dict[str, Any] = DEFAULT_LOGGING_CONFIG

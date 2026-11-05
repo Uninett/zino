@@ -1,28 +1,38 @@
+import logging.config
 import re
 from difflib import get_close_matches
-from typing import Optional
+from typing import Any, Optional, TypeVar
 
 from pydantic import BaseModel, ValidationError
 from tomllib import TOMLDecodeError, load
 
+from .models import DEFAULT_LOGGING_CONFIG as DEFAULT_LOGGING_CONFIG
 from .models import Configuration
+
+ConfigModel = TypeVar("ConfigModel", bound=BaseModel)
 
 
 class InvalidConfigurationError(Exception):
-    """The configuration file is invalid toml"""
+    """The configuration is invalid"""
 
 
-def read_configuration(config_file_name: str, poll_file_name: Optional[str] = None) -> Configuration:
+def read_configuration(
+    config_file_name: str, poll_file_name: Optional[str] = None, model: type[ConfigModel] = Configuration
+) -> ConfigModel:
+    """Reads and validates a config toml file.
+
+    :param config_file_name: The toml file to read
+    :param poll_file_name: A pollfile name that overrides ``polling.file`` from the config file
+    :param model: The configuration model to validate against.  Other daemons can pass their own model here.
+    :return: The validated configuration, as an instance of ``model``
+    :raises InvalidConfigurationError: If the toml file is invalid
+    :raises OSError: If the config toml file could not be found
+    :raises pydantic.ValidationError: If values in it are invalid or the specified files don't exist
+    :raises ValueError: If ``poll_file_name`` is given, but ``model`` has no ``polling`` section
     """
-    Reads and validates config toml file
+    if poll_file_name and "polling" not in model.model_fields:
+        raise ValueError(f"{model.__name__} has no polling section to override the pollfile in")
 
-    Returns configuration if file name is given and file exists
-
-    Raises InvalidConfigurationError if toml file is invalid,
-    OSError if the config toml file could not be found and
-    pydantic.ValidationError if values in it are invalid or the specified files
-    don't exist
-    """
     with open(config_file_name, mode="rb") as cf:
         try:
             config_dict = load(cf)
@@ -36,9 +46,19 @@ def read_configuration(config_file_name: str, poll_file_name: Optional[str] = No
         else:
             config_dict["polling"]["file"] = poll_file_name
 
-    config = Configuration.model_validate(obj=config_dict, strict=True)
+    return model.model_validate(obj=config_dict, strict=True)
 
-    return config
+
+def apply_logging_config(logging_config: dict[str, Any]) -> None:
+    """Applies a logging configuration, such as the ``logging`` section of a config file.
+
+    :param logging_config: A :py:func:`logging.config.dictConfig` dictionary
+    :raises InvalidConfigurationError: If the logging configuration is invalid
+    """
+    try:
+        logging.config.dictConfig(logging_config)
+    except ValueError as error:
+        raise InvalidConfigurationError(f"Invalid logging configuration: {error}") from error
 
 
 _TYPE_NAMES = {

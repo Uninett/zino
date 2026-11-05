@@ -1,7 +1,17 @@
+import logging
+
 import pytest
 from pydantic import BaseModel, ConfigDict, ValidationError
 
-from zino.config import InvalidConfigurationError, _resolve_model, format_validation_error, read_configuration
+from zino.config import (
+    DEFAULT_LOGGING_CONFIG,
+    InvalidConfigurationError,
+    _resolve_model,
+    apply_logging_config,
+    format_validation_error,
+    read_configuration,
+)
+from zino.config.models import Polling
 
 
 class TestReadConfiguration:
@@ -50,6 +60,67 @@ class TestReadConfiguration:
 
         assert "polling.file" in str(excinfo.value)
         assert "non-existent-pollfile.cf doesn't exist or isn't readable" in str(excinfo.value)
+
+
+class TestReadConfigurationWithCustomModel:
+    def test_when_model_is_given_then_it_should_return_an_instance_of_that_model(
+        self, other_daemon_conf, polldevs_conf_with_no_routers
+    ):
+        config = read_configuration(other_daemon_conf, model=OtherDaemonConfiguration)
+
+        assert isinstance(config, OtherDaemonConfiguration)
+        assert config.greeting == "hello"
+        assert config.polling.file == str(polldevs_conf_with_no_routers)
+
+    def test_when_model_is_given_then_pollfile_argument_should_override_its_polling_file(
+        self, other_daemon_conf, polldevs_conf_with_single_router
+    ):
+        config = read_configuration(
+            other_daemon_conf, poll_file_name=str(polldevs_conf_with_single_router), model=OtherDaemonConfiguration
+        )
+
+        assert config.polling.file == str(polldevs_conf_with_single_router)
+
+    def test_when_config_file_has_no_polling_section_then_pollfile_argument_should_set_it(
+        self, tmp_path, polldevs_conf_with_single_router
+    ):
+        path = tmp_path / "no-polling.toml"
+        path.write_text('greeting = "hello"\n')
+
+        config = read_configuration(
+            path, poll_file_name=str(polldevs_conf_with_single_router), model=OtherDaemonConfiguration
+        )
+
+        assert config.polling.file == str(polldevs_conf_with_single_router)
+
+    def test_when_model_has_no_polling_section_then_pollfile_argument_should_raise_value_error(
+        self, other_daemon_conf, polldevs_conf_with_single_router
+    ):
+        with pytest.raises(ValueError, match="NoPollingConfiguration"):
+            read_configuration(
+                other_daemon_conf, poll_file_name=str(polldevs_conf_with_single_router), model=NoPollingConfiguration
+            )
+
+    def test_when_model_is_given_then_zino_only_keys_should_be_rejected(self, zino_conf):
+        with pytest.raises(ValidationError) as excinfo:
+            read_configuration(zino_conf, model=OtherDaemonConfiguration)
+
+        assert "authentication" in str(excinfo.value)
+
+
+class TestApplyLoggingConfig:
+    def test_when_logging_config_is_valid_then_it_should_be_applied(self, test_logger):
+        apply_logging_config({"version": 1, "incremental": True, "loggers": {test_logger.name: {"level": "DEBUG"}}})
+
+        assert test_logger.level == logging.DEBUG
+
+    def test_when_logging_config_is_invalid_then_it_should_raise_invalid_configuration_error(self):
+        with pytest.raises(InvalidConfigurationError, match="Invalid logging configuration.*'zino'"):
+            apply_logging_config({"version": 1, "loggers": {"zino": {"level": "invalid"}}})
+
+
+def test_default_logging_config_should_be_importable_from_zino_config():
+    assert DEFAULT_LOGGING_CONFIG["version"] == 1
 
 
 class TestFormatValidationError:
@@ -156,3 +227,34 @@ class TestResolveModel:
             sub: Sub
 
         assert _resolve_model(Root, ("nonexistent",)) is None
+
+
+class OtherDaemonConfiguration(BaseModel):
+    """A stand-in for the configuration model of another daemon that reuses Zino's config reader"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    greeting: str = "hi"
+    polling: Polling = Polling()
+
+
+class NoPollingConfiguration(BaseModel):
+    """A stand-in for a daemon configuration model that has no pollfile"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    greeting: str = "hi"
+
+
+@pytest.fixture
+def test_logger():
+    logger = logging.getLogger("zino.config_test")
+    yield logger
+    logger.setLevel(logging.NOTSET)
+
+
+@pytest.fixture
+def other_daemon_conf(tmp_path, polldevs_conf_with_no_routers):
+    name = tmp_path / "other-daemon.toml"
+    name.write_text(f'greeting = "hello"\n[polling]\nfile = "{polldevs_conf_with_no_routers}"\n')
+    return name
