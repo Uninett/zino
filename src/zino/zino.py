@@ -7,11 +7,12 @@ import grp
 import logging
 import os
 import pwd
+import signal
 import sys
 from asyncio import AbstractEventLoop
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, Optional
+from typing import Any, NoReturn, Optional
 
 import tzlocal
 from pydantic import ValidationError
@@ -40,6 +41,7 @@ from zino.utils import file_is_world_readable
 STATE_DUMP_JOB_ID = "zino.dump_state"
 # Never try to dump state more often than this:
 MINIMUM_STATE_DUMP_INTERVAL = timedelta(seconds=10)
+SHUTDOWN_SIGNALS = (signal.SIGINT, signal.SIGTERM)
 DEFAULT_CONFIG_FILE = "zino.toml"
 _log = logging.getLogger("zino")
 
@@ -192,18 +194,39 @@ async def fork_and_dump_state(filename: str):
         _log.warning("Previous state dump (pid %d) still running, skipping", _dump_child_pid)
         return
 
-    pid = os.fork()
-    if pid == 0:  # pragma: no cover
-        # Child process — serialize and exit
-        try:
-            state.state.dump_state_to_file(filename)
-        except Exception:  # noqa: BLE001
-            _log.exception("State dump failed in child process")
-            os._exit(1)
-        os._exit(0)
-    else:
+    # Blocked across the fork, so a shutdown signal stays pending in the child until it has reset its handlers
+    previous_mask = signal.pthread_sigmask(signal.SIG_BLOCK, SHUTDOWN_SIGNALS)
+    try:
+        pid = os.fork()
+        if pid == 0:  # pragma: no cover
+            _dump_state_in_child(filename)
         _dump_child_pid = pid
-        _log.debug("Forked child process %d to dump state", pid)
+    finally:
+        signal.pthread_sigmask(signal.SIG_SETMASK, previous_mask)
+
+    _log.debug("Forked child process %d to dump state", pid)
+
+
+def _dump_state_in_child(filename: str) -> NoReturn:  # pragma: no cover
+    """Dumps state from a forked child process, then exits the child.
+
+    The child must never return to its caller, or it would go on running a copy of Zino. Expects the shutdown signals
+    to be blocked on entry, and resets their handlers to the default before unblocking them. A shutdown signal then
+    kills the child outright. That is harmless, because the dump writes to a temporary file that it renames when done.
+
+    :param filename: The file to dump state to
+    """
+    exit_status = 1
+    try:
+        for sig in SHUTDOWN_SIGNALS:
+            signal.signal(sig, signal.SIG_DFL)
+        signal.pthread_sigmask(signal.SIG_UNBLOCK, SHUTDOWN_SIGNALS)
+        state.state.dump_state_to_file(filename)
+        exit_status = 0
+    except BaseException:  # noqa: BLE001
+        _log.exception("State dump failed in child process")
+    finally:
+        os._exit(exit_status)
 
 
 def _reap_dump_child():
