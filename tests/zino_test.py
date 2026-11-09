@@ -1,3 +1,4 @@
+import errno
 import getpass
 import grp
 import hashlib
@@ -492,6 +493,69 @@ class TestDumpStateWithFork:
         with patch("os.waitpid", side_effect=ChildProcessError):
             zino._reap_dump_child()
         assert zino._dump_child_pid == 0
+
+    @pytest.mark.parametrize("error", [OSError("disk full"), KeyboardInterrupt(), SystemExit()], ids=repr)
+    async def test_when_dump_raises_then_child_should_exit_with_error_status(self, tmp_path, error):
+        pid = await self._fork_dump_child(tmp_path, dump_side_effect=error)
+        _, status = os.waitpid(pid, 0)
+
+        assert os.WIFEXITED(status)
+        assert os.WEXITSTATUS(status) == 1
+
+    @pytest.mark.parametrize("sig", zino.SHUTDOWN_SIGNALS, ids=lambda sig: sig.name)
+    @pytest.mark.usefixtures("ignoring_handler")
+    async def test_when_dump_child_receives_shutdown_signal_then_it_should_be_killed_by_it(self, tmp_path, sig):
+        pid = await self._fork_dump_child(tmp_path, dump_side_effect=lambda _: time.sleep(10))
+        os.kill(pid, sig)
+        _, status = os.waitpid(pid, 0)
+
+        assert os.WIFSIGNALED(status)
+        assert os.WTERMSIG(status) == sig
+
+    async def test_when_dump_child_has_been_forked_then_parent_signal_mask_should_be_unchanged(self, tmp_path):
+        mask_before = signal.pthread_sigmask(signal.SIG_BLOCK, [])
+        pid = await self._fork_dump_child(tmp_path)
+        os.waitpid(pid, 0)
+
+        assert signal.pthread_sigmask(signal.SIG_BLOCK, []) == mask_before
+
+    async def test_when_fork_fails_then_parent_signal_mask_should_be_unchanged(self, tmp_path):
+        mask_before = signal.pthread_sigmask(signal.SIG_BLOCK, [])
+        with (
+            patch.object(os, "fork", side_effect=OSError(errno.EAGAIN, "Resource temporarily unavailable")),
+            patch.object(zino, "_dump_child_pid", 0),
+        ):
+            with pytest.raises(OSError):
+                await zino.fork_and_dump_state(str(tmp_path / "state.json"))
+            assert zino._dump_child_pid == 0
+
+        assert signal.pthread_sigmask(signal.SIG_BLOCK, []) == mask_before
+
+    @staticmethod
+    async def _fork_dump_child(tmp_path, dump_side_effect=None) -> int:
+        """Runs `fork_and_dump_state()` with a mocked state dump, returning the PID of the forked child.
+
+        A child that escapes `fork_and_dump_state()` exits with status 99 here, rather than going on to run the rest of
+        the test session.
+        """
+        mock_state = Mock()
+        mock_state.dump_state_to_file.side_effect = dump_side_effect
+        parent_pid = os.getpid()
+        with patch.object(state, "state", new=mock_state), patch.object(zino, "_dump_child_pid", 0):
+            try:
+                await zino.fork_and_dump_state(str(tmp_path / "state.json"))
+            finally:
+                if os.getpid() != parent_pid:
+                    os._exit(99)
+            assert zino._dump_child_pid > 0
+            return zino._dump_child_pid
+
+    @pytest.fixture
+    def ignoring_handler(self, sig):
+        """Installs a Python-level handler that ignores `sig`, so that only a reset in the child lets `sig` kill it"""
+        previous_handler = signal.signal(sig, lambda *_: None)
+        yield
+        signal.signal(sig, previous_handler)
 
 
 class TestWaitForDumpChild:
