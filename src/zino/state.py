@@ -14,6 +14,7 @@ from zino.config.models import Configuration, IPAddress, PollDevice
 from zino.events import EventIndex, Events
 from zino.flaps import FlappingStates
 from zino.planned_maintenance import PlannedMaintenances
+from zino.polling import PollfileWatcher
 from zino.statemodels import DeviceStates, EventState
 from zino.utils import log_time_spent
 
@@ -27,8 +28,8 @@ state: "ZinoState" = None
 
 config: Configuration = Configuration()
 
-# Last time the pollfile was modified
-pollfile_mtime: Optional[float] = None
+# Keeps track of when the pollfile needs to be re-read
+pollfile_watcher: Optional[PollfileWatcher] = None
 
 
 class ZinoState(BaseModel):

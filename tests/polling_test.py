@@ -1,10 +1,12 @@
 import asyncio
+import logging
+import os
 from datetime import datetime
 
 import pytest
 
-from zino.config.models import SchedulerConfiguration
-from zino.polling import create_scheduler
+from zino.config.models import PollDevice, SchedulerConfiguration
+from zino.polling import PolldevsChanges, PollfileWatcher, create_scheduler, diff_polldevs
 
 
 class TestCreateScheduler:
@@ -48,6 +50,70 @@ class TestCreateScheduler:
         assert loops_seen == [asyncio.get_running_loop()]
 
 
+class TestPollfileWatcher:
+    def test_when_read_for_the_first_time_then_it_should_return_devices_and_defaults(self, polldevs_conf):
+        watcher = PollfileWatcher(polldevs_conf)
+
+        devices, defaults = watcher.read_if_changed()
+
+        assert set(devices) == {"example-gw", "example-gw2"}
+        assert defaults["interval"] == "5"
+
+    def test_when_pollfile_is_unchanged_then_it_should_return_none(self, polldevs_conf):
+        watcher = PollfileWatcher(polldevs_conf)
+        watcher.read_if_changed()
+
+        assert watcher.read_if_changed() is None
+
+    def test_when_pollfile_mtime_changes_then_it_should_read_it_again(self, polldevs_conf):
+        watcher = PollfileWatcher(polldevs_conf)
+        watcher.read_if_changed()
+        touch_later(polldevs_conf)
+
+        devices, _ = watcher.read_if_changed()
+
+        assert set(devices) == {"example-gw", "example-gw2"}
+
+    def test_when_pollfile_is_missing_then_it_should_log_an_error_and_return_none(self, tmp_path, caplog):
+        watcher = PollfileWatcher(tmp_path / "missing.cf")
+
+        with caplog.at_level(logging.ERROR):
+            assert watcher.read_if_changed() is None
+
+        assert "No such file or directory" in caplog.text
+
+    def test_when_pollfile_stays_invalid_then_every_read_should_log_an_error(self, invalid_polldevs_conf, caplog):
+        watcher = PollfileWatcher(invalid_polldevs_conf)
+
+        with caplog.at_level(logging.ERROR):
+            assert watcher.read_if_changed() is None
+            assert watcher.read_if_changed() is None
+
+        assert caplog.text.count("'lalala' is not a valid configuration line") == 2
+
+
+class TestDiffPolldevs:
+    def test_when_device_is_only_in_new_then_it_should_be_new(self):
+        changes = diff_polldevs({}, {"a": make_device("a")})
+
+        assert changes == PolldevsChanges(new=frozenset({"a"}))
+
+    def test_when_device_is_only_in_old_then_it_should_be_deleted(self):
+        changes = diff_polldevs({"a": make_device("a")}, {})
+
+        assert changes == PolldevsChanges(deleted=frozenset({"a"}))
+
+    def test_when_device_settings_differ_then_it_should_be_changed(self):
+        changes = diff_polldevs({"a": make_device("a")}, {"a": make_device("a", interval=10)})
+
+        assert changes == PolldevsChanges(changed=frozenset({"a"}))
+
+    def test_when_device_settings_are_equal_then_there_should_be_no_changes(self):
+        changes = diff_polldevs({"a": make_device("a")}, {"a": make_device("a")})
+
+        assert changes == PolldevsChanges()
+
+
 MISFIRE_GRACE_TIME = 42
 
 
@@ -71,3 +137,13 @@ async def wait_until(condition, timeout: float = 2.0):
     async with asyncio.timeout(timeout):
         while not condition():
             await asyncio.sleep(0.01)
+
+
+def make_device(name: str, **settings) -> PollDevice:
+    return PollDevice(name=name, address="127.0.0.1", **settings)
+
+
+def touch_later(path):
+    """Moves the file's modification time forward, so it differs even on file systems with coarse timestamps"""
+    mtime = os.stat(path).st_mtime + 10
+    os.utime(path, (mtime, mtime))

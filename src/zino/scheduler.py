@@ -6,18 +6,17 @@ This module wires those parts to Zino's global state and tasks.  Code meant for 
 
 import logging
 import operator
-import pathlib
 from asyncio import AbstractEventLoop
 from datetime import datetime, timedelta
-from typing import Optional, Sequence, Set, Tuple
+from pathlib import Path
+from typing import Optional, Sequence, Set, Tuple, Union
 
 from apscheduler.jobstores.base import JobLookupError
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from zino import state
 from zino.config.models import DEFAULT_INTERVAL_MINUTES, PollDevice
-from zino.config.polldevs import InvalidConfiguration, read_polldevs
-from zino.polling import create_scheduler
+from zino.polling import PollfileWatcher, create_scheduler, diff_polldevs
 from zino.statemodels import EventState
 from zino.tasks import run_all_tasks
 from zino.utils import log_time_spent
@@ -45,25 +44,13 @@ def load_polldevs(polldevs_conf: str) -> Tuple[Set, Set, Set, dict[str, str]]:
 
     :returns: A tuple of (new_devices, deleted_devices, changed_devices, default_settings)
     """
-    try:
-        modified_time = pathlib.Path(polldevs_conf).stat().st_mtime
-    except OSError as error:
-        _log.error(error)
+    pollfile = _get_pollfile_watcher(polldevs_conf).read_if_changed()
+    if pollfile is None:
         return set(), set(), set(), dict()
+    devices, defaults = pollfile
 
-    if modified_time == state.pollfile_mtime:
-        return set(), set(), set(), dict()
-
-    try:
-        devices, defaults = read_polldevs(polldevs_conf)
-    except (InvalidConfiguration, OSError) as error:
-        _log.error(error)
-        return set(), set(), set(), dict()
-
-    new_devices = set(devices) - set(state.polldevs)
-    deleted_devices = set(state.polldevs) - set(devices)
-    overlap = set(state.polldevs) - deleted_devices
-    changed_devices = {device for device in overlap if devices[device] != state.polldevs[device]}
+    changes = diff_polldevs(state.polldevs, devices)
+    new_devices, deleted_devices, changed_devices = set(changes.new), set(changes.deleted), set(changes.changed)
 
     if new_devices:
         _log.info("loaded new devices: %r", new_devices)
@@ -83,9 +70,14 @@ def load_polldevs(polldevs_conf: str) -> Tuple[Set, Set, Set, dict[str, str]]:
     close_events_for_devices(unmonitored_devices)
     delete_devicestate_for_devices(unmonitored_devices)
 
-    state.pollfile_mtime = modified_time
-
     return new_devices, deleted_devices, changed_devices, defaults
+
+
+def _get_pollfile_watcher(polldevs_conf: Union[str, Path]) -> PollfileWatcher:
+    """Returns the global pollfile watcher, replacing it if it watches a different file"""
+    if state.pollfile_watcher is None or state.pollfile_watcher.path != Path(polldevs_conf):
+        state.pollfile_watcher = PollfileWatcher(polldevs_conf)
+    return state.pollfile_watcher
 
 
 def init_state_for_devices(devices: Sequence[PollDevice]):
