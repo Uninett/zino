@@ -1,3 +1,4 @@
+import asyncio
 import errno
 import getpass
 import grp
@@ -580,11 +581,31 @@ class TestWaitForDumpChild:
         assert zino._dump_child_pid == 0
 
 
+@pytest.mark.parametrize("sig", zino.SHUTDOWN_SIGNALS, ids=lambda sig: sig.name)
+def test_when_shutdown_signal_is_received_then_event_loop_should_stop(sig):
+    loop = asyncio.new_event_loop()
+    timed_out = False
+
+    def give_up():
+        nonlocal timed_out
+        timed_out = True
+        loop.stop()
+
+    try:
+        zino.add_shutdown_signal_handlers(loop)
+        loop.call_soon(os.kill, os.getpid(), sig)
+        loop.call_later(5, give_up)
+        loop.run_forever()
+    finally:
+        loop.close()
+
+    assert not timed_out, "event loop was not stopped by the signal"
+
+
 @pytest.mark.usefixtures("_skip_init_side_effects", "mock_config")
 class TestFinalStateDumpOnShutdown:
     def test_it_should_dump_state_on_shutdown(self, mock_config):
         loop = Mock()
-        loop.run_forever.side_effect = KeyboardInterrupt
         mock_state = ZinoState()
 
         with (
@@ -600,7 +621,6 @@ class TestFinalStateDumpOnShutdown:
     def test_when_dump_fails_it_should_log_exception(self, caplog):
         """init_event_loop should log but not raise if the final dump fails."""
         loop = Mock()
-        loop.run_forever.side_effect = KeyboardInterrupt
         mock_state = Mock()
         mock_state.dump_state_to_file.side_effect = OSError("disk full")
 
@@ -615,7 +635,6 @@ class TestFinalStateDumpOnShutdown:
 
     def test_it_should_wait_for_dump_child_before_final_dump(self):
         loop = Mock()
-        loop.run_forever.side_effect = KeyboardInterrupt
         mock_state = ZinoState()
 
         with (
