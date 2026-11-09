@@ -4,6 +4,7 @@ import os
 import signal
 import socket
 import subprocess
+import time
 from typing import IO
 
 import pytest
@@ -33,6 +34,22 @@ def test_when_stopped_by_signal_then_zino_should_exit_cleanly_and_dump_state(zin
 
     assert process.returncode == 0, stderr.decode()
     assert (zino_conf.parent / "zino-state.json").exists()
+
+
+@pytest.mark.parametrize("sig", [signal.SIGINT, signal.SIGTERM], ids=lambda sig: sig.name)
+def test_when_signalled_twice_then_zino_should_log_that_it_aborted_the_final_state_dump(zino_conf, start_zino, sig):
+    # Opening a FIFO for writing blocks until a reader appears, which holds Zino in its final state dump
+    os.mkfifo(zino_conf.parent / "zino-state.json.tmp")
+    process = start_zino()
+    process.send_signal(sig)
+    _wait_for_log_line(process.stderr, b"performing final state dump")
+    # A signal that lands just before a blocking system call is not acted on until the call returns
+    time.sleep(0.5)
+    process.send_signal(sig)
+    _, stderr = process.communicate(timeout=30)
+
+    assert process.returncode == -sig, stderr.decode()
+    assert b"aborting final state dump" in stderr
 
 
 def test_when_run_from_empty_directory_it_should_log_error_and_exit(tmp_path_factory):

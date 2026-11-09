@@ -602,7 +602,74 @@ def test_when_shutdown_signal_is_received_then_event_loop_should_stop(sig):
     assert not timed_out, "event loop was not stopped by the signal"
 
 
-@pytest.mark.usefixtures("_skip_init_side_effects", "mock_config")
+@pytest.mark.usefixtures("restore_shutdown_signal_actions")
+@pytest.mark.parametrize("sig", zino.SHUTDOWN_SIGNALS, ids=lambda sig: sig.name)
+def test_when_shutdown_signal_is_received_after_event_loop_stopped_then_final_dump_should_be_aborted(sig):
+    loop = asyncio.new_event_loop()
+    try:
+        zino.add_shutdown_signal_handlers(loop)
+        zino.abort_final_dump_on_shutdown_signals(loop)
+        with pytest.raises(zino.FinalDumpAborted) as aborted:
+            os.kill(os.getpid(), sig)
+    finally:
+        loop.close()
+
+    assert aborted.value.signum == sig
+
+
+@pytest.mark.usefixtures("restore_shutdown_signal_actions")
+def test_when_shutdown_is_aborted_then_it_should_log_warning_kill_dump_child_and_die_by_the_signal(caplog):
+    with (
+        patch.object(zino, "_kill_dump_child") as kill_dump_child,
+        patch.object(os, "kill") as kill,
+        caplog.at_level(logging.WARNING),
+        pytest.raises(SystemExit),
+    ):
+        zino.abort_shutdown(signal.SIGTERM)
+
+    assert "Received SIGTERM during shutdown, aborting final state dump" in caplog.text
+    kill_dump_child.assert_called_once()
+    kill.assert_called_once_with(os.getpid(), signal.SIGTERM)
+
+
+@pytest.mark.usefixtures("restore_shutdown_signal_actions")
+def test_when_zino_survives_its_own_signal_then_abort_shutdown_should_exit_with_signal_status():
+    with (
+        patch.object(zino, "_kill_dump_child"),
+        patch.object(os, "kill"),
+        pytest.raises(SystemExit) as exit_info,
+    ):
+        zino.abort_shutdown(signal.SIGTERM)
+
+    assert exit_info.value.code == 128 + signal.SIGTERM
+
+
+class TestKillDumpChild:
+    def test_when_dump_child_is_running_then_it_should_be_killed(self):
+        pid = os.fork()
+        if pid == 0:
+            try:
+                time.sleep(30)
+            finally:
+                os._exit(0)
+        with patch.object(zino, "_dump_child_pid", pid):
+            zino._kill_dump_child()
+
+        _, status = os.waitpid(pid, 0)
+        assert os.WIFSIGNALED(status) and os.WTERMSIG(status) == signal.SIGKILL
+
+    def test_when_there_is_no_dump_child_then_it_should_kill_nothing(self):
+        with patch.object(zino, "_dump_child_pid", 0), patch.object(os, "kill") as kill:
+            zino._kill_dump_child()
+
+        kill.assert_not_called()
+
+    def test_when_dump_child_has_vanished_then_it_should_not_raise(self):
+        with patch.object(zino, "_dump_child_pid", 99999999), patch.object(os, "kill", side_effect=ProcessLookupError):
+            zino._kill_dump_child()
+
+
+@pytest.mark.usefixtures("restore_shutdown_signal_actions", "_skip_init_side_effects", "mock_config")
 class TestFinalStateDumpOnShutdown:
     def test_it_should_dump_state_on_shutdown(self, mock_config):
         loop = Mock()
@@ -645,6 +712,16 @@ class TestFinalStateDumpOnShutdown:
 
         mock_wait.assert_called_once()
 
+    @pytest.mark.parametrize("sig", zino.SHUTDOWN_SIGNALS, ids=lambda sig: sig.name)
+    def test_when_final_dump_is_aborted_then_it_should_abort_shutdown_by_the_same_signal(self, sig):
+        with (
+            patch.object(zino, "dump_final_state", side_effect=zino.FinalDumpAborted(sig)),
+            patch.object(zino, "abort_shutdown") as abort_shutdown,
+        ):
+            zino.init_event_loop(args=Mock(trap_port=0, user=None, stop_in=None), loop=Mock())
+
+        abort_shutdown.assert_called_once_with(sig)
+
     @pytest.fixture()
     def _skip_init_side_effects(self):
         """Patches out setup_initial_job_schedule and ZinoServer so that
@@ -664,3 +741,11 @@ class TestFinalStateDumpOnShutdown:
         mock_config.snmp.agent.enabled = False
         with patch.object(state, "config", new=mock_config):
             yield mock_config
+
+
+@pytest.fixture
+def restore_shutdown_signal_actions():
+    original_actions = {sig: signal.getsignal(sig) for sig in zino.SHUTDOWN_SIGNALS}
+    yield
+    for sig, action in original_actions.items():
+        signal.signal(sig, action)
