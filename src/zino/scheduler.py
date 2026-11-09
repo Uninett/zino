@@ -1,17 +1,23 @@
-import asyncio
+"""Zino's own job scheduling, built on the reusable parts in :mod:`zino.polling`.
+
+This module wires those parts to Zino's global state and tasks.  Code meant for reuse by other programs belongs in
+:mod:`zino.polling` instead, so that importing it doesn't drag in Zino's state and tasks.
+"""
+
 import logging
 import operator
 import pathlib
+from asyncio import AbstractEventLoop
 from datetime import datetime, timedelta
-from typing import Sequence, Set, Tuple
+from typing import Optional, Sequence, Set, Tuple
 
-from apscheduler.executors.asyncio import AsyncIOExecutor
 from apscheduler.jobstores.base import JobLookupError
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from zino import state
 from zino.config.models import DEFAULT_INTERVAL_MINUTES, PollDevice
 from zino.config.polldevs import InvalidConfiguration, read_polldevs
+from zino.polling import create_scheduler
 from zino.statemodels import EventState
 from zino.tasks import run_all_tasks
 from zino.utils import log_time_spent
@@ -20,25 +26,15 @@ _log = logging.getLogger(__name__)
 _scheduler = None
 
 
-def get_scheduler() -> AsyncIOScheduler:
-    """Returns the global scheduler.
+def get_scheduler(event_loop: Optional[AbstractEventLoop] = None) -> AsyncIOScheduler:
+    """Returns the global scheduler, creating it on the first call.
 
-    Creates the global scheduler on the first call.
+    :param event_loop: The event loop to run jobs on.  Only used by the call that creates the scheduler.
+    :return: The global scheduler
     """
     global _scheduler
     if _scheduler is None:
-        executors = {
-            "default": AsyncIOExecutor(),
-        }
-        job_defaults = {
-            "max_instances": 1,  # Never allow same job to run simultaneously
-            "misfire_grace_time": state.config.scheduler.misfire_grace_time,
-        }
-        _scheduler = AsyncIOScheduler(
-            event_loop=asyncio.get_event_loop(),
-            executors=executors,
-            job_defaults=job_defaults,
-        )
+        _scheduler = create_scheduler(state.config.scheduler, event_loop)
     return _scheduler
 
 
