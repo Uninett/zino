@@ -1,12 +1,20 @@
 import asyncio
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
+from functools import partial
 
 import pytest
 
 from zino.config.models import PollDevice, SchedulerConfiguration
-from zino.polling import PolldevsChanges, PollfileWatcher, create_scheduler, diff_polldevs
+from zino.polling import (
+    PolldevsChanges,
+    PollfileWatcher,
+    create_scheduler,
+    deschedule_device_jobs,
+    diff_polldevs,
+    schedule_device_jobs,
+)
 
 
 class TestCreateScheduler:
@@ -114,7 +122,77 @@ class TestDiffPolldevs:
         assert changes == PolldevsChanges()
 
 
+class TestScheduleDeviceJobs:
+    def test_when_job_is_not_a_coroutine_function_then_it_should_raise_type_error(self, scheduler):
+        with pytest.raises(TypeError):
+            schedule_device_jobs([make_device("a")], lambda device: None, scheduler)
+
+    def test_when_job_is_a_partial_coroutine_function_then_it_should_be_accepted(self, scheduler):
+        schedule_device_jobs([make_device("a")], partial(poll_with_extra_argument, extra=1), scheduler)
+
+        assert scheduler.get_job("a")
+
+    def test_when_devices_are_scheduled_then_each_job_should_be_named_after_its_device(self, scheduler):
+        schedule_device_jobs([make_device("a"), make_device("b")], poll_nothing, scheduler)
+
+        assert {(job.id, job.name) for job in scheduler.get_jobs()} == {("a", "a"), ("b", "b")}
+
+    def test_when_device_is_scheduled_then_its_job_should_be_called_with_the_device(self, scheduler):
+        device = make_device("a")
+
+        schedule_device_jobs([device], poll_nothing, scheduler)
+
+        assert scheduler.get_job("a").args == (device,)
+
+    def test_when_device_is_scheduled_then_its_job_should_run_at_the_device_interval(self, scheduler):
+        schedule_device_jobs([make_device("a", interval=7)], poll_nothing, scheduler)
+
+        assert scheduler.get_job("a").trigger.interval == timedelta(minutes=7)
+
+    def test_when_devices_are_scheduled_then_highest_priority_device_should_run_first(self, scheduler):
+        devices = [make_device("low", priority=10), make_device("high", priority=200)]
+
+        schedule_device_jobs(devices, poll_nothing, scheduler)
+
+        assert scheduler.get_job("high").next_run_time < scheduler.get_job("low").next_run_time
+
+    def test_when_devices_are_scheduled_then_first_runs_should_spread_across_stagger_interval(self, scheduler):
+        devices = [make_device("a", priority=200), make_device("b", priority=10)]
+
+        schedule_device_jobs(devices, poll_nothing, scheduler, stagger_interval=5)
+
+        gap = scheduler.get_job("b").next_run_time - scheduler.get_job("a").next_run_time
+        assert gap.total_seconds() == pytest.approx(150, abs=1)
+
+    def test_when_no_devices_are_given_then_no_jobs_should_be_added(self, scheduler):
+        schedule_device_jobs([], poll_nothing, scheduler)
+
+        assert not scheduler.get_jobs()
+
+
+class TestDescheduleDeviceJobs:
+    def test_when_device_has_a_job_then_it_should_be_removed(self, scheduler):
+        schedule_device_jobs([make_device("a"), make_device("b")], poll_nothing, scheduler)
+
+        deschedule_device_jobs(["a"], scheduler)
+
+        assert [job.id for job in scheduler.get_jobs()] == ["b"]
+
+    def test_when_one_device_has_no_job_then_the_jobs_of_the_others_should_still_be_removed(self, scheduler):
+        schedule_device_jobs([make_device("b")], poll_nothing, scheduler)
+
+        deschedule_device_jobs(["a", "b"], scheduler)
+
+        assert not scheduler.get_jobs()
+
+
 MISFIRE_GRACE_TIME = 42
+
+
+@pytest.fixture
+def scheduler():
+    """A scheduler that is never started, so its jobs can be inspected without running"""
+    return create_scheduler(SchedulerConfiguration())
 
 
 @pytest.fixture
@@ -126,6 +204,14 @@ async def running_scheduler():
 
 
 async def noop_job():
+    pass
+
+
+async def poll_nothing(device: PollDevice):
+    pass
+
+
+async def poll_with_extra_argument(device: PollDevice, extra: int):
     pass
 
 

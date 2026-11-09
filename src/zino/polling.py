@@ -4,18 +4,25 @@ Nothing in here depends on Zino's global state, so other daemons can use it to s
 """
 
 import logging
+import operator
 from asyncio import AbstractEventLoop
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Mapping, Optional, Union
+from typing import Awaitable, Callable, Iterable, Mapping, Optional, Union
 
 from apscheduler.executors.asyncio import AsyncIOExecutor
+from apscheduler.jobstores.base import JobLookupError
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.util import iscoroutinefunction_partial
 
-from zino.config.models import PollDevice, SchedulerConfiguration
+from zino.config.models import DEFAULT_INTERVAL_MINUTES, PollDevice, SchedulerConfiguration
 from zino.config.polldevs import InvalidConfiguration, read_polldevs
 
 _log = logging.getLogger(__name__)
+
+PollJob = Callable[[PollDevice], Awaitable[None]]
+"""A coroutine function that polls a single device"""
 
 
 def create_scheduler(
@@ -106,3 +113,55 @@ def diff_polldevs(old: Mapping[str, PollDevice], new: Mapping[str, PollDevice]) 
         deleted=frozenset(old.keys() - new.keys()),
         changed=frozenset(name for name in old.keys() & new.keys() if old[name] != new[name]),
     )
+
+
+def schedule_device_jobs(
+    devices: Iterable[PollDevice],
+    job: PollJob,
+    scheduler: AsyncIOScheduler,
+    stagger_interval: int = DEFAULT_INTERVAL_MINUTES,
+) -> None:
+    """Schedules a recurring job for each device, at each device's own poll interval.
+
+    The first runs are spread evenly across ``stagger_interval``, highest priority devices first, so that a large
+    pollfile does not poll every device at once.  Each job's id and name is the device name.
+
+    :param devices: The devices to schedule jobs for
+    :param job: The coroutine function to run for each device.  It is called with the device as its only argument.
+    :param scheduler: The scheduler to add the jobs to
+    :param stagger_interval: The number of minutes to spread the first runs across
+    :raises TypeError: If ``job`` is not a coroutine function, since the scheduler would run it in a worker thread
+    """
+    if not iscoroutinefunction_partial(job):
+        raise TypeError(f"{job!r} is not a coroutine function")
+
+    by_priority = sorted(devices, key=operator.attrgetter("priority"), reverse=True)
+    if not by_priority:
+        return
+
+    _log.debug("Scheduling %s devices", len(by_priority))
+    stagger_factor = (stagger_interval * 60) / len(by_priority)
+    for index, device in enumerate(by_priority):
+        first_run_time = datetime.now() + timedelta(seconds=index * stagger_factor)
+        scheduler.add_job(
+            func=job,
+            trigger="interval",
+            minutes=device.interval,
+            args=(device,),
+            next_run_time=first_run_time,
+            name=device.name,
+            id=device.name,
+        )
+
+
+def deschedule_device_jobs(names: Iterable[str], scheduler: AsyncIOScheduler) -> None:
+    """Removes the recurring jobs of the given devices, ignoring devices that have no job.
+
+    :param names: The names of the devices to remove jobs for
+    :param scheduler: The scheduler to remove the jobs from
+    """
+    for name in names:
+        try:
+            scheduler.remove_job(job_id=name)
+        except JobLookupError:
+            _log.debug("Job for device %s could not be found", name)

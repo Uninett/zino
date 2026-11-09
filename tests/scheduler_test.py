@@ -4,8 +4,11 @@ from unittest.mock import Mock, patch
 import pytest
 from apscheduler.jobstores.base import JobLookupError
 
+import zino.state as zino_state
 from zino import scheduler
+from zino.config.models import SchedulerConfiguration
 from zino.events import EventIndex
+from zino.polling import create_scheduler
 from zino.state import ZinoState
 from zino.statemodels import EventState, ReachabilityEvent
 
@@ -216,6 +219,21 @@ class TestScheduleNewDevices:
         assert mocked_scheduler.add_job.called
 
     @patch("zino.state.polldevs", dict())
+    @patch("zino.state.pollfile_watcher", None)
+    @patch("zino.state.state", ZinoState())
+    async def test_when_device_job_runs_then_it_should_run_all_tasks_with_the_state_and_config_from_scheduling(
+        self, polldevs_conf, unstarted_scheduler
+    ):
+        scheduler.load_polldevs(polldevs_conf)
+
+        with patch("zino.scheduler.run_all_tasks", autospec=True) as run_all_tasks:
+            scheduler.schedule_devices(["example-gw"])
+            job = unstarted_scheduler.get_job("example-gw")
+            await job.func(*job.args, **job.kwargs)
+
+        run_all_tasks.assert_awaited_once_with(zino_state.polldevs["example-gw"], zino_state.state, zino_state.config)
+
+    @patch("zino.state.polldevs", dict())
     def test_should_do_nothing_when_device_list_is_empty(self, mocked_scheduler):
         scheduler.schedule_devices([])
         assert not mocked_scheduler.add_job.called
@@ -254,6 +272,14 @@ def test_delete_devicestate_for_devices_should_delete_devicestates_for_given_dev
         assert "localhost" in state.devices
         scheduler.delete_devicestate_for_devices(["localhost"])
         assert "localhost" not in state.devices
+
+
+@pytest.fixture
+def unstarted_scheduler():
+    """A real scheduler that is never started, so its jobs can be inspected without running them"""
+    sched = create_scheduler(SchedulerConfiguration())
+    with patch("zino.scheduler.get_scheduler", return_value=sched):
+        yield sched
 
 
 @pytest.fixture

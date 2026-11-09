@@ -5,18 +5,22 @@ This module wires those parts to Zino's global state and tasks.  Code meant for 
 """
 
 import logging
-import operator
 from asyncio import AbstractEventLoop
-from datetime import datetime, timedelta
+from functools import partial
 from pathlib import Path
 from typing import Optional, Sequence, Set, Tuple, Union
 
-from apscheduler.jobstores.base import JobLookupError
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from zino import state
 from zino.config.models import DEFAULT_INTERVAL_MINUTES, PollDevice
-from zino.polling import PollfileWatcher, create_scheduler, diff_polldevs
+from zino.polling import (
+    PollfileWatcher,
+    create_scheduler,
+    deschedule_device_jobs,
+    diff_polldevs,
+    schedule_device_jobs,
+)
 from zino.statemodels import EventState
 from zino.tasks import run_all_tasks
 from zino.utils import log_time_spent
@@ -95,38 +99,18 @@ async def load_and_schedule_polldevs(polldevs_conf: str):
 
 
 def schedule_devices(devices: Sequence[str], stagger_interval: int = DEFAULT_INTERVAL_MINUTES):
-    devices = sorted((state.polldevs[name] for name in devices), key=operator.attrgetter("priority"), reverse=True)
-    if not devices:
-        return
-
-    _log.debug("Scheduling %s devices", len(devices))
-
-    scheduler = get_scheduler()
-
-    # Spread poll jobs evenly across the entire default interval
-    stagger_factor = (stagger_interval * 60) / len(devices)
-    for index, device in enumerate(devices):
-        first_run_time = datetime.now() + timedelta(seconds=index * stagger_factor)
-
-        scheduler.add_job(
-            func=run_all_tasks,
-            trigger="interval",
-            minutes=device.interval,
-            args=(device, state.state, state.config),
-            next_run_time=first_run_time,
-            name=device.name,
-            id=device.name,
-        )
+    """Schedules recurring runs of all Zino tasks for the given devices"""
+    schedule_device_jobs(
+        (state.polldevs[name] for name in devices),
+        partial(run_all_tasks, state=state.state, config=state.config),
+        get_scheduler(),
+        stagger_interval,
+    )
 
 
 def deschedule_devices(devices: Sequence[str]):
     """De-schedules recurring jobs for the given devices"""
-    scheduler = get_scheduler()
-    for name in devices:
-        try:
-            scheduler.remove_job(job_id=name)
-        except JobLookupError:
-            _log.debug("Job for device %s could not be found", name)
+    deschedule_device_jobs(devices, get_scheduler())
 
 
 def close_events_for_devices(devices: Sequence[str]):
