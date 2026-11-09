@@ -266,7 +266,7 @@ def _wait_for_dump_child():
 
 def setup_initial_job_schedule(loop: AbstractEventLoop, args: argparse.Namespace) -> None:
     """Schedules all recurring and single-run jobs"""
-    scheduler = get_scheduler()
+    scheduler = get_scheduler(loop)
     scheduler.start()
 
     # Register job tracker to monitor running jobs
