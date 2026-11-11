@@ -25,7 +25,7 @@ dependencies = [
     "pydantic>=2.7.0",
     "pysnmp~=6.2",
     "aiodns>=3.6.1",
-    "netsnmp-cffi>=0.2.0",
+    "netsnmp-cffi>=0.2.2",
 ]
 dynamic = ["version"]
 

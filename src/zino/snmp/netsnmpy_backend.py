@@ -1,8 +1,10 @@
 """SNMP back-end based on netsnmp-cffi"""
 
+import asyncio
 import logging
 import os
 import threading
+import weakref
 from collections import defaultdict
 from typing import Any, Optional, Sequence, Tuple, Union
 
@@ -93,6 +95,9 @@ class SNMP:
         )
         self._is_open = False
         self._lock = threading.RLock()
+        # netsnmpy keeps open sessions alive, so an open session would leak if this object were collected first
+        finalizer = weakref.finalize(self, _close_abandoned_session, self.session, device.name)
+        finalizer.atexit = False
 
     def open(self):
         """Opens a low-level SNMP session"""
@@ -366,6 +371,26 @@ class SNMP:
     def _var_bind_to_mibobject(var_bind: tuple[OID, Any]) -> MibObject:
         oid, value = var_bind
         return MibObject(oid=oid, value=value)
+
+
+def _close_abandoned_session(session: SNMPSession, device_name: str) -> None:
+    """Closes a low-level session whose `SNMP` object was garbage collected while the session was still open.
+
+    The close is deferred to the running event loop, if any, since garbage collection may happen in the middle of
+    netsnmpy's own event loop bookkeeping.
+
+    :param session: The low-level session that was left open
+    :param device_name: The name of the device the session was for, for logging purposes
+    """
+    if not session.session:
+        return
+    _log.warning("%s: SNMP session was garbage collected while still open (missing `with`?), closing it", device_name)
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        session.close()
+        return
+    loop.call_soon(session.close)
 
 
 def _convert_snmp_variable(variable: SNMPVariable) -> SNMPVarBind:

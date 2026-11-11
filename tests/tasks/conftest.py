@@ -1,3 +1,10 @@
+"""Common fixtures for task tests.
+
+Many task tests run tasks directly, without the `with` block that `run_all_tasks()` provides. Their SNMP sessions are
+therefore only closed once garbage collected, which logs a "garbage collected while still open" warning. In these tests,
+that warning is expected and harmless.
+"""
+
 from unittest.mock import patch
 
 import pytest
