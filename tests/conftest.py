@@ -213,12 +213,14 @@ async def snmpsim(snmpsim_command, snmp_test_port):
     from the snmp_fixtures subdirectory.
     """
     print(f"Running {snmpsim_command}")
-    # uvx spawns snmpsim as a grandchild, so put it in its own process group to
-    # ensure the whole tree can be killed on teardown
+    # uvx runs snmpsim as a grandchild of this process. A new session puts the whole
+    # tree in one process group that teardown can kill.
     proc = await asyncio.create_subprocess_exec(*snmpsim_command, start_new_session=True)
-    await _wait_for_snmpsim(proc, snmp_test_port)
-    yield
-    _kill_process_group(proc)
+    try:
+        await _wait_for_snmpsim(proc, snmp_test_port)
+        yield
+    finally:
+        await _kill_process_group(proc)
 
 
 @pytest.fixture(scope="session")
@@ -285,14 +287,6 @@ def snmpsim_command(snmpsimd_path, snmp_fixture_directory, snmp_test_port):
     return [snmpsimd_path] + snmpsim_args
 
 
-def _kill_process_group(proc):
-    """Kills an entire process group, ignoring processes that are already gone."""
-    try:
-        os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
-    except ProcessLookupError:
-        pass
-
-
 def _uv_has_python(version):
     """Returns True if uv can find the given Python version."""
     result = subprocess.run(
@@ -342,6 +336,22 @@ async def _verify_localhost_snmp_response(port: int) -> bool:
     except (SNMPError, OSError):
         return False
     return True
+
+
+async def _kill_process_group(proc):
+    """Kills the process group led by proc, then reaps proc.
+
+    proc must lead its own process group, e.g. by having been started with
+    start_new_session=True. Processes that are already gone are ignored.
+    """
+    # A session leader's pid is also its process group id, so pass it to killpg()
+    # directly. Unlike os.getpgid(proc.pid), that still works after the leader
+    # has been reaped.
+    try:
+        os.killpg(proc.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    await proc.wait()
 
 
 @pytest.fixture
