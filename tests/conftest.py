@@ -10,7 +10,6 @@ from shutil import which
 
 import pytest
 import pytest_asyncio
-from retry import retry
 
 from zino.planned_maintenance import PlannedMaintenances
 from zino.state import ZinoState
@@ -217,18 +216,7 @@ async def snmpsim(snmpsim_command, snmp_test_port):
     # uvx spawns snmpsim as a grandchild, so put it in its own process group to
     # ensure the whole tree can be killed on teardown
     proc = await asyncio.create_subprocess_exec(*snmpsim_command, start_new_session=True)
-
-    @retry(Exception, tries=3, delay=0.5, backoff=2)
-    async def _wait_for_snmpsimd():
-        if proc.returncode is not None:
-            pytest.fail(f"snmpsim process exited prematurely (exit code {proc.returncode})")
-        if await _verify_localhost_snmp_response(snmp_test_port):
-            return True
-        else:
-            raise TimeoutError("Still waiting for snmpsimd to listen for queries")
-
-    await _wait_for_snmpsimd()
-
+    await _wait_for_snmpsim(proc, snmp_test_port)
     yield
     _kill_process_group(proc)
 
@@ -327,6 +315,35 @@ def _get_installed_spec(package_name: str) -> str:
         return package_name
 
 
+async def _wait_for_snmpsim(proc, port: int):
+    """Waits for the snmpsim process to answer SNMP queries."""
+    for _ in range(10):
+        if await _verify_localhost_snmp_response(port):
+            return
+        if proc.returncode is not None:
+            pytest.fail(f"snmpsim process exited prematurely (exit code {proc.returncode})")
+        print("Still waiting for snmpsimd to listen for queries")
+        await asyncio.sleep(0.5)
+    raise TimeoutError("snmpsimd did not start in time")
+
+
+async def _verify_localhost_snmp_response(port: int) -> bool:
+    """Verifies that the snmpsimd fixture process is responding, by using Zino's own netsnmp backend to query it."""
+    from netsnmpy.errors import SNMPError
+
+    from zino.config.models import PollDevice
+    from zino.snmp.netsnmpy_backend import SNMP
+
+    # With the default timeout and retries, a single failed probe would take 20 seconds
+    device = PollDevice(name="snmpsim", address="127.0.0.1", port=port, timeout=1, retries=3)
+    try:
+        with SNMP(device) as snmp:
+            await snmp.getnext("SNMPv2-MIB", "sysObjectID")
+    except (SNMPError, OSError):
+        return False
+    return True
+
+
 @pytest.fixture
 def state_with_localhost():
     localhost = ipaddress.ip_address("127.0.0.1")
@@ -358,23 +375,6 @@ async def localhost_netsnmpy_receiver(state_with_localhost, unused_udp_port) -> 
     await receiver.open()
     yield receiver
     receiver.close()
-
-
-async def _verify_localhost_snmp_response(port: int) -> bool:
-    """Verifies that the snmpsimd fixture process is responding, by using Zino's own netsnmp backend to query it."""
-    from netsnmpy.errors import SNMPError
-
-    from zino.config.models import PollDevice
-    from zino.snmp.netsnmpy_backend import SNMP
-
-    # With the default timeout and retries, a single failed probe would take 20 seconds
-    device = PollDevice(name="snmpsim", address="127.0.0.1", port=port, timeout=1, retries=3)
-    try:
-        with SNMP(device) as snmp:
-            await snmp.getnext("SNMPv2-MIB", "sysObjectID")
-    except (SNMPError, OSError):
-        return False
-    return True
 
 
 @pytest.fixture
