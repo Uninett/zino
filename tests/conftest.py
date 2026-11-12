@@ -361,27 +361,20 @@ async def localhost_netsnmpy_receiver(state_with_localhost, unused_udp_port) -> 
 
 
 async def _verify_localhost_snmp_response(port: int) -> bool:
-    """Verifies that the snmpsimd fixture process is responding, by using PySNMP directly to query it."""
+    """Verifies that the snmpsimd fixture process is responding, by using Zino's own netsnmp backend to query it."""
+    from netsnmpy.errors import SNMPError
 
-    from pysnmp.hlapi.asyncio import (
-        CommunityData,
-        ContextData,
-        ObjectIdentity,
-        ObjectType,
-        SnmpEngine,
-        UdpTransportTarget,
-        nextCmd,
-    )
+    from zino.config.models import PollDevice
+    from zino.snmp.netsnmpy_backend import SNMP
 
-    error_indication, _, _, var_binds = await nextCmd(
-        SnmpEngine(),
-        CommunityData("public"),
-        UdpTransportTarget(("localhost", port)),
-        ContextData(),
-        ObjectType(ObjectIdentity("SNMPv2-MIB", "sysObjectID")),
-    )
-    # nextCmd always returns a (truthy) 4-tuple, also on timeout
-    return not error_indication and bool(var_binds)
+    # With the default timeout and retries, a single failed probe would take 20 seconds
+    device = PollDevice(name="snmpsim", address="127.0.0.1", port=port, timeout=1, retries=3)
+    try:
+        with SNMP(device) as snmp:
+            await snmp.getnext("SNMPv2-MIB", "sysObjectID")
+    except (SNMPError, OSError):
+        return False
+    return True
 
 
 @pytest.fixture
