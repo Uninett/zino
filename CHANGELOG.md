@@ -12,6 +12,31 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) and the chang
 
 <!-- towncrier release notes start -->
 
+## [2.6.0] - 2026-11-12
+
+### Removed
+
+- Dropped support for EOL Python 3.9 and 3.10 ([#574](https://github.com/Uninett/zino/issues/574))
+
+### Added
+
+- Added support for Python 3.13 ([#574](https://github.com/Uninett/zino/issues/574))
+- Added support for Python 3.14 ([#578](https://github.com/Uninett/zino/issues/578))
+- Other daemon programs can now reuse Zino's configuration handling: `read_configuration()` accepts a custom configuration model, `SNMPBackendConfiguration` covers just the SNMP backend selection, and `zino.config` provides `DEFAULT_LOGGING_CONFIG` and `apply_logging_config()`
+
+### Changed
+
+- Require Sphinx 9.0.4 or newer to build the documentation ([#559](https://github.com/Uninett/zino/issues/559))
+- The minimum required version of `netsnmp-cffi` is now *0.2.2*. ([#596](https://github.com/Uninett/zino/issues/596))
+- SNMP sessions accidentally left open by Zino code are now closed once nothing refers to them anymore, and a warning is logged so the underlying mistake can be found and fixed ([#596](https://github.com/Uninett/zino/issues/596))
+
+### Fixed
+
+- Fixed a file descriptor leak where an SNMP session opened to handle a BFD trap could be left open for good. Enough of these leaks exhausted the available file descriptors, which stopped Zino from polling devices and from accepting API connections ([#592](https://github.com/Uninett/zino/issues/592))
+- API connections from clients that vanished without closing them are no longer kept open forever. Like Zino 1, Zino now closes notification channels that are not tied to a client session within 30 seconds, and closes a client session when its notification channel is lost. TCP keepalive is also enabled on all API connections, so the operating system can detect clients that are gone. ([#593](https://github.com/Uninett/zino/issues/593))
+- A periodic state dump interrupted by Ctrl-C no longer leaves a duplicate Zino process running ([#604](https://github.com/Uninett/zino/issues/604))
+
+
 ## [2.5.2] - 2026-09-14
 
 ### Added

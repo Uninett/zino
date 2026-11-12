@@ -1,1 +1,0 @@
-Other daemons can now reuse Zino's configuration handling: `read_configuration()` accepts a custom configuration model, `SNMPBackendConfiguration` covers just the SNMP backend selection, and `zino.config` provides `DEFAULT_LOGGING_CONFIG` and `apply_logging_config()`
