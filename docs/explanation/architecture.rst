@@ -145,13 +145,25 @@ The API server (``zino.api``) provides two TCP interfaces:
     with existing clients.
 
 **Notification Interface (port 8002)**
-    A simpler protocol for push notifications. Clients connect and authenticate,
-    then receive messages whenever events are created or modified. Message
-    format:
+    A simpler, output-only protocol for push notifications. On connection, the
+    server sends a nonce. The client ties the channel to its authenticated
+    command session by sending ``NTIE <nonce>`` on port 8001. It then receives
+    a line whenever an event is created or modified:
 
     .. code-block:: text
 
-        %%<id> <state> <type>
+        <id> <change type> <value>
+
+    The change type is ``state`` (with the old and new state as value),
+    ``attr`` (with the name of the changed attribute), ``log`` or ``history``
+    (with the value ``1``), or ``scavenged`` (with no value), when a closed
+    event has been removed.
+
+    As in Zino 1, a channel that is not tied within 30 seconds is closed, a
+    channel can only be tied to one session at a time, and a session is closed
+    if its notification channel is lost. If a session ties itself to another
+    channel, its previous channel is closed 30 seconds later, unless it is tied
+    again.
 
     Clients use this to maintain live views without polling.
 
