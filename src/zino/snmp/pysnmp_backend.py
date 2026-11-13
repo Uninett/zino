@@ -5,7 +5,7 @@ import os
 import threading
 from collections import defaultdict
 from ipaddress import ip_address
-from typing import Any, Sequence, Tuple, Union
+from typing import Any, Optional, Sequence, Tuple, Union
 
 from pyasn1.type import univ
 from pysnmp.hlapi.asyncio import (
@@ -39,6 +39,7 @@ from zino.snmp.base import (
     NoSuchObjectError,
     SNMPVarBind,
     SparseWalkResponse,
+    VarBindError,
 )
 
 _log = logging.getLogger(__name__)
@@ -177,12 +178,8 @@ class SNMP:
         """Raises a relevant exception if an error has occurred in a varbind"""
         oid = OID(str(object_type[0]))
         value = object_type[1]
-        if isinstance(value, NoSuchObject):
-            raise NoSuchObjectError(f"Could not find object at {oid}")
-        if isinstance(value, NoSuchInstance):
-            raise NoSuchInstanceError(f"Could not find instance at {oid}")
-        if isinstance(value, EndOfMibView):
-            raise EndOfMibViewError("Reached end of MIB view")
+        if error := _varbind_error(oid, value):
+            raise error
 
     async def getnext(self, *oid: str) -> MibObject:
         """SNMP-GETNEXTs the given oid
@@ -230,7 +227,7 @@ class SNMP:
 
         :param variables: Values for defining OIDs. For detailed use see
         https://github.com/pysnmp/pysnmp/blob/bc1fb3c39764f36c1b7c9551b52ef8246b9aea7c/pysnmp/smi/rfc1902.py#L35-L49
-        :return: A sequence of MibObject instances representing the resulting MIB variables
+        :return: Identifier/value pairs for the resulting MIB variables, see `SNMPVarBind` about exception values
         """
         query = [self._oid_to_object_type(*var) for var in variables]
         response = await self._getnext2(*query)
@@ -328,7 +325,7 @@ class SNMP:
 
         :param variables: Variables to fetch, either as OIDs or symbolic names
         :param max_repetitions: Max amount of MIB objects to retrieve
-        :return: A sequence of two-tuples that represent the response varbinds
+        :return: A sequence of two-tuples that represent the response varbinds, see `SNMPVarBind` about exception values
         """
         oid_objects = [self._oid_to_object_type(*var) for var in variables]
         var_bind_table = await self._getbulk2(*oid_objects, max_repetitions=max_repetitions)
@@ -473,16 +470,39 @@ class SNMP:
 
 
 def _convert_varbind(ident: ObjectIdentity, value: ObjectType) -> SNMPVarBind:
-    """Converts a PySNMP varbind pair to an Identifier/value pair"""
+    """Converts a PySNMP varbind pair to an Identifier/value pair.
+
+    An exception value, such as noSuchInstance, is converted to an unraised `VarBindError` instance.
+    """
     mib, obj, indices = ident.getMibSymbol()
-    value = mib_value_to_python(value)
+    oid = OID(ident)
+    if error := _varbind_error(oid, value):
+        value = error
+    else:
+        value = mib_value_to_python(value)
 
     prefix = SNMP._oid_to_object_type(mib, obj)
     SNMP._resolve_object(prefix)
     prefix = OID(prefix[0])
-    row_index = OID(ident).strip_prefix(prefix)
+    row_index = oid.strip_prefix(prefix)
 
     return Identifier(mib, obj, row_index), value
+
+
+def _varbind_error(oid: OID, value: Any) -> Optional[VarBindError]:
+    """Translates an SNMP exception value to the matching Zino exception, without raising it.
+
+    :param oid: The OID of the varbind that carries the value
+    :param value: The varbind value
+    :return: The matching exception, or None if the value is not an exception value
+    """
+    if isinstance(value, NoSuchObject):
+        return NoSuchObjectError(f"Could not find object at {oid}")
+    if isinstance(value, NoSuchInstance):
+        return NoSuchInstanceError(f"Could not find instance at {oid}")
+    if isinstance(value, EndOfMibView):
+        return EndOfMibViewError("Reached end of MIB view")
+    return None
 
 
 def mib_value_to_python(value: SupportedTypes) -> Union[str, int, OID]:
