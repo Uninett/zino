@@ -7,11 +7,12 @@ from collections import Counter
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
-from netsnmpy.netsnmp import SNMPVariable
+from netsnmpy.netsnmp import NoSuchInstance, SNMPVariable
 from netsnmpy.oids import OID as NS_OID
 from netsnmpy.trapsession import SNMPTrap
 
 from zino.oid import OID
+from zino.snmp.base import NoSuchInstanceError
 from zino.trapd.base import (
     TrapObserver,
     TrapOriginator,
@@ -23,6 +24,7 @@ from . import send_trap_externally
 
 OID_COLD_START = ".1.3.6.1.6.3.1.1.5.1"
 OID_SYSNAME_0 = ".1.3.6.1.2.1.1.5.0"
+OID_IFALIAS_1 = ".1.3.6.1.2.1.31.1.1.1.18.1"
 
 
 class TestTrapReceiver:
@@ -132,6 +134,31 @@ class TestTrapReceiver:
             ],
         )
         assert not localhost_netsnmpy_receiver.trap_received(trap)
+
+    async def test_when_trap_variable_has_an_exception_value_then_it_should_be_dispatched_as_an_exception(
+        self, localhost_netsnmpy_receiver
+    ):
+        source = ipaddress.ip_address("127.0.0.1")
+        trap = SNMPTrap(
+            source=source,
+            agent=source,
+            generic_type=None,
+            trap_oid=NS_OID(".1.3.6.1.4.1.2636.5.1.1.1.0.2"),
+            uptime=1984,
+            community="public",
+            version="2c",
+            variables=[
+                SNMPVariable(NS_OID(".1.3.6.1.2.1.1.3.0"), 1984),
+                SNMPVariable(NS_OID(OID_IFALIAS_1), NoSuchInstance()),
+            ],
+        )
+
+        with patch.object(localhost_netsnmpy_receiver, "dispatch_trap", new_callable=AsyncMock) as dispatch_trap:
+            localhost_netsnmpy_receiver.trap_received(trap)
+
+        zino_trap = dispatch_trap.call_args.args[0]
+        [alias] = zino_trap.get_all("ifAlias")
+        assert isinstance(alias.value, NoSuchInstanceError)
 
 
 @pytest.mark.skipif(not shutil.which("snmptrap"), reason=SNMPTRAP_MISSING)
