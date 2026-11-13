@@ -155,11 +155,14 @@ class SNMP:
             get2(("1.3.6.1.2.1.1.3.0",))
 
         :param variables: Symbolic MIB object to query.  Multiple formats supported.
-        :return: A list of MibObject instances representing the resulting MIB variables
+        :return: A list of Identifier/value pairs representing the resulting MIB variables
+        :raises VarBindError: If any of the variables could not be fetched, e.g. because the instance does not exist
         """
         oids = [resolve_symbol(var) for var in variables]
         self._open_if_closed()
         var_binds = await self.session.aget(*oids)
+        for var_bind in var_binds:
+            self._raise_varbind_errors(var_bind)
         return [_convert_snmp_variable(v) for v in var_binds]
 
     def _raise_varbind_errors(self, var_bind: netsnmp.Variable):
