@@ -334,7 +334,7 @@ class SNMP:
             return None
 
         def is_end_of_scope(root: OID, oid: OID, value: Any) -> bool:
-            return not root.is_a_prefix_of(oid) or value == EndOfMibView
+            return not root.is_a_prefix_of(oid) or isinstance(value, EndOfMibView)
 
         # Integrate response values into result dict by processing in chunks of
         # query count. If we want to support non-repeaters, we need to adjust this.

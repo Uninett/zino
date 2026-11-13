@@ -306,6 +306,29 @@ class TestVarBindErrors:
         with pytest.raises(exception):
             await snmp_client.get2(("IF-MIB", "ifName", 1), ("IF-MIB", "ifAlias", 1))
 
+    @pytest.mark.parametrize(
+        "column, raw_values, values",
+        [
+            ("ifAlias", (b"one", b"two"), ("one", "two")),
+            ("ifOperStatus", (1, 2), ("up", "down")),
+            ("ifMtu", (1500, 9000), (1500, 9000)),
+        ],
+        ids=["string", "enum", "integer"],
+    )
+    async def test_when_walked_column_ends_the_mib_view_then_sparsewalk_should_stop_with_the_rows_before_it(
+        self, column, raw_values, values, snmp_client, monkeypatch
+    ):
+        last_row = resolve_symbol(("IF-MIB", column, 2))
+        responses = [
+            [SNMPVariable(resolve_symbol(("IF-MIB", column, 1)), raw_values[0]), SNMPVariable(last_row, raw_values[1])],
+            [SNMPVariable(last_row, EndOfMibView(""))],
+        ]
+        monkeypatch.setattr("zino.snmp.netsnmpy_backend.SNMPSession.agetbulk", AsyncMock(side_effect=responses))
+
+        response = await snmp_client.sparsewalk(("IF-MIB", column))
+
+        assert response == {OID(".1"): {column: values[0]}, OID(".2"): {column: values[1]}}
+
 
 class TestSnmpContextManager:
     @pytest.fixture

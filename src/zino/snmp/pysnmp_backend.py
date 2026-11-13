@@ -399,6 +399,9 @@ class SNMP:
 
         def _var_bind_is_in_scope(var: PySNMPVarBind) -> bool:
             oid = OID(var[0])
+            value = var[1]
+            if isinstance(value, EndOfMibView):
+                return False  # It repeats the requested OID, but there is nothing more to walk
             return any(root.is_a_prefix_of(oid) for root in roots)
 
         while True:

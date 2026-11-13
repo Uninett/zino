@@ -296,6 +296,21 @@ class TestVarBindErrors:
         with pytest.raises(exception):
             await snmp_client.get2(("IF-MIB", "ifName", 1), ("IF-MIB", "ifAlias", 1))
 
+    async def test_when_walked_column_ends_the_mib_view_then_sparsewalk_should_stop_with_the_rows_before_it(
+        self, snmp_client, monkeypatch
+    ):
+        first_row = ObjectType(ObjectIdentity("IF-MIB", "ifAlias", 1), "one")
+        last_row = ObjectType(ObjectIdentity("IF-MIB", "ifAlias", 2), "two")
+        end_of_view = ObjectType(ObjectIdentity("IF-MIB", "ifAlias", 2), EndOfMibView(""))
+        for var_bind in (first_row, last_row, end_of_view):
+            snmp_client._resolve_object(var_bind)
+        responses = [[[first_row], [last_row]], [[end_of_view]]]
+        monkeypatch.setattr("zino.snmp.pysnmp_backend.SNMP._getbulk2", AsyncMock(side_effect=responses))
+
+        response = await snmp_client.sparsewalk(("IF-MIB", "ifAlias"))
+
+        assert response == {OID(".1"): {"ifAlias": "one"}, OID(".2"): {"ifAlias": "two"}}
+
 
 class TestPDUErrors:
     """Tests for handling error flags in response PDUs."""
