@@ -23,6 +23,7 @@ from netsnmpy.trapsession import parse_raw_trap
 import zino.state
 from zino.config.models import PollDevice, TrapConfiguration
 from zino.trapd.base import TrapReceiverBase
+from zino.trapd.multiplexer import DEFAULT_STRAPS_SOCKET, MultiplexerLauncher
 from zino.trapd.netsnmpy_backend import NetsnmpTrapProcessorMixin
 
 _logger = logging.getLogger(__name__)
@@ -34,6 +35,10 @@ WATCHDOG_SILENCE_THRESHOLD = 300  # seconds (5 minutes)
 # Reconnect backoff on connection loss
 RECONNECT_BASE_DELAY = 1  # seconds
 RECONNECT_MAX_DELAY = 60  # seconds
+
+# Connection attempts after starting a multiplexer (the same as Scotty's Tnm made)
+STARTUP_CONNECT_ATTEMPTS = 5
+STARTUP_CONNECT_INTERVAL = 1  # seconds
 
 
 class StrapsFrameReader:
@@ -105,6 +110,7 @@ class StrapsTrapReceiver(NetsnmpTrapProcessorMixin, TrapReceiverBase):
     ):
         super().__init__(loop=loop, state=state, polldevs=polldevs)
         self._trap_config = trap_config
+        self._launcher = MultiplexerLauncher(trap_config)
         self._reader: Optional[asyncio.StreamReader] = None
         self._writer: Optional[asyncio.StreamWriter] = None
         self._reader_task: Optional[asyncio.Task] = None
@@ -234,11 +240,36 @@ class StrapsTrapReceiver(NetsnmpTrapProcessorMixin, TrapReceiverBase):
     # -- Connection management (used by the above) --
 
     async def _connect(self):
-        """Establishes a connection to the straps/nmtrapd socket."""
+        """Establishes a connection to the straps/nmtrapd socket, starting the multiplexer if needed."""
         self._close_connection()
 
+        try:
+            await self._open_connection()
+        except OSError:
+            if not await self._launcher.start():
+                raise
+            await self._connect_to_started_multiplexer()
+
+        self._last_trap_time = time.monotonic()
+        self._reconnect_failures = 0
+        _logger.info("Receiving SNMP traps via %s multiplexer", self._trap_config.source)
+
+    async def _connect_to_started_multiplexer(self):
+        """Connects to a just-started multiplexer, giving it a few seconds to start listening."""
+        for _attempt in range(STARTUP_CONNECT_ATTEMPTS):
+            await asyncio.sleep(STARTUP_CONNECT_INTERVAL)
+            try:
+                await self._open_connection()
+                return
+            except OSError as error:
+                last_error = error
+
+        self._launcher.log_unreachable(last_error)
+        raise last_error
+
+    async def _open_connection(self):
         if self._trap_config.source == "straps":
-            socket_path = self._trap_config.straps_socket or "/tmp/.straps-162"
+            socket_path = self._trap_config.straps_socket or DEFAULT_STRAPS_SOCKET
             _logger.info("Connecting to straps UNIX socket at %s", socket_path)
             self._reader, self._writer = await asyncio.open_unix_connection(socket_path)
         else:
@@ -246,10 +277,6 @@ class StrapsTrapReceiver(NetsnmpTrapProcessorMixin, TrapReceiverBase):
             port = self._trap_config.nmtrapd_port
             _logger.info("Connecting to nmtrapd at %s:%d", host, port)
             self._reader, self._writer = await asyncio.open_connection(host, port)
-
-        self._last_trap_time = time.monotonic()
-        self._reconnect_failures = 0
-        _logger.info("Receiving SNMP traps via %s multiplexer", self._trap_config.source)
 
     def _close_connection(self):
         """Closes the current socket connection, if any."""

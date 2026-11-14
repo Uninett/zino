@@ -3,6 +3,7 @@
 import asyncio
 import ipaddress
 import struct
+import sys
 import time
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -23,6 +24,33 @@ SNMPV2C_COLDSTART_TRAP = bytes.fromhex(
     "30393017060a2b06010603010104010006092b0601060301010501300f060a2b060102010202010101"
     "02012a"
 )
+
+# Stands in for straps: serves one client at the socket path given as argument, then exits once the client disconnects
+FAKE_STRAPS = """
+import os, socket, sys
+server = socket.socket(socket.AF_UNIX)
+server.bind(sys.argv[1])
+server.listen(1)
+server.settimeout(5)
+client, _ = server.accept()
+client.recv(1)
+os.unlink(sys.argv[1])
+"""
+
+# Stands in for nmtrapd: forks into the background, closing stderr, then serves one client on the TCP port given as
+# argument until it disconnects
+FAKE_NMTRAPD = """
+import os, socket, sys
+if os.fork():
+    sys.exit(0)
+os.close(2)
+server = socket.socket()
+server.bind(("127.0.0.1", int(sys.argv[1])))
+server.listen(1)
+server.settimeout(5)
+client, _ = server.accept()
+client.recv(1)
+"""
 
 
 class TestStrapsFrameReader:
@@ -340,6 +368,86 @@ class TestStrapsTrapReceiver:
         assert receiver._reader is None
 
 
+class TestStrapsTrapReceiverStartingMultiplexer:
+    @pytest.mark.timeout(5)
+    async def test_given_no_multiplexer_is_listening_when_connecting_then_it_should_start_one_and_connect(  # noqa: E501
+        self, straps_socket_path
+    ):
+        config = TrapConfiguration(
+            source="straps",
+            straps_socket=straps_socket_path,
+            multiplexer_command=[sys.executable, "-c", FAKE_STRAPS, straps_socket_path],
+        )
+        receiver = StrapsTrapReceiver(trap_config=config, state=ZinoState())
+        with patch("zino.trapd.straps_backend.STARTUP_CONNECT_INTERVAL", 0.1):
+            await receiver._connect()
+        assert receiver._reader is not None
+
+        receiver._close_connection()
+        await receiver._launcher._monitor_task
+
+    async def test_given_multiplexer_is_already_listening_when_connecting_then_it_should_not_start_another(
+        self, straps_unix_server, straps_receiver_with_localhost
+    ):
+        receiver = straps_receiver_with_localhost
+        with patch.object(receiver._launcher, "start", new_callable=AsyncMock) as mock_start:
+            await receiver._connect()
+        mock_start.assert_not_called()
+        receiver._close_connection()
+
+    async def test_given_multiplexer_cannot_be_started_when_connecting_then_it_should_raise(self, nonexistent_path):
+        config = TrapConfiguration(
+            source="straps", straps_socket=nonexistent_path, multiplexer_command=[nonexistent_path]
+        )
+        receiver = StrapsTrapReceiver(trap_config=config, state=ZinoState())
+        with pytest.raises(OSError):
+            await receiver._connect()
+
+    async def test_given_started_multiplexer_never_listens_when_connecting_then_it_should_log_error_and_raise(  # noqa: E501
+        self, nonexistent_path, caplog
+    ):
+        config = TrapConfiguration(
+            source="straps", straps_socket=nonexistent_path, multiplexer_command=[sys.executable, "-c", "pass"]
+        )
+        receiver = StrapsTrapReceiver(trap_config=config, state=ZinoState())
+        with patch("zino.trapd.straps_backend.STARTUP_CONNECT_INTERVAL", 0.01), pytest.raises(OSError):
+            await receiver._connect()
+        assert "could not connect" in caplog.text
+        await receiver._launcher._monitor_task
+
+    async def test_given_started_nmtrapd_never_listens_when_connecting_then_error_should_point_at_syslog(
+        self, unused_tcp_port, caplog
+    ):
+        config = TrapConfiguration(
+            source="nmtrapd", nmtrapd_port=unused_tcp_port, multiplexer_command=[sys.executable, "-c", "pass"]
+        )
+        receiver = StrapsTrapReceiver(trap_config=config, state=ZinoState())
+        with patch("zino.trapd.straps_backend.STARTUP_CONNECT_INTERVAL", 0.01), pytest.raises(OSError):
+            await receiver._connect()
+        assert "syslog" in caplog.text
+        await receiver._launcher._monitor_task
+
+    @pytest.mark.timeout(5)
+    async def test_given_daemonizing_multiplexer_is_not_running_when_reconnecting_then_it_should_be_started_and_connected(  # noqa: E501
+        self, unused_tcp_port
+    ):
+        config = TrapConfiguration(
+            source="nmtrapd",
+            nmtrapd_port=unused_tcp_port,
+            multiplexer_command=[sys.executable, "-c", FAKE_NMTRAPD, str(unused_tcp_port)],
+        )
+        receiver = StrapsTrapReceiver(trap_config=config, state=ZinoState())
+        with (
+            patch("zino.trapd.straps_backend.RECONNECT_BASE_DELAY", 0.01),
+            patch("zino.trapd.straps_backend.STARTUP_CONNECT_INTERVAL", 0.1),
+        ):
+            await receiver._reconnect_with_backoff()
+        assert receiver._reader is not None
+
+        receiver._close_connection()
+        await receiver._launcher._monitor_task
+
+
 async def _gather_cancelled(receiver: StrapsTrapReceiver):
     """Awaits the receiver's background tasks so cancellations complete."""
     tasks = [t for t in (receiver._reader_task, receiver._watchdog_task) if t and not t.done()]
@@ -357,6 +465,12 @@ def make_nmtrapd_frame(addr: str, port: int, pdu: bytes) -> bytes:
     """Builds an nmtrapd-formatted frame: version(1) + unused(1) + port(2) + addr(4) + length(4), all network order."""
     addr_int = int(ipaddress.IPv4Address(addr))
     return struct.pack("!BBHII", 0, 0, port, addr_int, len(pdu)) + pdu
+
+
+@pytest.fixture(autouse=True)
+def no_multiplexers_on_path(monkeypatch, tmp_path):
+    """Keeps tests from starting any real straps or nmtrapd installed on the test machine."""
+    monkeypatch.setenv("PATH", str(tmp_path / "empty-path"))
 
 
 @pytest.fixture
