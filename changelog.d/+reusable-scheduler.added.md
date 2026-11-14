@@ -1,0 +1,1 @@
+Other daemons can now reuse Zino's scheduler setup, pollfile watching and per-device job scheduling through the new `zino.polling` module: `create_scheduler()`, `PollfileWatcher`, `diff_polldevs()`, `schedule_device_jobs()` and `deschedule_device_jobs()`

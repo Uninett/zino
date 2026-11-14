@@ -1,19 +1,21 @@
 import logging
-from time import time
 from unittest.mock import Mock, patch
 
 import pytest
 from apscheduler.jobstores.base import JobLookupError
 
+import zino.state as zino_state
 from zino import scheduler
+from zino.config.models import SchedulerConfiguration
 from zino.events import EventIndex
+from zino.polling import create_scheduler
 from zino.state import ZinoState
 from zino.statemodels import EventState, ReachabilityEvent
 
 
 class TestLoadPolldevs:
     @patch("zino.state.polldevs", dict())
-    @patch("zino.state.pollfile_mtime", None)
+    @patch("zino.state.pollfile_watcher", None)
     @patch("zino.state.state", ZinoState())
     def test_should_return_all_new_devices_on_first_run(self, polldevs_conf):
         new_devices, deleted_devices, changed_devices, _ = scheduler.load_polldevs(polldevs_conf)
@@ -22,7 +24,7 @@ class TestLoadPolldevs:
         assert not changed_devices
 
     @patch("zino.state.polldevs", dict())
-    @patch("zino.state.pollfile_mtime", None)
+    @patch("zino.state.pollfile_watcher", None)
     @patch("zino.state.state", ZinoState())
     def test_should_return_defaults_on_first_run(self, polldevs_conf):
         _, _, _, defaults = scheduler.load_polldevs(polldevs_conf)
@@ -30,21 +32,19 @@ class TestLoadPolldevs:
         assert "interval" in defaults
 
     @patch("zino.state.polldevs", dict())
-    @patch("zino.state.pollfile_mtime", None)
+    @patch("zino.state.pollfile_watcher", None)
     @patch("zino.state.state", ZinoState())
     def test_should_return_deleted_devices_on_second_run(self, polldevs_conf, polldevs_conf_with_single_router):
         scheduler.load_polldevs(polldevs_conf)
 
-        # This needs to be patched since the mtime of the two conf fixtures is the same
-        with patch("zino.state.pollfile_mtime", last_run_time=time() - 60):
-            new_devices, deleted_devices, changed_devices, _ = scheduler.load_polldevs(polldevs_conf_with_single_router)
+        new_devices, deleted_devices, changed_devices, _ = scheduler.load_polldevs(polldevs_conf_with_single_router)
 
         assert not new_devices
         assert len(deleted_devices) > 0
         assert not changed_devices
 
     @patch("zino.state.polldevs", dict())
-    @patch("zino.state.pollfile_mtime", None)
+    @patch("zino.state.pollfile_watcher", None)
     def test_when_device_is_not_in_polldevs_then_related_events_should_be_closed(self, polldevs_conf):
         with patch("zino.state.state", ZinoState()) as state:
             # this creates a DeviceState called removed-gw (removed-gw is not in polldevs_conf)
@@ -60,7 +60,7 @@ class TestLoadPolldevs:
             assert event.state == EventState.CLOSED
 
     @patch("zino.state.polldevs", dict())
-    @patch("zino.state.pollfile_mtime", None)
+    @patch("zino.state.pollfile_watcher", None)
     def test_when_device_is_not_in_polldevs_it_should_be_deleted_from_state(self, polldevs_conf):
         with patch("zino.state.state", ZinoState()) as state:
             # this creates a DeviceState called removed-gw (removed-gw is not in polldevs_conf)
@@ -70,7 +70,7 @@ class TestLoadPolldevs:
             assert "removed-gw" not in state.devices
 
     @patch("zino.state.polldevs", dict())
-    @patch("zino.state.pollfile_mtime", None)
+    @patch("zino.state.pollfile_watcher", None)
     @patch("zino.state.state", ZinoState())
     def test__or_deleted_devices_on_invalid_configuration(self, invalid_polldevs_conf):
         new_devices, deleted_devices, changed_devices, _ = scheduler.load_polldevs(invalid_polldevs_conf)
@@ -79,7 +79,7 @@ class TestLoadPolldevs:
         assert not changed_devices
 
     @patch("zino.state.polldevs", dict())
-    @patch("zino.state.pollfile_mtime", None)
+    @patch("zino.state.pollfile_watcher", None)
     @patch("zino.state.state", ZinoState())
     def test_should_log_error_on_invalid_configuration(self, caplog, invalid_polldevs_conf):
         with caplog.at_level(logging.ERROR):
@@ -87,7 +87,7 @@ class TestLoadPolldevs:
         assert "'lalala' is not a valid configuration line" in caplog.text
 
     @patch("zino.state.polldevs", dict())
-    @patch("zino.state.pollfile_mtime", None)
+    @patch("zino.state.pollfile_watcher", None)
     @patch("zino.state.state", ZinoState())
     def test_should_return_changed_defaults(self, polldevs_conf, tmp_path):
         polldevs_with_changed_defaults = tmp_path.joinpath("changed-defaults-polldevs.cf")
@@ -109,13 +109,11 @@ class TestLoadPolldevs:
 
         _, _, _, defaults = scheduler.load_polldevs(polldevs_conf)
 
-        # This needs to be patched since the mtime of the two conf fixtures is the same
-        with patch("zino.state.pollfile_mtime", last_run_time=time() - 60):
-            _, _, _, changed_defaults = scheduler.load_polldevs(polldevs_with_changed_defaults)
+        _, _, _, changed_defaults = scheduler.load_polldevs(polldevs_with_changed_defaults)
         assert defaults != changed_defaults
 
     @patch("zino.state.polldevs", dict())
-    @patch("zino.state.pollfile_mtime", None)
+    @patch("zino.state.pollfile_watcher", None)
     @patch("zino.state.state", ZinoState())
     def test_should_return_changed_devices_on_changed_defaults(self, polldevs_conf, tmp_path):
         polldevs_with_changed_defaults = tmp_path.joinpath("changed-defaults-polldevs.cf")
@@ -137,16 +135,14 @@ class TestLoadPolldevs:
 
         scheduler.load_polldevs(polldevs_conf)
 
-        # This needs to be patched since the mtime of the two conf fixtures is the same
-        with patch("zino.state.pollfile_mtime", last_run_time=time() - 60):
-            new_devices, deleted_devices, changed_devices, _ = scheduler.load_polldevs(polldevs_with_changed_defaults)
+        new_devices, deleted_devices, changed_devices, _ = scheduler.load_polldevs(polldevs_with_changed_defaults)
 
         assert not new_devices
         assert not deleted_devices
         assert changed_devices
 
     @patch("zino.state.polldevs", dict())
-    @patch("zino.state.pollfile_mtime", None)
+    @patch("zino.state.pollfile_watcher", None)
     @patch("zino.state.state", ZinoState())
     def test_should_return_changed_devices_on_changed_interval(self, polldevs_conf, tmp_path):
         polldevs_with_changed_defaults = tmp_path.joinpath("changed-interval-polldevs.cf")
@@ -169,16 +165,14 @@ class TestLoadPolldevs:
 
         scheduler.load_polldevs(polldevs_conf)
 
-        # This needs to be patched since the mtime of the two conf fixtures is the same
-        with patch("zino.state.pollfile_mtime", last_run_time=time() - 60):
-            new_devices, deleted_devices, changed_devices, _ = scheduler.load_polldevs(polldevs_with_changed_defaults)
+        new_devices, deleted_devices, changed_devices, _ = scheduler.load_polldevs(polldevs_with_changed_defaults)
 
         assert not new_devices
         assert not deleted_devices
         assert changed_devices
 
     @patch("zino.state.polldevs", dict())
-    @patch("zino.state.pollfile_mtime", None)
+    @patch("zino.state.pollfile_watcher", None)
     @patch("zino.state.state", ZinoState())
     def test_should_return_no_new_or_deleted_devices_on_unchanged_configuration(self, polldevs_conf):
         scheduler.load_polldevs(polldevs_conf)
@@ -187,7 +181,17 @@ class TestLoadPolldevs:
         assert not deleted_devices
 
     @patch("zino.state.polldevs", dict())
-    @patch("zino.state.pollfile_mtime", None)
+    @patch("zino.state.pollfile_watcher", None)
+    @patch("zino.state.state", ZinoState())
+    def test_when_unchanged_pollfile_is_given_as_str_then_path_then_it_should_not_be_read_again(self, polldevs_conf):
+        scheduler.load_polldevs(str(polldevs_conf))
+
+        _, _, _, defaults = scheduler.load_polldevs(polldevs_conf)
+
+        assert defaults == {}
+
+    @patch("zino.state.polldevs", dict())
+    @patch("zino.state.pollfile_watcher", None)
     @patch("zino.state.state", ZinoState())
     def test_should_return_no_new_or_deleted_devices_on_non_existent_pollfile(self, tmp_path):
         new_devices, deleted_devices, _, _ = scheduler.load_polldevs(tmp_path / "non-existent-polldev.cf")
@@ -195,7 +199,7 @@ class TestLoadPolldevs:
         assert not deleted_devices
 
     @patch("zino.state.polldevs", dict())
-    @patch("zino.state.pollfile_mtime", None)
+    @patch("zino.state.pollfile_watcher", None)
     @patch("zino.state.state", ZinoState())
     def test_should_log_error_on_non_existent_pollfile(self, caplog, tmp_path):
         with caplog.at_level(logging.ERROR):
@@ -205,7 +209,7 @@ class TestLoadPolldevs:
 
 class TestScheduleNewDevices:
     @patch("zino.state.polldevs", dict())
-    @patch("zino.state.pollfile_mtime", None)
+    @patch("zino.state.pollfile_watcher", None)
     @patch("zino.state.state", ZinoState())
     def test_should_schedule_jobs_for_new_devices(self, polldevs_conf, mocked_scheduler):
         new_devices, _, _, _ = scheduler.load_polldevs(polldevs_conf)
@@ -213,6 +217,21 @@ class TestScheduleNewDevices:
 
         scheduler.schedule_devices(new_devices)
         assert mocked_scheduler.add_job.called
+
+    @patch("zino.state.polldevs", dict())
+    @patch("zino.state.pollfile_watcher", None)
+    @patch("zino.state.state", ZinoState())
+    async def test_when_device_job_runs_then_it_should_run_all_tasks_with_the_state_and_config_from_scheduling(
+        self, polldevs_conf, unstarted_scheduler
+    ):
+        scheduler.load_polldevs(polldevs_conf)
+
+        with patch("zino.scheduler.run_all_tasks", autospec=True) as run_all_tasks:
+            scheduler.schedule_devices(["example-gw"])
+            job = unstarted_scheduler.get_job("example-gw")
+            await job.func(*job.args, **job.kwargs)
+
+        run_all_tasks.assert_awaited_once_with(zino_state.polldevs["example-gw"], zino_state.state, zino_state.config)
 
     @patch("zino.state.polldevs", dict())
     def test_should_do_nothing_when_device_list_is_empty(self, mocked_scheduler):
@@ -253,6 +272,14 @@ def test_delete_devicestate_for_devices_should_delete_devicestates_for_given_dev
         assert "localhost" in state.devices
         scheduler.delete_devicestate_for_devices(["localhost"])
         assert "localhost" not in state.devices
+
+
+@pytest.fixture
+def unstarted_scheduler():
+    """A real scheduler that is never started, so its jobs can be inspected without running them"""
+    sched = create_scheduler(SchedulerConfiguration())
+    with patch("zino.scheduler.get_scheduler", return_value=sched):
+        yield sched
 
 
 @pytest.fixture
