@@ -3,6 +3,7 @@ import importlib.metadata
 import ipaddress
 import os
 import signal
+import socket
 import subprocess
 import sys
 from datetime import timedelta
@@ -10,7 +11,6 @@ from shutil import which
 
 import pytest
 import pytest_asyncio
-from retry import retry
 
 from zino.planned_maintenance import PlannedMaintenances
 from zino.state import ZinoState
@@ -214,23 +214,14 @@ async def snmpsim(snmpsim_command, snmp_test_port):
     from the snmp_fixtures subdirectory.
     """
     print(f"Running {snmpsim_command}")
-    # uvx spawns snmpsim as a grandchild, so put it in its own process group to
-    # ensure the whole tree can be killed on teardown
+    # uvx runs snmpsim as a grandchild of this process. A new session puts the whole
+    # tree in one process group that teardown can kill.
     proc = await asyncio.create_subprocess_exec(*snmpsim_command, start_new_session=True)
-
-    @retry(Exception, tries=3, delay=0.5, backoff=2)
-    async def _wait_for_snmpsimd():
-        if proc.returncode is not None:
-            pytest.fail(f"snmpsim process exited prematurely (exit code {proc.returncode})")
-        if await _verify_localhost_snmp_response(snmp_test_port):
-            return True
-        else:
-            raise TimeoutError("Still waiting for snmpsimd to listen for queries")
-
-    await _wait_for_snmpsimd()
-
-    yield
-    _kill_process_group(proc)
+    try:
+        await _wait_for_snmpsim(proc, snmp_test_port)
+        yield
+    finally:
+        await _kill_process_group(proc)
 
 
 @pytest.fixture(scope="session")
@@ -250,7 +241,15 @@ def snmp_fixture_directory():
 
 @pytest.fixture(scope="session")
 def snmp_test_port():
-    yield 1024
+    """Returns a free UDP port on localhost for the snmpsim fixture to listen on.
+
+    A fixed port may already be held by another process, such as a leftover
+    simulator. The simulator then cannot bind to it. If the other process answers
+    SNMP, the tests silently query it instead. Otherwise, the fixture fails.
+    """
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+        sock.bind(("127.0.0.1", 0))
+        return sock.getsockname()[1]
 
 
 @pytest.fixture(scope="session")
@@ -297,14 +296,6 @@ def snmpsim_command(snmpsimd_path, snmp_fixture_directory, snmp_test_port):
     return [snmpsimd_path] + snmpsim_args
 
 
-def _kill_process_group(proc):
-    """Kills an entire process group, ignoring processes that are already gone."""
-    try:
-        os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
-    except ProcessLookupError:
-        pass
-
-
 def _uv_has_python(version):
     """Returns True if uv can find the given Python version."""
     result = subprocess.run(
@@ -325,6 +316,51 @@ def _get_installed_spec(package_name: str) -> str:
         return f"{package_name}=={version}"
     except importlib.metadata.PackageNotFoundError:
         return package_name
+
+
+async def _wait_for_snmpsim(proc, port: int):
+    """Waits for the snmpsim process to answer SNMP queries."""
+    for _ in range(10):
+        if await _verify_localhost_snmp_response(port):
+            return
+        if proc.returncode is not None:
+            pytest.fail(f"snmpsim process exited prematurely (exit code {proc.returncode})")
+        print("Still waiting for snmpsimd to listen for queries")
+        await asyncio.sleep(0.5)
+    raise TimeoutError("snmpsimd did not start in time")
+
+
+async def _verify_localhost_snmp_response(port: int) -> bool:
+    """Verifies that the snmpsimd fixture process is responding, by using Zino's own netsnmp backend to query it."""
+    from netsnmpy.errors import SNMPError
+
+    from zino.config.models import PollDevice
+    from zino.snmp.netsnmpy_backend import SNMP
+
+    # With the default timeout and retries, a single failed probe would take 20 seconds
+    device = PollDevice(name="snmpsim", address="127.0.0.1", port=port, timeout=1, retries=3)
+    try:
+        with SNMP(device) as snmp:
+            await snmp.getnext("SNMPv2-MIB", "sysObjectID")
+    except (SNMPError, OSError):
+        return False
+    return True
+
+
+async def _kill_process_group(proc):
+    """Kills the process group led by proc, then reaps proc.
+
+    proc must lead its own process group, e.g. by having been started with
+    start_new_session=True. Processes that are already gone are ignored.
+    """
+    # A session leader's pid is also its process group id, so pass it to killpg()
+    # directly. Unlike os.getpgid(proc.pid), that still works after the leader
+    # has been reaped.
+    try:
+        os.killpg(proc.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    await proc.wait()
 
 
 @pytest.fixture
@@ -358,30 +394,6 @@ async def localhost_netsnmpy_receiver(state_with_localhost, unused_udp_port) -> 
     await receiver.open()
     yield receiver
     receiver.close()
-
-
-async def _verify_localhost_snmp_response(port: int) -> bool:
-    """Verifies that the snmpsimd fixture process is responding, by using PySNMP directly to query it."""
-
-    from pysnmp.hlapi.asyncio import (
-        CommunityData,
-        ContextData,
-        ObjectIdentity,
-        ObjectType,
-        SnmpEngine,
-        UdpTransportTarget,
-        nextCmd,
-    )
-
-    error_indication, _, _, var_binds = await nextCmd(
-        SnmpEngine(),
-        CommunityData("public"),
-        UdpTransportTarget(("localhost", port)),
-        ContextData(),
-        ObjectType(ObjectIdentity("SNMPv2-MIB", "sysObjectID")),
-    )
-    # nextCmd always returns a (truthy) 4-tuple, also on timeout
-    return not error_indication and bool(var_binds)
 
 
 @pytest.fixture
