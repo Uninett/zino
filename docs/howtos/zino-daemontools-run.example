@@ -1,0 +1,4 @@
+#!/bin/sh
+exec 2>&1
+cd /home/zino || exit 1
+exec setuidgid zino /home/zino/.zino/bin/zino

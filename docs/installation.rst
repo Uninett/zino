@@ -137,4 +137,5 @@ process should automatically be started at boot time and restarted if it
 crashes during runtime.
 
 If you're on a system that uses *systemd* for service management, please read
-:doc:`/howtos/controlling-zino-with-systemd`
+:doc:`/howtos/controlling-zino-with-systemd`.  On systems without *systemd*,
+such as NetBSD, please read :doc:`/howtos/controlling-zino-with-daemontools`.
