@@ -5,8 +5,10 @@ from collections import Counter
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
+from pysnmp.proto.rfc1905 import NoSuchInstance
 
 from zino.oid import OID
+from zino.snmp.base import NoSuchInstanceError
 from zino.trapd.base import (
     TrapMessage,
     TrapObserver,
@@ -159,6 +161,27 @@ class TestTrapReceiverExternally:
                 assert mock_dispatch.called
                 trap = mock_dispatch.call_args.args[0]
                 assert all(var.value is None for var in trap.variables)
+
+    async def test_when_trap_variable_has_an_exception_value_then_it_should_be_dispatched_as_an_exception(
+        self, localhost_pysnmp_receiver
+    ):
+        resolve_varbind = localhost_pysnmp_receiver._resolve_varbind
+
+        def resolve_sysname_as_missing(name, value):
+            mib, label, instance, value = resolve_varbind(name, value)
+            if label == "sysName":
+                value = NoSuchInstance("")
+            return mib, label, instance, value
+
+        with patch.object(localhost_pysnmp_receiver, "_resolve_varbind", side_effect=resolve_sysname_as_missing):
+            with patch.object(localhost_pysnmp_receiver, "dispatch_trap") as mock_dispatch:
+                await send_trap_externally(
+                    OID_COLD_START, OID_SYSNAME_0, "s", "'MockDevice'", port=localhost_pysnmp_receiver.port
+                )
+
+        trap = mock_dispatch.call_args.args[0]
+        [sysname] = trap.get_all("sysName")
+        assert isinstance(sysname.value, NoSuchInstanceError)
 
     async def test_when_trap_verification_fails_it_should_not_dispatch_trap(self, localhost_pysnmp_receiver):
         with patch.object(localhost_pysnmp_receiver, "_verify_trap", return_value=False):

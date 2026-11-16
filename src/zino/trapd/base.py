@@ -21,7 +21,7 @@ class TrapVarBind(NamedTuple):
     var: str
     instance: OID
     raw_value: Any
-    value: Any
+    value: Any  # An unraised VarBindError if the value is an exception value, such as noSuchInstance
 
 
 class TrapOriginator(NamedTuple):
