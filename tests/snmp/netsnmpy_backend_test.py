@@ -16,6 +16,7 @@ from zino.snmp.base import (
     EndOfMibViewError,
     Identifier,
     MibNotFoundError,
+    MibObject,
     NoSuchInstanceError,
     NoSuchNameError,
     NoSuchObjectError,
@@ -328,6 +329,37 @@ class TestVarBindErrors:
         response = await snmp_client.sparsewalk(("IF-MIB", column))
 
         assert response == {OID(".1"): {column: values[0]}, OID(".2"): {column: values[1]}}
+
+    async def test_when_walked_subtree_ends_the_mib_view_then_walk_should_stop_with_the_objects_before_it(
+        self, snmp_client, monkeypatch
+    ):
+        first_row = resolve_symbol(("IF-MIB", "ifMtu", 1))
+        last_row = resolve_symbol(("IF-MIB", "ifMtu", 2))
+        responses = [
+            [SNMPVariable(first_row, 1500)],
+            [SNMPVariable(last_row, 9000)],
+            [SNMPVariable(last_row, EndOfMibView(""))],
+        ]
+        monkeypatch.setattr("zino.snmp.netsnmpy_backend.SNMPSession.agetnext", AsyncMock(side_effect=responses))
+
+        response = await snmp_client.walk("IF-MIB", "ifMtu")
+
+        assert response == [MibObject(first_row, 1500), MibObject(last_row, 9000)]
+
+    async def test_when_walked_subtree_ends_the_mib_view_then_bulkwalk_should_stop_with_the_objects_before_it(
+        self, snmp_client, monkeypatch
+    ):
+        first_row = resolve_symbol(("IF-MIB", "ifMtu", 1))
+        last_row = resolve_symbol(("IF-MIB", "ifMtu", 2))
+        responses = [
+            [SNMPVariable(first_row, 1500), SNMPVariable(last_row, 9000)],
+            [SNMPVariable(last_row, EndOfMibView(""))],
+        ]
+        monkeypatch.setattr("zino.snmp.netsnmpy_backend.SNMPSession.agetbulk", AsyncMock(side_effect=responses))
+
+        response = await snmp_client.bulkwalk("IF-MIB", "ifMtu")
+
+        assert response == [MibObject(first_row, 1500), MibObject(last_row, 9000)]
 
 
 class TestSnmpContextManager:

@@ -230,7 +230,7 @@ class SNMP:
             response = await self.session.agetnext(current_oid)
             var_bind = response[0]
             current_oid, value = var_bind
-            if not root_oid.is_a_prefix_of(current_oid):
+            if _is_end_of_walk(root_oid, current_oid, value):
                 break
             results.append(MibObject(current_oid, value))
         return results
@@ -293,7 +293,7 @@ class SNMP:
             if not response:
                 break
             for oid, value in response:
-                if not start_oid.is_a_prefix_of(oid):
+                if _is_end_of_walk(start_oid, oid, value):
                     return results
                 query_oid = oid
                 results.append(MibObject(oid, value))
@@ -333,9 +333,6 @@ class SNMP:
         if not var_binds:
             return None
 
-        def is_end_of_scope(root: OID, oid: OID, value: Any) -> bool:
-            return not root.is_a_prefix_of(oid) or isinstance(value, EndOfMibView)
-
         # Integrate response values into result dict by processing in chunks of
         # query count. If we want to support non-repeaters, we need to adjust this.
         query_count = len(query_objects)
@@ -349,7 +346,7 @@ class SNMP:
             last_complete_chunk = chunk
             for root, query, response in zip(roots, query_objects, chunk):
                 oid, value = response
-                if is_end_of_scope(root, oid, value):
+                if _is_end_of_walk(root, oid, value):
                     discards.add(oid)
                     continue
 
@@ -429,6 +426,15 @@ def _split_symbol(symbol: str) -> Tuple[str, str, str]:
         obj = parts
         row_index = ""
     return mib, obj, row_index
+
+
+def _is_end_of_walk(root: OID, oid: OID, value: Any) -> bool:
+    """Returns True if a walk of the subtree at `root` should stop at this varbind.
+
+    An endOfMibView value comes with the requested OID, which is still within the subtree, but there is nothing more
+    to walk.
+    """
+    return not root.is_a_prefix_of(oid) or isinstance(value, EndOfMibView)
 
 
 def mib_value_to_python(value: Any) -> Any:

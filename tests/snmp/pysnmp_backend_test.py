@@ -19,6 +19,7 @@ from zino.snmp.base import (
     ErrorStatus,
     Identifier,
     MibNotFoundError,
+    MibObject,
     NoSuchInstanceError,
     NoSuchNameError,
     NoSuchObjectError,
@@ -311,6 +312,30 @@ class TestVarBindErrors:
 
         assert response == {OID(".1"): {"ifAlias": "one"}, OID(".2"): {"ifAlias": "two"}}
 
+    async def test_when_walked_subtree_ends_the_mib_view_then_walk_should_stop_with_the_objects_before_it(
+        self, snmp_client, monkeypatch
+    ):
+        first_row, last_row, end_of_view = _resolved_ifmtu_rows_ending_the_mib_view(snmp_client)
+        monkeypatch.setattr(
+            "zino.snmp.pysnmp_backend.SNMP._getnext", AsyncMock(side_effect=[first_row, last_row, end_of_view])
+        )
+
+        response = await snmp_client.walk("IF-MIB", "ifMtu")
+
+        assert response == [MibObject(IFMTU_1, 1500), MibObject(IFMTU_2, 9000)]
+
+    async def test_when_walked_subtree_ends_the_mib_view_then_bulkwalk_should_stop_with_the_objects_before_it(
+        self, snmp_client, monkeypatch
+    ):
+        first_row, last_row, end_of_view = _resolved_ifmtu_rows_ending_the_mib_view(snmp_client)
+        monkeypatch.setattr(
+            "zino.snmp.pysnmp_backend.SNMP._getbulk", AsyncMock(side_effect=[[first_row, last_row], [end_of_view]])
+        )
+
+        response = await snmp_client.bulkwalk("IF-MIB", "ifMtu")
+
+        assert response == [MibObject(IFMTU_1, 1500), MibObject(IFMTU_2, 9000)]
+
 
 class TestPDUErrors:
     """Tests for handling error flags in response PDUs."""
@@ -364,3 +389,19 @@ def fresh_snmp_engine():
     pysnmp_backend._local.snmp_engine = None
     yield
     pysnmp_backend._local.snmp_engine = None
+
+
+IFMTU_1 = OID(".1.3.6.1.2.1.2.2.1.4.1")
+IFMTU_2 = OID(".1.3.6.1.2.1.2.2.1.4.2")
+
+
+def _resolved_ifmtu_rows_ending_the_mib_view(snmp_client: SNMP) -> tuple[ObjectType, ObjectType, ObjectType]:
+    """Returns two ifMtu rows followed by an endOfMibView for the last one, as an agent's responses would have them"""
+    rows = (
+        ObjectType(ObjectIdentity("IF-MIB", "ifMtu", 1), 1500),
+        ObjectType(ObjectIdentity("IF-MIB", "ifMtu", 2), 9000),
+        ObjectType(ObjectIdentity("IF-MIB", "ifMtu", 2), EndOfMibView("")),
+    )
+    for row in rows:
+        snmp_client._resolve_object(row)
+    return rows
