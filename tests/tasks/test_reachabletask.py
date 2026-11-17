@@ -2,8 +2,11 @@ from datetime import timedelta
 
 import pytest
 
+from zino.config.models import Configuration, PollDevice
+from zino.state import ZinoState
 from zino.statemodels import ReachabilityEvent, ReachabilityState
 from zino.tasks.errors import DeviceUnreachableError
+from zino.tasks.reachabletask import ReachableTask
 from zino.time import now
 
 
@@ -171,3 +174,15 @@ class TestReachableTask:
         updated_event = task.state.events[event.id]
         assert updated_event.reachability == ReachabilityState.REACHABLE
         assert updated_event.ac_down > initial_ac_down
+
+    async def test_when_extra_job_has_run_then_its_snmp_session_should_be_closed(self, snmpsim, snmp_test_port):
+        device = PollDevice(name="buick.lab.example.org", address="127.0.0.1", port=snmp_test_port)
+        task = ReachableTask(device, ZinoState(), Configuration())
+        event = task.state.events.create_event(device.name, None, ReachabilityEvent)
+        event.reachability = ReachabilityState.NORESPONSE
+        task.state.events.commit(event)
+
+        await task._run_extra_job()
+
+        assert task.state.events[event.id].reachability == ReachabilityState.REACHABLE
+        assert not task.snmp._is_open
