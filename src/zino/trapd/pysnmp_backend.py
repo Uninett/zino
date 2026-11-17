@@ -3,7 +3,7 @@
 import asyncio
 import logging
 from ipaddress import ip_address
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 from pyasn1.type.base import SimpleAsn1Type
 from pysnmp.carrier.asyncio.dgram import udp
@@ -16,7 +16,7 @@ from pysnmp.smi.rfc1902 import ObjectIdentity, ObjectType
 import zino.state
 from zino.config.models import PollDevice
 from zino.oid import OID
-from zino.snmp.pysnmp_backend import get_new_snmp_engine, mib_value_to_python
+from zino.snmp.pysnmp_backend import _varbind_error, get_new_snmp_engine, mib_value_to_python
 from zino.trapd.base import (
     TrapMessage,
     TrapOriginator,
@@ -93,10 +93,7 @@ class TrapReceiver(TrapReceiverBase):
         for var, raw_value in var_binds:
             mib, label, instance, raw_value = self._resolve_varbind(var, raw_value)
             _logger.debug("(%r, %r, %s) = %s", mib, label, instance, raw_value.prettyPrint())
-            try:
-                value = mib_value_to_python(raw_value)
-            except Exception:  # noqa: BLE001
-                value = None
+            value = self._convert_value(var, raw_value)
             trap.variables.append(TrapVarBind(OID(var), mib, label, instance, raw_value, value))
             if label == "snmpTrapOID":
                 snmp_trap_oid = raw_value
@@ -145,3 +142,19 @@ class TrapReceiver(TrapReceiverBase):
         name, value = ObjectType(ObjectIdentity(name), value).resolveWithMib(controller)
         mib, label, instance = name.getMibSymbol()
         return mib, label, instance, value
+
+    @staticmethod
+    def _convert_value(name: ObjectName, value: SimpleAsn1Type) -> Any:
+        """Converts a resolved varbind value to a plainer Python object.
+
+        :param name: The varbind name
+        :param value: The resolved varbind value
+        :return: The converted value, an unraised `VarBindError` for an exception value, or None if the value could
+                 not be converted
+        """
+        if error := _varbind_error(OID(name), value):
+            return error
+        try:
+            return mib_value_to_python(value)
+        except Exception:  # noqa: BLE001
+            return None

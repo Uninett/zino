@@ -49,16 +49,8 @@ class NetsnmpTrapProcessorMixin:
                 )
                 return
 
-            # This should really be part of netsnmp-cffi, but it isn't currently
-            raw_value = value = variable.value
-            enum_value = variable.enum_value
-            if enum_value:
-                value = enum_value
-            elif variable.textual_convention == "DisplayString":
-                value = variable.value.decode("utf-8")
-
             zino_trap.variables.append(
-                TrapVarBind(variable.oid, identifier.mib, identifier.object, identifier.index, raw_value, value)
+                TrapVarBind(variable.oid, identifier.mib, identifier.object, identifier.index, variable.value, value)
             )
 
         # TODO do some time calculations, but ask Håvard what the deal is with RestartTime vs. BootTime

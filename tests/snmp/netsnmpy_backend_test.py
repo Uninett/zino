@@ -361,6 +361,22 @@ class TestVarBindErrors:
 
         assert response == [MibObject(first_row, 1500), MibObject(last_row, 9000)]
 
+    @pytest.mark.parametrize("column", ["ifAlias", "ifOperStatus", "ifMtu"], ids=["string", "enum", "integer"])
+    async def test_when_varbind_has_an_exception_value_then_getnext2_should_return_it_as_an_exception(
+        self, column, snmp_client, monkeypatch
+    ):
+        mock_results = [
+            SNMPVariable(resolve_symbol(("IF-MIB", "ifName", 2)), b"eth1"),
+            SNMPVariable(resolve_symbol(("IF-MIB", column, 1)), EndOfMibView("")),
+        ]
+        monkeypatch.setattr("zino.snmp.netsnmpy_backend.SNMPSession.agetnext", AsyncMock(return_value=mock_results))
+
+        response = await snmp_client.getnext2(("IF-MIB", "ifName", 1), ("IF-MIB", column, 1))
+
+        (_, name), (_, value) = response
+        assert name == "eth1"
+        assert isinstance(value, EndOfMibViewError)
+
 
 class TestSnmpContextManager:
     @pytest.fixture

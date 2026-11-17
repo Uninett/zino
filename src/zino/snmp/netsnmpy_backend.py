@@ -32,6 +32,7 @@ from zino.snmp.base import (
     SNMPBackendVersionError,
     SNMPVarBind,
     SparseWalkResponse,
+    VarBindError,
 )
 
 _log = logging.getLogger(__name__)
@@ -167,13 +168,8 @@ class SNMP:
 
     def _raise_varbind_errors(self, var_bind: netsnmp.Variable):
         """Raises a relevant exception if an error has occurred in a varbind"""
-        oid, value = var_bind
-        if isinstance(value, NoSuchObject):
-            raise NoSuchObjectError(f"Could not find object at {oid}")
-        if isinstance(value, NoSuchInstance):
-            raise NoSuchInstanceError(f"Could not find instance at {oid}")
-        if isinstance(value, EndOfMibView):
-            raise EndOfMibViewError("Reached end of MIB view")
+        if error := _varbind_error(*var_bind):
+            raise error
 
     async def getnext(self, *oid: str) -> MibObject:
         """SNMP-GETNEXTs the given oid
@@ -206,7 +202,7 @@ class SNMP:
         >>>
 
         :param variables: Symbolic MIB objects to query.  Multiple formats supported.
-        :return: A sequence of MibObject instances representing the resulting MIB variables
+        :return: Identifier/value pairs for the resulting MIB variables, see `SNMPVarBind` about exception values
         """
         oids = [resolve_symbol(var) for var in variables]
         self._open_if_closed()
@@ -264,7 +260,7 @@ class SNMP:
 
         :param variables: Variables to fetch, either as OIDs or symbolic names
         :param max_repetitions: Max amount of MIB objects to retrieve
-        :return: A sequence of two-tuples that represent the response varbinds
+        :return: A sequence of two-tuples that represent the response varbinds, see `SNMPVarBind` about exception values
         """
         oid_objects = [resolve_symbol(v) for v in variables]
         self._open_if_closed()
@@ -396,14 +392,17 @@ def _close_abandoned_session(session: SNMPSession, device_name: str) -> None:
 def _convert_snmp_variable(variable: SNMPVariable) -> SNMPVarBind:
     """Converts a netsnmp-cffi  SNMPVariable to an Identifier/value pair.
 
-    We don't want to use the netsnmp-cffi types outside of this module, so we convert them to our own types.
+    We don't want to use the netsnmp-cffi types outside of this module, so we convert them to our own types.  An
+    exception value, such as noSuchInstance, is converted to an unraised `VarBindError` instance.
     """
     mib, obj, _rest = _split_symbol(variable.symbolic_name)
     # Net-SNMP does a symbolic breakdown of the full OID, so we need to reassemble the bits we care about:
     prefix = netsnmp.symbol_to_oid(f"{mib}::{obj}")
     suffix = variable.oid.strip_prefix(prefix)
 
-    if (enum_value := variable.enum_value) is not None:
+    if error := _varbind_error(*variable):
+        value = error
+    elif (enum_value := variable.enum_value) is not None:
         value = enum_value
     elif variable.textual_convention == "DisplayString":
         value = variable.value.decode("utf-8")
@@ -411,6 +410,22 @@ def _convert_snmp_variable(variable: SNMPVariable) -> SNMPVarBind:
         value = variable.value
 
     return Identifier(mib, obj, suffix), value
+
+
+def _varbind_error(oid: OID, value: Any) -> Optional[VarBindError]:
+    """Translates an SNMP exception value to the matching Zino exception, without raising it.
+
+    :param oid: The OID of the varbind that carries the value
+    :param value: The varbind value
+    :return: The matching exception, or None if the value is not an exception value
+    """
+    if isinstance(value, NoSuchObject):
+        return NoSuchObjectError(f"Could not find object at {oid}")
+    if isinstance(value, NoSuchInstance):
+        return NoSuchInstanceError(f"Could not find instance at {oid}")
+    if isinstance(value, EndOfMibView):
+        return EndOfMibViewError("Reached end of MIB view")
+    return None
 
 
 def _split_symbol(symbol: str) -> Tuple[str, str, str]:

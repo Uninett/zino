@@ -20,6 +20,7 @@ class Identifier(NamedTuple):
     index: OID
 
 
+# The value is an unraised VarBindError if the agent responded with an exception value, such as noSuchInstance
 SNMPVarBind = tuple[Identifier, Any]
 SparseWalkResponse = dict[OID, dict[str, Any]]
 

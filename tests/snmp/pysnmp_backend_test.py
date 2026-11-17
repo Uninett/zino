@@ -336,6 +336,24 @@ class TestVarBindErrors:
 
         assert response == [MibObject(IFMTU_1, 1500), MibObject(IFMTU_2, 9000)]
 
+    async def test_when_varbind_has_an_exception_value_then_getnext2_should_return_it_as_an_exception(
+        self, snmp_client, monkeypatch
+    ):
+        var_binds = [
+            ObjectType(ObjectIdentity("IF-MIB", "ifName", 2), "eth1"),
+            ObjectType(ObjectIdentity("IF-MIB", "ifAlias", 1), EndOfMibView("")),
+        ]
+        for var_bind in var_binds:
+            snmp_client._resolve_object(var_bind)
+        mock_results = None, None, None, [var_binds]
+        monkeypatch.setattr("zino.snmp.pysnmp_backend.nextCmd", AsyncMock(return_value=mock_results))
+
+        response = await snmp_client.getnext2(("IF-MIB", "ifName", 1), ("IF-MIB", "ifAlias", 1))
+
+        (_, name), (_, alias) = response
+        assert name == "eth1"
+        assert isinstance(alias, EndOfMibViewError)
+
 
 class TestPDUErrors:
     """Tests for handling error flags in response PDUs."""
