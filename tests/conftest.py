@@ -1,4 +1,5 @@
 import asyncio
+import functools
 import importlib.metadata
 import ipaddress
 import os
@@ -13,6 +14,7 @@ import pytest
 import pytest_asyncio
 
 from zino.planned_maintenance import PlannedMaintenances
+from zino.snmp import netsnmpy_backend as netsnmpy_snmp_backend
 from zino.state import ZinoState
 from zino.statemodels import (
     DeviceMaintenance,
@@ -444,3 +446,35 @@ def ended_pm(pms):
         match_expression="device",
         match_device="device",
     )
+
+
+@pytest.fixture(autouse=True)
+def fail_on_unclosed_snmp_session(request, monkeypatch):
+    """Fails any test that leaves an SNMP session open after the test and its fixtures are done.
+
+    Zino would close such a session once it is garbage collected, and log a warning that points to a missing `with`
+    statement.  Tracking keeps every session alive until teardown, so tests that rely on garbage collection must opt
+    out too.  Opt out with the `allow_unclosed_snmp_sessions` marker.
+    """
+    if request.node.get_closest_marker("allow_unclosed_snmp_sessions"):
+        yield
+        return
+
+    # Strong references keep the sessions alive until they are checked below
+    created = []
+    original_init = netsnmpy_snmp_backend.SNMP.__init__
+
+    @functools.wraps(original_init)
+    def tracking_init(self, *args, **kwargs):
+        original_init(self, *args, **kwargs)
+        created.append(self)
+
+    monkeypatch.setattr(netsnmpy_snmp_backend.SNMP, "__init__", tracking_init)
+    yield
+
+    unclosed = [snmp for snmp in created if snmp._is_open]
+    for snmp in unclosed:
+        snmp.close()
+    if unclosed:
+        devices = ", ".join(sorted({snmp.device.name for snmp in unclosed}))
+        pytest.fail(f"SNMP sessions were left open after the test (missing `with`?): {devices}", pytrace=False)
