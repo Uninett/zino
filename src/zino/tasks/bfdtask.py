@@ -116,7 +116,7 @@ class BFDTask(Task):
         if session_index is None:
             bfd_rows = await self.snmp.sparsewalk(*self.CISCO_BFD_COLUMNS)
         else:
-            bfd_rows = self._get_single_row(session_index, *self.CISCO_BFD_COLUMNS)
+            bfd_rows = await self._get_single_row(session_index, *self.CISCO_BFD_COLUMNS)
 
         bfd_states = self._parse_cisco_rows(bfd_rows)
         return bfd_states
