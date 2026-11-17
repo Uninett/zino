@@ -120,6 +120,28 @@ Zino will automatically reconnect if the multiplexer connection is lost, and
 includes a watchdog that detects silent connections (inspired by Zino 1's
 ``TrapWatchdog``).
 
+If Zino cannot connect to the multiplexer, it starts the multiplexer itself,
+just as Zino 1 did through Scotty.  The multiplexer needs no supervision: it
+exits by itself once Zino disconnects.  By default, Zino looks for a program
+named ``straps`` or ``nmtrapd`` (matching ``source``) on its ``PATH``.  Use
+``multiplexer_command`` to give a full command line instead:
+
+.. code-block:: toml
+   :caption: zino.toml
+
+   [snmp.trap]
+   source = "straps"
+   multiplexer_command = ["/usr/pkg/bin/straps"]
+
+Both multiplexers are normally installed setuid root, which lets them bind
+port 162 even when started by an unprivileged Zino.  If the multiplexer fails
+to start, Zino logs the error.  ``nmtrapd`` reports its own errors only to
+syslog, so look there as well.
+
+To manage the multiplexer some other way, set ``start_multiplexer = false``.
+Zino will then only keep trying to connect.  Zino never starts ``nmtrapd`` when
+``nmtrapd_host`` is not ``localhost`` or a loopback address.
+
 .. _configuring-logging:
 
 Configuring logging
