@@ -143,6 +143,36 @@ class TestSNMPRequestsResponseTypes:
             for var, val in row.items():
                 assert var in variables
 
+    @pytest.mark.parametrize(
+        "community, expected",
+        [
+            (
+                "sparse-columns-holes",
+                {
+                    OID(".1"): {"ifMtu": 1500, "ifSpeed": 10000000},
+                    OID(".2"): {"ifSpeed": 20000000},
+                    OID(".3"): {"ifSpeed": 30000000},
+                    OID(".4"): {"ifSpeed": 40000000},
+                    OID(".5"): {"ifMtu": 9000, "ifSpeed": 50000000},
+                },
+            ),
+            (
+                "sparse-columns-empty",
+                {OID(f".{row}"): {"ifSpeed": row * 10000000} for row in range(1, 6)},
+            ),
+        ],
+        ids=["holes", "empty-column"],
+    )
+    async def test_when_a_column_has_fewer_rows_than_the_others_then_sparsewalk_should_still_walk_all_rows(
+        self, community, expected, snmpsim, snmp_test_port
+    ):
+        # Each simulated agent has ifPhysAddress.1 after the walked columns, so the walk ends by leaving their scope
+        device = PollDevice(name="buick.lab.example.org", address="127.0.0.1", port=snmp_test_port, community=community)
+        with SNMP(device) as snmp:
+            response = await snmp.sparsewalk(("IF-MIB", "ifMtu"), ("IF-MIB", "ifSpeed"), max_repetitions=2)
+
+        assert response == expected
+
     async def test_get_sysobjectid_should_be_tuple_of_ints(self, snmp_client):
         response = await snmp_client.get("SNMPv2-MIB", "sysObjectID", 0)
         assert isinstance(response.oid, OID)

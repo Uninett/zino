@@ -309,49 +309,40 @@ class SNMP:
         """
         # See section 4.2.3 of RFC 3416 for reference.  This method does not support
         # non-repeaters values.
-        query_objects = roots = [resolve_symbol(symbol) for symbol in variables]
+        roots = [resolve_symbol(symbol) for symbol in variables]
+        columns = [(root, root) for root in roots]
         results: dict[OID, dict[str, Any]] = defaultdict(dict)
 
         self._open_if_closed()
-        while True:
-            query_objects = await self._sparsewalk_iteration(roots, query_objects, results, max_repetitions)
-            if not query_objects:
-                break  # Nothing left to query
+        while columns:
+            columns = await self._sparsewalk_iteration(columns, results, max_repetitions)
         return dict(results)
 
     async def _sparsewalk_iteration(
-        self, roots: list[OID], query_objects: list[OID], results: dict[OID, dict[str, Any]], max_repetitions: int
-    ) -> Optional[list[OID]]:
+        self, columns: list[tuple[OID, OID]], results: dict[OID, dict[str, Any]], max_repetitions: int
+    ) -> list[tuple[OID, OID]]:
         """Performs a single iteration of a sparsewalk operation, updating the results dict with the response values.
-        Returns the next set of OIDs to query.
+
+        :param columns: The columns still being walked, as pairs of the column's root OID and the next OID to query
+        :param results: The sparse table to update with the response values
+        :param max_repetitions: The max-repetitions value of the GETBULK request
+        :return: The columns that remain to be walked, in the same form as `columns`.  This is empty if the response
+                 holds no complete repetition, which ends the walk.
         """
-        var_binds = await self.session.agetbulk(*query_objects, max_repetitions=max_repetitions)
-        if not var_binds:
-            return None
+        var_binds = await self.session.agetbulk(*(query for _root, query in columns), max_repetitions=max_repetitions)
 
-        # Integrate response values into result dict by processing in chunks of
-        # query count. If we want to support non-repeaters, we need to adjust this.
-        query_count = len(query_objects)
-        response_chunk = (var_binds[i : i + query_count] for i in range(0, len(var_binds), query_count))
-        discards = set()
-        last_complete_chunk = ()
-        for chunk in response_chunk:
-            if len(chunk) < query_count:
-                # Ignore incomplete chunks, just query those objects over again
-                break
-            last_complete_chunk = chunk
-            for root, query, response in zip(roots, query_objects, chunk):
-                oid, value = response
-                if _is_end_of_walk(root, oid, value):
-                    discards.add(oid)
-                    continue
-
-                ident, value = _convert_snmp_variable(response)
-                results[ident.index][ident.object] = value
-
-        # Prepare next query based on the contents of the last chunk
-        query_objects = [oid for oid, _ in last_complete_chunk if oid not in discards]
-        return query_objects
+        # The response holds one varbind per column in each repetition. Varbinds after the last complete repetition
+        # are ignored, and the walk continues from that repetition. If we want to support non-repeaters, we need to
+        # adjust this.
+        query_count = len(columns)
+        complete_length = len(var_binds) - len(var_binds) % query_count
+        remaining = []
+        for position, (root, _query) in enumerate(columns):
+            column_var_binds = var_binds[position:complete_length:query_count]
+            next_query = _integrate_column(root, column_var_binds, results)
+            if next_query is not None:
+                remaining.append((root, next_query))
+        return remaining
 
     def is_in_scope(self, entry: MibObject, oid: Tuple[str, str]):
         """Returns if the given MibObject is within the subtree defined by the given OID"""
@@ -387,6 +378,27 @@ def _close_abandoned_session(session: SNMPSession, device_name: str) -> None:
         session.close()
         return
     loop.call_soon(session.close)
+
+
+def _integrate_column(
+    root: OID, var_binds: Sequence[SNMPVariable], results: dict[OID, dict[str, Any]]
+) -> Optional[OID]:
+    """Adds the values of one sparsewalk column, from a single response, to the results.
+
+    :param root: The root OID of the column
+    :param var_binds: The column's varbinds from the response, in order
+    :param results: The sparse table to add the values to
+    :return: The OID to continue walking the column from, or None if the column has ended or got no varbinds
+    """
+    last_oid = None
+    for var_bind in var_binds:
+        oid, raw_value = var_bind
+        if _is_end_of_walk(root, oid, raw_value):
+            return None
+        ident, value = _convert_snmp_variable(var_bind)
+        results[ident.index][ident.object] = value
+        last_oid = oid
+    return last_oid
 
 
 def _convert_snmp_variable(variable: SNMPVariable) -> SNMPVarBind:
