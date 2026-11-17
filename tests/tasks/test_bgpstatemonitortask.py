@@ -426,7 +426,8 @@ def task(request, snmpsim, snmp_test_port):
         task.device_state.bgp_style = BGPStyle.JUNIPER
     elif BGPStyle.GENERAL in request.param:
         task.device_state.bgp_style = BGPStyle.GENERAL
-    yield task
+    with task.snmp:
+        yield task
 
 
 @pytest.fixture
@@ -441,4 +442,5 @@ def task_with_bgp_disabled_device(snmp_test_port):
     state = ZinoState()
     with patch.object(BGPStateMonitorTask, "_get_bgp_style", new=AsyncMock(return_value=BGPStyle.GENERAL)):
         task = BGPStateMonitorTask(device, state)
-        yield task
+        with task.snmp:
+            yield task

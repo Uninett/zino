@@ -77,4 +77,5 @@ def address_task_with_dummy_device(snmpsim, snmp_test_port) -> AddressMapTask:
     )
     state = ZinoState()
     task = AddressMapTask(device, state)
-    yield task
+    with task.snmp:
+        yield task

@@ -253,7 +253,8 @@ def linkstatetask_with_links_up(snmpsim, snmp_test_port):
     device = PollDevice(name="buick.lab.example.org", address="127.0.0.1", port=snmp_test_port, community="linksup")
     state = ZinoState()
     task = LinkStateTask(device, state, Configuration())
-    yield task
+    with task.snmp:
+        yield task
 
 
 @pytest.fixture
@@ -261,7 +262,8 @@ def linkstatetask_with_one_link_down(snmpsim, snmp_test_port):
     device = PollDevice(name="buick.lab.example.org", address="127.0.0.1", port=snmp_test_port, community="linksdown")
     state = ZinoState()
     task = LinkStateTask(device, state, Configuration())
-    yield task
+    with task.snmp:
+        yield task
 
 
 @pytest.fixture
@@ -271,7 +273,8 @@ def linkstatetask_with_admin_down(snmpsim, snmp_test_port):
     )
     state = ZinoState()
     task = LinkStateTask(device, state, Configuration())
-    yield task
+    with task.snmp:
+        yield task
 
 
 @pytest.fixture
@@ -279,4 +282,5 @@ def task_with_dummy_device():
     device = PollDevice(name="test", address="127.0.0.1")
     state = ZinoState()
     task = LinkStateTask(device, state, Configuration())
-    yield task
+    with task.snmp:
+        yield task
