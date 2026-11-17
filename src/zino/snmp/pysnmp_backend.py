@@ -272,7 +272,7 @@ class SNMP:
         original_oid = OID(str(current_object[0]))
         while True:
             current_object = await self._getnext(current_object)
-            if not original_oid.is_a_prefix_of(str(current_object[0])):
+            if _is_end_of_walk(original_oid, current_object):
                 break
             mib_object = self._object_type_to_mib_object(current_object)
             results.append(mib_object)
@@ -372,7 +372,7 @@ class SNMP:
             if not response:
                 break
             for result in response:
-                if not start_oid.is_a_prefix_of(str(result[0])):
+                if _is_end_of_walk(start_oid, result):
                     return results
                 query_object = result
                 mib_object = self._object_type_to_mib_object(result)
@@ -398,8 +398,7 @@ class SNMP:
         results: dict[OID, dict[str, Any]] = defaultdict(dict)
 
         def _var_bind_is_in_scope(var: PySNMPVarBind) -> bool:
-            oid = OID(var[0])
-            return any(root.is_a_prefix_of(oid) for root in roots)
+            return any(not _is_end_of_walk(root, var) for root in roots)
 
         while True:
             var_bind_table = await self._getbulk2(*query_objects, max_repetitions=max_repetitions)
@@ -500,3 +499,14 @@ def mib_value_to_python(value: SupportedTypes) -> Union[str, int, OID]:
     else:
         raise ValueError(f"Could not convert unknown type {type(value)}")
     return value
+
+
+def _is_end_of_walk(root: OID, var_bind: PySNMPVarBind) -> bool:
+    """Returns True if a walk of the subtree at `root` should stop at this varbind.
+
+    An endOfMibView value comes with the requested OID, which is still within the subtree, but there is nothing more
+    to walk.
+    """
+    oid = OID(str(var_bind[0]))
+    value = var_bind[1]
+    return not root.is_a_prefix_of(oid) or isinstance(value, EndOfMibView)
