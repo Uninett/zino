@@ -7,7 +7,7 @@ import pytest
 from zino.config.models import PollDevice
 from zino.oid import OID
 from zino.state import ZinoState
-from zino.statemodels import BFDSessState, Port
+from zino.statemodels import CISCO_ENTERPRISE_ID, JUNIPER_ENTERPRISE_ID, BFDSessState, Port
 from zino.trapd.base import TrapMessage, TrapOriginator
 from zino.trapobservers.bfd_traps import BFDTrapObserver
 
@@ -73,23 +73,24 @@ class TestBFDTrapObserver:
 
         assert bfdtask_run.call_count == 0
 
+    @pytest.mark.parametrize("bfd_vendor", ["juniper", "cisco"], indirect=True)
     async def test_when_trap_range_has_a_missing_index_then_later_sessions_should_still_be_updated(
-        self, bfd_trap_with_missing_index, juniper_bfd_state, juniper_bfd_polldev
+        self, bfd_trap_with_missing_index, bfd_device_state, bfd_polldev
     ):
-        polldevs_dict = {juniper_bfd_polldev.name: juniper_bfd_polldev}
+        polldevs_dict = {bfd_polldev.name: bfd_polldev}
 
-        observer = BFDTrapObserver(state=juniper_bfd_state, polldevs=polldevs_dict)
+        observer = BFDTrapObserver(state=bfd_device_state, polldevs=polldevs_dict)
         await observer.handle_trap(trap=bfd_trap_with_missing_index)
 
-        port = juniper_bfd_state.devices.get(juniper_bfd_polldev.name).ports[1]
+        port = bfd_device_state.devices.get(bfd_polldev.name).ports[1]
         assert port.bfd_state.session_state == BFDSessState.UP
 
 
 @pytest.fixture
-def bfd_trap_with_missing_index(juniper_bfd_state, juniper_bfd_polldev) -> TrapMessage:
+def bfd_trap_with_missing_index(bfd_device_state, bfd_polldev) -> TrapMessage:
     """Returns a BFD session-up trap for a range of two sessions, where only the last one exists on the device"""
-    device = juniper_bfd_state.devices.get(juniper_bfd_polldev.name)
-    agent = TrapOriginator(address=juniper_bfd_polldev.address, port=162, device=device)
+    device = bfd_device_state.devices.get(bfd_polldev.name)
+    agent = TrapOriginator(address=bfd_polldev.address, port=162, device=device)
     trap = TrapMessage(agent=agent, mib="BFD-STD-MIB", name="bfdSessUp")
     trap.variables = [
         Mock(var="bfdSessDiag", instance=OID(".4523"), value="noDiagnostic"),
@@ -99,20 +100,25 @@ def bfd_trap_with_missing_index(juniper_bfd_state, juniper_bfd_polldev) -> TrapM
 
 
 @pytest.fixture
-def juniper_bfd_state(juniper_bfd_polldev) -> ZinoState:
-    """Returns a state with a Juniper device whose port matches BFD session 4524 in the juniper-bfd-up simulation"""
+def bfd_device_state(bfd_vendor, bfd_polldev) -> ZinoState:
+    """Returns a state with a device whose port matches BFD session 4524 in the vendor's bfd-up simulation"""
     state = ZinoState()
-    device = state.devices.get(device_name=juniper_bfd_polldev.name)
-    device.enterprise_id = 2636
+    device = state.devices.get(device_name=bfd_polldev.name)
+    device.enterprise_id = ENTERPRISE_IDS[bfd_vendor]
     device.ports[1] = Port(ifindex=1, ifdescr="xe-1/2/0.0")
     return state
 
 
 @pytest.fixture
-def juniper_bfd_polldev(snmpsim, snmp_test_port) -> PollDevice:
+def bfd_polldev(bfd_vendor, snmpsim, snmp_test_port) -> PollDevice:
     return PollDevice(
-        name="buick.lab.example.org", address="127.0.0.1", port=snmp_test_port, community="juniper-bfd-up"
+        name="buick.lab.example.org", address="127.0.0.1", port=snmp_test_port, community=f"{bfd_vendor}-bfd-up"
     )
+
+
+@pytest.fixture
+def bfd_vendor(request) -> str:
+    return request.param
 
 
 @pytest.fixture
@@ -134,3 +140,6 @@ def malformed_bfd_session_down_trap(localhost_trap_originator) -> TrapMessage:
         Mock(var="bfdSessDiag", instance=OID(".42"), value="pathDown"),
     ]
     return trap
+
+
+ENTERPRISE_IDS = {"juniper": JUNIPER_ENTERPRISE_ID, "cisco": CISCO_ENTERPRISE_ID}
