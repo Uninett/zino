@@ -33,7 +33,7 @@ class TestJuniperalarmTask:
         device_state = task.state.devices.get(device_name=task.device.name)
         device_state.enterprise_id = 2636
 
-        with caplog.at_level(logging.DEBUG):
+        with caplog.at_level(logging.DEBUG), task.snmp:
             await task.run()
 
         assert device_state.alarms is None
@@ -53,7 +53,7 @@ class TestJuniperalarmTask:
         task = JuniperAlarmTask(device, state)
         device_state = task.state.devices.get(device_name=task.device.name)
         device_state.enterprise_id = 2636
-        with caplog.at_level(logging.DEBUG):
+        with caplog.at_level(logging.DEBUG), task.snmp:
             await task.run()
 
         assert device_state.alarms is None
@@ -194,7 +194,8 @@ class TestJuniperalarmTask:
         task = JuniperAlarmTask(device, state)
         device_state = task.state.devices.get(device_name=task.device.name)
         device_state.enterprise_id = 2636
-        await task.run()
+        with task.snmp:
+            await task.run()
 
         yellow_event = task.state.events.get(device_name=task.device.name, subindex="yellow", event_class=AlarmEvent)
         red_event = task.state.events.get(device_name=task.device.name, subindex="red", event_class=AlarmEvent)
@@ -213,4 +214,5 @@ def juniper_alarm_task(snmpsim, snmp_test_port):
     )
     state = ZinoState()
     task = JuniperAlarmTask(device, state)
-    yield task
+    with task.snmp:
+        yield task

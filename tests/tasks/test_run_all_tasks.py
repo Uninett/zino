@@ -1,12 +1,15 @@
 from unittest.mock import patch
+from weakref import WeakValueDictionary
 
 import pytest
 
 from zino.config.models import Configuration, PollDevice
+from zino.snmp import get_snmp_session
 from zino.state import ZinoState
 from zino.tasks import run_all_tasks, run_registered_tasks
 from zino.tasks.errors import DeviceUnreachableError
 from zino.tasks.task import Task
+from zino.tasks.vendor import VendorTask
 
 
 class TestRunAllTasks:
@@ -24,6 +27,21 @@ class TestRunAllTasks:
             await run_all_tasks(mock_device, state, config)
             assert raising_task.was_run
             assert not non_raising_task.was_run
+
+    async def test_when_all_tasks_have_run_then_their_shared_snmp_session_should_be_closed(
+        self, snmpsim, snmp_test_port, monkeypatch
+    ):
+        # Tests otherwise disable session re-use, but here all tasks must share the session, as in production
+        monkeypatch.setattr("zino.snmp._snmp_sessions", WeakValueDictionary())
+        device = PollDevice(name="localhost", address="127.0.0.1", port=snmp_test_port)
+        state = ZinoState()
+        session = get_snmp_session(device)
+
+        with patch("zino.tasks.get_registered_tasks", return_value=[VendorTask]):
+            await run_all_tasks(device, state, Configuration())
+
+        assert state.devices[device.name].enterprise_id
+        assert not session._is_open
 
 
 class TestRunRegisteredTasks:

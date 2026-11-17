@@ -197,6 +197,17 @@ class TestLinkStateTask:
         assert updated_event.portstate == InterfaceState.ADMIN_DOWN
         assert updated_event.ac_down > initial_ac_down
 
+    async def test_when_single_interface_has_been_polled_then_its_snmp_session_should_be_closed(
+        self, snmpsim, snmp_test_port
+    ):
+        device = PollDevice(name="buick.lab.example.org", address="127.0.0.1", port=snmp_test_port, community="linksup")
+        task = LinkStateTask(device, ZinoState(), Configuration())
+
+        await task.poll_single_interface(1)
+
+        assert task.state.devices[device.name].ports[1].state == InterfaceState.UP
+        assert not task.snmp._is_open
+
 
 class TestBaseInterfaceRow:
     def test_when_index_is_missing_is_sane_should_return_false(self):
@@ -253,7 +264,8 @@ def linkstatetask_with_links_up(snmpsim, snmp_test_port):
     device = PollDevice(name="buick.lab.example.org", address="127.0.0.1", port=snmp_test_port, community="linksup")
     state = ZinoState()
     task = LinkStateTask(device, state, Configuration())
-    yield task
+    with task.snmp:
+        yield task
 
 
 @pytest.fixture
@@ -261,7 +273,8 @@ def linkstatetask_with_one_link_down(snmpsim, snmp_test_port):
     device = PollDevice(name="buick.lab.example.org", address="127.0.0.1", port=snmp_test_port, community="linksdown")
     state = ZinoState()
     task = LinkStateTask(device, state, Configuration())
-    yield task
+    with task.snmp:
+        yield task
 
 
 @pytest.fixture
@@ -271,7 +284,8 @@ def linkstatetask_with_admin_down(snmpsim, snmp_test_port):
     )
     state = ZinoState()
     task = LinkStateTask(device, state, Configuration())
-    yield task
+    with task.snmp:
+        yield task
 
 
 @pytest.fixture
@@ -279,4 +293,5 @@ def task_with_dummy_device():
     device = PollDevice(name="test", address="127.0.0.1")
     state = ZinoState()
     task = LinkStateTask(device, state, Configuration())
-    yield task
+    with task.snmp:
+        yield task

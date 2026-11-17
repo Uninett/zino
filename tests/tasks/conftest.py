@@ -1,9 +1,4 @@
-"""Common fixtures for task tests.
-
-Many task tests run tasks directly, without the `with` block that `run_all_tasks()` provides. Their SNMP sessions are
-therefore only closed once garbage collected, which logs a "garbage collected while still open" warning. In these tests,
-that warning is expected and harmless.
-"""
+"""Common fixtures for task tests"""
 
 from unittest.mock import patch
 
@@ -21,7 +16,8 @@ def reachable_task(snmpsim, snmp_test_port):
     config = Configuration()
     state.devices.get(device.name)
     task = ReachableTask(device, state, config)
-    yield task
+    with task.snmp:
+        yield task
     task._deschedule_extra_job()
 
 
@@ -34,5 +30,6 @@ def unreachable_task():
     task = ReachableTask(device, state, config)
     with patch("zino.snmp.SNMP.get") as get_mock:
         get_mock.side_effect = TimeoutError
-        yield task
+        with task.snmp:
+            yield task
     task._deschedule_extra_job()

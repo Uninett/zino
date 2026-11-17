@@ -17,7 +17,8 @@ class TestTask:
         )
         state = ZinoState()
         task = ReachableTask(device, state, Configuration())
-        uptime = await task._get_uptime()
+        with task.snmp:
+            uptime = await task._get_uptime()
         assert uptime
 
     async def test_get_sysuptime_raises_timeout_error(self):

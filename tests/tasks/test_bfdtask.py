@@ -124,4 +124,5 @@ def task(request, snmpsim, snmp_test_port, device_port):
     # the port that will change bfd_state when the task is run
     device_state.ports[device_port.ifindex] = device_port
     task = BFDTask(device, state)
-    yield task
+    with task.snmp:
+        yield task

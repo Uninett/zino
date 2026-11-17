@@ -322,6 +322,7 @@ class TestSnmpContextManager:
         assert not snmp_session._is_open, "session was never closed after a prior failed open wedged the lock"
 
 
+@pytest.mark.allow_unclosed_snmp_sessions
 class TestSessionFinalization:
     def test_when_an_open_session_is_garbage_collected_outside_an_event_loop_then_it_should_be_closed(self):
         snmp = _open_localhost_snmp()
