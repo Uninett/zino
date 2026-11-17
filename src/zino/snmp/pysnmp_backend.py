@@ -129,7 +129,8 @@ class SNMP:
 
         :param variables: Values for defining OIDs. For detailed use see
             https://github.com/pysnmp/pysnmp/blob/bc1fb3c39764f36c1b7c9551b52ef8246b9aea7c/pysnmp/smi/rfc1902.py#L35-L49
-        :return: A list of MibObject instances representing the resulting MIB variables
+        :return: A list of Identifier/value pairs representing the resulting MIB variables
+        :raises VarBindError: If any of the variables could not be fetched, e.g. because the instance does not exist
         """
         query = [self._oid_to_object_type(*var) for var in variables]
         try:
@@ -143,6 +144,8 @@ class SNMP:
         except PysnmpMibNotFoundError as error:
             raise MibNotFoundError(error)
         self._raise_errors(error_indication, error_status, error_index, query)
+        for var_bind in var_binds:
+            self._raise_varbind_errors(var_bind)
         return [_convert_varbind(*v) for v in var_binds]
 
     def _raise_errors(

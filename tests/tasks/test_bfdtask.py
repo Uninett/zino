@@ -36,6 +36,11 @@ class TestJuniper:
         state = result.get(device_port.ifdescr)
         assert state == bfd_state
 
+    @pytest.mark.parametrize("task", ["juniper-bfd-up"], indirect=True)
+    async def test_when_single_index_does_not_exist_then_poll_juniper_should_return_no_states(self, task, bfd_state):
+        result = await task._poll_juniper(session_index=bfd_state.session_index + 1)
+        assert result == {}
+
 
 @pytest.mark.parametrize("task", ["juniper-bfd-up", "cisco-bfd-up"], indirect=True)
 async def test_task_updates_state_correctly(task, device_port, bfd_state):

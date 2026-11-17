@@ -3,7 +3,7 @@ from typing import Dict, Sequence
 
 from zino.oid import OID
 from zino.scheduler import get_scheduler
-from zino.snmp.base import SparseWalkResponse
+from zino.snmp.base import NoSuchInstanceError, SparseWalkResponse
 from zino.statemodels import BFDEvent, BFDSessState, BFDState, IPAddress, Port
 from zino.tasks.task import Task
 from zino.utils import reverse_dns
@@ -137,10 +137,15 @@ class BFDTask(Task):
 
     async def _get_single_row(self, session_index: int, *variables: Sequence[str]) -> SparseWalkResponse:
         """Fetches a single row of BFD data for a specific session index using SNMP-GET, and returns a simulated
-        SparseWalkResponse for the single row.
+        SparseWalkResponse for the single row.  The response is empty if the device has no session with this index.
         """
         columns = [var + (session_index,) for var in variables]
-        response = await self.snmp.get2(*columns)
+        try:
+            response = await self.snmp.get2(*columns)
+        except NoSuchInstanceError:
+            # A BFD trap names a range of session indexes, which may have gaps or sessions that have since gone away
+            _log.debug("%s: no BFD session with index %s", self.device.name, session_index)
+            return {}
         row = {var.object: val for var, val in response}
         return {OID((session_index,)): row}
 

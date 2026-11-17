@@ -272,6 +272,30 @@ class TestVarBindErrors:
         with pytest.raises(exception):
             await snmp_client.get(*query)
 
+    @pytest.mark.parametrize(
+        "error, exception",
+        [
+            (NoSuchObject(""), NoSuchObjectError),
+            (NoSuchInstance(""), NoSuchInstanceError),
+            (EndOfMibView(""), EndOfMibViewError),
+        ],
+        ids=["NoSuchObject-NoSuchObjectError", "NoSuchInstance-NoSuchInstanceError", "EndOfMibView-EndOfMibViewError"],
+    )
+    async def test_when_any_varbind_has_an_exception_value_then_get2_should_raise_matching_exception(
+        self, error, exception, snmp_client, monkeypatch
+    ):
+        var_binds = [
+            ObjectType(ObjectIdentity("IF-MIB", "ifName", 1), "eth0"),
+            ObjectType(ObjectIdentity("IF-MIB", "ifAlias", 1), error),
+        ]
+        for var_bind in var_binds:
+            snmp_client._resolve_object(var_bind)
+        mock_results = None, None, None, var_binds
+        monkeypatch.setattr("zino.snmp.pysnmp_backend.getCmd", AsyncMock(return_value=mock_results))
+
+        with pytest.raises(exception):
+            await snmp_client.get2(("IF-MIB", "ifName", 1), ("IF-MIB", "ifAlias", 1))
+
 
 class TestPDUErrors:
     """Tests for handling error flags in response PDUs."""

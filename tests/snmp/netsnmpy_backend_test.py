@@ -285,6 +285,27 @@ class TestVarBindErrors:
         with pytest.raises(exception):
             await snmp_client.get(*query)
 
+    @pytest.mark.parametrize(
+        "error, exception",
+        [
+            (NoSuchObject(""), NoSuchObjectError),
+            (NoSuchInstance(""), NoSuchInstanceError),
+            (EndOfMibView(""), EndOfMibViewError),
+        ],
+        ids=["NoSuchObject-NoSuchObjectError", "NoSuchInstance-NoSuchInstanceError", "EndOfMibView-EndOfMibViewError"],
+    )
+    async def test_when_any_varbind_has_an_exception_value_then_get2_should_raise_matching_exception(
+        self, error, exception, snmp_client, monkeypatch
+    ):
+        mock_results = [
+            SNMPVariable(resolve_symbol(("IF-MIB", "ifName", 1)), b"eth0"),
+            SNMPVariable(resolve_symbol(("IF-MIB", "ifAlias", 1)), error),
+        ]
+        monkeypatch.setattr("zino.snmp.netsnmpy_backend.SNMPSession.aget", AsyncMock(return_value=mock_results))
+
+        with pytest.raises(exception):
+            await snmp_client.get2(("IF-MIB", "ifName", 1), ("IF-MIB", "ifAlias", 1))
+
 
 class TestSnmpContextManager:
     @pytest.fixture
