@@ -1,10 +1,10 @@
 import logging.config
 import re
 from difflib import get_close_matches
+from tomllib import TOMLDecodeError, load
 from typing import Any, Optional, TypeVar
 
 from pydantic import BaseModel, ValidationError
-from tomllib import TOMLDecodeError, load
 
 from .models import DEFAULT_LOGGING_CONFIG as DEFAULT_LOGGING_CONFIG
 from .models import Configuration
