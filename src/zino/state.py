@@ -59,7 +59,7 @@ class ZinoState(BaseModel):
         """
         _log.info("Loading saved state from %s", filename)
         try:
-            with open(filename, "r") as statefile:
+            with open(filename) as statefile:
                 json_state = json.load(statefile)
             loaded_state = cls.model_validate(json_state)
         except FileNotFoundError:

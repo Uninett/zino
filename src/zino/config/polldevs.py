@@ -20,7 +20,7 @@ def read_polldevs(filename: str | PathLike) -> tuple[dict[str, PollDevice], dict
     defaults = {}
     devices = {}
     try:
-        with open(filename, "r") as devs:
+        with open(filename) as devs:
             for lineno, section in _read_conf_sections(devs):
                 if _contains_defaults(section):
                     defaults.update(_parse_defaults(section))

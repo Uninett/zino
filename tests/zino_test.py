@@ -394,7 +394,7 @@ class TestSecretsFileConfiguration:
         """Test connecting to the server, handling SHA1 challenge, and asserting successful login."""
         # Start the process
         zino_process = subprocess.Popen(["zino", "--config-file", str(zino_conf), "--trap-port", "0"])
-        with open(secrets_file, "r") as f:
+        with open(secrets_file) as f:
             username, password = f.readline().strip().split(" ", 1)
         time.sleep(1)  # Wait for the server to start
         try:

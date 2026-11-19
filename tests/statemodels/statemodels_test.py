@@ -134,7 +134,7 @@ class TestEvent:
 
         dumpfile = f"{tmp_path}/{fake_event.id}.json"
         assert os.path.exists(dumpfile)
-        with open(dumpfile, "r") as data:
+        with open(dumpfile) as data:
             assert json.load(data)
 
 

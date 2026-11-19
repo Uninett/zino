@@ -17,7 +17,7 @@ def test_dump_state_to_file_should_dump_valid_json_to_file(tmp_path):
     state.dump_state_to_file(dumpfile)
 
     assert os.path.exists(dumpfile)
-    with open(dumpfile, "r") as data:
+    with open(dumpfile) as data:
         assert json.load(data)
 
 
