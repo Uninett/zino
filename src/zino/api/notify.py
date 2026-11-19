@@ -47,7 +47,7 @@ class Zino1NotificationProtocol(asyncio.Protocol):
         self.nonce: str | None = None
 
         self._state = state if state is not None else ZinoState()
-        self._tied_to: "Zino1ServerProtocol" = None
+        self._tied_to: Zino1ServerProtocol = None
         self._tie_timer: asyncio.TimerHandle | None = None
 
     @property
