@@ -10,7 +10,7 @@ import logging
 import re
 import textwrap
 from collections.abc import Callable
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from functools import wraps
 from pathlib import Path
 from typing import TYPE_CHECKING, NamedTuple
@@ -583,11 +583,11 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
     @requires_authentication
     async def do_pm_add(self, from_t: str | int, to_t: str | int, pm_type: str, m_type: str, *args: str):
         try:
-            start_time = datetime.fromtimestamp(int(from_t), tz=timezone.utc)
+            start_time = datetime.fromtimestamp(int(from_t), tz=UTC)
         except ValueError:
             return self._respond_error("illegal from_t (param 1), must be only digits")
         try:
-            end_time = datetime.fromtimestamp(int(to_t), tz=timezone.utc)
+            end_time = datetime.fromtimestamp(int(to_t), tz=UTC)
         except ValueError:
             return self._respond_error("illegal to_t (param 2), must be only digits")
         if end_time < start_time:
