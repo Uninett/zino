@@ -12,7 +12,7 @@ import textwrap
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, List, NamedTuple
+from typing import TYPE_CHECKING, Callable, NamedTuple
 
 import zino.state
 from zino import version
@@ -82,7 +82,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         self._current_task: asyncio.Task = None
         self._input_buffer = bytearray()
         self._multiline_future: asyncio.Future = None
-        self._multiline_buffer: List[str] = []
+        self._multiline_buffer: list[str] = []
         self._authentication_challenge: str | None = None
         self._responders = self._get_all_responders()
         self._output_buffer = bytearray()
@@ -211,7 +211,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
             self._flush_response()
             self._current_task = None
 
-    def _get_responder(self, message: str) -> tuple[Responder | None, List[str]]:
+    def _get_responder(self, message: str) -> tuple[Responder | None, list[str]]:
         matches = ((responder.pattern.match(message), responder) for responder in self._responders.values())
         matches = ((match, responder) for match, responder in matches if match)
         # for multiple matches, always match the longest command first:
@@ -302,7 +302,7 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         self.transport.close()
 
     async def do_help(self):
-        """Lists all available top-level API commands"""
+        """lists all available top-level API commands"""
         top_level_responders = self._get_top_level_responders()
         authorized_responders = (
             responder
@@ -538,7 +538,7 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
 
     @requires_authentication
     async def do_pm_help(self):
-        """Lists all available PM sub-commands"""
+        """lists all available PM sub-commands"""
         responders = (responder for name, responder in self._responders.items() if responder.name.startswith("PM "))
         commands = " ".join(sorted(responder.name.removeprefix("PM ") for responder in responders))
         self._respond_multiline(200, ["PM subcommands are:"] + textwrap.wrap(commands, width=56))

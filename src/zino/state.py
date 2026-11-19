@@ -6,7 +6,6 @@ import json
 import logging
 import os
 from collections import defaultdict
-from typing import Dict
 
 from pydantic import BaseModel, Field
 
@@ -20,8 +19,8 @@ from zino.utils import log_time_spent
 
 _log = logging.getLogger(__name__)
 
-# Dictionary of configured devices
-polldevs: Dict[str, PollDevice] = {}
+# dictionary of configured devices
+polldevs: dict[str, PollDevice] = {}
 
 # Global (sic) state
 state: "ZinoState" = None

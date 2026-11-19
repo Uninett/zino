@@ -18,7 +18,6 @@ the peer state value.
 
 import logging
 from ipaddress import ip_address
-from typing import Tuple
 
 from zino.statemodels import BGPOperState, IPAddress
 from zino.trapd.base import TrapMessage, TrapObserver
@@ -67,7 +66,7 @@ class BgpTrapObserver(TrapObserver):
         # be the desired behavior
         _logger.info("%s BGP peer up: %s state %s", trap.agent.device.name, peer, state)
 
-    def _pre_parse_trap(self, trap: TrapMessage) -> Tuple[IPAddress, BGPOperState]:
+    def _pre_parse_trap(self, trap: TrapMessage) -> tuple[IPAddress, BGPOperState]:
         if "jnxBgpM2PeerLocalAddrType" not in trap:
             raise MissingRequiredTrapVariables()
 

@@ -8,7 +8,7 @@ import logging
 from asyncio import AbstractEventLoop
 from functools import partial
 from pathlib import Path
-from typing import Sequence, Set, Tuple
+from typing import Sequence
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
@@ -42,7 +42,7 @@ def get_scheduler(event_loop: AbstractEventLoop | None = None) -> AsyncIOSchedul
 
 
 @log_time_spent()
-def load_polldevs(polldevs_conf: str) -> Tuple[Set, Set, Set, dict[str, str]]:
+def load_polldevs(polldevs_conf: str) -> tuple[set, set, set, dict[str, str]]:
     """Loads pollfile into process state if it was changed since the last time it
     was loaded
 

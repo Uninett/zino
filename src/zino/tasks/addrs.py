@@ -1,7 +1,7 @@
 import logging
 import re
 from ipaddress import ip_address
-from typing import Any, List
+from typing import Any
 
 from zino.statemodels import IPAddress
 from zino.tasks.task import Task
@@ -52,7 +52,7 @@ class AddressMapTask(Task):
         addresses = (validate_ipaddr(r.value) for r in result)
         return set(addr for addr in addresses if addr)
 
-    def _update_address_maps(self, addresses: List[IPAddress]):
+    def _update_address_maps(self, addresses: list[IPAddress]):
         state = self.state
         for address in addresses:
             if self.is_ignored(address):

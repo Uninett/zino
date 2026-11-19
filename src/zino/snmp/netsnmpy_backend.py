@@ -6,7 +6,7 @@ import os
 import threading
 import weakref
 from collections import defaultdict
-from typing import Any, Sequence, Tuple
+from typing import Any, Sequence
 
 from netsnmpy import netsnmp
 from netsnmpy.netsnmp import (
@@ -357,7 +357,7 @@ class SNMP:
         query_objects = [oid for oid, _ in last_complete_chunk if oid not in discards]
         return query_objects
 
-    def is_in_scope(self, entry: MibObject, oid: Tuple[str, str]):
+    def is_in_scope(self, entry: MibObject, oid: tuple[str, str]):
         """Returns if the given MibObject is within the subtree defined by the given OID"""
         root = resolve_symbol(oid)
         return root.is_a_prefix_of(entry.oid)
@@ -413,7 +413,7 @@ def _convert_snmp_variable(variable: SNMPVariable) -> SNMPVarBind:
     return Identifier(mib, obj, suffix), value
 
 
-def _split_symbol(symbol: str) -> Tuple[str, str, str]:
+def _split_symbol(symbol: str) -> tuple[str, str, str]:
     """Splits a MIB symbol string into its parts"""
     parts = symbol.split("::", maxsplit=1)
     if len(parts) == 2:

@@ -16,7 +16,6 @@ import logging
 import struct
 import time
 from ipaddress import IPv4Address
-from typing import Dict
 
 from netsnmpy.trapsession import parse_raw_trap
 
@@ -101,7 +100,7 @@ class StrapsTrapReceiver(NetsnmpTrapProcessorMixin, TrapReceiverBase):
         trap_config: TrapConfiguration,
         loop: asyncio.AbstractEventLoop | None = None,
         state: zino.state.ZinoState | None = None,
-        polldevs: Dict[str, PollDevice] | None = None,
+        polldevs: dict[str, PollDevice] | None = None,
     ):
         super().__init__(loop=loop, state=state, polldevs=polldevs)
         self._trap_config = trap_config

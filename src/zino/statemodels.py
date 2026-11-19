@@ -12,9 +12,7 @@ from ipaddress import IPv4Address, IPv6Address
 from typing import (
     TYPE_CHECKING,
     Any,
-    Dict,
     Iterator,
-    List,
     Literal,
     Sequence,
     TypeVar,
@@ -132,8 +130,8 @@ class DeviceState(BaseModel):
     name: str
     addresses: set[IPAddress] = set()
     enterprise_id: int | None = None
-    ports: Dict[int, Port] = {}
-    alarms: Dict[AlarmType, int] | None = None
+    ports: dict[int, Port] = {}
+    alarms: dict[AlarmType, int] | None = None
     boot_time: datetime.datetime | None = None
     bgp_style: BGPStyle | None = None
     bgp_peers: dict[IPAddress, BGPPeerSession] = dict()
@@ -178,7 +176,7 @@ class DeviceState(BaseModel):
 class DeviceStates(BaseModel):
     """Keeps track of the state of all devices we have polled from"""
 
-    devices: Dict[str, DeviceState] = {}
+    devices: dict[str, DeviceState] = {}
 
     def __getitem__(self, item) -> DeviceState:
         return self.devices[item]
@@ -202,7 +200,7 @@ class LogEntry(BaseModel):
     timestamp: datetime.datetime = Field(default_factory=now)
     message: str
 
-    def model_dump_legacy(self) -> List[str]:
+    def model_dump_legacy(self) -> list[str]:
         """Returns the contents of this log entry as a sequence of text lines.
 
         This sequence of text lines are formatted as expected in a multi-line response in the Zino legacy server
@@ -259,8 +257,8 @@ class Event(BaseModel):
     priority: int = 100
     lastevent: str | None = None
 
-    log: List[LogEntry] = []
-    history: List[LogEntry] = []
+    log: list[LogEntry] = []
+    history: list[LogEntry] = []
 
     # More-or-less optional event attrs (as guesstimated from the original Zino code)
     lasttrans: datetime.datetime | None = None
@@ -350,7 +348,7 @@ class Event(BaseModel):
             return str(int(value.total_seconds()))
         return str(value)
 
-    def get_changed_fields(self, other: "Event") -> List[str]:
+    def get_changed_fields(self, other: "Event") -> list[str]:
         """Compares this Event to another Event and returns a list of names of attributes that are different"""
         return [field for field in self.model_fields if getattr(other, field) != getattr(self, field)]
 
@@ -479,8 +477,8 @@ class PlannedMaintenance(BaseModel):
     match_type: MatchType
     match_device: str | None = Field(default=None, alias="match_dev")
     match_expression: str = Field(alias="match_expr")
-    log: List[LogEntry] = []
-    event_ids: List[int] = []
+    log: list[LogEntry] = []
+    event_ids: list[int] = []
 
     def start(self, state: "ZinoState"):
         events = self._get_or_create_events(state)

@@ -1,5 +1,4 @@
 import logging
-from typing import Tuple
 
 from zino.tasks.task import Task
 
@@ -26,6 +25,6 @@ class VendorTask(Task):
         if sysobjectid[: len(ENTERPRISES)] == ENTERPRISES:
             return sysobjectid[len(ENTERPRISES)]
 
-    async def _get_sysobjectid(self) -> Tuple[int, ...] | None:
+    async def _get_sysobjectid(self) -> tuple[int, ...] | None:
         result = await self.snmp.get("SNMPv2-MIB", "sysObjectID", 0)
         return result.value

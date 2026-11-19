@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, NamedTuple, Set
+from typing import Any, NamedTuple
 
 import zino.state
 from zino.config.models import PollDevice
@@ -39,7 +39,7 @@ class TrapMessage:
     agent: TrapOriginator
     mib: str | None = None
     name: str | None = None
-    variables: List[TrapVarBind] = field(default_factory=list)
+    variables: list[TrapVarBind] = field(default_factory=list)
 
     def __str__(self):
         variables = [f"{v.mib}::{v.var}{v.instance or ''}={v.value or v.raw_value}" for v in self.variables]
@@ -53,7 +53,7 @@ class TrapMessage:
                 return True
         return False
 
-    def get_all(self, label: str) -> List[TrapVarBind]:
+    def get_all(self, label: str) -> list[TrapVarBind]:
         """Returns all contained variables with the given label"""
         return [var for var in self.variables if var.var == label]
 
@@ -65,12 +65,12 @@ class TrapObserver:
     observer for any trap it declares in its `WANTED_TRAPS` attribute.
     """
 
-    WANTED_TRAPS: Set[TrapType] = set()
+    WANTED_TRAPS: set[TrapType] = set()
 
     def __init__(
         self,
         state: zino.state.ZinoState,
-        polldevs: Dict[str, PollDevice] | None = None,
+        polldevs: dict[str, PollDevice] | None = None,
         loop: asyncio.AbstractEventLoop | None = None,
     ):
         """Initializes a new trap observer with a reference to Zino's state.
@@ -78,7 +78,7 @@ class TrapObserver:
         Optionally also receives a reference to the current polldevs configuration and the running event loop.
         """
         self.state = state
-        self.polldevs: Dict[str, PollDevice] = polldevs or zino.state.polldevs
+        self.polldevs: dict[str, PollDevice] = polldevs or zino.state.polldevs
         self.loop = loop
 
     async def handle_trap(self, trap: TrapMessage) -> bool | None:
@@ -101,7 +101,7 @@ class TrapReceiverBase:
         port: int = 162,
         loop: asyncio.AbstractEventLoop | None = None,
         state: zino.state.ZinoState | None = None,
-        polldevs: Dict[str, PollDevice] | None = None,
+        polldevs: dict[str, PollDevice] | None = None,
     ):
         self.address = address
         self.port = port
@@ -109,7 +109,7 @@ class TrapReceiverBase:
         self.state = state or zino.state.ZinoState()
         self.polldevs = polldevs if polldevs is not None else {}
         self._communities = set()
-        self._observers: dict[TrapType, List[TrapObserver]] = {}
+        self._observers: dict[TrapType, list[TrapObserver]] = {}
         self._auto_subscribed_observers = set()
 
     async def open(self):
@@ -132,13 +132,13 @@ class TrapReceiverBase:
             observer_instance = observer_class(state=self.state, polldevs=self.polldevs, loop=self.loop)
             self.observe(observer_instance, *observer_instance.WANTED_TRAPS)
 
-    def observe(self, subscriber: TrapObserver, *trap_types: List[TrapType]):
+    def observe(self, subscriber: TrapObserver, *trap_types: list[TrapType]):
         """Adds a trap subscriber to the receiver"""
         for trap_type in trap_types:
             observers = self._observers.setdefault(trap_type, [])
             observers.append(subscriber)
 
-    def get_observers_for(self, trap_type: TrapType) -> List[TrapObserver]:
+    def get_observers_for(self, trap_type: TrapType) -> list[TrapObserver]:
         """Returns a list of trap observers for a given trap type"""
         return self._observers.get(trap_type, [])
 

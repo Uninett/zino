@@ -1,14 +1,14 @@
 """Functionality to parse and validate the legacy polldevs.cf config file"""
 
 from os import PathLike
-from typing import Iterator, TextIO, Tuple
+from typing import Iterator, TextIO
 
 from pydantic import ValidationError
 
 from zino.config.models import PollDevice
 
 
-def read_polldevs(filename: str | PathLike) -> Tuple[dict[str, PollDevice], dict[str, str]]:
+def read_polldevs(filename: str | PathLike) -> tuple[dict[str, PollDevice], dict[str, str]]:
     """
     Reads and parses the legacy `polldevs.cf` format, returning a dictionary of device names and the associated
     PollDevice object and a dictionary of default settings
@@ -45,7 +45,7 @@ def read_polldevs(filename: str | PathLike) -> Tuple[dict[str, PollDevice], dict
     return devices, defaults
 
 
-def _read_conf_sections(filehandle: TextIO) -> Iterator[Tuple[int, dict]]:
+def _read_conf_sections(filehandle: TextIO) -> Iterator[tuple[int, dict]]:
     """Reads and yields individual configuration sections from `polldevs.cf`.
 
     Each yielded value is a two-tuple of the first line number of the section and the parsed section as a dict.
