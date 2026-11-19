@@ -58,7 +58,7 @@ def load_polldevs(polldevs_conf: str) -> tuple[set, set, set, dict[str, str]]:
 
     if new_devices:
         _log.info("loaded new devices: %r", new_devices)
-        init_state_for_devices((devices[d] for d in new_devices))
+        init_state_for_devices(devices[d] for d in new_devices)
     if deleted_devices:
         _log.info("deleted devices: %r", deleted_devices)
     if changed_devices:
