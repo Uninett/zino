@@ -7,7 +7,7 @@ import logging
 import pathlib
 import re
 from collections.abc import Generator
-from enum import Enum
+from enum import Enum, StrEnum
 from ipaddress import IPv4Address, IPv6Address
 from typing import (
     TYPE_CHECKING,
@@ -25,7 +25,6 @@ from typing import (
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic_core import PydanticUndefined
 
-from zino.compat import StrEnum
 from zino.time import now
 
 if TYPE_CHECKING:
