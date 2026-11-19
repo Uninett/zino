@@ -7,10 +7,9 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Annotated
 
 from pydantic import BaseModel, BeforeValidator, Field, PlainSerializer
-from typing_extensions import Annotated
 
 from zino.config.models import PollDevice
 from zino.statemodels import FlapState, InterfaceState, PortStateEvent
