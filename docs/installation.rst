@@ -1,7 +1,7 @@
 Installing Zino
 ===============
 
-First, ensure you have a Python version beyween 3.9 and 3.12 available on your
+First, ensure you have a Python version between 3.11 and 3.14 available on your
 system. Second, we recommend creating a *Python virtual environment*, which is
 isolated from other Python software installed on your system, and installing
 Zino into that.
