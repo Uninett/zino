@@ -1,7 +1,7 @@
 """This module implements a trap observer to ignore spammy traps"""
 
 import logging
-from typing import Optional, Set
+from typing import Set
 
 from zino.trapd.base import TrapMessage, TrapObserver, TrapType
 
@@ -19,5 +19,5 @@ class IgnoreTraps(TrapObserver):
         ("CISCOTRAP-MIB", "tcpConnectionClose"),
     }
 
-    async def handle_trap(self, trap: TrapMessage) -> Optional[bool]:
+    async def handle_trap(self, trap: TrapMessage) -> bool | None:
         return False  # Stop processing here!

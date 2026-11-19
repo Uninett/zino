@@ -6,7 +6,7 @@ import os
 import threading
 import weakref
 from collections import defaultdict
-from typing import Any, Optional, Sequence, Tuple, Union
+from typing import Any, Sequence, Tuple, Union
 
 from netsnmpy import netsnmp
 from netsnmpy.netsnmp import (
@@ -322,7 +322,7 @@ class SNMP:
 
     async def _sparsewalk_iteration(
         self, roots: list[OID], query_objects: list[OID], results: dict[OID, dict[str, Any]], max_repetitions: int
-    ) -> Optional[list[OID]]:
+    ) -> list[OID] | None:
         """Performs a single iteration of a sparsewalk operation, updating the results dict with the response values.
         Returns the next set of OIDs to query.
         """

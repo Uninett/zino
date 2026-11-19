@@ -1,6 +1,6 @@
 import logging
 from datetime import timedelta
-from typing import Dict, NamedTuple, Optional, Protocol, Type, Union
+from typing import Dict, NamedTuple, Protocol, Type, Union
 
 from pydantic.main import BaseModel
 
@@ -31,7 +31,7 @@ class EventIndex(NamedTuple):
 class EventObserver(Protocol):
     """Defines a valid protocol for event observer functions"""
 
-    def __call__(self, new_event: Event, old_event: Optional[Event] = None) -> None: ...
+    def __call__(self, new_event: Event, old_event: Event | None = None) -> None: ...
 
 
 class Events(BaseModel):
@@ -115,14 +115,12 @@ class Events(BaseModel):
         _log.debug("created embryonic event %r", event)
         return event
 
-    def get(self, device_name: str, subindex: SubIndex, event_class: Type[EventType]) -> Optional[EventType]:
+    def get(self, device_name: str, subindex: SubIndex, event_class: Type[EventType]) -> EventType | None:
         """Returns an event based on its identifiers, None if no match was found"""
         index = EventIndex(device_name, subindex, event_class)
         return self._events_by_index.get(index)
 
-    def get_closed_event(
-        self, device_name: str, subindex: SubIndex, event_class: Type[EventType]
-    ) -> Optional[EventType]:
+    def get_closed_event(self, device_name: str, subindex: SubIndex, event_class: Type[EventType]) -> EventType | None:
         """Returns a closed event based on its identifiers, None if no match was found"""
         index = EventIndex(device_name, subindex, event_class)
         return self._closed_events_by_index.get(index)
@@ -211,11 +209,11 @@ class Events(BaseModel):
         self.last_event_id += 1
         return self.last_event_id
 
-    def _call_observers_for(self, new_event: Event, old_event: Optional[Event] = None):
+    def _call_observers_for(self, new_event: Event, old_event: Event | None = None):
         for observer in self._observers:
             observer(new_event=new_event, old_event=old_event)
 
-    def record_downtime(self, new_event: Event, old_event: Optional[Event] = None):
+    def record_downtime(self, new_event: Event, old_event: Event | None = None):
         timestamp = now()
         # Assume not initally down if this is a completely new event
         is_initially_down = old_event.is_down() if old_event else False

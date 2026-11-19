@@ -2,7 +2,6 @@
 
 import logging
 from ipaddress import ip_address
-from typing import Optional
 
 from zino.trapd.base import TrapMessage, TrapObserver
 
@@ -15,7 +14,7 @@ class RestartTrapLogger(TrapObserver):
         ("SNMPv2-MIB", "warmStart"),
     }
 
-    async def handle_trap(self, trap: TrapMessage) -> Optional[bool]:
+    async def handle_trap(self, trap: TrapMessage) -> bool | None:
         _logger.info("%s: %s", trap.agent.device.name, trap.name)
         return False  # stop trap processing here
 
@@ -25,7 +24,7 @@ class CiscoReloadTrapLogger(TrapObserver):
         ("CISCOTRAP-MIB", "reload"),
     }
 
-    async def handle_trap(self, trap: TrapMessage) -> Optional[bool]:
+    async def handle_trap(self, trap: TrapMessage) -> bool | None:
         _logger.info("%s: reload requested", trap.agent.device.name)
         return False  # stop trap processing here
 
@@ -35,7 +34,7 @@ class CiscoConfigManEventLogger(TrapObserver):
         ("CISCO-CONFIG-MAN", "ciscoConfigManEvent"),
     }
 
-    async def handle_trap(self, trap: TrapMessage) -> Optional[bool]:
+    async def handle_trap(self, trap: TrapMessage) -> bool | None:
         _logger.info(
             "%s: config-change: cmd-src %s conf-src %s dst %s",
             trap.agent.device.name,
@@ -73,7 +72,7 @@ class CiscoPimTrapLogger(TrapObserver):
         ("CISCO-PIM-MIB", "ciscoPimInvalidJoinPrune"),
     }
 
-    async def handle_trap(self, trap: TrapMessage) -> Optional[bool]:
+    async def handle_trap(self, trap: TrapMessage) -> bool | None:
         if "cpimLastErrorOriginType" not in trap:
             return False
 
@@ -104,7 +103,7 @@ class OspfIfConfigErrorLogger(TrapObserver):
         ("OSPF-MIB", "ospfIfConfigError"),
     }
 
-    async def handle_trap(self, trap: TrapMessage) -> Optional[bool]:
+    async def handle_trap(self, trap: TrapMessage) -> bool | None:
         _logger.info("%s: trap %s", trap.agent.device.name, trap.get_all("snmpTrapOID")[0].value)
 
         for var in trap.variables:

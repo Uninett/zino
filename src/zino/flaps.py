@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, List, Optional, Tuple
+from typing import TYPE_CHECKING, List, Tuple
 
 from pydantic import BaseModel, BeforeValidator, Field, PlainSerializer
 from typing_extensions import Annotated
@@ -49,7 +49,7 @@ class FlappingState(BaseModel):
     first_flap: datetime = Field(default_factory=now)
     last_flap: datetime = Field(default_factory=now)
     flaps: int = 0
-    last_age: Optional[datetime] = None
+    last_age: datetime | None = None
     flapped_above_threshold: bool = False
     in_active_flap_state: bool = False
 
@@ -121,7 +121,7 @@ class FlappingStates(BaseModel):
         self.interfaces[interface] = flap
         return flap
 
-    def unflap(self, interface: PortIndex) -> Optional[FlappingState]:
+    def unflap(self, interface: PortIndex) -> FlappingState | None:
         """Removes all flapping stats tracking for a port, if they exist"""
         return self.interfaces.pop(interface, None)
 

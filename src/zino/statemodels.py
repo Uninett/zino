@@ -16,7 +16,6 @@ from typing import (
     Iterator,
     List,
     Literal,
-    Optional,
     Sequence,
     TypeVar,
     Union,
@@ -105,27 +104,27 @@ class BFDState(BaseModel):
     """Keeps BFD state for an interface"""
 
     session_state: BFDSessState
-    session_index: Optional[int] = None
-    session_discr: Optional[int] = None
-    session_addr: Optional[IPAddress] = None
+    session_index: int | None = None
+    session_discr: int | None = None
+    session_addr: IPAddress | None = None
 
 
 class Port(BaseModel):
     """Keeps port state"""
 
     ifindex: int
-    ifdescr: Optional[str] = None
-    ifalias: Optional[str] = None
-    state: Optional[InterfaceState] = None
-    bfd_state: Optional[BFDState] = None
+    ifdescr: str | None = None
+    ifalias: str | None = None
+    state: InterfaceState | None = None
+    bfd_state: BFDState | None = None
 
 
 class BGPPeerSession(BaseModel):
     """Keeps a BGP peer session"""
 
-    uptime: Optional[int] = 0
-    admin_status: Optional[BGPAdminStatus] = None
-    oper_state: Optional[BGPOperState] = None
+    uptime: int | None = 0
+    admin_status: BGPAdminStatus | None = None
+    oper_state: BGPOperState | None = None
 
 
 class DeviceState(BaseModel):
@@ -133,13 +132,13 @@ class DeviceState(BaseModel):
 
     name: str
     addresses: set[IPAddress] = set()
-    enterprise_id: Optional[int] = None
+    enterprise_id: int | None = None
     ports: Dict[int, Port] = {}
-    alarms: Optional[Dict[AlarmType, int]] = None
-    boot_time: Optional[datetime.datetime] = None
-    bgp_style: Optional[BGPStyle] = None
+    alarms: Dict[AlarmType, int] | None = None
+    boot_time: datetime.datetime | None = None
+    bgp_style: BGPStyle | None = None
     bgp_peers: dict[IPAddress, BGPPeerSession] = dict()
-    reachable_in_last_run: Optional[bool] = None
+    reachable_in_last_run: bool | None = None
 
     # This is the remaining set of potential device attributes stored in device state by the original Zino code:
     # EventId
@@ -250,26 +249,26 @@ class Event(BaseModel):
     # Allow populating fields by name or alias
     model_config = ConfigDict(populate_by_name=True)
 
-    id: Optional[int] = None
+    id: int | None = None
 
     router: str
     type: Literal["Event"] = "Event"
     state: EventState = EventState.EMBRYONIC
     opened: datetime.datetime = Field(default_factory=now)
-    updated: Optional[datetime.datetime] = None
-    closed: Optional[datetime.datetime] = None
+    updated: datetime.datetime | None = None
+    closed: datetime.datetime | None = None
     priority: int = 100
-    lastevent: Optional[str] = None
+    lastevent: str | None = None
 
     log: List[LogEntry] = []
     history: List[LogEntry] = []
 
     # More-or-less optional event attrs (as guesstimated from the original Zino code)
-    lasttrans: Optional[datetime.datetime] = None
-    flaps: Optional[int] = None
-    ac_down: Optional[datetime.timedelta] = None
+    lasttrans: datetime.datetime | None = None
+    flaps: int | None = None
+    ac_down: datetime.timedelta | None = None
 
-    polladdr: Optional[IPAddress] = None
+    polladdr: IPAddress | None = None
 
     @property
     def subindex(self) -> SubIndex:
@@ -379,12 +378,12 @@ class FlapState(StrEnum):
 
 class PortStateEvent(Event):
     type: Literal["portstate"] = "portstate"
-    port: Optional[str] = ""
-    ifindex: Optional[int] = None
-    portstate: Optional[InterfaceState] = None
-    descr: Optional[str] = None
-    flapstate: Optional[FlapState] = None
-    reason: Optional[str] = None
+    port: str | None = ""
+    ifindex: int | None = None
+    portstate: InterfaceState | None = None
+    descr: str | None = None
+    flapstate: FlapState | None = None
+    reason: str | None = None
 
     @property
     def subindex(self) -> SubIndex:
@@ -400,11 +399,11 @@ class PortStateEvent(Event):
 
 class BGPEvent(Event):
     type: Literal["bgp"] = "bgp"
-    remote_address: Optional[IPAddress] = Field(default=None, alias="remote-addr")
-    remote_as: Optional[int] = Field(default=None, alias="remote-AS")
-    peer_uptime: Optional[int] = Field(default=None, alias="peer-uptime")
-    operational_state: Optional[BGPOperState] = Field(default=None, alias="bgpOS")
-    admin_status: Optional[BGPAdminStatus] = Field(default=None, alias="bgpAS")
+    remote_address: IPAddress | None = Field(default=None, alias="remote-addr")
+    remote_as: int | None = Field(default=None, alias="remote-AS")
+    peer_uptime: int | None = Field(default=None, alias="peer-uptime")
+    operational_state: BGPOperState | None = Field(default=None, alias="bgpOS")
+    admin_status: BGPAdminStatus | None = Field(default=None, alias="bgpAS")
 
     @property
     def subindex(self) -> SubIndex:
@@ -420,12 +419,12 @@ class BGPEvent(Event):
 
 class BFDEvent(Event):
     type: Literal["bfd"] = "bfd"
-    ifindex: Optional[int] = None
-    bfdstate: Optional[BFDSessState] = Field(default=None, alias="bfdState")
-    bfdix: Optional[int] = Field(default=None, alias="bfdIx")
-    bfddiscr: Optional[int] = Field(default=None, alias="bfdDiscr")
-    bfdaddr: Optional[IPAddress] = Field(default=None, alias="bfdAddr")
-    neigh_rdns: Optional[str] = Field(default=None, alias="Neigh-rDNS")
+    ifindex: int | None = None
+    bfdstate: BFDSessState | None = Field(default=None, alias="bfdState")
+    bfdix: int | None = Field(default=None, alias="bfdIx")
+    bfddiscr: int | None = Field(default=None, alias="bfdDiscr")
+    bfdaddr: IPAddress | None = Field(default=None, alias="bfdAddr")
+    neigh_rdns: str | None = Field(default=None, alias="Neigh-rDNS")
 
     @property
     def subindex(self) -> SubIndex:
@@ -434,7 +433,7 @@ class BFDEvent(Event):
 
 class ReachabilityEvent(Event):
     type: Literal["reachability"] = "reachability"
-    reachability: Optional[ReachabilityState] = None
+    reachability: ReachabilityState | None = None
 
     def is_down(self) -> bool:
         """Returns true if the event is in a down state.
@@ -446,8 +445,8 @@ class ReachabilityEvent(Event):
 
 class AlarmEvent(Event):
     type: Literal["alarm"] = "alarm"
-    alarm_type: Optional[AlarmType] = Field(default=None, alias="alarm-type")
-    alarm_count: Optional[int] = Field(default=None, alias="alarm-count")
+    alarm_type: AlarmType | None = Field(default=None, alias="alarm-type")
+    alarm_count: int | None = Field(default=None, alias="alarm-count")
 
     @property
     def subindex(self) -> SubIndex:
@@ -474,12 +473,12 @@ class PlannedMaintenance(BaseModel):
     # Allow populating fields by name or alias
     model_config = ConfigDict(populate_by_name=True)
 
-    id: Optional[int] = None
+    id: int | None = None
     start_time: datetime.datetime = Field(alias="starttime")
     end_time: datetime.datetime = Field(alias="endtime")
     type: PmType
     match_type: MatchType
-    match_device: Optional[str] = Field(default=None, alias="match_dev")
+    match_device: str | None = Field(default=None, alias="match_dev")
     match_expression: str = Field(alias="match_expr")
     log: List[LogEntry] = []
     event_ids: List[int] = []

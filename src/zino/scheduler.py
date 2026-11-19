@@ -8,7 +8,7 @@ import logging
 from asyncio import AbstractEventLoop
 from functools import partial
 from pathlib import Path
-from typing import Optional, Sequence, Set, Tuple, Union
+from typing import Sequence, Set, Tuple, Union
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
@@ -29,7 +29,7 @@ _log = logging.getLogger(__name__)
 _scheduler = None
 
 
-def get_scheduler(event_loop: Optional[AbstractEventLoop] = None) -> AsyncIOScheduler:
+def get_scheduler(event_loop: AbstractEventLoop | None = None) -> AsyncIOScheduler:
     """Returns the global scheduler, creating it on the first call.
 
     :param event_loop: The event loop to run jobs on. Only used by the call that creates the scheduler.

@@ -16,7 +16,7 @@ import logging
 import struct
 import time
 from ipaddress import IPv4Address
-from typing import Dict, Optional
+from typing import Dict
 
 from netsnmpy.trapsession import parse_raw_trap
 
@@ -99,16 +99,16 @@ class StrapsTrapReceiver(NetsnmpTrapProcessorMixin, TrapReceiverBase):
     def __init__(
         self,
         trap_config: TrapConfiguration,
-        loop: Optional[asyncio.AbstractEventLoop] = None,
-        state: Optional[zino.state.ZinoState] = None,
-        polldevs: Optional[Dict[str, PollDevice]] = None,
+        loop: asyncio.AbstractEventLoop | None = None,
+        state: zino.state.ZinoState | None = None,
+        polldevs: Dict[str, PollDevice] | None = None,
     ):
         super().__init__(loop=loop, state=state, polldevs=polldevs)
         self._trap_config = trap_config
-        self._reader: Optional[asyncio.StreamReader] = None
-        self._writer: Optional[asyncio.StreamWriter] = None
-        self._reader_task: Optional[asyncio.Task] = None
-        self._watchdog_task: Optional[asyncio.Task] = None
+        self._reader: asyncio.StreamReader | None = None
+        self._writer: asyncio.StreamWriter | None = None
+        self._reader_task: asyncio.Task | None = None
+        self._watchdog_task: asyncio.Task | None = None
         self._last_trap_time: float = time.monotonic()
         self._reconnect_failures: int = 0
         self._closing: bool = False

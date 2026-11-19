@@ -4,12 +4,12 @@ import os
 import stat
 from functools import wraps
 from time import time
-from typing import Optional, Union
+from typing import Union
 
 import aiodns
 
 
-async def reverse_dns(ip: str) -> Optional[str]:
+async def reverse_dns(ip: str) -> str | None:
     """Returns hostname for given IP address or None if reverse DNS lookup fails"""
     loop = asyncio.get_event_loop()
     resolver = aiodns.DNSResolver(loop=loop)

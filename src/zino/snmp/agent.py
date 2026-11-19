@@ -14,7 +14,6 @@ import logging
 import os
 import time
 from ipaddress import IPv6Address, ip_address
-from typing import Optional
 
 from pysnmp.carrier.asyncio.dgram import udp, udp6
 from pysnmp.carrier.asyncio.dispatch import AsyncioDispatcher
@@ -36,8 +35,8 @@ class ZinoSnmpAgent:
         self,
         listen_address: str = "0.0.0.0",
         listen_port: int = 8000,
-        community: Optional[str] = None,
-        start_time: Optional[float] = None,
+        community: str | None = None,
+        start_time: float | None = None,
     ):
         """Initialize the SNMP agent.
 

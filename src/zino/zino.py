@@ -12,7 +12,7 @@ import sys
 from asyncio import AbstractEventLoop
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, NoReturn, Optional
+from typing import Any, NoReturn
 
 import tzlocal
 from pydantic import ValidationError
@@ -79,7 +79,7 @@ def main():
     init_event_loop(args)
 
 
-def load_config(args: argparse.Namespace) -> Optional[state.Configuration]:
+def load_config(args: argparse.Namespace) -> state.Configuration | None:
     """
     Loads the configuration file, exiting the process if there are config errors
 
@@ -109,7 +109,7 @@ def apply_logging_config(logging_config: dict[str, Any]) -> None:
         sys.exit(1)
 
 
-def init_event_loop(args: argparse.Namespace, loop: Optional[AbstractEventLoop] = None):
+def init_event_loop(args: argparse.Namespace, loop: AbstractEventLoop | None = None):
     if not loop:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -378,7 +378,7 @@ def switch_to_user(user: str) -> bool:
     return True
 
 
-def _resolve_user_spec(user: str) -> Optional[tuple[int, int, list[int]]]:
+def _resolve_user_spec(user: str) -> tuple[int, int, list[int]] | None:
     """Resolve a user spec to a ``(uid, gid, supplementary group ids)`` tuple.
 
     :param user: Target user as a name, a numeric ``UID``, or ``UID:GID``.
@@ -414,7 +414,7 @@ def _supplementary_groups(username: str) -> list[int]:
     return [group.gr_gid for group in grp.getgrall() if username in group.gr_mem]
 
 
-def reschedule_dump_state_on_commit(new_event: Event, old_event: Optional[Event] = None) -> None:
+def reschedule_dump_state_on_commit(new_event: Event, old_event: Event | None = None) -> None:
     """Observer that reschedules the state dumper job whenever an event is committed and there's
     more than `MINIMUM_STATE_DUMP_INTERVAL` time until the next scheduled state dump.
     """

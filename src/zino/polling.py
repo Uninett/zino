@@ -9,7 +9,7 @@ from asyncio import AbstractEventLoop
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Awaitable, Callable, Iterable, Mapping, Optional, Union
+from typing import Awaitable, Callable, Iterable, Mapping, Union
 
 from apscheduler.executors.asyncio import AsyncIOExecutor
 from apscheduler.jobstores.base import JobLookupError
@@ -25,9 +25,7 @@ PollJob = Callable[[PollDevice], Awaitable[None]]
 """A coroutine function that polls a single device"""
 
 
-def create_scheduler(
-    config: SchedulerConfiguration, event_loop: Optional[AbstractEventLoop] = None
-) -> AsyncIOScheduler:
+def create_scheduler(config: SchedulerConfiguration, event_loop: AbstractEventLoop | None = None) -> AsyncIOScheduler:
     """Creates a job scheduler that runs coroutine jobs on an asyncio event loop.
 
     Jobs never run as more than one instance at a time.
@@ -55,14 +53,14 @@ class PollfileWatcher:
         :param path: The pollfile to watch
         """
         self._path = Path(path)
-        self._mtime: Optional[float] = None
+        self._mtime: float | None = None
 
     @property
     def path(self) -> Path:
         """The pollfile being watched"""
         return self._path
 
-    def read_if_changed(self) -> Optional[tuple[dict[str, PollDevice], dict[str, str]]]:
+    def read_if_changed(self) -> tuple[dict[str, PollDevice], dict[str, str]] | None:
         """Reads the pollfile, if its modification time changed since the last successful read.
 
         A missing or invalid pollfile is logged as an error. It does not count as a successful read, so it is

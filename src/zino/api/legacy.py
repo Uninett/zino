@@ -12,7 +12,7 @@ import textwrap
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, List, NamedTuple, Optional, Union
+from typing import TYPE_CHECKING, Callable, List, NamedTuple, Union
 
 import zino.state
 from zino import version
@@ -61,11 +61,11 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
 
     def __init__(
         self,
-        server: Optional["ZinoServer"] = None,
-        state: Optional[ZinoState] = None,
-        secrets_file: Optional[Union[Path, str]] = None,
-        config: Optional[Configuration] = None,
-        polldevs: Optional[dict[str, PollDevice]] = None,
+        server: "ZinoServer | None" = None,
+        state: ZinoState | None = None,
+        secrets_file: Union[Path, str] | None = None,
+        config: Configuration | None = None,
+        polldevs: dict[str, PollDevice] | None = None,
     ):
         """Initializes a protocol instance.
 
@@ -76,14 +76,14 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         :param polldevs: An optional instance of the polldevs dict.
         """
         self.server = server
-        self.transport: Optional[asyncio.Transport] = None
-        self.notification_channel: Optional[Zino1NotificationProtocol] = None
-        self._authenticated_as: Optional[str] = None
+        self.transport: asyncio.Transport | None = None
+        self.notification_channel: Zino1NotificationProtocol | None = None
+        self._authenticated_as: str | None = None
         self._current_task: asyncio.Task = None
         self._input_buffer = bytearray()
         self._multiline_future: asyncio.Future = None
         self._multiline_buffer: List[str] = []
-        self._authentication_challenge: Optional[str] = None
+        self._authentication_challenge: str | None = None
         self._responders = self._get_all_responders()
         self._output_buffer = bytearray()
 
@@ -93,7 +93,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         self._polldevs = polldevs or dict()
 
     @property
-    def peer_name(self) -> Optional[str]:
+    def peer_name(self) -> str | None:
         return self.transport.get_extra_info("peername") if self.transport else None
 
     @property
@@ -101,7 +101,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         return bool(self._authenticated_as)
 
     @property
-    def user(self) -> Optional[str]:
+    def user(self) -> str | None:
         """Returns the username of the authenticated user"""
         return self._authenticated_as
 
@@ -120,7 +120,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         # No dispatcher wraps this, so flush the greeting explicitly.
         self._flush_response()
 
-    def connection_lost(self, exc: Optional[Exception]) -> None:
+    def connection_lost(self, exc: Exception | None) -> None:
         _logger.info("Client disconnected: %s", self.peer_name)
         if self.server:
             self.server.active_clients.remove(self)
@@ -211,7 +211,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
             self._flush_response()
             self._current_task = None
 
-    def _get_responder(self, message: str) -> tuple[Optional[Responder], List[str]]:
+    def _get_responder(self, message: str) -> tuple[Responder | None, List[str]]:
         matches = ((responder.pattern.match(message), responder) for responder in self._responders.values())
         matches = ((match, responder) for match, responder in matches if match)
         # for multiple matches, always match the longest command first:
@@ -252,7 +252,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         if future is self._multiline_future:
             self._multiline_future = None
 
-    def _respond_ok(self, message: Optional[str] = "ok"):
+    def _respond_ok(self, message: str | None = "ok"):
         self._respond(200, message)
 
     def _respond_error(self, message: str):

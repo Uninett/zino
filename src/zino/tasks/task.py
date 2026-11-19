@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from zino.config.models import Configuration, PollDevice
 from zino.snmp import get_snmp_session
@@ -13,7 +13,7 @@ from zino.statemodels import DeviceState
 
 
 class Task(ABC):
-    def __init__(self, device: PollDevice, state: ZinoState, config: Optional[Configuration] = None):
+    def __init__(self, device: PollDevice, state: ZinoState, config: Configuration | None = None):
         self.device = device
         self.state = state
         self.config = config

@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, NamedTuple, Optional, Set
+from typing import Any, Dict, List, NamedTuple, Set
 
 import zino.state
 from zino.config.models import PollDevice
@@ -29,7 +29,7 @@ class TrapOriginator(NamedTuple):
 
     address: IPAddress
     port: int
-    device: Optional[DeviceState] = None
+    device: DeviceState | None = None
 
 
 @dataclass
@@ -37,8 +37,8 @@ class TrapMessage:
     """Describes an incoming trap message in the simplest possible terms needed for Zino usage"""
 
     agent: TrapOriginator
-    mib: Optional[str] = None
-    name: Optional[str] = None
+    mib: str | None = None
+    name: str | None = None
     variables: List[TrapVarBind] = field(default_factory=list)
 
     def __str__(self):
@@ -70,8 +70,8 @@ class TrapObserver:
     def __init__(
         self,
         state: zino.state.ZinoState,
-        polldevs: Optional[Dict[str, PollDevice]] = None,
-        loop: Optional[asyncio.AbstractEventLoop] = None,
+        polldevs: Dict[str, PollDevice] | None = None,
+        loop: asyncio.AbstractEventLoop | None = None,
     ):
         """Initializes a new trap observer with a reference to Zino's state.
 
@@ -81,7 +81,7 @@ class TrapObserver:
         self.polldevs: Dict[str, PollDevice] = polldevs or zino.state.polldevs
         self.loop = loop
 
-    async def handle_trap(self, trap: TrapMessage) -> Optional[bool]:
+    async def handle_trap(self, trap: TrapMessage) -> bool | None:
         """A trap observer receives a trap message and an optional event loop reference.  The event loop reference
         may be useful if the observer needs to run async actions as part of its trap processing.  If the trap
         observer returns a true-ish value, the trap dispatcher will offer the same trap to more subscribers.  If a
@@ -99,9 +99,9 @@ class TrapReceiverBase:
         self,
         address: str = "0.0.0.0",
         port: int = 162,
-        loop: Optional[asyncio.AbstractEventLoop] = None,
-        state: Optional[zino.state.ZinoState] = None,
-        polldevs: Optional[Dict[str, PollDevice]] = None,
+        loop: asyncio.AbstractEventLoop | None = None,
+        state: zino.state.ZinoState | None = None,
+        polldevs: Dict[str, PollDevice] | None = None,
     ):
         self.address = address
         self.port = port
@@ -162,7 +162,7 @@ class TrapReceiverBase:
             except Exception:  # noqa: BLE001
                 _logger.exception("Unhandled exception in trap observer %r", observer)
 
-    def _lookup_device(self, address: IPAddress) -> Optional[DeviceState]:
+    def _lookup_device(self, address: IPAddress) -> DeviceState | None:
         """Looks up a device from Zino's running state from an IP address"""
         name = self.state.addresses.get(address)
         if name in self.state.devices:

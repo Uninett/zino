@@ -1,7 +1,7 @@
 import logging
 from dataclasses import dataclass, replace
 from ipaddress import ip_address
-from typing import Iterable, Optional
+from typing import Iterable
 
 from zino.snmp.base import SparseWalkResponse
 from zino.statemodels import (
@@ -105,7 +105,7 @@ class BGPStateMonitorTask(Task):
         for result in bgp_info:
             self._update_single_bgp_entry(data=result, local_as=local_as, uptime=uptime)
 
-    async def _get_bgp_style(self) -> Optional[BGPStyle]:
+    async def _get_bgp_style(self) -> BGPStyle | None:
         if await self.snmp.subtree_is_supported("BGP4-V2-MIB-JUNIPER", "jnxBgpM2"):
             return BGPStyle.JUNIPER
 
@@ -117,7 +117,7 @@ class BGPStateMonitorTask(Task):
 
         return None
 
-    async def _get_local_as(self, bgp_style: BGPStyle) -> Optional[int]:
+    async def _get_local_as(self, bgp_style: BGPStyle) -> int | None:
         try:
             mib, object_name = LOCAL_AS_OBJECTS[bgp_style]
         except KeyError:
@@ -128,7 +128,7 @@ class BGPStateMonitorTask(Task):
         else:
             _logger.info(f"router {self.device.name} misses {object_name}")
 
-    async def _get_juniper_bgp_info(self) -> Optional[list[BaseBGPRow]]:
+    async def _get_juniper_bgp_info(self) -> list[BaseBGPRow] | None:
         variables = (
             "jnxBgpM2PeerState",
             "jnxBgpM2PeerStatus",
@@ -148,7 +148,7 @@ class BGPStateMonitorTask(Task):
 
         return juniper_bgp_info
 
-    async def _get_cisco_bgp_info(self) -> Optional[list[BaseBGPRow]]:
+    async def _get_cisco_bgp_info(self) -> list[BaseBGPRow] | None:
         variables = (
             "cbgpPeer2State",
             "cbgpPeer2AdminStatus",
@@ -171,7 +171,7 @@ class BGPStateMonitorTask(Task):
 
         return cisco_bgp_info
 
-    async def _get_general_bgp_info(self) -> Optional[list[BaseBGPRow]]:
+    async def _get_general_bgp_info(self) -> list[BaseBGPRow] | None:
         variables = (
             "bgpPeerState",
             "bgpPeerAdminStatus",
@@ -191,7 +191,7 @@ class BGPStateMonitorTask(Task):
 
         return general_bgp_info
 
-    async def _get_bgp_info(self, mib_name: str, variables: Iterable[str]) -> Optional[SparseWalkResponse]:
+    async def _get_bgp_info(self, mib_name: str, variables: Iterable[str]) -> SparseWalkResponse | None:
         bgp_info = await self.snmp.sparsewalk(
             *((mib_name, var) for var in variables),
             max_repetitions=3,
@@ -200,7 +200,7 @@ class BGPStateMonitorTask(Task):
 
     def _transform_variables_from_specific_to_general(
         self, bgp_info: SparseWalkResponse, bgp_style: BGPStyle
-    ) -> Optional[list[BaseBGPRow]]:
+    ) -> list[BaseBGPRow] | None:
         if bgp_style == BGPStyle.JUNIPER:
             translation = JUNIPER_TRANSLATION_MAP
         elif bgp_style == BGPStyle.CISCO:

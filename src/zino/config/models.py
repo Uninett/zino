@@ -3,7 +3,7 @@
 from ipaddress import IPv4Address, IPv6Address
 from os import R_OK, access
 from os.path import isfile
-from typing import Any, Literal, Optional, Union
+from typing import Any, Literal, Union
 
 from pydantic import BaseModel, ConfigDict
 from pydantic.functional_validators import AfterValidator
@@ -52,8 +52,8 @@ class PollDevice(BaseModel):
     community: str = "public"
     dns: str = None
     interval: int = DEFAULT_INTERVAL_MINUTES
-    ignorepat: Optional[str] = None
-    watchpat: Optional[str] = None
+    ignorepat: str | None = None
+    watchpat: str | None = None
     priority: int = 100
     timeout: int = 5
     retries: int = 3
@@ -98,7 +98,7 @@ class TrapConfiguration(BaseModel):
 
     require_community: list[str] = []
     source: Literal["direct", "straps", "nmtrapd"] = "direct"
-    straps_socket: Optional[str] = None
+    straps_socket: str | None = None
     nmtrapd_host: str = "localhost"
     nmtrapd_port: int = 1702
 
@@ -111,7 +111,7 @@ class AgentConfiguration(BaseModel):
     enabled: bool = True
     port: int = 8000
     address: str = "0.0.0.0"
-    community: Optional[str] = "public"
+    community: str | None = "public"
 
 
 class SNMPBackendConfiguration(BaseModel):
@@ -149,7 +149,7 @@ class ProcessConfiguration(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    user: Optional[str] = None
+    user: str | None = None
 
 
 class Configuration(BaseModel):

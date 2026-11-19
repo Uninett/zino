@@ -1,7 +1,7 @@
 import logging
 import re
 from ipaddress import ip_address
-from typing import Any, List, Optional
+from typing import Any, List
 
 from zino.statemodels import IPAddress
 from zino.tasks.task import Task
@@ -86,7 +86,7 @@ class AddressMapTask(Task):
         return address in IGNORE_ADDRS or any(pattern.match(str(address)) for pattern in IGNORE_ADDR_PATTERNS)
 
 
-def validate_ipaddr(address: Any) -> Optional[IPAddress]:
+def validate_ipaddr(address: Any) -> IPAddress | None:
     """Converts and returns address as a IPv4Address or IPv6Address object.  Returns None if the address is invalid."""
     try:
         return ip_address(address)

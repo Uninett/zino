@@ -3,7 +3,7 @@
 import asyncio
 import logging
 from ipaddress import ip_address
-from typing import Dict, Optional
+from typing import Dict
 
 from netsnmpy.netsnmp import SNMPVariable
 from netsnmpy.trapsession import SNMPTrap, SNMPTrapSession
@@ -109,9 +109,9 @@ class TrapReceiver(NetsnmpTrapProcessorMixin, TrapReceiverBase):
         self,
         address: str = "0.0.0.0",
         port: int = 162,
-        loop: Optional[asyncio.AbstractEventLoop] = None,
-        state: Optional[zino.state.ZinoState] = None,
-        polldevs: Optional[Dict[str, PollDevice]] = None,
+        loop: asyncio.AbstractEventLoop | None = None,
+        state: zino.state.ZinoState | None = None,
+        polldevs: Dict[str, PollDevice] | None = None,
     ):
         super().__init__(address, port, loop, state, polldevs)
         self._session = SNMPTrapSession(ip_address(address), port)
