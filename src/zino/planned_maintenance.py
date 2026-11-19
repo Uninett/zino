@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Dict, Protocol, Union
+from typing import TYPE_CHECKING, Dict, Protocol
 
 from pydantic.main import BaseModel
 
@@ -30,7 +30,7 @@ class PlannedMaintenanceObserver(Protocol):
 
 
 class PlannedMaintenances(BaseModel):
-    planned_maintenances: Dict[int, Union[DeviceMaintenance, PortStateMaintenance]] = {}
+    planned_maintenances: Dict[int, DeviceMaintenance | PortStateMaintenance] = {}
     last_pm_id: int = 0
     last_run: datetime | None = datetime.fromtimestamp(0, tz=timezone.utc)
     _observers: list[PlannedMaintenanceObserver] = []

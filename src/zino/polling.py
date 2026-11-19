@@ -9,7 +9,7 @@ from asyncio import AbstractEventLoop
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Awaitable, Callable, Iterable, Mapping, Union
+from typing import Awaitable, Callable, Iterable, Mapping
 
 from apscheduler.executors.asyncio import AsyncIOExecutor
 from apscheduler.jobstores.base import JobLookupError
@@ -48,7 +48,7 @@ def create_scheduler(config: SchedulerConfiguration, event_loop: AbstractEventLo
 class PollfileWatcher:
     """Re-reads a pollfile, but only when it has changed since the last successful read"""
 
-    def __init__(self, path: Union[str, Path]) -> None:
+    def __init__(self, path: str | Path) -> None:
         """
         :param path: The pollfile to watch
         """

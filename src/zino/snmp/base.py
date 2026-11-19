@@ -1,7 +1,7 @@
 """Base SNMP functionality and types shared by all back-ends"""
 
 from dataclasses import dataclass
-from typing import Any, NamedTuple, Union
+from typing import Any, NamedTuple
 
 from zino.oid import OID
 
@@ -9,7 +9,7 @@ from zino.oid import OID
 @dataclass
 class MibObject:
     oid: OID
-    value: Union[str, int, OID]
+    value: str | int | OID
 
 
 class Identifier(NamedTuple):

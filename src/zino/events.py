@@ -1,6 +1,6 @@
 import logging
 from datetime import timedelta
-from typing import Dict, NamedTuple, Protocol, Type, Union
+from typing import Dict, NamedTuple, Protocol, Type
 
 from pydantic.main import BaseModel
 
@@ -35,7 +35,7 @@ class EventObserver(Protocol):
 
 
 class Events(BaseModel):
-    events: Dict[int, Union[PortStateEvent, BGPEvent, BFDEvent, ReachabilityEvent, AlarmEvent, Event]] = {}
+    events: Dict[int, PortStateEvent | BGPEvent | BFDEvent | ReachabilityEvent | AlarmEvent | Event] = {}
     last_event_id: int = 0
     _events_by_index: Dict[EventIndex, Event] = {}
     _closed_events_by_index: Dict[EventIndex, Event] = {}

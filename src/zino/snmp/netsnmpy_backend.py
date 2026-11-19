@@ -6,7 +6,7 @@ import os
 import threading
 import weakref
 from collections import defaultdict
-from typing import Any, Sequence, Tuple, Union
+from typing import Any, Sequence, Tuple
 
 from netsnmpy import netsnmp
 from netsnmpy.netsnmp import (
@@ -147,7 +147,7 @@ class SNMP:
         self._raise_varbind_errors(result)
         return MibObject(*result)
 
-    async def get2(self, *variables: Sequence[Union[str, int]]) -> list[SNMPVarBind]:
+    async def get2(self, *variables: Sequence[str | int]) -> list[SNMPVarBind]:
         """SNMP-GETs multiple variables
 
         Example usage:

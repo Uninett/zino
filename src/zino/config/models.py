@@ -3,7 +3,7 @@
 from ipaddress import IPv4Address, IPv6Address
 from os import R_OK, access
 from os.path import isfile
-from typing import Any, Literal, Union
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict
 from pydantic.functional_validators import AfterValidator
@@ -14,7 +14,7 @@ STATE_FILENAME = "zino-state.json"
 EVENT_DUMP_DIR = "old-events"
 POLLFILE = "polldevs.cf"
 
-IPAddress = Union[IPv4Address, IPv6Address]
+IPAddress = IPv4Address | IPv6Address
 
 DEFAULT_LOGGING_CONFIG: dict[str, Any] = {
     "version": 1,

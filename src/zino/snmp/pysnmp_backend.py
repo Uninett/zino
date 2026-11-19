@@ -5,7 +5,7 @@ import os
 import threading
 from collections import defaultdict
 from ipaddress import ip_address
-from typing import Any, Sequence, Tuple, Union
+from typing import Any, Sequence, Tuple
 
 from pyasn1.type import univ
 from pysnmp.hlapi.asyncio import (
@@ -74,7 +74,7 @@ def get_new_snmp_engine() -> SnmpEngine:
 
 
 PySNMPVarBind = tuple[ObjectIdentity, ObjectType]
-SupportedTypes = Union[univ.Integer, univ.OctetString, ObjectIdentity, ObjectType]
+SupportedTypes = univ.Integer | univ.OctetString | ObjectIdentity | ObjectType
 
 
 class SNMP:
@@ -120,7 +120,7 @@ class SNMP:
         self._raise_varbind_errors(result)
         return self._object_type_to_mib_object(result)
 
-    async def get2(self, *variables: Sequence[Union[str, int]]) -> list[SNMPVarBind]:
+    async def get2(self, *variables: Sequence[str | int]) -> list[SNMPVarBind]:
         """SNMP-GETs multiple variables
 
         Example usage:
@@ -147,7 +147,7 @@ class SNMP:
 
     def _raise_errors(
         self,
-        error_indication: Union[str, errind.ErrorIndication],
+        error_indication: str | errind.ErrorIndication,
         error_status: str,
         error_index: int,
         *query: ObjectType,
@@ -462,7 +462,7 @@ class SNMP:
         return CommunityData(self.device.community, mpModel=self.mp_model)
 
     @property
-    def udp_transport_target(self) -> Union[UdpTransportTarget, Udp6TransportTarget]:
+    def udp_transport_target(self) -> UdpTransportTarget | Udp6TransportTarget:
         assert self.device.address.version in (4, 6)
         target = UdpTransportTarget if self.device.address.version == 4 else Udp6TransportTarget
         return target(
@@ -483,7 +483,7 @@ def _convert_varbind(ident: ObjectIdentity, value: ObjectType) -> SNMPVarBind:
     return Identifier(mib, obj, row_index), value
 
 
-def mib_value_to_python(value: SupportedTypes) -> Union[str, int, OID]:
+def mib_value_to_python(value: SupportedTypes) -> str | int | OID:
     """Translates various PySNMP mib value objects to plainer Python objects, such as strings, integers or OIDs"""
     if isinstance(value, univ.Integer):
         value = int(value) if not value.namedValues else value.prettyPrint()

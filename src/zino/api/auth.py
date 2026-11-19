@@ -7,11 +7,10 @@ import io
 import secrets
 from hashlib import sha1
 from pathlib import Path
-from typing import Union
 
 
 def authenticate(
-    user: str, response: str, challenge: str | None = None, secrets_file: Union[Path, str] | None = "secrets"
+    user: str, response: str, challenge: str | None = None, secrets_file: Path | str | None = "secrets"
 ) -> bool:
     """Authenticates a user challenge response.
 
@@ -46,7 +45,7 @@ def get_challenge() -> str:
     return sha1(string).hexdigest()
 
 
-def read_users(filename: Union[Path, str] | None = "secrets") -> dict[str, str]:
+def read_users(filename: Path | str | None = "secrets") -> dict[str, str]:
     """Reads the legacy users database and returns a dictionary of usernames and their secrets"""
     secrets = {}
     with io.open(filename, "r", encoding="utf-8") as users:

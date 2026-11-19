@@ -8,7 +8,7 @@ import logging
 from asyncio import AbstractEventLoop
 from functools import partial
 from pathlib import Path
-from typing import Sequence, Set, Tuple, Union
+from typing import Sequence, Set, Tuple
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
@@ -77,7 +77,7 @@ def load_polldevs(polldevs_conf: str) -> Tuple[Set, Set, Set, dict[str, str]]:
     return new_devices, deleted_devices, changed_devices, defaults
 
 
-def _get_pollfile_watcher(polldevs_conf: Union[str, Path]) -> PollfileWatcher:
+def _get_pollfile_watcher(polldevs_conf: str | Path) -> PollfileWatcher:
     """Returns the global pollfile watcher, replacing it if it watches a different file"""
     if state.pollfile_watcher is None or state.pollfile_watcher.path != Path(polldevs_conf):
         state.pollfile_watcher = PollfileWatcher(polldevs_conf)

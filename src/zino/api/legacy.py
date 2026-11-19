@@ -12,7 +12,7 @@ import textwrap
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, List, NamedTuple, Union
+from typing import TYPE_CHECKING, Callable, List, NamedTuple
 
 import zino.state
 from zino import version
@@ -63,7 +63,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         self,
         server: "ZinoServer | None" = None,
         state: ZinoState | None = None,
-        secrets_file: Union[Path, str] | None = None,
+        secrets_file: Path | str | None = None,
         config: Configuration | None = None,
         polldevs: dict[str, PollDevice] | None = None,
     ):
@@ -331,7 +331,7 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         """
 
         @wraps(responder)
-        def _verify(self, case_id: Union[str, int], *args, **kwargs):
+        def _verify(self, case_id: str | int, *args, **kwargs):
             try:
                 case_id = int(case_id)
                 event = self._state.events[case_id]
@@ -477,7 +477,7 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         return self._respond_ok()
 
     @requires_authentication
-    async def do_pollintf(self, router_name: str, ifindex: Union[str, int]):
+    async def do_pollintf(self, router_name: str, ifindex: str | int):
         try:
             device = self._polldevs[router_name]
         except KeyError:
@@ -494,7 +494,7 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         return self._respond_ok()
 
     @requires_authentication
-    async def do_clearflap(self, router_name: str, ifindex: Union[str, int]):
+    async def do_clearflap(self, router_name: str, ifindex: str | int):
         """Clears the flapping state of an interface and its corresponding portstate event"""
         try:
             poll_device = self._polldevs[router_name]
@@ -515,7 +515,7 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         """
 
         @wraps(responder)
-        def _verify(self, pm_id: Union[str, int], *args, **kwargs):
+        def _verify(self, pm_id: str | int, *args, **kwargs):
             try:
                 pm_id = int(pm_id)
                 pm = self._state.planned_maintenances[pm_id]
@@ -580,7 +580,7 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         self._respond(200, pm.details())
 
     @requires_authentication
-    async def do_pm_add(self, from_t: Union[str, int], to_t: Union[str, int], pm_type: str, m_type: str, *args: str):
+    async def do_pm_add(self, from_t: str | int, to_t: str | int, pm_type: str, m_type: str, *args: str):
         try:
             start_time = datetime.fromtimestamp(int(from_t), tz=timezone.utc)
         except ValueError:

@@ -18,7 +18,6 @@ from typing import (
     Literal,
     Sequence,
     TypeVar,
-    Union,
 )
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -29,9 +28,9 @@ from zino.time import now
 if TYPE_CHECKING:
     from zino.state import ZinoState
 
-IPAddress = Union[IPv4Address, IPv6Address]
+IPAddress = IPv4Address | IPv6Address
 AlarmType = Literal["yellow", "red"]
-SubIndex = Union[None, int, IPAddress, AlarmType]
+SubIndex = None | int | IPAddress | AlarmType
 EventType = TypeVar("EventType", bound="Event")
 CISCO_ENTERPRISE_ID = 9
 JUNIPER_ENTERPRISE_ID = 2636
@@ -532,7 +531,7 @@ class PlannedMaintenance(BaseModel):
         """
         raise NotImplementedError
 
-    def get_matching(self, state: "ZinoState") -> Iterator[Sequence[Union[str, int]]]:
+    def get_matching(self, state: "ZinoState") -> Iterator[Sequence[str | int]]:
         """Returns a list of matching devices or ports from Zino state.
 
         The number of elements of each sequence of the return value depends on the type of planned maintenance
@@ -563,7 +562,7 @@ class DeviceMaintenance(PlannedMaintenance):
             return self.match_expression == device.name
         return False
 
-    def get_matching(self, state: "ZinoState") -> Iterator[Sequence[Union[str, int]]]:
+    def get_matching(self, state: "ZinoState") -> Iterator[Sequence[str | int]]:
         """Returns a list of matching devices from Zino state.
 
         Each element is a sequence of (pm_id, "device", device_name)
@@ -614,7 +613,7 @@ class PortStateMaintenance(PlannedMaintenance):
                 return regex_search(self.match_expression, port.ifdescr)
         return False
 
-    def get_matching(self, state: "ZinoState") -> Iterator[Sequence[Union[str, int]]]:
+    def get_matching(self, state: "ZinoState") -> Iterator[Sequence[str | int]]:
         """Returns a list of matching devices from Zino state.
 
         Each element is a sequence of (pm_id, "portstate", device_name, ifIndex, ifDescr, f"({ifAlias})")
