@@ -47,7 +47,7 @@ class OID(tuple):
         return "OID(%s)" % repr(str(self))
 
     def __add__(self, other):
-        return OID(super(OID, self).__add__(OID(other)))
+        return OID(super().__add__(OID(other)))
 
     def is_a_prefix_of(self, other):
         """Returns True if this OID is a prefix of other"""
