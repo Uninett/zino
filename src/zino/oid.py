@@ -44,7 +44,7 @@ class OID(tuple):
         return SEPARATOR + SEPARATOR.join([str(i) for i in self])
 
     def __repr__(self):
-        return "OID(%s)" % repr(str(self))
+        return f"OID({repr(str(self))})"
 
     def __add__(self, other):
         return OID(super().__add__(OID(other)))
