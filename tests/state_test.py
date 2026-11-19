@@ -1,6 +1,6 @@
 import json
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from json import JSONDecodeError
 from unittest.mock import patch
 
@@ -17,7 +17,7 @@ def test_dump_state_to_file_should_dump_valid_json_to_file(tmp_path):
     state.dump_state_to_file(dumpfile)
 
     assert os.path.exists(dumpfile)
-    with open(dumpfile, "r") as data:
+    with open(dumpfile) as data:
         assert json.load(data)
 
 
@@ -118,12 +118,12 @@ class TestFindDuplicateEvents:
         # Create two events with the same EventIndex
         event1 = ReachabilityEvent(id=1, router="router1")
         event1.state = EventState.OPEN
-        event1.opened = datetime(2024, 1, 1, 10, 0, 0, tzinfo=timezone.utc)
+        event1.opened = datetime(2024, 1, 1, 10, 0, 0, tzinfo=UTC)
         events.events[1] = event1
 
         event2 = ReachabilityEvent(id=2, router="router1")  # Same router and type
         event2.state = EventState.OPEN
-        event2.opened = datetime(2024, 1, 1, 11, 0, 0, tzinfo=timezone.utc)
+        event2.opened = datetime(2024, 1, 1, 11, 0, 0, tzinfo=UTC)
         events.events[2] = event2
 
         events._rebuild_indexes()
@@ -167,17 +167,17 @@ class TestResolveDuplicateEvents:
         # Create duplicate events with different timestamps
         event1 = ReachabilityEvent(id=1, router="router1")
         event1.state = EventState.OPEN
-        event1.opened = datetime(2024, 1, 1, 10, 0, 0, tzinfo=timezone.utc)
+        event1.opened = datetime(2024, 1, 1, 10, 0, 0, tzinfo=UTC)
         events.events[1] = event1
 
         event2 = ReachabilityEvent(id=2, router="router1")
         event2.state = EventState.OPEN
-        event2.opened = datetime(2024, 1, 1, 11, 0, 0, tzinfo=timezone.utc)  # Newer
+        event2.opened = datetime(2024, 1, 1, 11, 0, 0, tzinfo=UTC)  # Newer
         events.events[2] = event2
 
         event3 = ReachabilityEvent(id=3, router="router1")
         event3.state = EventState.OPEN
-        event3.opened = datetime(2024, 1, 1, 12, 0, 0, tzinfo=timezone.utc)  # Newest
+        event3.opened = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)  # Newest
         events.events[3] = event3
 
         state.events = events
@@ -197,12 +197,12 @@ class TestResolveDuplicateEvents:
         # Create duplicate events
         event1 = ReachabilityEvent(id=1, router="router1")
         event1.state = EventState.OPEN
-        event1.opened = datetime(2024, 1, 1, 10, 0, 0, tzinfo=timezone.utc)
+        event1.opened = datetime(2024, 1, 1, 10, 0, 0, tzinfo=UTC)
         events.events[1] = event1
 
         event2 = ReachabilityEvent(id=2, router="router1")
         event2.state = EventState.OPEN
-        event2.opened = datetime(2024, 1, 1, 11, 0, 0, tzinfo=timezone.utc)
+        event2.opened = datetime(2024, 1, 1, 11, 0, 0, tzinfo=UTC)
         events.events[2] = event2
 
         events._rebuild_indexes()
@@ -222,12 +222,12 @@ class TestResolveDuplicateEvents:
         # Create duplicate events
         event1 = ReachabilityEvent(id=1, router="router1")
         event1.state = EventState.OPEN
-        event1.opened = datetime(2024, 1, 1, 10, 0, 0, tzinfo=timezone.utc)
+        event1.opened = datetime(2024, 1, 1, 10, 0, 0, tzinfo=UTC)
         events.events[1] = event1
 
         event2 = ReachabilityEvent(id=2, router="router1")
         event2.state = EventState.OPEN
-        event2.opened = datetime(2024, 1, 1, 11, 0, 0, tzinfo=timezone.utc)
+        event2.opened = datetime(2024, 1, 1, 11, 0, 0, tzinfo=UTC)
         events.events[2] = event2
 
         events._rebuild_indexes()

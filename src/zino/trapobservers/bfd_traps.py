@@ -15,7 +15,6 @@ Example of test trap message:
 
 import logging
 from pprint import pformat
-from typing import Optional
 
 from zino.tasks.bfdtask import BFDTask
 from zino.trapd.base import TrapMessage, TrapObserver
@@ -29,7 +28,7 @@ class BFDTrapObserver(TrapObserver):
         ("BFD-STD-MIB", "bfdSessDown"),
     }
 
-    async def handle_trap(self, trap: TrapMessage) -> Optional[bool]:
+    async def handle_trap(self, trap: TrapMessage) -> bool | None:
         try:
             affected_indexes = self._parse_trap(trap)
         except ValueError:

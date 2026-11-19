@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from zino.state import ZinoState
 from zino.stateconverter.linedata import LineData
@@ -86,7 +86,7 @@ def _set_event_attrs(linedata: LineData, state: ZinoState, id_to_type: dict[int,
     elif event_field == "polladdr":
         event.polladdr = parse_ip(linedata.value)
     elif event_field == "opened":
-        event.opened = datetime.fromtimestamp(int(linedata.value), tz=timezone.utc)
+        event.opened = datetime.fromtimestamp(int(linedata.value), tz=UTC)
     elif event_field == "peer-uptime":
         event.peer_uptime = int(linedata.value)
     elif event_field == "remote-AS":
@@ -98,7 +98,7 @@ def _set_event_attrs(linedata: LineData, state: ZinoState, id_to_type: dict[int,
     elif event_field == "state":
         event.state = EventState(linedata.value)
     elif event_field == "updated":
-        event.updated = datetime.fromtimestamp(int(linedata.value), tz=timezone.utc)
+        event.updated = datetime.fromtimestamp(int(linedata.value), tz=UTC)
     elif event_field == "ac-down":
         event.ac_down = timedelta(seconds=int(linedata.value))
     elif event_field == "descr":
@@ -125,7 +125,7 @@ def _set_event_attrs(linedata: LineData, state: ZinoState, id_to_type: dict[int,
     elif event_field == "bfdState":
         event.bfdstate = BFDSessState(linedata.value)
     elif event_field == "lasttrans":
-        event.lasttrans = datetime.fromtimestamp(int(linedata.value), tz=timezone.utc)
+        event.lasttrans = datetime.fromtimestamp(int(linedata.value), tz=UTC)
     elif event_field == "alarm-count":
         event.alarm_count = int(linedata.value)
     elif event_field == "alarm-type":

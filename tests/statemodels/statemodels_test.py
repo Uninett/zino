@@ -86,7 +86,7 @@ class TestEvent:
         assert Event.zinoify_value(42) == "42"
 
     def test_zinoify_value_when_value_is_datetime_it_should_return_a_unix_timestamp_as_a_str(self):
-        timestamp = datetime.datetime(2023, 10, 18, 11, 53, 37, tzinfo=datetime.timezone.utc)
+        timestamp = datetime.datetime(2023, 10, 18, 11, 53, 37, tzinfo=datetime.UTC)
         assert Event.zinoify_value(timestamp) == "1697630017"
 
     def test_zinoify_value_when_value_is_anything_its_str_should_be_returned(self):
@@ -134,7 +134,7 @@ class TestEvent:
 
         dumpfile = f"{tmp_path}/{fake_event.id}.json"
         assert os.path.exists(dumpfile)
-        with open(dumpfile, "r") as data:
+        with open(dumpfile) as data:
             assert json.load(data)
 
 

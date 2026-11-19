@@ -1,6 +1,5 @@
 import logging
 from asyncio import AbstractEventLoop
-from typing import Optional
 
 from zino.api.legacy import Zino1ServerProtocol
 from zino.api.notify import Zino1NotificationProtocol
@@ -26,7 +25,7 @@ class ZinoServer:
         loop: AbstractEventLoop,
         state: ZinoState,
         polldevs: dict[str, PollDevice],
-        config: Optional[Configuration] = None,
+        config: Configuration | None = None,
     ):
         self._loop = loop
         self.state: ZinoState = state
@@ -60,6 +59,6 @@ class ZinoServer:
 
         self.state.events.add_event_observer(self.on_event_commit)
 
-    def on_event_commit(self, new_event: Event, old_event: Optional[Event] = None) -> None:
+    def on_event_commit(self, new_event: Event, old_event: Event | None = None) -> None:
         """Event observer to build notifications for notification channels"""
         Zino1NotificationProtocol.build_and_send_notifications(self, new_event, old_event)

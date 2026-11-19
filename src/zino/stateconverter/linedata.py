@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass
@@ -8,7 +7,7 @@ class LineData:
     Each line in the state dump can contain several identifiers but there is always only one value.
     """
 
-    identifiers: Optional[tuple[str, ...]]
+    identifiers: tuple[str, ...] | None
     value: str
 
 

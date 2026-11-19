@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, Sequence
+from collections.abc import Sequence
 
 from zino.oid import OID
 from zino.scheduler import get_scheduler
@@ -11,9 +11,9 @@ from zino.utils import reverse_dns
 _log = logging.getLogger(__name__)
 
 # IfDescr as key
-DescrBFDStates = Dict[str, BFDState]
+DescrBFDStates = dict[str, BFDState]
 # IfIndex as key
-IndexBFDStates = Dict[int, BFDState]
+IndexBFDStates = dict[int, BFDState]
 
 
 class BFDTask(Task):

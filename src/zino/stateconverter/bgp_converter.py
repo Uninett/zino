@@ -1,5 +1,6 @@
 import logging
-from typing import Generator, NamedTuple
+from collections.abc import Generator
+from typing import NamedTuple
 
 from zino.state import ZinoState
 from zino.stateconverter.utils import OldState, parse_ip

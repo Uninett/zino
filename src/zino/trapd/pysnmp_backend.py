@@ -3,7 +3,6 @@
 import asyncio
 import logging
 from ipaddress import ip_address
-from typing import Dict, Optional
 
 from pyasn1.type.base import SimpleAsn1Type
 from pysnmp.carrier.asyncio.dgram import udp
@@ -40,9 +39,9 @@ class TrapReceiver(TrapReceiverBase):
         self,
         address: str = "0.0.0.0",
         port: int = 162,
-        loop: Optional[asyncio.AbstractEventLoop] = None,
-        state: Optional[zino.state.ZinoState] = None,
-        polldevs: Optional[Dict[str, PollDevice]] = None,
+        loop: asyncio.AbstractEventLoop | None = None,
+        state: zino.state.ZinoState | None = None,
+        polldevs: dict[str, PollDevice] | None = None,
     ):
         super().__init__(address, port, loop, state, polldevs)
         self.snmp_engine = get_new_snmp_engine()

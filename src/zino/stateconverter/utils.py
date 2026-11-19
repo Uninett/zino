@@ -56,6 +56,6 @@ def _get_var_name(line) -> str:
 
 
 def _read_file_lines(file: str):
-    with open(file, "r", encoding="latin-1") as state_file:
+    with open(file, encoding="latin-1") as state_file:
         lines = state_file.read().splitlines()
     return lines

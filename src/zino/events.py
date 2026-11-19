@@ -1,6 +1,6 @@
 import logging
 from datetime import timedelta
-from typing import Dict, NamedTuple, Optional, Protocol, Type, Union
+from typing import NamedTuple, Protocol
 
 from pydantic.main import BaseModel
 
@@ -25,20 +25,20 @@ EVENT_EXPIRY = timedelta(hours=8)
 class EventIndex(NamedTuple):
     router: str
     subindex: SubIndex
-    type: Type
+    type: type
 
 
 class EventObserver(Protocol):
     """Defines a valid protocol for event observer functions"""
 
-    def __call__(self, new_event: Event, old_event: Optional[Event] = None) -> None: ...
+    def __call__(self, new_event: Event, old_event: Event | None = None) -> None: ...
 
 
 class Events(BaseModel):
-    events: Dict[int, Union[PortStateEvent, BGPEvent, BFDEvent, ReachabilityEvent, AlarmEvent, Event]] = {}
+    events: dict[int, PortStateEvent | BGPEvent | BFDEvent | ReachabilityEvent | AlarmEvent | Event] = {}
     last_event_id: int = 0
-    _events_by_index: Dict[EventIndex, Event] = {}
-    _closed_events_by_index: Dict[EventIndex, Event] = {}
+    _events_by_index: dict[EventIndex, Event] = {}
+    _closed_events_by_index: dict[EventIndex, Event] = {}
     _observers: list[EventObserver] = []
 
     def __init__(self, *args, **kwargs):
@@ -56,8 +56,8 @@ class Events(BaseModel):
 
         Mostly useful when this object was constructed from dumped data, of which the index isn't a part.
         """
-        new_index: Dict[EventIndex, Event] = {}
-        new_closed_index: Dict[EventIndex, Event] = {}
+        new_index: dict[EventIndex, Event] = {}
+        new_closed_index: dict[EventIndex, Event] = {}
 
         for event in self.events.values():
             key = EventIndex(event.router, event.subindex, type(event))
@@ -73,7 +73,7 @@ class Events(BaseModel):
         self,
         device_name: str,
         subindex: SubIndex,
-        event_class: Type[EventType],
+        event_class: type[EventType],
     ) -> EventType:
         """Creates and returns a new event for the given event identifiers, or, if an event matching this identifier
         already exists in the index, returns that.
@@ -95,7 +95,7 @@ class Events(BaseModel):
             event = self.get(device_name, subindex, event_class)
             return self.checkout(event.id)
 
-    def create_event(self, device_name: str, subindex: SubIndex, event_class: Type[EventType]) -> EventType:
+    def create_event(self, device_name: str, subindex: SubIndex, event_class: type[EventType]) -> EventType:
         """Creates a new event for the given event identifiers. If an event already exists for this combination of
         identifiers, an EventExistsError is raised.
 
@@ -115,14 +115,12 @@ class Events(BaseModel):
         _log.debug("created embryonic event %r", event)
         return event
 
-    def get(self, device_name: str, subindex: SubIndex, event_class: Type[EventType]) -> Optional[EventType]:
+    def get(self, device_name: str, subindex: SubIndex, event_class: type[EventType]) -> EventType | None:
         """Returns an event based on its identifiers, None if no match was found"""
         index = EventIndex(device_name, subindex, event_class)
         return self._events_by_index.get(index)
 
-    def get_closed_event(
-        self, device_name: str, subindex: SubIndex, event_class: Type[EventType]
-    ) -> Optional[EventType]:
+    def get_closed_event(self, device_name: str, subindex: SubIndex, event_class: type[EventType]) -> EventType | None:
         """Returns a closed event based on its identifiers, None if no match was found"""
         index = EventIndex(device_name, subindex, event_class)
         return self._closed_events_by_index.get(index)
@@ -211,11 +209,11 @@ class Events(BaseModel):
         self.last_event_id += 1
         return self.last_event_id
 
-    def _call_observers_for(self, new_event: Event, old_event: Optional[Event] = None):
+    def _call_observers_for(self, new_event: Event, old_event: Event | None = None):
         for observer in self._observers:
             observer(new_event=new_event, old_event=old_event)
 
-    def record_downtime(self, new_event: Event, old_event: Optional[Event] = None):
+    def record_downtime(self, new_event: Event, old_event: Event | None = None):
         timestamp = now()
         # Assume not initally down if this is a completely new event
         is_initially_down = old_event.is_down() if old_event else False

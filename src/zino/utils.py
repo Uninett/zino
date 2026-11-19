@@ -4,12 +4,11 @@ import os
 import stat
 from functools import wraps
 from time import time
-from typing import Optional, Union
 
 import aiodns
 
 
-async def reverse_dns(ip: str) -> Optional[str]:
+async def reverse_dns(ip: str) -> str | None:
     """Returns hostname for given IP address or None if reverse DNS lookup fails"""
     loop = asyncio.get_event_loop()
     resolver = aiodns.DNSResolver(loop=loop)
@@ -20,7 +19,7 @@ async def reverse_dns(ip: str) -> Optional[str]:
         return None
 
 
-def log_time_spent(logger: Union[logging.Logger, str] = __name__, level: int = logging.DEBUG):
+def log_time_spent(logger: logging.Logger | str = __name__, level: int = logging.DEBUG):
     """Decorator that logs the time taken for a function to execute.  Not suitable for use with async functions"""
     if isinstance(logger, str):
         logger = logging.getLogger(logger)

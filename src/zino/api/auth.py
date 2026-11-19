@@ -3,15 +3,13 @@
 This only implements the authentication scheme of the legacy server protocol.
 """
 
-import io
 import secrets
 from hashlib import sha1
 from pathlib import Path
-from typing import Optional, Union
 
 
 def authenticate(
-    user: str, response: str, challenge: Optional[str] = None, secrets_file: Optional[Union[Path, str]] = "secrets"
+    user: str, response: str, challenge: str | None = None, secrets_file: Path | str | None = "secrets"
 ) -> bool:
     """Authenticates a user challenge response.
 
@@ -46,10 +44,10 @@ def get_challenge() -> str:
     return sha1(string).hexdigest()
 
 
-def read_users(filename: Optional[Union[Path, str]] = "secrets") -> dict[str, str]:
+def read_users(filename: Path | str | None = "secrets") -> dict[str, str]:
     """Reads the legacy users database and returns a dictionary of usernames and their secrets"""
     secrets = {}
-    with io.open(filename, "r", encoding="utf-8") as users:
+    with open(filename, encoding="utf-8") as users:
         nonempty_lines = (ln.strip() for ln in users.readlines() if ln.strip())
         for line in nonempty_lines:
             user, secret = line.split(" ", maxsplit=1)

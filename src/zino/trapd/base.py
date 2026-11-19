@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, NamedTuple, Optional, Set
+from typing import Any, NamedTuple
 
 import zino.state
 from zino.config.models import PollDevice
@@ -29,7 +29,7 @@ class TrapOriginator(NamedTuple):
 
     address: IPAddress
     port: int
-    device: Optional[DeviceState] = None
+    device: DeviceState | None = None
 
 
 @dataclass
@@ -37,9 +37,9 @@ class TrapMessage:
     """Describes an incoming trap message in the simplest possible terms needed for Zino usage"""
 
     agent: TrapOriginator
-    mib: Optional[str] = None
-    name: Optional[str] = None
-    variables: List[TrapVarBind] = field(default_factory=list)
+    mib: str | None = None
+    name: str | None = None
+    variables: list[TrapVarBind] = field(default_factory=list)
 
     def __str__(self):
         variables = [f"{v.mib}::{v.var}{v.instance or ''}={v.value or v.raw_value}" for v in self.variables]
@@ -53,7 +53,7 @@ class TrapMessage:
                 return True
         return False
 
-    def get_all(self, label: str) -> List[TrapVarBind]:
+    def get_all(self, label: str) -> list[TrapVarBind]:
         """Returns all contained variables with the given label"""
         return [var for var in self.variables if var.var == label]
 
@@ -65,23 +65,23 @@ class TrapObserver:
     observer for any trap it declares in its `WANTED_TRAPS` attribute.
     """
 
-    WANTED_TRAPS: Set[TrapType] = set()
+    WANTED_TRAPS: set[TrapType] = set()
 
     def __init__(
         self,
         state: zino.state.ZinoState,
-        polldevs: Optional[Dict[str, PollDevice]] = None,
-        loop: Optional[asyncio.AbstractEventLoop] = None,
+        polldevs: dict[str, PollDevice] | None = None,
+        loop: asyncio.AbstractEventLoop | None = None,
     ):
         """Initializes a new trap observer with a reference to Zino's state.
 
         Optionally also receives a reference to the current polldevs configuration and the running event loop.
         """
         self.state = state
-        self.polldevs: Dict[str, PollDevice] = polldevs or zino.state.polldevs
+        self.polldevs: dict[str, PollDevice] = polldevs or zino.state.polldevs
         self.loop = loop
 
-    async def handle_trap(self, trap: TrapMessage) -> Optional[bool]:
+    async def handle_trap(self, trap: TrapMessage) -> bool | None:
         """A trap observer receives a trap message and an optional event loop reference.  The event loop reference
         may be useful if the observer needs to run async actions as part of its trap processing.  If the trap
         observer returns a true-ish value, the trap dispatcher will offer the same trap to more subscribers.  If a
@@ -99,9 +99,9 @@ class TrapReceiverBase:
         self,
         address: str = "0.0.0.0",
         port: int = 162,
-        loop: Optional[asyncio.AbstractEventLoop] = None,
-        state: Optional[zino.state.ZinoState] = None,
-        polldevs: Optional[Dict[str, PollDevice]] = None,
+        loop: asyncio.AbstractEventLoop | None = None,
+        state: zino.state.ZinoState | None = None,
+        polldevs: dict[str, PollDevice] | None = None,
     ):
         self.address = address
         self.port = port
@@ -109,7 +109,7 @@ class TrapReceiverBase:
         self.state = state or zino.state.ZinoState()
         self.polldevs = polldevs if polldevs is not None else {}
         self._communities = set()
-        self._observers: dict[TrapType, List[TrapObserver]] = {}
+        self._observers: dict[TrapType, list[TrapObserver]] = {}
         self._auto_subscribed_observers = set()
 
     async def open(self):
@@ -132,13 +132,13 @@ class TrapReceiverBase:
             observer_instance = observer_class(state=self.state, polldevs=self.polldevs, loop=self.loop)
             self.observe(observer_instance, *observer_instance.WANTED_TRAPS)
 
-    def observe(self, subscriber: TrapObserver, *trap_types: List[TrapType]):
+    def observe(self, subscriber: TrapObserver, *trap_types: list[TrapType]):
         """Adds a trap subscriber to the receiver"""
         for trap_type in trap_types:
             observers = self._observers.setdefault(trap_type, [])
             observers.append(subscriber)
 
-    def get_observers_for(self, trap_type: TrapType) -> List[TrapObserver]:
+    def get_observers_for(self, trap_type: TrapType) -> list[TrapObserver]:
         """Returns a list of trap observers for a given trap type"""
         return self._observers.get(trap_type, [])
 
@@ -162,7 +162,7 @@ class TrapReceiverBase:
             except Exception:  # noqa: BLE001
                 _logger.exception("Unhandled exception in trap observer %r", observer)
 
-    def _lookup_device(self, address: IPAddress) -> Optional[DeviceState]:
+    def _lookup_device(self, address: IPAddress) -> DeviceState | None:
         """Looks up a device from Zino's running state from an IP address"""
         name = self.state.addresses.get(address)
         if name in self.state.devices:

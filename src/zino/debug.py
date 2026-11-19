@@ -2,12 +2,12 @@
 
 import inspect
 import logging
-from typing import Any, Dict, List, Optional, Type
+from typing import Any
 
 _log = logging.getLogger(__name__)
 
 
-def debug_log_timeout_error(device_name: str, task_class: Type, logger: Optional[logging.Logger] = None) -> None:
+def debug_log_timeout_error(device_name: str, task_class: type, logger: logging.Logger | None = None) -> None:
     """Debug log detailed information about a TimeoutError including stack frame analysis.
 
     :param device_name: Name of the device that timed out
@@ -38,7 +38,7 @@ def debug_log_timeout_error(device_name: str, task_class: Type, logger: Optional
         log.debug("%s: SNMP operation failed: %s", device_name, snmp_details)
 
 
-def _find_task_frame(frames: List[inspect.FrameInfo]) -> Optional[Dict[str, Any]]:
+def _find_task_frame(frames: list[inspect.FrameInfo]) -> dict[str, Any] | None:
     """Find the lowest level stack frame inside the failing task class."""
     from zino.tasks.task import Task
 
@@ -57,7 +57,7 @@ def _find_task_frame(frames: List[inspect.FrameInfo]) -> Optional[Dict[str, Any]
     return None
 
 
-def _extract_snmp_operation_details(frames: List[inspect.FrameInfo]) -> Optional[str]:
+def _extract_snmp_operation_details(frames: list[inspect.FrameInfo]) -> str | None:
     """Extract details about the SNMP operation that timed out from the stack frames."""
     for frame_info in frames:
         frame = frame_info.frame
@@ -72,7 +72,7 @@ def _extract_snmp_operation_details(frames: List[inspect.FrameInfo]) -> Optional
     return None
 
 
-def _format_snmp_operation_info(function: str, locals_dict: Dict[str, Any]) -> str:
+def _format_snmp_operation_info(function: str, locals_dict: dict[str, Any]) -> str:
     """Format SNMP operation information from function name and local variables."""
     info_parts = []
 
