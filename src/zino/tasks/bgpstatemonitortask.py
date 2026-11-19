@@ -1,7 +1,7 @@
 import logging
+from collections.abc import Iterable
 from dataclasses import dataclass, replace
 from ipaddress import ip_address
-from typing import Iterable
 
 from zino.snmp.base import SparseWalkResponse
 from zino.statemodels import (

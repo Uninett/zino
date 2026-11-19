@@ -6,7 +6,8 @@ import os
 import threading
 import weakref
 from collections import defaultdict
-from typing import Any, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 from netsnmpy import netsnmp
 from netsnmpy.netsnmp import (

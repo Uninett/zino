@@ -6,9 +6,9 @@ This module wires those parts to Zino's global state and tasks. Code meant for r
 
 import logging
 from asyncio import AbstractEventLoop
+from collections.abc import Sequence
 from functools import partial
 from pathlib import Path
-from typing import Sequence
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 

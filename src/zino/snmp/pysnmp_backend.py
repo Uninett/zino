@@ -4,8 +4,9 @@ import logging
 import os
 import threading
 from collections import defaultdict
+from collections.abc import Sequence
 from ipaddress import ip_address
-from typing import Any, Sequence
+from typing import Any
 
 from pyasn1.type import univ
 from pysnmp.hlapi.asyncio import (

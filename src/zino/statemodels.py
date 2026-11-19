@@ -6,15 +6,13 @@ import functools
 import logging
 import pathlib
 import re
-from collections.abc import Generator
+from collections.abc import Generator, Iterator, Sequence
 from enum import Enum, StrEnum
 from ipaddress import IPv4Address, IPv6Address
 from typing import (
     TYPE_CHECKING,
     Any,
-    Iterator,
     Literal,
-    Sequence,
     TypeVar,
 )
 

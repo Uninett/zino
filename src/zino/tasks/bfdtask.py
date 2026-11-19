@@ -1,5 +1,5 @@
 import logging
-from typing import Sequence
+from collections.abc import Sequence
 
 from zino.oid import OID
 from zino.scheduler import get_scheduler

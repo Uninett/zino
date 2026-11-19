@@ -9,10 +9,11 @@ import inspect
 import logging
 import re
 import textwrap
+from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, NamedTuple
+from typing import TYPE_CHECKING, NamedTuple
 
 import zino.state
 from zino import version

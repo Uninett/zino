@@ -6,10 +6,10 @@ Nothing in here depends on Zino's global state, so other daemons can use it to s
 import logging
 import operator
 from asyncio import AbstractEventLoop
+from collections.abc import Awaitable, Callable, Iterable, Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Awaitable, Callable, Iterable, Mapping
 
 from apscheduler.executors.asyncio import AsyncIOExecutor
 from apscheduler.jobstores.base import JobLookupError

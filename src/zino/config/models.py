@@ -3,11 +3,10 @@
 from ipaddress import IPv4Address, IPv6Address
 from os import R_OK, access
 from os.path import isfile
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict
 from pydantic.functional_validators import AfterValidator
-from typing_extensions import Annotated
 
 DEFAULT_INTERVAL_MINUTES = 5
 STATE_FILENAME = "zino-state.json"

@@ -1,7 +1,8 @@
 """Functionality to parse and validate the legacy polldevs.cf config file"""
 
+from collections.abc import Iterator
 from os import PathLike
-from typing import Iterator, TextIO
+from typing import TextIO
 
 from pydantic import ValidationError
 

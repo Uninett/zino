@@ -7,7 +7,8 @@ the server.
 
 import asyncio
 import logging
-from typing import TYPE_CHECKING, Any, Iterator, NamedTuple
+from collections.abc import Iterator
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 from zino.api import auth
 from zino.api.sockets import enable_keepalive
