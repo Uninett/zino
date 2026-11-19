@@ -112,7 +112,7 @@ class Zino1NotificationProtocol(asyncio.Protocol):
 
     def _respond_raw(self, message: str):
         """Encodes and sends a response line to the connected client"""
-        self.transport.write(f"{message}\r\n".encode("utf-8"))
+        self.transport.write(f"{message}\r\n".encode())
 
     @classmethod
     def build_and_send_notifications(

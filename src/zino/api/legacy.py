@@ -269,7 +269,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
 
     def _respond_raw(self, message: str):
         """Buffers a response line until the next `_flush_response` call."""
-        self._output_buffer.extend(f"{message}\r\n".encode("utf-8"))
+        self._output_buffer.extend(f"{message}\r\n".encode())
 
     def _flush_response(self):
         """Writes any buffered response bytes to the transport."""
