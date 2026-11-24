@@ -6,34 +6,27 @@ import functools
 import logging
 import pathlib
 import re
-from collections.abc import Generator
-from enum import Enum
+from collections.abc import Generator, Iterator, Sequence
+from enum import Enum, StrEnum
 from ipaddress import IPv4Address, IPv6Address
 from typing import (
     TYPE_CHECKING,
     Any,
-    Dict,
-    Iterator,
-    List,
     Literal,
-    Optional,
-    Sequence,
     TypeVar,
-    Union,
 )
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic_core import PydanticUndefined
 
-from zino.compat import StrEnum
 from zino.time import now
 
 if TYPE_CHECKING:
     from zino.state import ZinoState
 
-IPAddress = Union[IPv4Address, IPv6Address]
+IPAddress = IPv4Address | IPv6Address
 AlarmType = Literal["yellow", "red"]
-SubIndex = Union[None, int, IPAddress, AlarmType]
+SubIndex = None | int | IPAddress | AlarmType
 EventType = TypeVar("EventType", bound="Event")
 CISCO_ENTERPRISE_ID = 9
 JUNIPER_ENTERPRISE_ID = 2636
@@ -106,27 +99,27 @@ class BFDState(BaseModel):
     """Keeps BFD state for an interface"""
 
     session_state: BFDSessState
-    session_index: Optional[int] = None
-    session_discr: Optional[int] = None
-    session_addr: Optional[IPAddress] = None
+    session_index: int | None = None
+    session_discr: int | None = None
+    session_addr: IPAddress | None = None
 
 
 class Port(BaseModel):
     """Keeps port state"""
 
     ifindex: int
-    ifdescr: Optional[str] = None
-    ifalias: Optional[str] = None
-    state: Optional[InterfaceState] = None
-    bfd_state: Optional[BFDState] = None
+    ifdescr: str | None = None
+    ifalias: str | None = None
+    state: InterfaceState | None = None
+    bfd_state: BFDState | None = None
 
 
 class BGPPeerSession(BaseModel):
     """Keeps a BGP peer session"""
 
-    uptime: Optional[int] = 0
-    admin_status: Optional[BGPAdminStatus] = None
-    oper_state: Optional[BGPOperState] = None
+    uptime: int | None = 0
+    admin_status: BGPAdminStatus | None = None
+    oper_state: BGPOperState | None = None
 
 
 class DeviceState(BaseModel):
@@ -134,13 +127,13 @@ class DeviceState(BaseModel):
 
     name: str
     addresses: set[IPAddress] = set()
-    enterprise_id: Optional[int] = None
-    ports: Dict[int, Port] = {}
-    alarms: Optional[Dict[AlarmType, int]] = None
-    boot_time: Optional[datetime.datetime] = None
-    bgp_style: Optional[BGPStyle] = None
+    enterprise_id: int | None = None
+    ports: dict[int, Port] = {}
+    alarms: dict[AlarmType, int] | None = None
+    boot_time: datetime.datetime | None = None
+    bgp_style: BGPStyle | None = None
     bgp_peers: dict[IPAddress, BGPPeerSession] = dict()
-    reachable_in_last_run: Optional[bool] = None
+    reachable_in_last_run: bool | None = None
 
     # This is the remaining set of potential device attributes stored in device state by the original Zino code:
     # EventId
@@ -181,7 +174,7 @@ class DeviceState(BaseModel):
 class DeviceStates(BaseModel):
     """Keeps track of the state of all devices we have polled from"""
 
-    devices: Dict[str, DeviceState] = {}
+    devices: dict[str, DeviceState] = {}
 
     def __getitem__(self, item) -> DeviceState:
         return self.devices[item]
@@ -205,7 +198,7 @@ class LogEntry(BaseModel):
     timestamp: datetime.datetime = Field(default_factory=now)
     message: str
 
-    def model_dump_legacy(self) -> List[str]:
+    def model_dump_legacy(self) -> list[str]:
         """Returns the contents of this log entry as a sequence of text lines.
 
         This sequence of text lines are formatted as expected in a multi-line response in the Zino legacy server
@@ -251,26 +244,26 @@ class Event(BaseModel):
     # Allow populating fields by name or alias
     model_config = ConfigDict(populate_by_name=True)
 
-    id: Optional[int] = None
+    id: int | None = None
 
     router: str
     type: Literal["Event"] = "Event"
     state: EventState = EventState.EMBRYONIC
     opened: datetime.datetime = Field(default_factory=now)
-    updated: Optional[datetime.datetime] = None
-    closed: Optional[datetime.datetime] = None
+    updated: datetime.datetime | None = None
+    closed: datetime.datetime | None = None
     priority: int = 100
-    lastevent: Optional[str] = None
+    lastevent: str | None = None
 
-    log: List[LogEntry] = []
-    history: List[LogEntry] = []
+    log: list[LogEntry] = []
+    history: list[LogEntry] = []
 
     # More-or-less optional event attrs (as guesstimated from the original Zino code)
-    lasttrans: Optional[datetime.datetime] = None
-    flaps: Optional[int] = None
-    ac_down: Optional[datetime.timedelta] = None
+    lasttrans: datetime.datetime | None = None
+    flaps: int | None = None
+    ac_down: datetime.timedelta | None = None
 
-    polladdr: Optional[IPAddress] = None
+    polladdr: IPAddress | None = None
 
     @property
     def subindex(self) -> SubIndex:
@@ -353,7 +346,7 @@ class Event(BaseModel):
             return str(int(value.total_seconds()))
         return str(value)
 
-    def get_changed_fields(self, other: "Event") -> List[str]:
+    def get_changed_fields(self, other: "Event") -> list[str]:
         """Compares this Event to another Event and returns a list of names of attributes that are different"""
         return [field for field in self.model_fields if getattr(other, field) != getattr(self, field)]
 
@@ -380,12 +373,12 @@ class FlapState(StrEnum):
 
 class PortStateEvent(Event):
     type: Literal["portstate"] = "portstate"
-    port: Optional[str] = ""
-    ifindex: Optional[int] = None
-    portstate: Optional[InterfaceState] = None
-    descr: Optional[str] = None
-    flapstate: Optional[FlapState] = None
-    reason: Optional[str] = None
+    port: str | None = ""
+    ifindex: int | None = None
+    portstate: InterfaceState | None = None
+    descr: str | None = None
+    flapstate: FlapState | None = None
+    reason: str | None = None
 
     @property
     def subindex(self) -> SubIndex:
@@ -401,11 +394,11 @@ class PortStateEvent(Event):
 
 class BGPEvent(Event):
     type: Literal["bgp"] = "bgp"
-    remote_address: Optional[IPAddress] = Field(default=None, alias="remote-addr")
-    remote_as: Optional[int] = Field(default=None, alias="remote-AS")
-    peer_uptime: Optional[int] = Field(default=None, alias="peer-uptime")
-    operational_state: Optional[BGPOperState] = Field(default=None, alias="bgpOS")
-    admin_status: Optional[BGPAdminStatus] = Field(default=None, alias="bgpAS")
+    remote_address: IPAddress | None = Field(default=None, alias="remote-addr")
+    remote_as: int | None = Field(default=None, alias="remote-AS")
+    peer_uptime: int | None = Field(default=None, alias="peer-uptime")
+    operational_state: BGPOperState | None = Field(default=None, alias="bgpOS")
+    admin_status: BGPAdminStatus | None = Field(default=None, alias="bgpAS")
 
     @property
     def subindex(self) -> SubIndex:
@@ -421,12 +414,12 @@ class BGPEvent(Event):
 
 class BFDEvent(Event):
     type: Literal["bfd"] = "bfd"
-    ifindex: Optional[int] = None
-    bfdstate: Optional[BFDSessState] = Field(default=None, alias="bfdState")
-    bfdix: Optional[int] = Field(default=None, alias="bfdIx")
-    bfddiscr: Optional[int] = Field(default=None, alias="bfdDiscr")
-    bfdaddr: Optional[IPAddress] = Field(default=None, alias="bfdAddr")
-    neigh_rdns: Optional[str] = Field(default=None, alias="Neigh-rDNS")
+    ifindex: int | None = None
+    bfdstate: BFDSessState | None = Field(default=None, alias="bfdState")
+    bfdix: int | None = Field(default=None, alias="bfdIx")
+    bfddiscr: int | None = Field(default=None, alias="bfdDiscr")
+    bfdaddr: IPAddress | None = Field(default=None, alias="bfdAddr")
+    neigh_rdns: str | None = Field(default=None, alias="Neigh-rDNS")
 
     @property
     def subindex(self) -> SubIndex:
@@ -435,7 +428,7 @@ class BFDEvent(Event):
 
 class ReachabilityEvent(Event):
     type: Literal["reachability"] = "reachability"
-    reachability: Optional[ReachabilityState] = None
+    reachability: ReachabilityState | None = None
 
     def is_down(self) -> bool:
         """Returns true if the event is in a down state.
@@ -447,8 +440,8 @@ class ReachabilityEvent(Event):
 
 class AlarmEvent(Event):
     type: Literal["alarm"] = "alarm"
-    alarm_type: Optional[AlarmType] = Field(default=None, alias="alarm-type")
-    alarm_count: Optional[int] = Field(default=None, alias="alarm-count")
+    alarm_type: AlarmType | None = Field(default=None, alias="alarm-type")
+    alarm_count: int | None = Field(default=None, alias="alarm-count")
 
     @property
     def subindex(self) -> SubIndex:
@@ -475,15 +468,15 @@ class PlannedMaintenance(BaseModel):
     # Allow populating fields by name or alias
     model_config = ConfigDict(populate_by_name=True)
 
-    id: Optional[int] = None
+    id: int | None = None
     start_time: datetime.datetime = Field(alias="starttime")
     end_time: datetime.datetime = Field(alias="endtime")
     type: PmType
     match_type: MatchType
-    match_device: Optional[str] = Field(default=None, alias="match_dev")
+    match_device: str | None = Field(default=None, alias="match_dev")
     match_expression: str = Field(alias="match_expr")
-    log: List[LogEntry] = []
-    event_ids: List[int] = []
+    log: list[LogEntry] = []
+    event_ids: list[int] = []
 
     def start(self, state: "ZinoState"):
         events = self._get_or_create_events(state)
@@ -534,7 +527,7 @@ class PlannedMaintenance(BaseModel):
         """
         raise NotImplementedError
 
-    def get_matching(self, state: "ZinoState") -> Iterator[Sequence[Union[str, int]]]:
+    def get_matching(self, state: "ZinoState") -> Iterator[Sequence[str | int]]:
         """Returns a list of matching devices or ports from Zino state.
 
         The number of elements of each sequence of the return value depends on the type of planned maintenance
@@ -565,7 +558,7 @@ class DeviceMaintenance(PlannedMaintenance):
             return self.match_expression == device.name
         return False
 
-    def get_matching(self, state: "ZinoState") -> Iterator[Sequence[Union[str, int]]]:
+    def get_matching(self, state: "ZinoState") -> Iterator[Sequence[str | int]]:
         """Returns a list of matching devices from Zino state.
 
         Each element is a sequence of (pm_id, "device", device_name)
@@ -616,7 +609,7 @@ class PortStateMaintenance(PlannedMaintenance):
                 return regex_search(self.match_expression, port.ifdescr)
         return False
 
-    def get_matching(self, state: "ZinoState") -> Iterator[Sequence[Union[str, int]]]:
+    def get_matching(self, state: "ZinoState") -> Iterator[Sequence[str | int]]:
         """Returns a list of matching devices from Zino state.
 
         Each element is a sequence of (pm_id, "portstate", device_name, ifIndex, ifDescr, f"({ifAlias})")

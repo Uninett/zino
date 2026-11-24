@@ -3,7 +3,6 @@
 import logging
 import re
 from datetime import datetime, timedelta
-from typing import Optional
 
 import zino.state
 import zino.time
@@ -35,7 +34,7 @@ class LinkTrapObserver(TrapObserver):
         super().__init__(*args, **kwargs)
         self._last_same_trap: dict[PortIndex, datetime] = {}
 
-    async def handle_trap(self, trap: TrapMessage) -> Optional[bool]:
+    async def handle_trap(self, trap: TrapMessage) -> bool | None:
         _logger.debug("%s: %s (vars: %s)", trap.agent.device.name, trap.name, ", ".join(v.var for v in trap.variables))
 
         if "ifIndex" in trap:
@@ -57,7 +56,7 @@ class LinkTrapObserver(TrapObserver):
         is_up = trap.name == "linkUp"
         self.handle_link_transition(trap.agent.device, port, is_up)
 
-    def handle_link_transition(self, device: DeviceState, port: Port, is_up: bool, reason: Optional[str] = None):
+    def handle_link_transition(self, device: DeviceState, port: Port, is_up: bool, reason: str | None = None):
         """This method is called when a linkUp or linkDown trap is received, and updates event state accordingly -
         including the logic for handling flapping states.
         """
@@ -109,7 +108,7 @@ class LinkTrapObserver(TrapObserver):
             self.update_non_flapping_event(device, index, new_state, port, reason)
 
     def update_flapping_event(
-        self, device: DeviceState, interface: PortIndex, new_state: InterfaceState, port: Port, reason: Optional[str]
+        self, device: DeviceState, interface: PortIndex, new_state: InterfaceState, port: Port, reason: str | None
     ) -> PortStateEvent:
         """Opens or returns an existing portstate event for a port that was not previously known to be flapping.
 
@@ -131,7 +130,7 @@ class LinkTrapObserver(TrapObserver):
         return event
 
     def update_non_flapping_event(
-        self, device: DeviceState, interface: PortIndex, new_state: InterfaceState, port: Port, reason: Optional[str]
+        self, device: DeviceState, interface: PortIndex, new_state: InterfaceState, port: Port, reason: str | None
     ) -> PortStateEvent:
         """Opens or returns an existing portstate event for a port that isn't currently flapping.
 
@@ -167,7 +166,7 @@ class LinkTrapObserver(TrapObserver):
         return event
 
     def open_portstate_event(
-        self, device: DeviceState, new_state: InterfaceState, port: Port, reason: Optional[str]
+        self, device: DeviceState, new_state: InterfaceState, port: Port, reason: str | None
     ) -> PortStateEvent:
         """Opens or returns an open port state event for the port referenced in an incoming trap message"""
         event = self.state.events.get_or_create_event(device.name, port.ifindex, PortStateEvent)
@@ -245,12 +244,12 @@ class LinkTrapObserver(TrapObserver):
         )
         return True
 
-    def get_watch_pattern(self, device: DeviceState) -> Optional[str]:
+    def get_watch_pattern(self, device: DeviceState) -> str | None:
         if device.name not in self.polldevs:
             return None
         return self.polldevs[device.name].watchpat
 
-    def get_ignore_pattern(self, device: DeviceState) -> Optional[str]:
+    def get_ignore_pattern(self, device: DeviceState) -> str | None:
         if device.name not in self.polldevs:
             return None
         return self.polldevs[device.name].ignorepat

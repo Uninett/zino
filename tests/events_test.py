@@ -1,5 +1,4 @@
 from datetime import timedelta
-from typing import Optional
 from unittest.mock import Mock, patch
 
 import pytest
@@ -269,7 +268,7 @@ class TestEvents:
         updated_event = events.checkout(initial_event.id)
         updated_event.add_history("something happened")
 
-        def observer(new_event: Event, old_event: Optional[Event] = None) -> None:
+        def observer(new_event: Event, old_event: Event | None = None) -> None:
             assert new_event is updated_event
             assert old_event is initial_event
             observer.called = True
@@ -284,7 +283,7 @@ class TestEvents:
         event.set_state(EventState.CLOSED)
         events.commit(event)
 
-        def observer(new_event: Event, old_event: Optional[Event] = None) -> None:
+        def observer(new_event: Event, old_event: Event | None = None) -> None:
             assert new_event is event
             observer.called = True
 

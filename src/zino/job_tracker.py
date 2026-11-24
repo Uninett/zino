@@ -4,7 +4,6 @@ import asyncio
 import logging
 import signal
 from datetime import datetime
-from typing import Optional
 
 from apscheduler.events import (
     EVENT_JOB_ERROR,
@@ -24,7 +23,7 @@ class JobTracker:
 
     def __init__(self):
         self.running_jobs: dict[str, dict] = {}
-        self.loop: Optional[asyncio.AbstractEventLoop] = None
+        self.loop: asyncio.AbstractEventLoop | None = None
         self.scheduler = None
 
     def setup_signal_handler(self, loop: asyncio.AbstractEventLoop):
@@ -34,7 +33,7 @@ class JobTracker:
         loop.add_signal_handler(signal.SIGUSR1, self._handle_sigusr1)
         _log.debug("SIGUSR1 handler registered for job tracking")
 
-    def _get_job_name(self, job_id: str) -> Optional[str]:
+    def _get_job_name(self, job_id: str) -> str | None:
         """Get the job name from scheduler if available."""
         if not self.scheduler:
             return None
@@ -204,7 +203,7 @@ class JobTracker:
 
 
 # Global instance
-_job_tracker: Optional[JobTracker] = None
+_job_tracker: JobTracker | None = None
 
 
 def get_job_tracker() -> JobTracker:

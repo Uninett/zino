@@ -7,10 +7,9 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, List, Optional, Tuple
+from typing import TYPE_CHECKING, Annotated
 
 from pydantic import BaseModel, BeforeValidator, Field, PlainSerializer
-from typing_extensions import Annotated
 
 from zino.config.models import PollDevice
 from zino.statemodels import FlapState, InterfaceState, PortStateEvent
@@ -35,7 +34,7 @@ FLAP_DECREMENT_INTERVAL_SECONDS = 300
 DeviceName = str
 InterfaceIndex = int
 PortIndex = Annotated[
-    Tuple[DeviceName, InterfaceIndex],
+    tuple[DeviceName, InterfaceIndex],
     # Apply customized Pydantic serializing logic to the tuple, which will be used as dict keys
     PlainSerializer(lambda x: f"{x[0]}:{x[1]}", return_type=str, when_used="json"),
     BeforeValidator(lambda x: x.split(":") if isinstance(x, str) else x),
@@ -49,7 +48,7 @@ class FlappingState(BaseModel):
     first_flap: datetime = Field(default_factory=now)
     last_flap: datetime = Field(default_factory=now)
     flaps: int = 0
-    last_age: Optional[datetime] = None
+    last_age: datetime | None = None
     flapped_above_threshold: bool = False
     in_active_flap_state: bool = False
 
@@ -121,7 +120,7 @@ class FlappingStates(BaseModel):
         self.interfaces[interface] = flap
         return flap
 
-    def unflap(self, interface: PortIndex) -> Optional[FlappingState]:
+    def unflap(self, interface: PortIndex) -> FlappingState | None:
         """Removes all flapping stats tracking for a port, if they exist"""
         return self.interfaces.pop(interface, None)
 
@@ -235,7 +234,7 @@ async def stabilize_flapping_state(
     _logger.info(msg)
     # An operator may have closed a flapping port event prematurely, so we may need to update both the closed
     # event and an open event, following Zino 1 logic:
-    events: List[PortStateEvent] = []
+    events: list[PortStateEvent] = []
     if event := state.events.get_closed_event(router_name, ifindex, PortStateEvent):
         events.append(event)
     if event := state.events.get_or_create_event(router_name, ifindex, PortStateEvent):

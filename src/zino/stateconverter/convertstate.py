@@ -1,6 +1,6 @@
 import argparse
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import get_args
 
 from zino.state import ZinoState
@@ -86,7 +86,7 @@ def set_jnx_alarms(linedata: LineData, state: ZinoState):
 def set_boot_time(linedata: LineData, state: ZinoState):
     device = state.devices.get(linedata.identifiers[0])
     timestamp = int(linedata.value)
-    device.boot_time = datetime.fromtimestamp(timestamp, tz=timezone.utc)
+    device.boot_time = datetime.fromtimestamp(timestamp, tz=UTC)
 
 
 def set_addr_to_router(linedata: LineData, state: ZinoState):
@@ -108,7 +108,7 @@ def set_event_close_times(linedata: LineData, state: ZinoState):
     if not event:
         _log.error("EventCloseTimes refers to non existing event %d", event_id)
         return
-    close_time = datetime.fromtimestamp(int(linedata.value), tz=timezone.utc)
+    close_time = datetime.fromtimestamp(int(linedata.value), tz=UTC)
     event.closed = close_time
 
 

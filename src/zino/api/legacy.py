@@ -9,10 +9,11 @@ import inspect
 import logging
 import re
 import textwrap
-from datetime import datetime, timedelta, timezone
+from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
 from functools import wraps
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, List, NamedTuple, Optional, Union
+from typing import TYPE_CHECKING, NamedTuple
 
 import zino.state
 from zino import version
@@ -61,11 +62,11 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
 
     def __init__(
         self,
-        server: Optional["ZinoServer"] = None,
-        state: Optional[ZinoState] = None,
-        secrets_file: Optional[Union[Path, str]] = None,
-        config: Optional[Configuration] = None,
-        polldevs: Optional[dict[str, PollDevice]] = None,
+        server: "ZinoServer | None" = None,
+        state: ZinoState | None = None,
+        secrets_file: Path | str | None = None,
+        config: Configuration | None = None,
+        polldevs: dict[str, PollDevice] | None = None,
     ):
         """Initializes a protocol instance.
 
@@ -76,14 +77,14 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         :param polldevs: An optional instance of the polldevs dict.
         """
         self.server = server
-        self.transport: Optional[asyncio.Transport] = None
-        self.notification_channel: Optional[Zino1NotificationProtocol] = None
-        self._authenticated_as: Optional[str] = None
+        self.transport: asyncio.Transport | None = None
+        self.notification_channel: Zino1NotificationProtocol | None = None
+        self._authenticated_as: str | None = None
         self._current_task: asyncio.Task = None
         self._input_buffer = bytearray()
         self._multiline_future: asyncio.Future = None
-        self._multiline_buffer: List[str] = []
-        self._authentication_challenge: Optional[str] = None
+        self._multiline_buffer: list[str] = []
+        self._authentication_challenge: str | None = None
         self._responders = self._get_all_responders()
         self._output_buffer = bytearray()
 
@@ -93,7 +94,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         self._polldevs = polldevs or dict()
 
     @property
-    def peer_name(self) -> Optional[str]:
+    def peer_name(self) -> str | None:
         return self.transport.get_extra_info("peername") if self.transport else None
 
     @property
@@ -101,7 +102,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         return bool(self._authenticated_as)
 
     @property
-    def user(self) -> Optional[str]:
+    def user(self) -> str | None:
         """Returns the username of the authenticated user"""
         return self._authenticated_as
 
@@ -120,7 +121,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         # No dispatcher wraps this, so flush the greeting explicitly.
         self._flush_response()
 
-    def connection_lost(self, exc: Optional[Exception]) -> None:
+    def connection_lost(self, exc: Exception | None) -> None:
         _logger.info("Client disconnected: %s", self.peer_name)
         if self.server:
             self.server.active_clients.remove(self)
@@ -211,7 +212,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
             self._flush_response()
             self._current_task = None
 
-    def _get_responder(self, message: str) -> tuple[Optional[Responder], List[str]]:
+    def _get_responder(self, message: str) -> tuple[Responder | None, list[str]]:
         matches = ((responder.pattern.match(message), responder) for responder in self._responders.values())
         matches = ((match, responder) for match, responder in matches if match)
         # for multiple matches, always match the longest command first:
@@ -252,7 +253,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
         if future is self._multiline_future:
             self._multiline_future = None
 
-    def _respond_ok(self, message: Optional[str] = "ok"):
+    def _respond_ok(self, message: str | None = "ok"):
         self._respond(200, message)
 
     def _respond_error(self, message: str):
@@ -268,7 +269,7 @@ class Zino1BaseServerProtocol(asyncio.Protocol):
 
     def _respond_raw(self, message: str):
         """Buffers a response line until the next `_flush_response` call."""
-        self._output_buffer.extend(f"{message}\r\n".encode("utf-8"))
+        self._output_buffer.extend(f"{message}\r\n".encode())
 
     def _flush_response(self):
         """Writes any buffered response bytes to the transport."""
@@ -302,7 +303,7 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         self.transport.close()
 
     async def do_help(self):
-        """Lists all available top-level API commands"""
+        """lists all available top-level API commands"""
         top_level_responders = self._get_top_level_responders()
         authorized_responders = (
             responder
@@ -331,7 +332,7 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         """
 
         @wraps(responder)
-        def _verify(self, case_id: Union[str, int], *args, **kwargs):
+        def _verify(self, case_id: str | int, *args, **kwargs):
             try:
                 case_id = int(case_id)
                 event = self._state.events[case_id]
@@ -477,7 +478,7 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         return self._respond_ok()
 
     @requires_authentication
-    async def do_pollintf(self, router_name: str, ifindex: Union[str, int]):
+    async def do_pollintf(self, router_name: str, ifindex: str | int):
         try:
             device = self._polldevs[router_name]
         except KeyError:
@@ -494,7 +495,7 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         return self._respond_ok()
 
     @requires_authentication
-    async def do_clearflap(self, router_name: str, ifindex: Union[str, int]):
+    async def do_clearflap(self, router_name: str, ifindex: str | int):
         """Clears the flapping state of an interface and its corresponding portstate event"""
         try:
             poll_device = self._polldevs[router_name]
@@ -515,7 +516,7 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         """
 
         @wraps(responder)
-        def _verify(self, pm_id: Union[str, int], *args, **kwargs):
+        def _verify(self, pm_id: str | int, *args, **kwargs):
             try:
                 pm_id = int(pm_id)
                 pm = self._state.planned_maintenances[pm_id]
@@ -538,7 +539,7 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
 
     @requires_authentication
     async def do_pm_help(self):
-        """Lists all available PM sub-commands"""
+        """lists all available PM sub-commands"""
         responders = (responder for name, responder in self._responders.items() if responder.name.startswith("PM "))
         commands = " ".join(sorted(responder.name.removeprefix("PM ") for responder in responders))
         self._respond_multiline(200, ["PM subcommands are:"] + textwrap.wrap(commands, width=56))
@@ -580,13 +581,13 @@ class Zino1ServerProtocol(Zino1BaseServerProtocol):
         self._respond(200, pm.details())
 
     @requires_authentication
-    async def do_pm_add(self, from_t: Union[str, int], to_t: Union[str, int], pm_type: str, m_type: str, *args: str):
+    async def do_pm_add(self, from_t: str | int, to_t: str | int, pm_type: str, m_type: str, *args: str):
         try:
-            start_time = datetime.fromtimestamp(int(from_t), tz=timezone.utc)
+            start_time = datetime.fromtimestamp(int(from_t), tz=UTC)
         except ValueError:
             return self._respond_error("illegal from_t (param 1), must be only digits")
         try:
-            end_time = datetime.fromtimestamp(int(to_t), tz=timezone.utc)
+            end_time = datetime.fromtimestamp(int(to_t), tz=UTC)
         except ValueError:
             return self._respond_error("illegal to_t (param 2), must be only digits")
         if end_time < start_time:

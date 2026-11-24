@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from zino.flaps import FlappingState
 from zino.state import ZinoState
@@ -27,7 +27,7 @@ def set_flapping_state(old_state: OldState, new_state: ZinoState):
 
 
 def _set_first_flap(linedata: LineData, state: ZinoState):
-    timestamp = datetime.fromtimestamp(int(linedata.value), tz=timezone.utc)
+    timestamp = datetime.fromtimestamp(int(linedata.value), tz=UTC)
     _get_flapping_state_for(linedata, state).first_flap = timestamp
 
 
@@ -49,12 +49,12 @@ def _set_flaps(linedata: LineData, state: ZinoState):
 
 
 def _set_last_flap(linedata: LineData, state: ZinoState):
-    timestamp = datetime.fromtimestamp(int(linedata.value), tz=timezone.utc)
+    timestamp = datetime.fromtimestamp(int(linedata.value), tz=UTC)
     _get_flapping_state_for(linedata, state).last_flap = timestamp
 
 
 def _set_last_age(linedata: LineData, state: ZinoState):
-    timestamp = datetime.fromtimestamp(int(linedata.value), tz=timezone.utc)
+    timestamp = datetime.fromtimestamp(int(linedata.value), tz=UTC)
     _get_flapping_state_for(linedata, state).last_age = timestamp
 
 

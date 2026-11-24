@@ -847,7 +847,7 @@ class TestZino1ServerProtocolPollrtrCommand:
             await authenticated_protocol.message_received(f"POLLRTR {router_name}")
 
         output = authenticated_protocol.transport.data_buffer.getvalue()
-        assert "200 ok\r\n".encode() in output
+        assert b"200 ok\r\n" in output
         assert mock_scheduler.add_job.called
 
     async def test_should_output_error_response_for_unknown_router(self, authenticated_protocol):
@@ -877,7 +877,7 @@ class TestZino1ServerProtocolPollintfCommand:
             await authenticated_protocol.message_received(f"POLLINTF {router_name} 1")
 
         output = authenticated_protocol.transport.data_buffer.getvalue()
-        assert "200 ok\r\n".encode() in output
+        assert b"200 ok\r\n" in output
         assert mock_schedule_verification.called
 
     async def test_should_output_error_response_for_unknown_router(self, authenticated_protocol):
@@ -901,7 +901,7 @@ class TestZino1ServerProtocolPollintfCommand:
         await authenticated_protocol.message_received(f"POLLINTF {router_name} foobar")
 
         output = authenticated_protocol.transport.data_buffer.getvalue()
-        assert "500 foobar is an invalid ifindex value".encode() in output
+        assert b"500 foobar is an invalid ifindex value" in output
 
 
 class TestZino1ServerProtocolClearflapCommand:
@@ -935,7 +935,7 @@ class TestZino1ServerProtocolClearflapCommand:
 
         # Assert
         output = authenticated_protocol.transport.data_buffer.getvalue()
-        assert "200 ".encode() in output
+        assert b"200 " in output
         updated_event = state.events.get(router_name, 1, PortStateEvent)
         assert updated_event
         assert updated_event.flapstate == FlapState.STABLE
@@ -962,7 +962,7 @@ class TestZino1ServerProtocolClearflapCommand:
         await authenticated_protocol.message_received(f"CLEARFLAP {router_name} foobar")
 
         output = authenticated_protocol.transport.data_buffer.getvalue()
-        assert "500 foobar is an invalid ifindex value".encode() in output
+        assert b"500 foobar is an invalid ifindex value" in output
 
 
 class TestZino1TestProtocol:
@@ -1405,7 +1405,7 @@ def authenticated_protocol(buffered_fake_transport) -> Zino1ServerProtocol:
 
 class TestDecodeData:
     def test_when_data_is_valid_utf8_it_should_decode_as_utf8(self):
-        data = "hello world".encode("utf-8")
+        data = b"hello world"
         assert decode_data(data) == "hello world"
 
     def test_when_data_is_valid_latin1_it_should_decode_as_latin1(self):
@@ -1413,7 +1413,7 @@ class TestDecodeData:
         assert decode_data(data) == "café"
 
     def test_when_data_contains_non_ascii_utf8_it_should_decode_correctly(self):
-        data = "æøå".encode("utf-8")
+        data = "æøå".encode()
         assert decode_data(data) == "æøå"
 
     def test_when_data_contains_non_ascii_latin1_it_should_decode_correctly(self):

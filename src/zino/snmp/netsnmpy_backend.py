@@ -6,7 +6,8 @@ import os
 import threading
 import weakref
 from collections import defaultdict
-from typing import Any, Optional, Sequence, Tuple, Union
+from collections.abc import Sequence
+from typing import Any
 
 from netsnmpy import netsnmp
 from netsnmpy.netsnmp import (
@@ -147,7 +148,7 @@ class SNMP:
         self._raise_varbind_errors(result)
         return MibObject(*result)
 
-    async def get2(self, *variables: Sequence[Union[str, int]]) -> list[SNMPVarBind]:
+    async def get2(self, *variables: Sequence[str | int]) -> list[SNMPVarBind]:
         """SNMP-GETs multiple variables
 
         Example usage:
@@ -322,7 +323,7 @@ class SNMP:
 
     async def _sparsewalk_iteration(
         self, roots: list[OID], query_objects: list[OID], results: dict[OID, dict[str, Any]], max_repetitions: int
-    ) -> Optional[list[OID]]:
+    ) -> list[OID] | None:
         """Performs a single iteration of a sparsewalk operation, updating the results dict with the response values.
         Returns the next set of OIDs to query.
         """
@@ -357,7 +358,7 @@ class SNMP:
         query_objects = [oid for oid, _ in last_complete_chunk if oid not in discards]
         return query_objects
 
-    def is_in_scope(self, entry: MibObject, oid: Tuple[str, str]):
+    def is_in_scope(self, entry: MibObject, oid: tuple[str, str]):
         """Returns if the given MibObject is within the subtree defined by the given OID"""
         root = resolve_symbol(oid)
         return root.is_a_prefix_of(entry.oid)
@@ -413,7 +414,7 @@ def _convert_snmp_variable(variable: SNMPVariable) -> SNMPVarBind:
     return Identifier(mib, obj, suffix), value
 
 
-def _split_symbol(symbol: str) -> Tuple[str, str, str]:
+def _split_symbol(symbol: str) -> tuple[str, str, str]:
     """Splits a MIB symbol string into its parts"""
     parts = symbol.split("::", maxsplit=1)
     if len(parts) == 2:

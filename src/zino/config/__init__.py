@@ -1,10 +1,10 @@
 import logging.config
 import re
 from difflib import get_close_matches
-from typing import Any, Optional, TypeVar
+from tomllib import TOMLDecodeError, load
+from typing import Any, TypeVar
 
 from pydantic import BaseModel, ValidationError
-from tomllib import TOMLDecodeError, load
 
 from .models import DEFAULT_LOGGING_CONFIG as DEFAULT_LOGGING_CONFIG
 from .models import Configuration
@@ -17,7 +17,7 @@ class InvalidConfigurationError(Exception):
 
 
 def read_configuration(
-    config_file_name: str, poll_file_name: Optional[str] = None, model: type[ConfigModel] = Configuration
+    config_file_name: str, poll_file_name: str | None = None, model: type[ConfigModel] = Configuration
 ) -> ConfigModel:
     """Reads and validates a config toml file.
 
@@ -136,7 +136,7 @@ def _format_type_error(detail: dict, err_type: str, dotted: str) -> str:
     return f"Configuration key '{dotted}' must be of type {wanted}, got {user_input!r}"
 
 
-def _resolve_model(model: type[BaseModel], path: tuple) -> Optional[type[BaseModel]]:
+def _resolve_model(model: type[BaseModel], path: tuple) -> type[BaseModel] | None:
     """Walk down ``path`` from ``model``, returning the BaseModel at the end.
 
     Returns None if the path encounters a non-BaseModel field. Optional/Union

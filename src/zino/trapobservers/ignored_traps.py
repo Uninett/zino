@@ -1,7 +1,6 @@
 """This module implements a trap observer to ignore spammy traps"""
 
 import logging
-from typing import Optional, Set
 
 from zino.trapd.base import TrapMessage, TrapObserver, TrapType
 
@@ -11,7 +10,7 @@ _logger = logging.getLogger(__name__)
 class IgnoreTraps(TrapObserver):
     """Completely ignores spammy traps observed in Uninett, that we don't care about"""
 
-    WANTED_TRAPS: Set[TrapType] = {
+    WANTED_TRAPS: set[TrapType] = {
         ("BGP4-MIB", "bgpBackwardTransition"),
         ("BGP4-MIB", "bgpBackwardTransNotification"),
         ("BGP4-V2-MIB-JUNIPER", "jnxBgpM2BackwardTransition"),
@@ -19,5 +18,5 @@ class IgnoreTraps(TrapObserver):
         ("CISCOTRAP-MIB", "tcpConnectionClose"),
     }
 
-    async def handle_trap(self, trap: TrapMessage) -> Optional[bool]:
+    async def handle_trap(self, trap: TrapMessage) -> bool | None:
         return False  # Stop processing here!

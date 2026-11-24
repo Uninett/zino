@@ -44,10 +44,10 @@ class OID(tuple):
         return SEPARATOR + SEPARATOR.join([str(i) for i in self])
 
     def __repr__(self):
-        return "OID(%s)" % repr(str(self))
+        return f"OID({repr(str(self))})"
 
     def __add__(self, other):
-        return OID(super(OID, self).__add__(OID(other)))
+        return OID(super().__add__(OID(other)))
 
     def is_a_prefix_of(self, other):
         """Returns True if this OID is a prefix of other"""

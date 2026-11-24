@@ -7,7 +7,8 @@ the server.
 
 import asyncio
 import logging
-from typing import TYPE_CHECKING, Any, Iterator, NamedTuple, Optional
+from collections.abc import Iterator
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 from zino.api import auth
 from zino.api.sockets import enable_keepalive
@@ -34,7 +35,7 @@ class Zino1NotificationProtocol(asyncio.Protocol):
 
     TIE_TIMEOUT_SECONDS = 30
 
-    def __init__(self, server: Optional["ZinoServer"] = None, state: Optional[ZinoState] = None):
+    def __init__(self, server: "ZinoServer | None" = None, state: ZinoState | None = None):
         """Initializes a protocol instance.
 
         :param server: An optional instance of `ZinoServer`.
@@ -42,15 +43,15 @@ class Zino1NotificationProtocol(asyncio.Protocol):
                       this protocol will create and work on an empty state object.
         """
         self.server = server
-        self.transport: Optional[asyncio.Transport] = None
-        self.nonce: Optional[str] = None
+        self.transport: asyncio.Transport | None = None
+        self.nonce: str | None = None
 
         self._state = state if state is not None else ZinoState()
-        self._tied_to: "Zino1ServerProtocol" = None
-        self._tie_timer: Optional[asyncio.TimerHandle] = None
+        self._tied_to: Zino1ServerProtocol = None
+        self._tie_timer: asyncio.TimerHandle | None = None
 
     @property
-    def peer_name(self) -> Optional[str]:
+    def peer_name(self) -> str | None:
         return self.transport.get_extra_info("peername") if self.transport else None
 
     def connection_made(self, transport: asyncio.Transport):
@@ -63,7 +64,7 @@ class Zino1NotificationProtocol(asyncio.Protocol):
         self._respond_raw(self.nonce)
         self._start_tie_timer()
 
-    def connection_lost(self, exc: Optional[Exception]) -> None:
+    def connection_lost(self, exc: Exception | None) -> None:
         _logger.info("Lost connection from %s: %s", self.peer_name, exc)
         if self._tie_timer:
             self._tie_timer.cancel()
@@ -93,7 +94,7 @@ class Zino1NotificationProtocol(asyncio.Protocol):
         self.transport.close()
 
     @property
-    def tied_to(self) -> Optional["Zino1ServerProtocol"]:
+    def tied_to(self) -> "Zino1ServerProtocol | None":
         return self._tied_to
 
     @tied_to.setter
@@ -111,11 +112,11 @@ class Zino1NotificationProtocol(asyncio.Protocol):
 
     def _respond_raw(self, message: str):
         """Encodes and sends a response line to the connected client"""
-        self.transport.write(f"{message}\r\n".encode("utf-8"))
+        self.transport.write(f"{message}\r\n".encode())
 
     @classmethod
     def build_and_send_notifications(
-        cls, server: "ZinoServer", new_event: Event, old_event: Optional[Event] = None
+        cls, server: "ZinoServer", new_event: Event, old_event: Event | None = None
     ) -> None:
         """Prepares and sends notifications for all changes between old_event and new_event to all connected and tied
         notification channels.
@@ -130,7 +131,7 @@ class Zino1NotificationProtocol(asyncio.Protocol):
 
     @classmethod
     def build_notifications(
-        cls, state: ZinoState, new_event: Event, old_event: Optional[Event] = None
+        cls, state: ZinoState, new_event: Event, old_event: Event | None = None
     ) -> Iterator[Notification]:
         """Generates a sequence of Notification objects from the changes detected between old_event and new_event.
 

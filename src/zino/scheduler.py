@@ -6,9 +6,9 @@ This module wires those parts to Zino's global state and tasks. Code meant for r
 
 import logging
 from asyncio import AbstractEventLoop
+from collections.abc import Sequence
 from functools import partial
 from pathlib import Path
-from typing import Optional, Sequence, Set, Tuple, Union
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
@@ -29,7 +29,7 @@ _log = logging.getLogger(__name__)
 _scheduler = None
 
 
-def get_scheduler(event_loop: Optional[AbstractEventLoop] = None) -> AsyncIOScheduler:
+def get_scheduler(event_loop: AbstractEventLoop | None = None) -> AsyncIOScheduler:
     """Returns the global scheduler, creating it on the first call.
 
     :param event_loop: The event loop to run jobs on. Only used by the call that creates the scheduler.
@@ -42,7 +42,7 @@ def get_scheduler(event_loop: Optional[AbstractEventLoop] = None) -> AsyncIOSche
 
 
 @log_time_spent()
-def load_polldevs(polldevs_conf: str) -> Tuple[Set, Set, Set, dict[str, str]]:
+def load_polldevs(polldevs_conf: str) -> tuple[set, set, set, dict[str, str]]:
     """Loads pollfile into process state if it was changed since the last time it
     was loaded
 
@@ -58,7 +58,7 @@ def load_polldevs(polldevs_conf: str) -> Tuple[Set, Set, Set, dict[str, str]]:
 
     if new_devices:
         _log.info("loaded new devices: %r", new_devices)
-        init_state_for_devices((devices[d] for d in new_devices))
+        init_state_for_devices(devices[d] for d in new_devices)
     if deleted_devices:
         _log.info("deleted devices: %r", deleted_devices)
     if changed_devices:
@@ -77,7 +77,7 @@ def load_polldevs(polldevs_conf: str) -> Tuple[Set, Set, Set, dict[str, str]]:
     return new_devices, deleted_devices, changed_devices, defaults
 
 
-def _get_pollfile_watcher(polldevs_conf: Union[str, Path]) -> PollfileWatcher:
+def _get_pollfile_watcher(polldevs_conf: str | Path) -> PollfileWatcher:
     """Returns the global pollfile watcher, replacing it if it watches a different file"""
     if state.pollfile_watcher is None or state.pollfile_watcher.path != Path(polldevs_conf):
         state.pollfile_watcher = PollfileWatcher(polldevs_conf)
